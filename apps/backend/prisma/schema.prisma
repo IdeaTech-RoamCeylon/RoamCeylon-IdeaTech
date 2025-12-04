@@ -22,3 +22,9 @@ model Vector {
   content   String?
   createdAt DateTime               @default(now())
 }
+
+model SystemMetadata {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
