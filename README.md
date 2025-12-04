@@ -5,30 +5,39 @@ This Turborepo starter is maintained by the Turborepo core team.
 ## Setup & Run
 
 ### 1. Infrastructure (Docker)
+
 Start Postgres and Redis:
+
 ```sh
 docker compose up -d
 ```
 
 ### 2. Backend App
+
 The backend is located in `apps/backend`.
 
 Install dependencies:
+
 ```sh
 npm install
 ```
 
 Start the backend in development mode:
+
 ```sh
 npm run start:dev --workspace=apps/backend
 ```
+
 Or using Turbo:
+
 ```sh
 npx turbo dev --filter=backend
 ```
 
 ### 3. Modules
+
 Modules are located in `apps/backend/src/modules`.
+
 - Auth
 - Users
 - AI Planner
