@@ -1,0 +1,1 @@
+-- Extensions are managed by Prisma
