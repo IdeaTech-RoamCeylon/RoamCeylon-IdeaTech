@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 10,
     paddingHorizontal: 15,
-    fontSize: 24,
+    fontSize: 20,
     marginBottom: 20,
     textAlign: 'center',
     letterSpacing: 10,
