@@ -1,0 +1,44 @@
+{
+  "tourism_samples": [
+    {
+      "title": "Sigiriya Rock Fortress",
+      "description": "Sigiriya, also known as the Lion Rock, is a UNESCO World Heritage Site featuring an ancient rock fortress, royal gardens, frescoes, and panoramic views of the central plains."
+    },
+    {
+      "title": "Ella",
+      "description": "Ella is a peaceful hill-country town known for scenic train rides, lush tea plantations, the iconic Nine Arch Bridge, and hiking trails such as Ella Rock and Little Adam’s Peak."
+    },
+    {
+      "title": "Galle Fort",
+      "description": "Galle Fort is a historic Dutch-built coastal fortress offering colonial architecture, museums, boutique shops, ocean views, and a charming blend of European and Sri Lankan culture."
+    },
+    {
+      "title": "Temple of the Tooth Relic",
+      "description": "The Temple of the Tooth in Kandy is one of the most sacred Buddhist temples, housing a revered relic of the Buddha and featuring traditional rituals and cultural ceremonies."
+    },
+    {
+      "title": "Yala National Park",
+      "description": "Yala National Park is Sri Lanka's most famous wildlife reserve, known for leopard sightings, elephants, crocodiles, and diverse bird species amid scenic dry-zone landscapes."
+    },
+    {
+      "title": "Nuwara Eliya",
+      "description": "Nuwara Eliya, often called Little England, is famous for its cool climate, colonial buildings, tea estates, lakes, and scenic viewpoints in the central highlands."
+    },
+    {
+      "title": "Mirissa Beach",
+      "description": "Mirissa is a tropical beach destination known for golden sands, clear waters, whale watching tours, snorkeling, and relaxed coastal atmosphere."
+    },
+    {
+      "title": "Anuradhapura Sacred City",
+      "description": "Anuradhapura features ancient stupas, royal palaces, monasteries, and the sacred Sri Maha Bodhi tree, making it one of Sri Lanka’s most significant historical cities."
+    },
+    {
+      "title": "Polonnaruwa Ancient City",
+      "description": "Polonnaruwa is a UNESCO World Heritage Site showcasing well-preserved temples, royal ruins, stone carvings, and the famous Gal Vihara Buddha statues."
+    },
+    {
+      "title": "Trincomalee",
+      "description": "Trincomalee is a coastal city known for pristine beaches, the historic Koneswaram Temple, Fort Frederick, and excellent diving and snorkeling spots around Pigeon Island."
+    }
+  ]
+}
