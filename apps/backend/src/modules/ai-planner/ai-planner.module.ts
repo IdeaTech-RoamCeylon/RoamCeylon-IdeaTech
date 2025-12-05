@@ -4,6 +4,6 @@ import { AiPlannerService } from './ai-planner.service';
 
 @Module({
   controllers: [AiPlannerController],
-  providers: [AiPlannerService]
+  providers: [AiPlannerService],
 })
 export class AiPlannerModule {}

@@ -8,7 +8,13 @@ import { TransportModule } from './modules/transport/transport.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, AiPlannerModule, TransportModule, MarketplaceModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    AiPlannerModule,
+    TransportModule,
+    MarketplaceModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
