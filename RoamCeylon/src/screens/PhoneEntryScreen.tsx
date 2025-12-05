@@ -19,7 +19,8 @@ const PhoneEntryScreen = () => {
 
       <TextInput
         style={styles.input}
-        placeholder="+94 XX XXX XXXX"
+        //implement country codes later
+        placeholder="+94 XX XXX XXXX" // for now default sri lanka country codes
         keyboardType="phone-pad"
         value={phoneNumber}
         onChangeText={setPhoneNumber}
