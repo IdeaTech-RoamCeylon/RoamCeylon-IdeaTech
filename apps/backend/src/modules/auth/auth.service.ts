@@ -2,20 +2,23 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
-    async sendOtp(phoneNumber: string) {
-        console.log(`Sending OTP to ${phoneNumber}`);
-        return { message: 'OTP sent successfully' };
-    }
+  sendOtp(phoneNumber: string): { message: string } {
+    console.log(`Sending OTP to ${phoneNumber}`);
+    return { message: 'OTP sent successfully' };
+  }
 
-    async verifyOtp(phoneNumber: string, otp: string) {
-        console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
-        // Mock JWT token
-        return {
-            accessToken: 'mock-jwt-token',
-            user: {
-                id: 'mock-user-id',
-                phoneNumber,
-            },
-        };
-    }
+  verifyOtp(
+    phoneNumber: string,
+    otp: string,
+  ): { accessToken: string; user: { id: string; phoneNumber: string } } {
+    console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
+    // Mock JWT token
+    return {
+      accessToken: 'mock-jwt-token',
+      user: {
+        id: 'mock-user-id',
+        phoneNumber,
+      },
+    };
+  }
 }

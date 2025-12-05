@@ -3,15 +3,18 @@ import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
-    @Post('send-otp')
-    async sendOtp(@Body('phoneNumber') phoneNumber: string) {
-        return this.authService.sendOtp(phoneNumber);
-    }
+  @Post('send-otp')
+  sendOtp(@Body('phoneNumber') phoneNumber: string): { message: string } {
+    return this.authService.sendOtp(phoneNumber);
+  }
 
-    @Post('verify-otp')
-    async verifyOtp(@Body('phoneNumber') phoneNumber: string, @Body('otp') otp: string) {
-        return this.authService.verifyOtp(phoneNumber, otp);
-    }
+  @Post('verify-otp')
+  verifyOtp(
+    @Body('phoneNumber') phoneNumber: string,
+    @Body('otp') otp: string,
+  ): { accessToken: string; user: { id: string; phoneNumber: string } } {
+    return this.authService.verifyOtp(phoneNumber, otp);
+  }
 }

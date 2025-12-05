@@ -1,1 +1,1 @@
-export class CreateMarketplaceDto { }
+export class CreateMarketplaceDto {}
