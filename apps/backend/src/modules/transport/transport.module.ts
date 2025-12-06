@@ -4,6 +4,6 @@ import { TransportService } from './transport.service';
 
 @Module({
   controllers: [TransportController],
-  providers: [TransportService]
+  providers: [TransportService],
 })
 export class TransportModule {}

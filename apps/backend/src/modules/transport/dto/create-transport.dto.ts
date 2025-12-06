@@ -1,1 +1,1 @@
-export class CreateTransportDto { }
+export class CreateTransportDto {}

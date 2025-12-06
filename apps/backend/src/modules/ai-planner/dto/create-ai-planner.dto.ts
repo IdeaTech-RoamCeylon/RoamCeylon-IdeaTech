@@ -1,1 +1,1 @@
-export class CreateAiPlannerDto { }
+export class CreateAiPlannerDto {}
