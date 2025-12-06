@@ -1,6 +1,3 @@
-
-
-export async function createEmbedding(text: string): Promise<number[] | null> {
- 
-  return null;
+export function createEmbedding(_text: string): Promise<number[] | null> {
+  return Promise.resolve(null);
 }
