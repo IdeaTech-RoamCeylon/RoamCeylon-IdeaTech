@@ -2,7 +2,9 @@
 // Make sure to add your Mapbox keys to .env file
 
 export const MAPBOX_CONFIG = {
-  // Add your Mapbox access token here or load from .env
+  // Load Mapbox access token from environment variable
+  // For development, add EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN to .env file
+  // For production, set via EAS Secrets or build environment
   accessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
   
   // Default map settings
