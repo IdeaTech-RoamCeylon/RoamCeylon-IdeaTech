@@ -5,9 +5,9 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export class EmbeddingService {
   constructor(private prisma: PrismaService) {}
 
-  async createEmbedding(text: string): Promise<number[]> {
+  createEmbedding(_text: string): Promise<number[]> {
     const mockVector = Array.from({ length: 1536 }, () => Math.random());
-    return mockVector;
+    return Promise.resolve(mockVector);
   }
 
   async storeEmbedding(text: string, vector: number[]) {
