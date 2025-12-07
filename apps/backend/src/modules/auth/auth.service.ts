@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-<<<<<<< HEAD
-export class AuthService {}
-=======
 export class AuthService {
   sendOtp(phoneNumber: string): { message: string } {
     console.log(`Sending OTP to ${phoneNumber}`);
@@ -25,4 +22,3 @@ export class AuthService {
     };
   }
 }
->>>>>>> eacf67e035f0add451dc4a8e2977c6226fd79296
