@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
 import { Client } from 'pg';
 import * as fs from 'fs';
 
@@ -13,7 +15,10 @@ interface TourismData {
 
 // 2️⃣ Read the sample dataset and cast to the correct type
 const data: TourismData = JSON.parse(
-  fs.readFileSync('apps/backend/src/modules/ai/data/sample-tourism.json', 'utf8'),
+  fs.readFileSync(
+    'apps/backend/src/modules/ai/data/sample-tourism.json',
+    'utf8',
+  ),
 );
 
 // 3️⃣ Function to generate a dummy vector of 1536 numbers
