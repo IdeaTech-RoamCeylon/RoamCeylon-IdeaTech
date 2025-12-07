@@ -20,6 +20,11 @@ jobs:
         
     - name: Install dependencies
       run: npm install
+
+    - name: Generate Prisma Client
+      run: npx prisma generate
+      working-directory: apps/backend
+
       
     - name: Lint
       run: npm run lint --workspace=apps/backend

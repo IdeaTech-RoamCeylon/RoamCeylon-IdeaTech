@@ -9,8 +9,23 @@ import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { AIModule } from './modules/ai/ai.module';
 
 @Module({
+<<<<<<< HEAD
   imports: [AuthModule, UsersModule, AiPlannerModule, TransportModule, MarketplaceModule, AIModule],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
+=======
+  imports: [
+    AuthModule,
+    UsersModule,
+    AiPlannerModule,
+    TransportModule,
+    MarketplaceModule,
+    AIModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+>>>>>>> eacf67e035f0add451dc4a8e2977c6226fd79296
