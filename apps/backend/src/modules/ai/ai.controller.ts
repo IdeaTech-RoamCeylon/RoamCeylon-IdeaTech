@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { AIService } from './ai.service';
 
 @Controller('ai')
@@ -8,5 +8,11 @@ export class AIController {
   @Get('health')
   health() {
     return this.aiService.health();
+  }
+
+  @Post('embeddings/seed')
+  // @UseGuards(AuthGuard)  // enable if needed
+  async seedEmbeddings() {
+    return this.aiService.seedEmbeddings();
   }
 }
