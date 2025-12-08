@@ -10,16 +10,17 @@ export class AiPlannerController {
     return 'AI Planner Module Operational';
   }
 
- @Post('seed')
- async seedDatabase() {
-   try {
-     await this.aiPlannerService.seedEmbeddingsFromAiPlanner();
-     return { message: 'Seeding completed successfully!' };
-   } catch (error: any) {
-     return { message: 'Seeding failed', error: error.message || 'Unknown error' };
-   }
- }
+  @Post('seed')
+  async seedDatabase() {
+    try {
+      await this.aiPlannerService.seedEmbeddingsFromAiPlanner();
+      return { message: 'Seeding completed successfully!' };
+    } catch (error) {
+      // FIX: Check if the error is actually an instance of Error before accessing .message
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
+      return { message: 'Seeding failed', error: errorMessage };
+    }
+  }
 }
-
-
