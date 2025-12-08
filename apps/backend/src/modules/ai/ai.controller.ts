@@ -1,12 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
-import { AIService } from './ai.service';
+import { Controller, Get, Query } from '@nestjs/common';
+import { EmbeddingService } from './embedding.service';
 
 @Controller('ai')
 export class AIController {
-  constructor(private readonly aiService: AIService) {}
+  constructor(private readonly embeddingService: EmbeddingService) {}
 
-  @Get('health')
-  health() {
-    return this.aiService.health();
+  @Get('search')
+  async search(@Query('query') query: string) {
+    return this.embeddingService.search(query);
   }
 }
