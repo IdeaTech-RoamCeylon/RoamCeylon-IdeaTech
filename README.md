@@ -12,6 +12,18 @@ Start Postgres and Redis:
 docker compose up -d
 ```
 
+### 1.1 Database Migrations
+
+Migrations are located in `apps/backend/prisma/migrations`.
+The `init.sql` script (referenced in `docker-compose.yml`) handles initial setup.
+
+To apply migrations manually (if needed):
+
+```sh
+# From apps/backend
+npx prisma migrate dev
+```
+
 ### 2. Backend App
 
 The backend is located in `apps/backend`.

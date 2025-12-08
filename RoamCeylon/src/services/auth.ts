@@ -19,6 +19,18 @@ export interface VerifyOTPResponse {
   };
 }
 
+export interface UserProfile {
+  id: string;
+  phoneNumber: string;
+  name?: string;
+  email?: string;
+  birthday?: string; // Format: YYYY-MM-DD or ISO date string
+  gender?: 'Male' | 'Female' | 'Other';
+  profilePicture?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Token management
 export const storeAuthToken = async (token: string): Promise<void> => {
   await SecureStore.setItemAsync('authToken', token);
@@ -67,6 +79,16 @@ export const verifyOtp = async (
     return response;
   } catch (error) {
     console.error('Verify OTP error:', error);
+    throw error;
+  }
+};
+
+export const getMe = async (): Promise<UserProfile> => {
+  try {
+    const response = await apiService.get<UserProfile>('/auth/me');
+    return response;
+  } catch (error) {
+    console.error('Get user profile error:', error);
     throw error;
   }
 };

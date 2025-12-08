@@ -19,4 +19,10 @@ describe('AppController', () => {
       expect(appController.getHealth()).toEqual({ status: 'ok' });
     });
   });
+
+  describe('auth', () => {
+    it('should return ok for send-otp', () => {
+      expect(appController.sendOtp()).toEqual({ ok: true });
+    });
+  });
 });

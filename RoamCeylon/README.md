@@ -65,7 +65,9 @@ RoamCeylon/
 │   │   ├── HomeScreen.tsx
 │   │   ├── ExploreScreen.tsx
 │   │   ├── MarketplaceScreen.tsx
-│   │   ├── TransportScreen.tsx
+│   │   ├── TransportScreen.tsx   # Includes MapScreen
+│   │   ├── MapScreen.tsx         # Mapbox integration with fallback
+│   │   └── ProfileScreen.tsx
 │   │   └── ProfileScreen.tsx
 │   │
 │   ├── services/                # API and business logic
@@ -245,6 +247,12 @@ timeout: 10000; // 10 seconds
 
 - `axios` - HTTP client
 - `expo-secure-store` - Secure token storage
+- `expo-constants` - Environment variable support
+
+### Maps & Location
+
+- `@rnmapbox/maps` - Mapbox SDK for interactive maps
+  - ⚠️ Requires custom native build (not available in Expo Go)
 
 ### Development
 
@@ -285,25 +293,129 @@ npm run format     # Format code with Prettier
 
 ### Main Screens
 
-| Screen          | Description    | Features                              |
-| --------------- | -------------- | ------------------------------------- |
-| **Home**        | Dashboard      | Quick access to all features          |
-| **Explore**     | Destinations   | Map view (Mapbox integration planned) |
-| **Marketplace** | Local products | Shopping experience                   |
-| **Transport**   | Ride booking   | Tuk-tuks, taxis, tours                |
-| **Profile**     | User settings  | Profile edit, logout                  |
+| Screen          | Description    | Features                            |
+| --------------- | -------------- | ----------------------------------- |
+| **Home**        | Dashboard      | Quick access to all features        |
+| **Explore**     | Destinations   | Browse tourist attractions          |
+| **Marketplace** | Local products | Shopping experience                 |
+| **Transport**   | Ride booking   | Interactive Mapbox map of Sri Lanka |
+| **Profile**     | User settings  | Profile edit, logout                |
+
+---
+
+## 🗺️ Mapbox Integration
+
+### Overview
+
+The app integrates **Mapbox** for interactive maps in the Transport screen. The implementation includes:
+
+- ✅ Interactive map of Sri Lanka
+- ✅ Custom center coordinates (7.8731°N, 80.7718°E)
+- ✅ Graceful fallback UI when Mapbox is unavailable
+- ✅ Environment-based configuration
+
+### Configuration
+
+**1. Environment Variable**
+
+Add your Mapbox access token to `.env`:
+
+```env
+EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_token_here
+```
+
+**2. Mapbox Config**
+
+Configuration is in `src/config/mapbox.config.ts`:
+
+```typescript
+export const MAPBOX_CONFIG = {
+  accessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
+  defaultStyle: 'mapbox://styles/mapbox/streets-v12',
+  defaultCenter: {
+    latitude: 7.8731, // Sri Lanka center
+    longitude: 80.7718,
+  },
+  defaultZoom: 7,
+};
+```
+
+### Important: Native Build Requirement
+
+⚠️ **Mapbox requires native code and will NOT work in Expo Go.**
+
+**In Expo Go:**
+
+- Shows placeholder UI with "Map Coming Soon" message
+- No crashes or errors
+- Graceful fallback behavior
+
+**In Custom Builds:**
+
+- Shows live interactive Mapbox map
+- Full map functionality (pan, zoom, markers)
+- Production-ready
+
+### Testing the Map
+
+**Option 1: EAS Build (Recommended - No Android Studio)**
+
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login to Expo
+eas login
+
+# Configure project
+eas build:configure
+
+# Build development APK
+eas build --profile development --platform android
+```
+
+Download the APK and install on your Android device to see the live map.
+
+**Option 2: Local Development Build**
+
+```bash
+# Android (requires Android Studio)
+npx expo run:android
+
+# iOS (requires Xcode, Mac only)
+npx expo run:ios
+```
+
+### Map Features
+
+- **Location**: Centered on Sri Lanka
+- **Style**: Streets view (customizable)
+- **Markers**: Default pin at Sri Lanka center
+- **Overlay**: "Sri Lanka - Explore the Island" info card
+- **Interactive**: Pan, zoom, rotate gestures
+
+### Getting a Mapbox Token
+
+1. Visit [mapbox.com](https://mapbox.com)
+2. Create a free account
+3. Go to Account → Tokens
+4. Create a new access token
+5. Add to `.env` file
+
+> **Production Note**: Create a separate production token before deploying
 
 ---
 
 ## 🚧 Future Enhancements
 
-- [ ] **Mapbox Integration** - Interactive maps in Explore screen
+- [x] **Mapbox Integration** - ✅ Implemented in Transport screen
 - [ ] **Real OTP** - Backend integration for SMS verification
 - [ ] **Push Notifications** - Booking confirmations, updates
 - [ ] **Offline Mode** - Cache data for offline access
 - [ ] **Payment Gateway** - Secure payment processing
 - [ ] **Multi-language** - Sinhala, Tamil, English support
 - [ ] **Dark Mode** - Theme switching
+- [ ] **Map Features** - Destination markers, route planning
 
 ---
 
@@ -354,6 +466,15 @@ npx expo start --port 8082
 - Use mobile (Expo Go/Android/iOS) instead
 - Web support has some React Native compatibility limitations
 
+**Mapbox shows placeholder instead of map**
+
+- Expected behavior in Expo Go (no native code support)
+- Build a custom development build to see the live map:
+  ```bash
+  eas build --profile development --platform android
+  ```
+- Or use local build: `npx expo run:android`
+
 ---
 
 ## 📚 Resources
@@ -396,6 +517,7 @@ npx expo start --port 8082
 - **Navigation**: React Navigation 6
 - **HTTP Client**: Axios
 - **Storage**: Expo SecureStore
+- **Maps**: Mapbox GL JS (via @rnmapbox/maps)
 
 ---
 
