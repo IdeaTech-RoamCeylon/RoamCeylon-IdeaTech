@@ -1,5 +1,3 @@
-name: CI
-
 on:
   push:
     branches: [ main ]
@@ -11,23 +9,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        
-    - name: Install dependencies
-      run: npm install
+      - uses: actions/checkout@v3
 
-    - name: Generate Prisma Client
-      run: npx prisma generate
-      working-directory: apps/backend
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      
-    - name: Lint
-      run: npm run lint --workspace=apps/backend
-      
-    - name: Build
-      run: npm run build --workspace=apps/backend
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        working-directory: apps/backend
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint --workspace=apps/backend
+
+      - name: Build
+        run: npm run build --workspace=apps/backend
