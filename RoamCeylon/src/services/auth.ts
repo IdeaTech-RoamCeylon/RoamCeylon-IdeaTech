@@ -63,17 +63,25 @@ export const verifyOtp = async (
   otp: string
 ): Promise<{ accessToken: string; user: { id: string; phoneNumber: string } }> => {
   try {
-    const response = await apiService.post<{ accessToken: string; user: { id: string; phoneNumber: string } }>('/auth/verify-otp', {
+    // Backend returns { token: "fake-jwt" } for mock
+    const response = await apiService.post<{ token: string }>('/auth/verify-otp', {
       phoneNumber,
       otp,
     });
 
     // Store token if verification successful
-    if (response.accessToken) {
-      await storeAuthToken(response.accessToken);
+    if (response.token) {
+      await storeAuthToken(response.token);
     }
 
-    return response;
+    // Return in expected format for compatibility
+    return {
+      accessToken: response.token,
+      user: {
+        id: 'mock-user-id',
+        phoneNumber,
+      },
+    };
   } catch (error) {
     console.error('Verify OTP error:', error);
     throw error;
