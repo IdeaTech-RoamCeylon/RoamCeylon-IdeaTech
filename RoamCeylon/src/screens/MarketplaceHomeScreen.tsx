@@ -1,17 +1,52 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStack';
+import marketplaceApi, { Category } from '../services/marketplaceApi';
 
 type MarketplaceNavigationProp = StackNavigationProp<MainStackParamList, 'Marketplace'>;
 
 const MarketplaceHomeScreen = () => {
   const navigation = useNavigation<MarketplaceNavigationProp>();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCategoryPress = (categoryName: string) => {
-    // Navigate to ProductDetails screen
-    navigation.navigate('ProductDetails', { productId: categoryName });
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await marketplaceApi.getCategories();
+      setCategories(data);
+    } catch (err) {
+      setError('Failed to load categories. Please try again.');
+      console.error('Error fetching categories:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCategoryPress = (category: Category) => {
+    // Navigate to ProductDetails screen with category ID
+    navigation.navigate('ProductDetails', { productId: category.id });
+  };
+
+  // Category icons mapping
+  const categoryIcons: Record<string, string> = {
+    'Electronics': '📱',
+    'Souvenirs': '🎁',
+    'Food': '🍽️',
+    'Textiles': '🧵',
+    'Tea & Coffee': '☕',
+    'Spices': '🌶️',
+    'Handicrafts': '🎨',
+    'Gemstones': '💎',
+    'Coconut Products': '🥥',
   };
 
   return (
@@ -22,50 +57,51 @@ const MarketplaceHomeScreen = () => {
       </View>
 
       <View style={styles.content}>
-        {/* Featured Categories */}
+        {/* Categories Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Shop by Category</Text>
-          <View style={styles.grid}>
-            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Textiles')}>
-              <Text style={styles.categoryIcon}>🧵</Text>
-              <Text style={styles.categoryName}>Textiles</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Tea & Coffee')}>
-              <Text style={styles.categoryIcon}>☕</Text>
-              <Text style={styles.categoryName}>Tea & Coffee</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Spices')}>
-              <Text style={styles.categoryIcon}>🌶️</Text>
-              <Text style={styles.categoryName}>Spices</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Handicrafts')}>
-              <Text style={styles.categoryIcon}>🎨</Text>
-              <Text style={styles.categoryName}>Handicrafts</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Gemstones')}>
-              <Text style={styles.categoryIcon}>💎</Text>
-              <Text style={styles.categoryName}>Gemstones</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Coconut Products')}>
-              <Text style={styles.categoryIcon}>🥥</Text>
-              <Text style={styles.categoryName}>Coconut Products</Text>
-            </TouchableOpacity>
-          </View>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FF6B35" />
+              <Text style={styles.loadingText}>Loading categories...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorIcon}>⚠️</Text>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchCategories}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.grid}>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={styles.categoryCard}
+                  onPress={() => handleCategoryPress(category)}
+                >
+                  <Text style={styles.categoryIcon}>
+                    {categoryIcons[category.name] || '📦'}
+                  </Text>
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Placeholder for products */}
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>🛍️</Text>
-          <Text style={styles.placeholderTitle}>Product Listings Coming Soon</Text>
-          <Text style={styles.placeholderSubtitle}>
-            Browse and shop for authentic Sri Lankan products from local artisans
-          </Text>
-        </View>
+        {!loading && !error && (
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderText}>🛍️</Text>
+            <Text style={styles.placeholderTitle}>Product Listings Coming Soon</Text>
+            <Text style={styles.placeholderSubtitle}>
+              Browse and shop for authentic Sri Lankan products from local artisans
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -156,6 +192,43 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: 15,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF6B35',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

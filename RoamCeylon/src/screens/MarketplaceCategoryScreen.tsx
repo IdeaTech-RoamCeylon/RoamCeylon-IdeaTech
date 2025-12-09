@@ -1,72 +1,133 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { MainStackParamList } from '../navigation/MainStack';
+import marketplaceApi, { Product } from '../services/marketplaceApi';
+
+type MarketplaceCategoryRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;
 
 const MarketplaceCategoryScreen = () => {
-  // Mock products for placeholder
-  const products = [
-    { id: 1, name: 'Ceylon Black Tea', price: 'Rs. 850', icon: '☕' },
-    { id: 2, name: 'Handwoven Basket', price: 'Rs. 1,200', icon: '🧺' },
-    { id: 3, name: 'Cinnamon Sticks', price: 'Rs. 450', icon: '🌿' },
-    { id: 4, name: 'Batik Sarong', price: 'Rs. 2,500', icon: '🧵' },
-    { id: 5, name: 'Clay Pottery', price: 'Rs. 900', icon: '🏺' },
-    { id: 6, name: 'Ceylon Sapphire', price: 'Rs. 15,000', icon: '💎' },
-  ];
+  const route = useRoute<MarketplaceCategoryRouteProp>();
+  const categoryId = route.params?.productId; // Using productId as category ID for now
+  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  useEffect(() => {
+    fetchProducts();
+  }, [categoryId]);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await marketplaceApi.getProducts(categoryId);
+      setProducts(data);
+    } catch (err) {
+      setError('Failed to load products. Please try again.');
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Product icons mapping
+  const productIcons: Record<string, string> = {
+    'Wooden Elephant': '🐘',
+    'Ceylon Tea': '☕',
+    'Ceylon Black Tea': '☕',
+    'Handwoven Basket': '🧺',
+    'Cinnamon Sticks': '🌿',
+    'Batik Sarong': '🧵',
+    'Clay Pottery': '🏺',
+    'Ceylon Sapphire': '💎',
+  };
+
+  const getCategoryName = () => {
+    // This would ideally come from navigation params or a category lookup
+    return 'Products';
+  };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.backButton}>← Back</Text>
-        <Text style={styles.title}>Handicrafts</Text>
-        <Text style={styles.subtitle}>Explore traditional Sri Lankan crafts</Text>
+        <Text style={styles.title}>{getCategoryName()}</Text>
+        <Text style={styles.subtitle}>Explore authentic Sri Lankan products</Text>
       </View>
 
       {/* Filters */}
       <View style={styles.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity style={[styles.filterChip, styles.filterChipActive]}>
-            <Text style={[styles.filterText, styles.filterTextActive]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterChip}>
-            <Text style={styles.filterText}>Traditional</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterChip}>
-            <Text style={styles.filterText}>Modern</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterChip}>
-            <Text style={styles.filterText}>Best Sellers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterChip}>
-            <Text style={styles.filterText}>New Arrivals</Text>
-          </TouchableOpacity>
+          {['All', 'Traditional', 'Modern', 'Best Sellers', 'New Arrivals'].map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
       {/* Product Grid */}
       <View style={styles.content}>
-        <View style={styles.grid}>
-          {products.map((product) => (
-            <TouchableOpacity key={product.id} style={styles.productCard}>
-              <View style={styles.productImagePlaceholder}>
-                <Text style={styles.productIcon}>{product.icon}</Text>
-              </View>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productPrice}>{product.price}</Text>
-              <View style={styles.ratingContainer}>
-                <Text style={styles.starIcon}>⭐</Text>
-                <Text style={styles.ratingText}>4.8 (24)</Text>
-              </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF6B35" />
+            <Text style={styles.loadingText}>Loading products...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
+              <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+        ) : products.length > 0 ? (
+          <>
+            <View style={styles.grid}>
+              {products.map((product) => (
+                <TouchableOpacity key={product.id} style={styles.productCard}>
+                  <View style={styles.productImagePlaceholder}>
+                    <Text style={styles.productIcon}>
+                      {productIcons[product.name] || '🛍️'}
+                    </Text>
+                  </View>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productPrice}>Rs. {product.price.toFixed(2)}</Text>
+                  <View style={styles.ratingContainer}>
+                    <Text style={styles.starIcon}>⭐</Text>
+                    <Text style={styles.ratingText}>4.8 (24)</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        {/* Placeholder notice */}
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>🎨</Text>
-          <Text style={styles.placeholderTitle}>Placeholder Products</Text>
-          <Text style={styles.placeholderSubtitle}>
-            These are sample placeholders. Real products will load here.
-          </Text>
-        </View>
+            {/* Placeholder notice */}
+            <View style={styles.placeholder}>
+              <Text style={styles.placeholderText}>🎨</Text>
+              <Text style={styles.placeholderTitle}>Mock Data Display</Text>
+              <Text style={styles.placeholderSubtitle}>
+                Showing products from the backend API.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>No Products Found</Text>
+            <Text style={styles.emptySubtitle}>
+              There are no products available in this category yet.
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -205,6 +266,65 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: 15,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF6B35',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    backgroundColor: '#fff',
+    padding: 40,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
