@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { MainStackParamList } from '../navigation/MainStack';
+
+type ProductDetailsNavigationProp = StackNavigationProp<MainStackParamList, 'ProductDetails'>;
+type ProductDetailsRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;
 
 const ProductDetailsScreen = () => {
+  const navigation = useNavigation<ProductDetailsNavigationProp>();
+  const route = useRoute<ProductDetailsRouteProp>();
+  const productId = route.params?.productId;
+
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('Medium');
 
@@ -11,7 +21,7 @@ const ProductDetailsScreen = () => {
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <TouchableOpacity>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Logger } from '@nestjs/common';
 import { AIService, EmbeddingRow } from './ai.service';
 
 /** Updated interface to match the actual data structure */
@@ -11,10 +11,13 @@ interface SearchResultItem {
 
 @Controller('ai')
 export class AIController {
+  private readonly logger = new Logger(AIController.name);
+
   constructor(private readonly aiService: AIService) {}
 
   @Get('health')
   health() {
+    this.logger.log('AI health check triggered');
     return this.aiService.health();
   }
 

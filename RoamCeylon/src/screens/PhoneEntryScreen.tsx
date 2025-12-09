@@ -1,15 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { sendOtp } from '../services/auth';
+
+type AuthStackParamList = {
+  PhoneEntry: undefined;
+  OTP: { phoneNumber: string };
+  ProfileSetup: undefined;
+};
 
 const PhoneEntryScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSendOTP = () => {
-    // Placeholder - will integrate with sendOtp service later
-    console.log('Sending OTP to:', phoneNumber);
-    navigation.navigate('OTP' as never);
+  const handleSendOTP = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await sendOtp(phoneNumber);
+      console.log('OTP sent successfully to:', phoneNumber);
+      navigation.navigate('OTP', { phoneNumber });
+    } catch (error: any) {
+      console.error('Failed to send OTP:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to send OTP. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,10 +48,19 @@ const PhoneEntryScreen = () => {
         keyboardType="phone-pad"
         value={phoneNumber}
         onChangeText={setPhoneNumber}
+        editable={!loading}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSendOTP}>
-        <Text style={styles.buttonText}>Send OTP</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleSendOTP}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Send OTP</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -69,6 +102,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     width: '100%',
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
