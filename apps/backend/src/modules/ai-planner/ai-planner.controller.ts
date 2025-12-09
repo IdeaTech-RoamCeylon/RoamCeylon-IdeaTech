@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query, Logger } from '@nestjs/common';
 import { AiPlannerService } from './ai-planner.service';
 
 // Type definition for items stored in the database
@@ -11,17 +11,20 @@ interface EmbeddingItem {
 
 @Controller('ai')
 export class AiPlannerController {
+  private readonly logger = new Logger(AiPlannerController.name);
   constructor(private readonly aiPlannerService: AiPlannerService) {}
 
   // ------------------- HEALTH CHECK -------------------
   @Get('health')
   getHealth(): { message: string } {
+    this.logger.log('AI Planner health check triggered');
     return { message: 'AI Planner Module Operational' };
   }
 
   // ------------------- SEED DATABASE -------------------
   @Post('seed')
-  async seedDatabase(): Promise<{ message: string; error?: string }> {
+  async seedDatabase() {
+    this.logger.log('AI Planner seed database triggered');
     try {
       await this.aiPlannerService.seedEmbeddingsFromAiPlanner();
       return { message: 'Seeding completed successfully!' };
