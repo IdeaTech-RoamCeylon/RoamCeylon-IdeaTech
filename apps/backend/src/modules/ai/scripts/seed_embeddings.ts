@@ -16,7 +16,7 @@ interface TourismData {
 // 2️⃣ Read the sample dataset and cast to the correct type
 const data: TourismData = JSON.parse(
   fs.readFileSync(
-    'apps/backend/src/modules/ai/data/sample-tourism.json',
+    './src/modules/ai-planner/data/sample-tourism.json',
     'utf8',
   ),
 );
@@ -46,7 +46,7 @@ async function seed() {
     const vectorString = '[' + embedding.join(',') + ']';
 
     await client.query(
-      'INSERT INTO embeddings (text, embedding) VALUES ($1, $2)',
+      'INSERT INTO embeddings (content, embedding) VALUES ($1, $2::vector)',
       [text, vectorString],
     );
 
