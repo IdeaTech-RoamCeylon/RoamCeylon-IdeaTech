@@ -5,10 +5,8 @@ import { AiPlannerController } from './ai-planner.controller';
 import { EmbeddingService } from './services/embedding.service';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true })
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true })],
   controllers: [AiPlannerController],
-  providers: [AiPlannerService, EmbeddingService]
+  providers: [AiPlannerService, EmbeddingService],
 })
 export class AiPlannerModule {}
