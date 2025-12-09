@@ -41,7 +41,7 @@ export class AiPlannerController {
 
     // Score with cosine similarity
     const scored = items.map((item) => ({
-      id: item.item_id,
+      id: item.id,
       title: item.title,
       content: item.content,
       score: this.aiPlannerService.cosineSimilarity(

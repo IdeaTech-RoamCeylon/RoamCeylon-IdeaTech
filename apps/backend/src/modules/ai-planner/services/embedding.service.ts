@@ -33,10 +33,10 @@ export class EmbeddingService {
       const dataset = tourismData.tourism_samples;
 
       for (const item of dataset) {
-        // Generate 1536-dim embedding (match DB VECTOR column)
+        // Generate 1536-dim embedding
         const embedding = this.generateDummyEmbedding(item.description, 1536);
 
-        // Convert JS array to string literal PostgreSQL expects
+        // Convert JS array to PostgreSQL vector literal
         const vectorLiteral = `[${embedding.join(',')}]`;
 
         await client.query(
@@ -61,8 +61,16 @@ export class EmbeddingService {
 
     try {
       await client.connect();
-      const result = await client.query(`SELECT * FROM embeddings`);
-      return result.rows;
+      const result = await client.query(
+        `SELECT id, title, content, embedding FROM embeddings`,
+      );
+
+      return result.rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        embedding: JSON.parse(row.embedding), // parse vector string into array
+      }));
     } finally {
       await client.end();
     }
