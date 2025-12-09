@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
-import tourismData from './data/sample-tourism.json';
 
 export interface EmbeddingRow {
   id: number;
@@ -47,24 +46,30 @@ export class AIService implements OnModuleInit, OnModuleDestroy {
   // Dummy embedding generator for demonstration
   generateDummyEmbedding(query: string, dim: number): number[] {
     // Replace with actual embedding logic
-    return Array(dim).fill(0).map((_, i) => Math.random());
+    return Array(dim)
+      .fill(0)
+      .map(() => Math.random());
   }
 
   // Parse DB row from search result
-  parseDbRowFromSearch(row: any): EmbeddingRow | null {
+  parseDbRowFromSearch(row: unknown): EmbeddingRow | null {
     if (!row || typeof row !== 'object') return null;
+    const r = row as Record<string, unknown>;
     return {
-      id: row.id,
-      text: row.text,
+      id: typeof r.id === 'number' ? r.id : 0,
+      text: typeof r.text === 'string' ? r.text : '',
       embedding: [],
-      createdAt: row.created_at,
+      createdAt: typeof r.created_at === 'string' ? r.created_at : undefined,
     };
   }
 
   /**
    * Search embeddings by similarity using a provided embedding
    */
-  async searchEmbeddingsWithMetadataFromEmbedding(embedding: number[], limit = 10): Promise<SearchResultDto[]> {
+  async searchEmbeddingsWithMetadataFromEmbedding(
+    embedding: number[],
+    limit = 10,
+  ): Promise<SearchResultDto[]> {
     try {
       if (!this.isConnected) {
         throw new Error('Database not connected');

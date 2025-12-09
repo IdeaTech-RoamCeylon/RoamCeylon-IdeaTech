@@ -11,7 +11,7 @@ export class EmbeddingService {
    * Create a deterministic dummy embedding for testing (no external API).
    * Returns a number[] of length dim.
    */
-  async generateDummyEmbedding(text: string, dim = 1536): Promise<number[]> {
+  generateDummyEmbedding(text: string, dim = 1536): number[] {
     if (!text) {
       const emptyVec: number[] = [];
       for (let i = 0; i < dim; i++) {

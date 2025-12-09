@@ -21,11 +21,15 @@ export class AIController {
 
     // Step 1: Generate embedding from text
     this.logger.log('Generating embedding for query...');
-    const embedding = await this.embeddingService.generateDummyEmbedding(query, 1536);
+    const embedding = this.embeddingService.generateDummyEmbedding(query, 1536);
 
     // Step 2: Search using embedding
     this.logger.log('Searching embeddings...');
-    const results = await this.aiService.searchEmbeddingsWithMetadataFromEmbedding(embedding, lim);
+    const results =
+      await this.aiService.searchEmbeddingsWithMetadataFromEmbedding(
+        embedding,
+        lim,
+      );
 
     this.logger.log(`Returning ${results.length} results`);
     return results;

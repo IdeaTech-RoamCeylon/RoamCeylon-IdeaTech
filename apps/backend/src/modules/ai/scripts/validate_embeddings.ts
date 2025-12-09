@@ -14,31 +14,35 @@ async function validateEmbeddings() {
   await client.connect();
 
   // Cast embedding to text so we always get a string
-  const res = await client.query('SELECT id, embedding::text AS embedding FROM embeddings');
+  const res = await client.query(
+    'SELECT id, embedding::text AS embedding FROM embeddings',
+  );
   let allValid = true;
 
   for (const row of res.rows) {
+    const rowData = row as { id: number; embedding: string };
     let vector: number[] | null = null;
     try {
       // Remove brackets and split by comma, then convert to numbers
-      vector = row.embedding
+      const embeddingStr = String(rowData.embedding);
+      vector = embeddingStr
         .replace(/^\[|\]$/g, '') // remove leading/trailing brackets
         .split(',')
-        .map(v => Number(v.trim()));
+        .map((v: string) => Number(v.trim()));
     } catch {
       vector = null;
     }
     if (!Array.isArray(vector)) {
-      console.error(`Row ${row.id}: Not an array`);
+      console.error(`Row ${rowData.id}: Not an array`);
       allValid = false;
       continue;
     }
     if (vector.length !== EXPECTED_DIM) {
-      console.error(`Row ${row.id}: Wrong length (${vector.length})`);
+      console.error(`Row ${rowData.id}: Wrong length (${vector.length})`);
       allValid = false;
     }
-    if (!vector.every(v => typeof v === 'number' && !isNaN(v))) {
-      console.error(`Row ${row.id}: Non-numeric value detected`);
+    if (!vector.every((v) => typeof v === 'number' && !isNaN(v))) {
+      console.error(`Row ${rowData.id}: Non-numeric value detected`);
       allValid = false;
     }
   }
@@ -52,4 +56,4 @@ async function validateEmbeddings() {
   await client.end();
 }
 
-validateEmbeddings();
+void validateEmbeddings();
