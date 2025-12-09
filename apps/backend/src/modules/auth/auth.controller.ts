@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('send-otp')
   sendOtp(@Body('phoneNumber') phoneNumber: string): { message: string } {

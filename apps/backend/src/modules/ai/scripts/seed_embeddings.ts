@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import { Client } from 'pg';
 import * as fs from 'fs';
@@ -15,10 +15,7 @@ interface TourismData {
 
 // 2️⃣ Read the sample dataset and cast to the correct type
 const data: TourismData = JSON.parse(
-  fs.readFileSync(
-    'apps/backend/src/modules/ai/data/sample-tourism.json',
-    'utf8',
-  ),
+  fs.readFileSync('./src/modules/ai-planner/data/sample-tourism.json', 'utf8'),
 );
 
 // 3️⃣ Function to generate a dummy vector of 1536 numbers
@@ -46,7 +43,7 @@ async function seed() {
     const vectorString = '[' + embedding.join(',') + ']';
 
     await client.query(
-      'INSERT INTO embeddings (text, embedding) VALUES ($1, $2)',
+      'INSERT INTO embeddings (content, embedding) VALUES ($1, $2::vector)',
       [text, vectorString],
     );
 
