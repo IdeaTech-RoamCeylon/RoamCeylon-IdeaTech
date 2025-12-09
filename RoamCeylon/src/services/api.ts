@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // Base API configuration
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.roamceylon.com';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 class ApiService {
   private client: AxiosInstance;
@@ -23,19 +23,34 @@ class ApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
         return config;
       },
-      error => Promise.reject(error)
+      error => {
+        console.error('API Request Error:', error);
+        return Promise.reject(error);
+      }
     );
 
     // Response interceptor - handle errors
     this.client.interceptors.response.use(
-      response => response,
+      response => {
+        console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
+        return response;
+      },
       async error => {
+        console.error('API Error:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data,
+        });
+
         if (error.response?.status === 401) {
           // Token expired or invalid - handle logout
           await SecureStore.deleteItemAsync('authToken');
-          // Navigate to login screen (implement later)
+          console.log('Token cleared due to 401 error');
         }
         return Promise.reject(error);
       }

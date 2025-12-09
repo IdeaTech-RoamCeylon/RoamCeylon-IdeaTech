@@ -28,3 +28,19 @@ model SystemMetadata {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+model DriverLocation {
+  id        Int                    @id @default(autoincrement())
+  driverId  String
+  location  Unsupported("geometry(Point, 4326)")
+  updatedAt DateTime               @updatedAt
+}
+
+model RideRequest {
+  id             Int                    @id @default(autoincrement())
+  passengerId    String
+  pickupLocation Unsupported("geometry(Point, 4326)")
+  destination    Unsupported("geometry(Point, 4326)")
+  status         String
+  createdAt      DateTime               @default(now())
+}
