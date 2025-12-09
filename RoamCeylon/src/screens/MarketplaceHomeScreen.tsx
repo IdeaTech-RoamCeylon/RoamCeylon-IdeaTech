@@ -1,9 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { MainStackParamList } from '../navigation/MainStack';
+
+type MarketplaceNavigationProp = StackNavigationProp<MainStackParamList, 'Marketplace'>;
 
 const MarketplaceHomeScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<MarketplaceNavigationProp>();
+
+  const handleCategoryPress = (categoryName: string) => {
+    // Navigate to ProductDetails screen
+    navigation.navigate('ProductDetails', { productId: categoryName });
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -17,32 +26,32 @@ const MarketplaceHomeScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Shop by Category</Text>
           <View style={styles.grid}>
-            <TouchableOpacity style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Textiles')}>
               <Text style={styles.categoryIcon}>🧵</Text>
               <Text style={styles.categoryName}>Textiles</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Tea & Coffee')}>
               <Text style={styles.categoryIcon}>☕</Text>
               <Text style={styles.categoryName}>Tea & Coffee</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Spices')}>
               <Text style={styles.categoryIcon}>🌶️</Text>
               <Text style={styles.categoryName}>Spices</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Handicrafts')}>
               <Text style={styles.categoryIcon}>🎨</Text>
               <Text style={styles.categoryName}>Handicrafts</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Gemstones')}>
               <Text style={styles.categoryIcon}>💎</Text>
               <Text style={styles.categoryName}>Gemstones</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress('Coconut Products')}>
               <Text style={styles.categoryIcon}>🥥</Text>
               <Text style={styles.categoryName}>Coconut Products</Text>
             </TouchableOpacity>
