@@ -32,8 +32,11 @@ const MarketplaceHomeScreen = () => {
   };
 
   const handleCategoryPress = (category: Category) => {
-    // Navigate to ProductDetails screen with category ID
-    navigation.navigate('ProductDetails', { productId: category.id });
+    // Navigate to MarketplaceCategory screen with category details
+    navigation.navigate('MarketplaceCategory', { 
+      categoryId: category.id,
+      categoryName: category.name 
+    });
   };
 
   // Category icons mapping
