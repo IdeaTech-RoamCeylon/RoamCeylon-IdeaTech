@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStack';
 import marketplaceApi, { Product } from '../services/marketplaceApi';
 
-type MarketplaceCategoryRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;
+type MarketplaceCategoryRouteProp = RouteProp<MainStackParamList, 'MarketplaceCategory'>;
+type MarketplaceCategoryNavigationProp = StackNavigationProp<MainStackParamList, 'MarketplaceCategory'>;
 
 const MarketplaceCategoryScreen = () => {
   const route = useRoute<MarketplaceCategoryRouteProp>();
-  const categoryId = route.params?.productId; // Using productId as category ID for now
+  const navigation = useNavigation<MarketplaceCategoryNavigationProp>();
+  const { categoryId, categoryName } = route.params;
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +36,10 @@ const MarketplaceCategoryScreen = () => {
     }
   };
 
+  const handleProductPress = (product: Product) => {
+    navigation.navigate('ProductDetails', { productId: product.id });
+  };
+
   // Product icons mapping
   const productIcons: Record<string, string> = {
     'Wooden Elephant': '🐘',
@@ -45,16 +52,13 @@ const MarketplaceCategoryScreen = () => {
     'Ceylon Sapphire': '💎',
   };
 
-  const getCategoryName = () => {
-    // This would ideally come from navigation params or a category lookup
-    return 'Products';
-  };
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.backButton}>← Back</Text>
-        <Text style={styles.title}>{getCategoryName()}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>{categoryName}</Text>
         <Text style={styles.subtitle}>Explore authentic Sri Lankan products</Text>
       </View>
 
@@ -94,7 +98,11 @@ const MarketplaceCategoryScreen = () => {
           <>
             <View style={styles.grid}>
               {products.map((product) => (
-                <TouchableOpacity key={product.id} style={styles.productCard}>
+                <TouchableOpacity 
+                  key={product.id} 
+                  style={styles.productCard}
+                  onPress={() => handleProductPress(product)}
+                >
                   <View style={styles.productImagePlaceholder}>
                     <Text style={styles.productIcon}>
                       {productIcons[product.name] || '🛍️'}

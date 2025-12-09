@@ -17,9 +17,22 @@ const Navigation = () => {
 
   return (
     <NavigationContainer>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Navigator 
+        screenOptions={{ 
+          headerShown: false,
+          // Prevent back button from exiting app unexpectedly
+          gestureEnabled: true,
+        }}
+      >
         {!isAuthenticated ? (
-          <RootStack.Screen name="Auth" component={AuthStack} />
+          <RootStack.Screen 
+            name="Auth" 
+            component={AuthStack}
+            options={{
+              // Auth stack shouldn't be in history after authentication
+              animationTypeForReplace: isAuthenticated ? 'pop' : 'push',
+            }}
+          />
         ) : (
           <RootStack.Screen name="Main" component={MainStack} />
         )}
