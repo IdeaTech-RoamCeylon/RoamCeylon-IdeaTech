@@ -13,13 +13,8 @@ export class EmbeddingService {
    */
   generateDummyEmbedding(text: string, dim = 1536): number[] {
     if (!text) {
-      const emptyVec: number[] = [];
-      for (let i = 0; i < dim; i++) {
-        emptyVec.push(0);
-      }
-      return emptyVec;
+      return new Array<number>(dim).fill(0);
     }
-
     const vec: number[] = [];
     for (let i = 0; i < dim; i++) {
       const code = text.charCodeAt(i % text.length);
