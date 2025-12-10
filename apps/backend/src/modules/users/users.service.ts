@@ -5,8 +5,9 @@ export class UsersService {
   getMe() {
     return {
       id: 'mock-user-id',
-      email: 'user@example.com',
+      phoneNumber: '+94771234567',
       name: 'Mock User',
+      email: 'user@example.com',
     };
   }
 }

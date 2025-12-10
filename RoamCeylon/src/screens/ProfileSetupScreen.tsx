@@ -21,15 +21,20 @@ const ProfileSetupScreen = () => {
       const updatedUser = {
         ...user,
         id: user?.id || 'user-123',
-        phoneNumber: user?.phoneNumber || '',
+        // Only include phoneNumber if it exists, don't overwrite with empty string
+        ...(user?.phoneNumber && { phoneNumber: user.phoneNumber }),
         name: name.trim(),
         email: email.trim(),
       };
+      
+      console.log('Updating user profile with:', updatedUser);
       
       // This will update user and immediately set isProfileComplete to true
       updateUserProfile(updatedUser);
       
       // Navigation will happen automatically via RootNavigator when isProfileComplete becomes true
+      // Note: We don't call refreshUser() here as it causes navigation flickering
+      // The backend will be synced on next app load
     } catch (error) {
       console.error('Profile setup error:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');

@@ -21,7 +21,7 @@ export interface VerifyOTPResponse {
 
 export interface UserProfile {
   id: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   name?: string;
   email?: string;
   birthday?: string; // Format: YYYY-MM-DD or ISO date string
