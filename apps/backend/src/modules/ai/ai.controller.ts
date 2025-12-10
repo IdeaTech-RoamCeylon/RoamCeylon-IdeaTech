@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Logger } from '@nestjs/common';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -14,6 +14,14 @@ export interface SearchResponseDto {
   }[];
 }
 
+// Type definition for items stored in the database
+interface EmbeddingItem {
+  id: string;
+  title: string;
+  content: string;
+  embedding: number[];
+}
+
 @Controller('ai')
 export class AIController {
   private readonly logger = new Logger(AIController.name);
@@ -23,6 +31,14 @@ export class AIController {
     private readonly searchService: SearchService,
   ) {}
 
+  // ------------------- HEALTH CHECK -------------------
+  @Get('health')
+  getHealth(): { message: string } {
+    this.logger.log('AI Planner health check triggered');
+    return { message: 'AI Planner Module Operational' };
+  }
+
+  // ------------------- SEARCH -------------------
   @Get('search')
   async search(
     @Query('q') query: string,
@@ -53,6 +69,7 @@ export class AIController {
     };
   }
 
+  // ------------------- DEBUG EMBEDDING -------------------
   @Get('debug/embedding')
   debugEmbedding(@Query('text') text: string) {
     this.logger.log(`Debug embedding requested for text: "${text}"`);
