@@ -16,6 +16,10 @@ const ProfileSetupScreen = () => {
 
     setLoading(true);
     try {
+      console.log('=== ProfileSetup: Starting ===');
+      console.log('Current user object:', JSON.stringify(user, null, 2));
+      console.log('User phone number:', user?.phoneNumber);
+      
       // TODO: Call backend API to update profile once endpoint is created
       // For now, update local state which will trigger isProfileComplete
       const updatedUser = {
@@ -27,7 +31,7 @@ const ProfileSetupScreen = () => {
         email: email.trim(),
       };
       
-      console.log('Updating user profile with:', updatedUser);
+      console.log('Updated user object:', JSON.stringify(updatedUser, null, 2));
       
       // This will update user and immediately set isProfileComplete to true
       updateUserProfile(updatedUser);

@@ -39,6 +39,10 @@ const ProfileScreen = () => {
     );
   }
 
+  console.log('=== ProfileScreen Render ===');
+  console.log('User object:', JSON.stringify(user, null, 2));
+  console.log('Phone number:', user?.phoneNumber);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
