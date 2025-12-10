@@ -44,13 +44,16 @@ export class AIController {
       return { error: 'Query parameter "query" is required' };
     }
 
+    // Explicitly typed query vector
     const queryVector: number[] = this.aiService.generateDummyEmbedding(
       query,
       1536,
     );
 
+    // Fetch all embeddings with proper type
     const items: EmbeddingItem[] = await this.aiService.getAllEmbeddings();
 
+    // Score items using cosine similarity
     const scored = items.map((item: EmbeddingItem) => ({
       id: item.id,
       title: item.title,
@@ -58,6 +61,7 @@ export class AIController {
       score: this.aiService.cosineSimilarity(queryVector, item.embedding),
     }));
 
+    // Return top 5 results
     return {
       query,
       results: scored.sort((a, b) => b.score - a.score).slice(0, 5),
