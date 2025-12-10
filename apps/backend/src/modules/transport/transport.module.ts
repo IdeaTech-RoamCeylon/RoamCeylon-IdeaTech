@@ -7,4 +7,4 @@ import { TransportGateway } from './transport.gateway';
   controllers: [TransportController],
   providers: [TransportService, TransportGateway],
 })
-export class TransportModule { }
+export class TransportModule {}

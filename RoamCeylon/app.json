@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby places and help you plan your journey around Sri Lanka.",
+        "NSLocationAlwaysUsageDescription": "This app uses your location to provide better travel recommendations even when the app is in the background."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +25,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "package": "com.anonymous.RoamCeylon"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +42,7 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken": "sk.ey...",
+          "RNMapboxMapsDownloadToken": "sk.eyJ1Ijoic29lc2gtY29vcmF5IiwiYSI6ImNtaXlrZ2xqYTBlZWEzZHNrMzVoYzBndmkifQ.dyng-Fd67bWctiWRDPIZGg",
           "RNMapboxMapsImpl": "mapbox"
         }
       ]

@@ -1,21 +1,54 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { verifyOtp } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
+
+type AuthStackParamList = {
+  PhoneEntry: undefined;
+  OTP: { phoneNumber: string };
+  ProfileSetup: undefined;
+};
+
+type OTPScreenRouteProp = RouteProp<AuthStackParamList, 'OTP'>;
 
 const OTPScreen = () => {
-  const navigation = useNavigation();
+  const route = useRoute<OTPScreenRouteProp>();
+  const { phoneNumber } = route.params;
+  const { login } = useAuth();
   const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleVerifyOTP = () => {
-    // Placeholder - will integrate with verifyOtp service later
-    console.log('Verifying OTP:', otp);
-    navigation.navigate('ProfileSetup' as never);
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length !== 6) {
+      Alert.alert('Invalid OTP', 'Please enter a 6-digit verification code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await verifyOtp(phoneNumber, otp);
+      console.log('OTP verified successfully:', response);
+      
+      // Call login to store token and fetch user profile
+      // The AuthContext will automatically trigger navigation to Home
+      await login(response.accessToken);
+      
+    } catch (error: any) {
+      console.error('Failed to verify OTP:', error);
+      Alert.alert(
+        'Verification Failed',
+        error.response?.data?.message || 'Invalid OTP. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Enter Verification Code</Text>
-      <Text style={styles.subtitle}>We sent a code to your phone</Text>
+      <Text style={styles.subtitle}>We sent a code to {phoneNumber}</Text>
 
       <TextInput
         style={styles.input}
@@ -24,13 +57,22 @@ const OTPScreen = () => {
         maxLength={6}
         value={otp}
         onChangeText={setOtp}
+        editable={!loading}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleVerifyOTP}>
-        <Text style={styles.buttonText}>Verify</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleVerifyOTP}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Verify</Text>
+        )}
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.resendButton}>
+      <TouchableOpacity style={styles.resendButton} disabled={loading}>
         <Text style={styles.resendText}>Resend Code</Text>
       </TouchableOpacity>
     </View>
@@ -75,6 +117,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     width: '100%',
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
