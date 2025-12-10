@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Toast from 'react-native-toast-message';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
@@ -7,6 +8,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <RootNavigator />
       <StatusBar style="auto" />
+      <Toast />
     </GestureHandlerRootView>
   );
 }
