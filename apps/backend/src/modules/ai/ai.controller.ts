@@ -44,9 +44,16 @@ export class AIController {
       return { error: 'Query parameter "query" is required' };
     }
 
-    // Explicitly typed query vector
+    const cleanedQuery = query
+      .toLowerCase() // lowercase
+      .replace(/[^\w\s]/g, '') // remove punctuation
+      .trim() // trim spaces
+      .split(/\s+/) // tokenize by spaces
+      .join(' '); // rejoin clean tokens
+
+    // Generate embedding for cleaned query
     const queryVector: number[] = this.aiService.generateDummyEmbedding(
-      query,
+      cleanedQuery,
       1536,
     );
 

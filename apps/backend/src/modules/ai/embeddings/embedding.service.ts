@@ -113,12 +113,37 @@ export class EmbeddingService {
 
   // ------------------ UTILS ------------------
   generateDummyEmbedding(text: string, dim = 1536): number[] {
-    if (!text) return new Array<number>(dim).fill(0);
+    if (!text) {
+      return Array.from({ length: dim }, () => 0 as number);
+    }
 
-    return new Array<number>(dim).fill(0).map((_, i) => {
-      const code = text.charCodeAt(i % text.length);
-      return (code % 100) / 100;
+    const cleaned = text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .trim();
+
+    const tokens = cleaned.split(/\s+/);
+
+    const vector: number[] = Array.from({ length: dim }, () => 0 as number);
+
+    tokens.forEach((token, index) => {
+      const hash = this.hashToken(token);
+
+      for (let i = 0; i < dim; i++) {
+        vector[i] += (((hash + i * 13) % 100) / 100) * (1 / (index + 1));
+      }
     });
+
+    const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
+    return magnitude > 0 ? vector.map((v) => v / magnitude) : vector;
+  }
+
+  private hashToken(token: string): number {
+    let hash = 0;
+    for (let i = 0; i < token.length; i++) {
+      hash = (hash * 31 + token.charCodeAt(i)) % 100000;
+    }
+    return hash;
   }
 
   cosineSimilarity(a: number[], b: number[]): number {
