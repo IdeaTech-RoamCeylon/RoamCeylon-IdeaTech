@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { sendOtp } from '../services/auth';
+import { showToast } from '../utils/toast';
 
 type AuthStackParamList = {
   PhoneEntry: undefined;
@@ -16,7 +17,7 @@ const PhoneEntryScreen = () => {
 
   const handleSendOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+      showToast.error('Please enter a valid phone number', 'Invalid Phone');
       return;
     }
 
@@ -24,13 +25,11 @@ const PhoneEntryScreen = () => {
     try {
       await sendOtp(phoneNumber);
       console.log('OTP sent successfully to:', phoneNumber);
+      showToast.success('Verification code sent!', 'Success');
       navigation.navigate('OTP', { phoneNumber });
     } catch (error: any) {
       console.error('Failed to send OTP:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to send OTP. Please try again.'
-      );
+      showToast.apiError(error, 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
