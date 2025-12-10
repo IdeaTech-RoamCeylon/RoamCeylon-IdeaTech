@@ -5,7 +5,7 @@ import { MarketplaceService } from './marketplace.service';
 export class MarketplaceController {
   private readonly logger = new Logger(MarketplaceController.name);
 
-  constructor(private readonly marketplaceService: MarketplaceService) { }
+  constructor(private readonly marketplaceService: MarketplaceService) {}
 
   @Get('categories')
   getCategories() {

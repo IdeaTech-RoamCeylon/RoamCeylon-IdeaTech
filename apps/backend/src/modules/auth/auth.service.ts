@@ -15,10 +15,10 @@ export class AuthService {
     otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
     console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
-    
+
     // Store the verified phone number
     AuthService.lastVerifiedPhone = phoneNumber;
-    
+
     // Mock JWT token
     return {
       accessToken: 'mock-jwt-token',

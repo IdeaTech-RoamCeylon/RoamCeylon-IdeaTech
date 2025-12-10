@@ -7,19 +7,27 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('send-otp')
   sendOtp(@Body() createOtpDto: CreateOtpDto): { message: string } {
-    this.logger.log(`Auth send-otp triggered for phone: ${createOtpDto.phoneNumber}`);
+    this.logger.log(
+      `Auth send-otp triggered for phone: ${createOtpDto.phoneNumber}`,
+    );
     return this.authService.sendOtp(createOtpDto.phoneNumber);
   }
 
   @Post('verify-otp')
-  verifyOtp(
-    @Body() verifyOtpDto: VerifyOtpDto,
-  ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    this.logger.log(`Auth verify-otp triggered for phone: ${verifyOtpDto.phoneNumber}`);
-    return this.authService.verifyOtp(verifyOtpDto.phoneNumber, verifyOtpDto.otp);
+  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): {
+    accessToken: string;
+    user: { id: string; phoneNumber: string };
+  } {
+    this.logger.log(
+      `Auth verify-otp triggered for phone: ${verifyOtpDto.phoneNumber}`,
+    );
+    return this.authService.verifyOtp(
+      verifyOtpDto.phoneNumber,
+      verifyOtpDto.otp,
+    );
   }
 }
