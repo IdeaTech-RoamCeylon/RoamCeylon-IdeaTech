@@ -1,6 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { EmbeddingService } from './embeddings/embedding.service';
 
+export interface SearchResultDto {
+  rank: number;
+  text: string;
+  score: number;
+  source: string | number;
+  createdAt?: string;
+}
+
 @Injectable()
 export class AIService {
   constructor(private readonly embeddingService: EmbeddingService) {}
