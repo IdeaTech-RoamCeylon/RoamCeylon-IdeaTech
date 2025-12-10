@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, Logger } from '@nestjs/common';
+import { Controller, Get, Query, Logger } from '@nestjs/common';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -14,13 +14,7 @@ export interface SearchResponseDto {
   }[];
 }
 
-// Type definition for items stored in the database
-interface EmbeddingItem {
-  id: string;
-  title: string;
-  content: string;
-  embedding: number[];
-}
+
 
 @Controller('ai')
 export class AIController {
