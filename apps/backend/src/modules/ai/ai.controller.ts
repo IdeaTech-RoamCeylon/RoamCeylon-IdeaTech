@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Query, Body, Logger } from '@nestjs/common';
-import { AIService, EmbeddingRow } from './ai.service';
+import { AIService } from './ai.service';
 
-/** Updated interface to match the actual data structure */
-interface SearchResultItem {
-  id: number; // Changed from string to number
-  text: string; // Changed from content to text
-  title?: string; // Optional if you want to keep title
-  score: number;
+// Type definition for items stored in the database
+interface EmbeddingItem {
+  id: string;
+  title: string;
+  content: string;
+  embedding: number[];
 }
 
 @Controller('ai')
@@ -15,19 +15,19 @@ export class AIController {
 
   constructor(private readonly aiService: AIService) {}
 
+  // ------------------- HEALTH CHECK -------------------
   @Get('health')
-  health() {
-    this.logger.log('AI health check triggered');
-    return this.aiService.health();
+  getHealth(): { message: string } {
+    this.logger.log('AI Planner health check triggered');
+    return { message: 'AI Planner Module Operational' };
   }
 
-  /**
-   * Seed database with tourism data
-   */
-  @Post('embeddings/seed')
-  async seedEmbeddings(): Promise<{ message: string; error?: string }> {
+  // ------------------- SEED DATABASE -------------------
+  @Post('seed')
+  async seedDatabase() {
+    this.logger.log('AI Planner seed database triggered');
     try {
-      await this.aiService.seedEmbeddingsFromTourismData();
+      await this.aiService.seedEmbeddingsFromAiPlanner();
       return { message: 'Seeding completed successfully!' };
     } catch (error) {
       return {
@@ -37,65 +37,45 @@ export class AIController {
     }
   }
 
-  /**
-   * Search embeddings with similarity scoring
-   */
+  // ------------------- SEARCH -------------------
   @Get('search')
-  async searchEmbeddings(
-    @Query('query') query?: string,
-    @Query('limit') limit?: string,
-  ): Promise<
-    | { error?: string }
-    | {
-        query: string;
-        results: SearchResultItem[];
-      }
-  > {
+  async search(@Query('query') query: string) {
     if (!query) {
       return { error: 'Query parameter "query" is required' };
     }
 
-    const limitNum = limit ? parseInt(limit, 10) : 5;
+    const queryVector: number[] = this.aiService.generateDummyEmbedding(
+      query,
+      1536,
+    );
 
-    try {
-      // Use the new searchEmbeddings method from the service
-      const searchResults = await this.aiService.searchEmbeddings(
-        query,
-        limitNum,
-      );
+    const items: EmbeddingItem[] = await this.aiService.getAllEmbeddings();
 
-      const results: SearchResultItem[] = searchResults.map((item) => {
-        const itemWithDistance = item as EmbeddingRow & { distance?: number };
-        return {
-          id: item.id,
-          text: item.text,
-          // If you have title in the text, you could extract it
-          // For example, if text format is "Title: Description"
-          title: item.text.split(':')[0] || '', // Optional extraction
-          score: 1.0 - (itemWithDistance.distance ?? 0), // Convert distance to similarity score
-        };
-      });
+    const scored = items.map((item: EmbeddingItem) => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      score: this.aiService.cosineSimilarity(queryVector, item.embedding),
+    }));
 
-      return {
-        query,
-        results,
-      };
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Search failed',
-      };
-    }
+    return {
+      query,
+      results: scored.sort((a, b) => b.score - a.score).slice(0, 5),
+    };
   }
 
-  /**
-   * Alternative search using cosine similarity in memory
-   */
+  // ------------------- SEARCH IN MEMORY -------------------
   @Get('search/memory')
   async searchEmbeddingsInMemory(@Query('query') query?: string): Promise<
-    | { error?: string }
+    | { error: string }
     | {
         query: string;
-        results: SearchResultItem[];
+        results: Array<{
+          id: string;
+          title: string;
+          content: string;
+          score: number;
+        }>;
       }
   > {
     if (!query) {
@@ -103,26 +83,19 @@ export class AIController {
     }
 
     try {
-      const queryVector: number[] = this.aiService.generateDummyEmbedding(
-        query,
-        1536,
-      );
-
-      const embeddings: EmbeddingRow[] =
-        await this.aiService.getAllEmbeddings();
+      const queryVector = this.aiService.generateDummyEmbedding(query, 1536);
+      const embeddings = await this.aiService.getAllEmbeddings();
 
       const scored = embeddings.map((item) => ({
         id: item.id,
-        text: item.text,
-        title: item.text.split(':')[0] || '', // Extract title from text if needed
+        title: item.title,
+        content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }));
 
-      const results = scored.sort((a, b) => b.score - a.score).slice(0, 5);
-
       return {
         query,
-        results,
+        results: scored.sort((a, b) => b.score - a.score).slice(0, 5),
       };
     } catch (error) {
       return {
@@ -131,9 +104,7 @@ export class AIController {
     }
   }
 
-  /**
-   * Get all embeddings
-   */
+  // ------------------- GET ALL EMBEDDINGS -------------------
   @Get('embeddings')
   async getAllEmbeddings() {
     try {
@@ -146,17 +117,7 @@ export class AIController {
     }
   }
 
-  /**
-   * Get database connection status
-   */
-  @Get('status')
-  getConnectionStatus() {
-    return this.aiService.getConnectionStatus();
-  }
-
-  /**
-   * Test endpoint to generate embedding for a text
-   */
+  // ------------------- GENERATE EMBEDDING -------------------
   @Post('embedding')
   generateEmbedding(@Body() body: { text: string }) {
     if (!body.text) {
@@ -164,16 +125,15 @@ export class AIController {
     }
 
     const embedding = this.aiService.generateDummyEmbedding(body.text, 1536);
+
     return {
       text: body.text,
-      embedding: embedding.slice(0, 10), // Return first 10 dimensions for preview
+      embeddingPreview: embedding.slice(0, 10),
       dimensions: embedding.length,
     };
   }
 
-  /**
-   * Calculate similarity between two texts
-   */
+  // ------------------- SIMILARITY BETWEEN TEXTS -------------------
   @Post('similarity')
   calculateSimilarity(@Body() body: { text1: string; text2: string }) {
     if (!body.text1 || !body.text2) {
@@ -182,6 +142,7 @@ export class AIController {
 
     const embedding1 = this.aiService.generateDummyEmbedding(body.text1, 1536);
     const embedding2 = this.aiService.generateDummyEmbedding(body.text2, 1536);
+
     const similarity = this.aiService.cosineSimilarity(embedding1, embedding2);
 
     return {
