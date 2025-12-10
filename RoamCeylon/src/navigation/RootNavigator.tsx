@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 const RootStack = createStackNavigator();
 
 const Navigation = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isProfileComplete } = useAuth();
 
   if (isLoading) {
     // You can replace this with a loading screen component
@@ -24,7 +24,7 @@ const Navigation = () => {
           gestureEnabled: true,
         }}
       >
-        {!isAuthenticated ? (
+        {!isAuthenticated || !isProfileComplete ? (
           <RootStack.Screen 
             name="Auth" 
             component={AuthStack}

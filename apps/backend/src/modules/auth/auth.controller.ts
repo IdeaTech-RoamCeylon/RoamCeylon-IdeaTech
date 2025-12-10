@@ -1,5 +1,7 @@
 import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { CreateOtpDto } from './dto/create-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -8,17 +10,24 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('send-otp')
-  sendOtp(@Body('phoneNumber') phoneNumber: string): { message: string } {
-    this.logger.log(`Auth send-otp triggered for phone: ${phoneNumber}`);
-    return this.authService.sendOtp(phoneNumber);
+  sendOtp(@Body() createOtpDto: CreateOtpDto): { message: string } {
+    this.logger.log(
+      `Auth send-otp triggered for phone: ${createOtpDto.phoneNumber}`,
+    );
+    return this.authService.sendOtp(createOtpDto.phoneNumber);
   }
 
   @Post('verify-otp')
-  verifyOtp(
-    @Body('phoneNumber') phoneNumber: string,
-    @Body('otp') otp: string,
-  ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    this.logger.log(`Auth verify-otp triggered for phone: ${phoneNumber}`);
-    return this.authService.verifyOtp(phoneNumber, otp);
+  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): {
+    accessToken: string;
+    user: { id: string; phoneNumber: string };
+  } {
+    this.logger.log(
+      `Auth verify-otp triggered for phone: ${verifyOtpDto.phoneNumber}`,
+    );
+    return this.authService.verifyOtp(
+      verifyOtpDto.phoneNumber,
+      verifyOtpDto.otp,
+    );
   }
 }

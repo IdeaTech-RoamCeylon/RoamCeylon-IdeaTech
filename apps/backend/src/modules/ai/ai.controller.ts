@@ -14,8 +14,6 @@ export interface SearchResponseDto {
   }[];
 }
 
-
-
 @Controller('ai')
 export class AIController {
   private readonly logger = new Logger(AIController.name);
