@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { verifyOtp } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,9 +12,11 @@ type AuthStackParamList = {
 };
 
 type OTPScreenRouteProp = RouteProp<AuthStackParamList, 'OTP'>;
+type OTPScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'OTP'>;
 
 const OTPScreen = () => {
   const route = useRoute<OTPScreenRouteProp>();
+  const navigation = useNavigation<OTPScreenNavigationProp>();
   const { phoneNumber } = route.params;
   const { login } = useAuth();
   const [otp, setOtp] = useState('');
@@ -31,8 +34,11 @@ const OTPScreen = () => {
       console.log('OTP verified successfully:', response);
       
       // Call login to store token and fetch user profile
-      // The AuthContext will automatically trigger navigation to Home
       await login(response.accessToken);
+      
+      // Navigate to ProfileSetupScreen
+      // The RootNavigator will keep user in AuthStack until profile is complete
+      navigation.navigate('ProfileSetup');
       
     } catch (error: any) {
       console.error('Failed to verify OTP:', error);

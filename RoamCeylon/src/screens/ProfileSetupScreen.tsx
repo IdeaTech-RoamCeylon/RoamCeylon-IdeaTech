@@ -1,17 +1,41 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 const ProfileSetupScreen = () => {
-  const { login } = useAuth();
+  const { updateUserProfile, user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleComplete = async () => {
-    // Placeholder - will save profile data later
-    console.log('Profile setup complete:', { name, email });
-    // Simulate login with a dummy token - replace with actual token from backend
-    await login('dummy-token-for-demo');
+    if (!name.trim() || !email.trim()) {
+      Alert.alert('Missing Information', 'Please enter both your name and email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // TODO: Call backend API to update profile once endpoint is created
+      // For now, update local state which will trigger isProfileComplete
+      const updatedUser = {
+        ...user,
+        id: user?.id || 'user-123',
+        phoneNumber: user?.phoneNumber || '',
+        name: name.trim(),
+        email: email.trim(),
+      };
+      
+      // This will update user and immediately set isProfileComplete to true
+      updateUserProfile(updatedUser);
+      
+      // Navigation will happen automatically via RootNavigator when isProfileComplete becomes true
+    } catch (error) {
+      console.error('Profile setup error:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,12 +58,16 @@ const ProfileSetupScreen = () => {
         onChangeText={setEmail}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleComplete}>
-        <Text style={styles.buttonText}>Complete Setup</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.skipButton} onPress={handleComplete}>
-        <Text style={styles.skipText}>Skip for now</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleComplete}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Complete Setup</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -83,17 +111,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-  },
-  skipButton: {
-    marginTop: 20,
-  },
-  skipText: {
-    color: '#0066CC',
-    fontSize: 16,
   },
 });
 
