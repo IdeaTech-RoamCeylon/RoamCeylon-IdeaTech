@@ -1,9 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  image: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  image: string;
+}
 
 @Injectable()
 export class MarketplaceService {
-  getCategories() {
-    return [
+  private readonly logger = new Logger(MarketplaceService.name);
+
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
+  async getCategories(): Promise<Category[]> {
+    const cacheKey = 'marketplace:categories';
+    const cached = await this.cacheManager.get<Category[]>(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache hit for ${cacheKey}`);
+      return cached;
+    }
+
+    const categories = [
       {
         id: '1',
         name: 'Electronics',
@@ -21,9 +49,22 @@ export class MarketplaceService {
       },
       { id: '4', name: 'Clothing', image: 'https://example.com/clothing.jpg' },
     ];
+
+    await this.cacheManager.set(cacheKey, categories);
+    this.logger.log(`Cache set for ${cacheKey}`);
+    return categories;
   }
 
-  getProducts(category?: string) {
+  async getProducts(category?: string): Promise<Product[]> {
+    const cacheKey = category
+      ? `marketplace:products:cat:${category}`
+      : 'marketplace:products:all';
+    const cached = await this.cacheManager.get<Product[]>(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache hit for ${cacheKey}`);
+      return cached;
+    }
+
     const allProducts = [
       {
         id: '101',
@@ -59,14 +100,18 @@ export class MarketplaceService {
       },
     ];
 
+    let result = allProducts;
     if (category) {
-      return allProducts.filter((p) => p.category === category);
+      result = allProducts.filter((p) => p.category === category);
     }
-    return allProducts;
+
+    await this.cacheManager.set(cacheKey, result);
+    this.logger.log(`Cache set for ${cacheKey}`);
+    return result;
   }
 
-  getProductById(id: string) {
-    const products = this.getProducts();
+  async getProductById(id: string): Promise<Product | undefined> {
+    const products = await this.getProducts();
     return products.find((p) => p.id === id);
   }
 }

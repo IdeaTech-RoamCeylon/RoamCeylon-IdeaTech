@@ -1,5 +1,6 @@
 import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
+import { GetProductsDto } from './dto/get-products.dto';
 
 @Controller('marketplace')
 export class MarketplaceController {
@@ -14,9 +15,11 @@ export class MarketplaceController {
   }
 
   @Get('products')
-  getProducts(@Query('category') category?: string) {
-    this.logger.log(`Fetching products with category: ${category || 'all'}`);
-    return this.marketplaceService.getProducts(category);
+  getProducts(@Query() query: GetProductsDto) {
+    this.logger.log(
+      `Fetching products with category: ${query.category || 'all'}`,
+    );
+    return this.marketplaceService.getProducts(query.category);
   }
 
   @Get('products/:id')
