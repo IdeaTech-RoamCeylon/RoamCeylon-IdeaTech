@@ -32,9 +32,35 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.prisma = new PrismaClient();
-    await this.prisma.$connect();
-    this.isConnected = true;
-    this.logger.log('Prisma connected');
+    // Retry connection with timeout
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await Promise.race([
+          this.prisma.$connect(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout')), 10000),
+          ),
+        ]);
+        this.isConnected = true;
+        this.logger.log('Prisma connected');
+        return;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        retries--;
+        this.logger.warn(
+          `Database connection attempt failed. Retries left: ${retries}`,
+        );
+        if (retries === 0) {
+          this.logger.error(
+            'Failed to connect to database. Service will continue but database operations will fail.',
+          );
+          // Don't throw - allow app to start even if DB connection fails
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s before retry
+        }
+      }
+    }
   }
 
   async onModuleDestroy() {
