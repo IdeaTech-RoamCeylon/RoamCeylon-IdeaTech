@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { Button, Input } from '../../components';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileSetupScreen = () => {
@@ -52,32 +53,26 @@ const ProfileSetupScreen = () => {
       <Text style={styles.title}>Complete Your Profile</Text>
       <Text style={styles.subtitle}>Tell us a bit about yourself</Text>
 
-      <TextInput
-        style={styles.input}
+      <Input
         placeholder="Full Name"
         value={name}
         onChangeText={setName}
       />
 
-      <TextInput
-        style={styles.input}
+      <Input
         placeholder="Email"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
       />
 
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+      <Button
+        title="Complete Setup"
         onPress={handleComplete}
+        loading={loading}
         disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Complete Setup</Text>
-        )}
-      </TouchableOpacity>
+        style={styles.button}
+      />
     </View>
   );
 };
@@ -101,32 +96,8 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 40,
   },
-  input: {
-    width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    marginBottom: 15,
-  },
   button: {
-    backgroundColor: '#0066CC',
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
-    width: '100%',
-    alignItems: 'center',
     marginTop: 10,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Button, Input } from '../../components';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../types';
@@ -51,31 +52,30 @@ const OTPScreen = () => {
       <Text style={styles.title}>Enter Verification Code</Text>
       <Text style={styles.subtitle}>We sent a code to {phoneNumber}</Text>
 
-      <TextInput
+      <Input
         style={styles.input}
         placeholder="Enter 6-digit code"
         keyboardType="number-pad"
         maxLength={6}
         value={otp}
         onChangeText={setOtp}
-        editable={!loading}
+        disabled={loading}
       />
 
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+      <Button
+        title="Verify"
         onPress={handleVerifyOTP}
+        loading={loading}
         disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Verify</Text>
-        )}
-      </TouchableOpacity>
+      />
 
-      <TouchableOpacity style={styles.resendButton} disabled={loading}>
-        <Text style={styles.resendText}>Resend Code</Text>
-      </TouchableOpacity>
+      <Button
+        title="Resend Code"
+        onPress={() => {}} // Placeholder for resend logic
+        variant="outline"
+        disabled={loading}
+        style={styles.resendButton}
+      />
     </View>
   );
 };
