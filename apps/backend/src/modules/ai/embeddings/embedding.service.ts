@@ -25,6 +25,20 @@ export class EmbeddingService {
 
   // ------------------ POSTGRES CLIENT ------------------
   private createClient(): Client {
+    // Check if we have individual vars, otherwise use DATABASE_URL
+    const dbUrl = this.configService.get<string>('DATABASE_URL');
+
+    // If DATABASE_URL is present, use it for connection string
+    if (dbUrl) {
+      return new Client({
+        connectionString: dbUrl,
+        // Nhost requires SSL
+        ssl: dbUrl.includes('sslmode=')
+          ? { rejectUnauthorized: false }
+          : undefined,
+      });
+    }
+
     return new Client({
       user: this.configService.get<string>('DB_USER'),
       host: this.configService.get<string>('DB_HOST'),
