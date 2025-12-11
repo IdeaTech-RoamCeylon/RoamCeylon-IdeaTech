@@ -6,14 +6,6 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private prisma: PrismaClient;
 
   constructor() {
-    // Debug: Log the DATABASE_URL to see what Prisma is getting
-    console.log('=== PRISMA DEBUG ===');
-    console.log('DATABASE_URL:', process.env.DATABASE_URL);
-    console.log(
-      'DATABASE_URL substring:',
-      process.env.DATABASE_URL?.substring(0, 50),
-    );
-
     // Create a NEW Prisma Client instance with explicit datasource
     this.prisma = new PrismaClient({
       datasources: {
