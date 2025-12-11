@@ -1,23 +1,58 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 const ProfileScreen = () => {
-  const { logout } = useAuth();
+  const { logout, user, isLoading } = useAuth();
 
   const handleLogout = async () => {
     console.log('Logging out...');
     await logout();
   };
 
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string | undefined) => {
+    if (!phone) return 'Phone number not available';
+    // Example: +94771234567 -> +94 77 123 4567
+    if (phone.startsWith('+94') && phone.length === 12) {
+      return `${phone.slice(0, 3)} ${phone.slice(3, 5)} ${phone.slice(5, 8)} ${phone.slice(8)}`;
+    }
+    return phone;
+  };
+
+  // Get user initials for avatar
+  const getInitials = (name: string | undefined) => {
+    if (!name) return '👤';
+    const names = name.split(' ');
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#0066CC" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  console.log('=== ProfileScreen Render ===');
+  console.log('User object:', JSON.stringify(user, null, 2));
+  console.log('Phone number:', user?.phoneNumber);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>👤</Text>
+          <Text style={styles.avatarText}>
+            {user?.name ? getInitials(user.name) : '👤'}
+          </Text>
         </View>
-        <Text style={styles.name}>Welcome Back!</Text>
-        <Text style={styles.phone}>+94 XX XXX XXXX</Text>
+        <Text style={styles.name}>{user?.name || 'Welcome Back!'}</Text>
+        <Text style={styles.phone}>{formatPhoneNumber(user?.phoneNumber)}</Text>
       </View>
 
       <View style={styles.content}>
@@ -49,6 +84,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
     backgroundColor: '#0066CC',

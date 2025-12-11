@@ -5,7 +5,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserProfile | null;
+  isProfileComplete: boolean;
   setUser: (user: UserProfile | null) => void;
+  updateUserProfile: (userData: UserProfile) => void;
   login: (token: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -17,16 +19,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   // Fetch user profile data
   const refreshUser = async () => {
     try {
+      console.log('=== AuthContext: Fetching user from /users/me ===');
       const userData = await getMe();
+      console.log('User data from backend:', JSON.stringify(userData, null, 2));
       setUser(userData);
+      
+      // Check if profile is complete (has name and email)
+      const profileComplete = !!(userData?.name && userData?.email);
+      console.log('Profile complete?', profileComplete);
+      setIsProfileComplete(profileComplete);
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
       setUser(null);
+      setIsProfileComplete(false);
     }
+  };
+
+  // Update user profile and check completion
+  const updateUserProfile = (userData: UserProfile) => {
+    setUser(userData);
+    const profileComplete = !!(userData?.name && userData?.email);
+    setIsProfileComplete(profileComplete);
   };
 
   useEffect(() => {
@@ -57,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await removeAuthToken();
     setIsAuthenticated(false);
     setUser(null);
+    setIsProfileComplete(false);
   };
 
   return (
@@ -64,8 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{ 
         isAuthenticated, 
         isLoading, 
-        user, 
-        setUser, 
+        user,
+        isProfileComplete,
+        setUser,
+        updateUserProfile,
         login, 
         logout,
         refreshUser 

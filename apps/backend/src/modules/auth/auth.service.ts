@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
+  // In-memory storage for mock auth (in real app, this would be in database)
+  private static lastVerifiedPhone: string = '+94771234567';
+
   sendOtp(phoneNumber: string): { message: string } {
     console.log(`Sending OTP to ${phoneNumber}`);
     return { message: 'OTP sent successfully' };
@@ -12,6 +15,10 @@ export class AuthService {
     otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
     console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
+
+    // Store the verified phone number
+    AuthService.lastVerifiedPhone = phoneNumber;
+
     // Mock JWT token
     return {
       accessToken: 'mock-jwt-token',
@@ -20,5 +27,10 @@ export class AuthService {
         phoneNumber,
       },
     };
+  }
+
+  // Method to get the last verified phone number
+  static getLastVerifiedPhone(): string {
+    return this.lastVerifiedPhone;
   }
 }
