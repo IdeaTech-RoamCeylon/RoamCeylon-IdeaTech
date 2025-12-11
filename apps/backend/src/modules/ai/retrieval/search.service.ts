@@ -4,58 +4,64 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
-
-export interface EmbeddingRow {
-  id: number;
-  text: string;
-  embedding: number[];
-  createdAt?: string;
-}
+import { Client } from 'pg';
 
 export interface SearchResultDto {
   rank: number;
-  text: string;
-  score: number;
   id: number | string;
-  metadata?: any;
+  title: string;
+  content: string;
+  score: number;
+  metadata?: {
+    createdAt: string | null;
+  };
+}
+
+export interface RawEmbeddingRow {
+  id: number | string;
+  title: string;
+  content: string;
+  embedding_str: string;
+  created_at: string | null;
+  distance: number;
 }
 
 @Injectable()
 export class SearchService implements OnModuleInit, OnModuleDestroy {
-  private prisma: PrismaClient;
+  private client: Client;
   private logger = new Logger(SearchService.name);
   private isConnected = false;
 
   constructor(private readonly configService: ConfigService) {}
 
+  private createClient(): Client {
+    return new Client({
+      user: this.configService.get<string>('DB_USER'),
+      host: this.configService.get<string>('DB_HOST'),
+      database: this.configService.get<string>('DB_NAME'),
+      password: this.configService.get<string>('DB_PASSWORD') ?? '',
+      port: Number(this.configService.get<string>('DB_PORT')),
+    });
+  }
+
   async onModuleInit() {
-    this.prisma = new PrismaClient();
-    await this.prisma.$connect();
+    this.client = this.createClient();
+    await this.client.connect();
     this.isConnected = true;
-    this.logger.log('Prisma connected');
+    this.logger.log('Postgres client connected in SearchService');
   }
 
   async onModuleDestroy() {
-    await this.prisma.$disconnect();
-    this.isConnected = false;
-    this.logger.log('Prisma disconnected');
+    if (this.isConnected) {
+      await this.client.end();
+      this.isConnected = false;
+      this.logger.log('Postgres client disconnected in SearchService');
+    }
   }
 
   private normalizeScore(distance: number): number {
     return 1 - Math.min(Math.max(distance, 0), 1);
-  }
-
-  private parseDbRowFromSearch(row: unknown): EmbeddingRow | null {
-    if (!row || typeof row !== 'object') return null;
-    const r = row as Record<string, unknown>;
-    return {
-      id: typeof r.id === 'number' ? r.id : 0,
-      text: typeof r.text === 'string' ? r.text : '',
-      embedding: [],
-      createdAt: typeof r.created_at === 'string' ? r.created_at : undefined,
-    };
   }
 
   async searchEmbeddingsWithMetadataFromEmbedding(
@@ -65,50 +71,35 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
-    this.logger.debug('Searching embeddings with provided embedding...');
+
     const vectorLiteral = `[${embedding.join(',')}]`;
 
-    const result = await this.prisma.$queryRawUnsafe(
-      `SELECT id, text, 
-              embedding::text as embedding_str,
-              created_at,
-              embedding <=> $1::vector as distance
+    const result = await this.client.query<RawEmbeddingRow>(
+      `SELECT 
+          id,
+          title,
+          content,
+          embedding::text AS embedding_str,
+          embedding <=> $1::vector AS distance
        FROM embeddings
        ORDER BY distance
        LIMIT $2`,
-      vectorLiteral,
-      limit,
+      [vectorLiteral, limit],
     );
 
-    const rawRows: unknown[] = Array.isArray(result)
-      ? (result as unknown[])
-      : [];
+    return result.rows.map((row, index) => {
+      const score = this.normalizeScore(row.distance);
 
-    const resultsWithScore = rawRows
-      .map((row) => {
-        const parsed = this.parseDbRowFromSearch(row);
-        if (!parsed) return null;
-        const r = row as Record<string, unknown>;
-        const distance = typeof r.distance === 'number' ? r.distance : 0;
-        const score = this.normalizeScore(distance);
-        return {
-          text: parsed.text,
-          score,
-          id: parsed.id,
-          metadata: parsed.createdAt
-            ? { createdAt: parsed.createdAt }
-            : undefined,
-        };
-      })
-      .filter(Boolean) as Omit<SearchResultDto, 'rank'>[];
-
-    const sortedResults = resultsWithScore
-      .sort((a, b) => b.score - a.score)
-      .map((item, idx) => ({
-        rank: idx + 1,
-        ...item,
-      }));
-
-    return sortedResults;
+      return {
+        rank: index + 1,
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        score,
+        metadata: {
+          createdAt: row.created_at,
+        },
+      };
+    });
   }
 }
