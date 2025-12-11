@@ -1,4 +1,3 @@
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { MarketplaceController } from './marketplace.controller';
 import { MarketplaceService } from './marketplace.service';
@@ -7,7 +6,6 @@ import { INestApplication } from '@nestjs/common';
 describe('MarketplaceController', () => {
   let controller: MarketplaceController;
   let app: INestApplication;
-  let service: MarketplaceService;
 
   const mockMarketplaceService = {
     getCategories: jest.fn(() => [
@@ -24,7 +22,7 @@ describe('MarketplaceController', () => {
       },
       { id: '102', name: 'Ceylon Tea', category: 'Food', price: 10.0 },
     ]),
-    getProductById: jest.fn((id) => ({
+    getProductById: jest.fn((id: string) => ({
       id,
       name: 'Sample Product',
       description: 'Mock description',
@@ -45,7 +43,6 @@ describe('MarketplaceController', () => {
     app = module.createNestApplication();
     await app.init();
     controller = module.get<MarketplaceController>(MarketplaceController);
-    service = module.get<MarketplaceService>(MarketplaceService);
   });
 
   afterEach(async () => {
