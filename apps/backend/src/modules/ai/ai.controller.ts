@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Query, Logger } from '@nestjs/common';
 import { AIService } from './ai.service';
-import { SearchService, SearchResultDto } from './retrieval/search.service';
+import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
 
 export interface SearchResponseDto {
@@ -87,16 +87,16 @@ export class AIController {
   }
 
   // ------------------- SEED DATABASE -------------------
- @Post('seed')
-async seedDatabase(): Promise<{ message: string }> {
-  this.logger.log('AI Planner seed database triggered');
-  try {
-    await this.aiService.seedEmbeddingsFromAiPlanner();
-    return { message: 'Seeding completed successfully!' };
-  } catch (error) {
-    return { message: 'Seeding failed.' };
+  @Post('seed')
+  async seedDatabase(): Promise<{ message: string }> {
+    this.logger.log('AI Planner seed database triggered');
+    try {
+      await this.aiService.seedEmbeddingsFromAiPlanner();
+      return { message: 'Seeding completed successfully!' };
+    } catch {
+      return { message: 'Seeding failed.' };
+    }
   }
-}
 
   // ------------------- DEBUG EMBEDDING -------------------
   @Get('debug/embedding')

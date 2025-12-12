@@ -82,7 +82,7 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
-    similarityThreshold = 0.7 // You can adjust this threshold as needed
+    similarityThreshold = 0.7, // You can adjust this threshold as needed
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
@@ -121,13 +121,16 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
 
     // Remove duplicates by ID and filter by similarity threshold
     const filteredResults = searchResults
-      .filter((item, index, self) =>
-        index === self.findIndex((t) => t.id === item.id)
+      .filter(
+        (item, index, self) =>
+          index === self.findIndex((t) => t.id === item.id),
       )
-      .filter(item => item.score > similarityThreshold);
+      .filter((item) => item.score > similarityThreshold);
 
     if (filteredResults.length === 0) {
-      return { message: "No relevant items found. Please try a different query." };
+      return {
+        message: 'No relevant items found. Please try a different query.',
+      };
     }
 
     return filteredResults;
