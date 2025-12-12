@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { MainStackParamList } from '../navigation/MainStack';
-import marketplaceApi, { Category } from '../services/marketplaceApi';
+import { MainStackParamList, Category } from '../../types';
+import marketplaceApi from '../../services/marketplaceApi';
 
 type MarketplaceNavigationProp = StackNavigationProp<MainStackParamList, 'Marketplace'>;
 

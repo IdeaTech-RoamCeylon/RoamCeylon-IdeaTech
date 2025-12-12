@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { MainStackParamList } from '../navigation/MainStack';
-import marketplaceApi, { Product } from '../services/marketplaceApi';
+import { MainStackParamList } from '../../types';
+import marketplaceApi, { Product } from '../../services/marketplaceApi';
 
 type MarketplaceCategoryRouteProp = RouteProp<MainStackParamList, 'MarketplaceCategory'>;
 type MarketplaceCategoryNavigationProp = StackNavigationProp<MainStackParamList, 'MarketplaceCategory'>;

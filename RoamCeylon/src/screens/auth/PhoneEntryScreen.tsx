@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { sendOtp } from '../services/auth';
-import { showToast } from '../utils/toast';
-import { Button, Input } from '../components';
-
-type AuthStackParamList = {
-  PhoneEntry: undefined;
-  OTP: { phoneNumber: string };
-  ProfileSetup: undefined;
-};
+import { AuthStackParamList } from '../../types';
+import { sendOtp } from '../../services/auth';
+import { showToast } from '../../utils/toast';
+import { Button, Input } from '../../components';
 
 const PhoneEntryScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();

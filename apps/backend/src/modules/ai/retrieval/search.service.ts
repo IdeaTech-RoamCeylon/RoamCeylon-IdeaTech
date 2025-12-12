@@ -36,6 +36,21 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   private createClient(): Client {
+    // Check if we have individual vars, otherwise use DATABASE_URL
+    const dbUrl = this.configService.get<string>('DATABASE_URL');
+
+    // If DATABASE_URL is present, use it for connection string
+    if (dbUrl) {
+      return new Client({
+        connectionString: dbUrl,
+        // Nhost requires SSL, usually inferred from url ?sslmode=require but explicit is safer
+        ssl: dbUrl.includes('sslmode=')
+          ? { rejectUnauthorized: false }
+          : undefined,
+      });
+    }
+
+    // Fallback to individual vars (which appear to be missing in your .env)
     return new Client({
       user: this.configService.get<string>('DB_USER'),
       host: this.configService.get<string>('DB_HOST'),
@@ -67,49 +82,57 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
-  ): Promise<SearchResultDto[]> {
+    similarityThreshold = 0.7, // You can adjust this threshold as needed
+  ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
    }
 
-   const vectorLiteral = `[${embedding.join(',')}]`;
+    const vectorLiteral = `[${embedding.join(',')}]`;
 
-   const start = Date.now();
-   this.logger.log(`📡 Running pgvector search with limit=${limit}`);
+    const result = await this.client.query<RawEmbeddingRow>(
+      `SELECT 
+          id,
+          title,
+          content,
+          embedding::text AS embedding_str,
+          embedding <=> $1::vector AS distance
+       FROM embeddings
+       ORDER BY distance
+       LIMIT $2`,
+      [vectorLiteral, limit],
+    );
 
-   const result = await this.client.query<RawEmbeddingRow>(
-    `SELECT 
-      id,
-      title,
-      content,
-      embedding::text AS embedding_str,
-      embedding <=> $1::vector AS distance
-    FROM embeddings
-    ORDER BY distance
-    LIMIT $2`,
-    [vectorLiteral, limit],
-   );
+    // Map and score results
+    const searchResults = result.rows.map((row, index) => {
+      const score = this.normalizeScore(row.distance);
 
-   const dbTime = Date.now() - start;
-   this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
+      return {
+        rank: index + 1,
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        score,
+        metadata: {
+          createdAt: row.created_at,
+        },
+      };
+    });
 
-   const mapped = result.rows.map((row, index) => {
-    const score = this.normalizeScore(row.distance);
+    // Remove duplicates by ID and filter by similarity threshold
+    const filteredResults = searchResults
+      .filter(
+        (item, index, self) =>
+          index === self.findIndex((t) => t.id === item.id),
+      )
+      .filter((item) => item.score > similarityThreshold);
 
-    return {
-      rank: index + 1,
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      score,
-      metadata: {
-        createdAt: row.created_at,
-      },
-    };
-  });
+    if (filteredResults.length === 0) {
+      return {
+        message: 'No relevant items found. Please try a different query.',
+      };
+    }
 
-  this.logger.log(`Vector search results: ${JSON.stringify(mapped)}`);
-
-  return mapped;
-}
+    return filteredResults;
+  }
 }
