@@ -33,7 +33,26 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    if (!query) return { error: 'Query parameter "query" is required' };
+    // Empty or missing
+    if (!query || query.trim() === '') {
+      return { error: 'Query cannot be empty' };
+    }
+
+    // Too short
+    if (query.length < 3) {
+      return { error: 'Query too short (minimum 3 characters)' };
+    }
+
+    // Invalid characters (basic safety filter — FIXED)
+    const safePattern = /^[a-zA-Z0-9]+$/;
+    if (!safePattern.test(query)) {
+      return { error: 'Query contains invalid characters' };
+    }
+
+    // Too long
+    if (query.length > 15) {
+      return { error: 'Query too long (maximum 300 characters)' };
+    }
 
     const cleanedQuery = preprocessQuery(query);
     const queryVector = this.aiService.generateDummyEmbedding(
@@ -43,7 +62,6 @@ export class AIController {
 
     const items = await this.aiService.getAllEmbeddings();
 
-    // Calculate scores
     const scored = items
       .map((item) => ({
         id: item.id,
@@ -51,8 +69,7 @@ export class AIController {
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      // Only keep items with similarity > threshold
-      .filter((item) => item.score > 0.1) // adjust threshold as needed
+      .filter((item) => item.score > 0.5)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
