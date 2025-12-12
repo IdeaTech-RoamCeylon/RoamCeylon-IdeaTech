@@ -33,32 +33,53 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    if (!query) return { error: 'Query parameter "query" is required' };
+    // Validate query
+    if (!query || query.trim() === '')
+      return { error: 'Query cannot be empty' };
 
-    const cleanedQuery = preprocessQuery(query);
+    const cleanedQuery = query.trim();
+
+    if (cleanedQuery.length < 3)
+      return { error: 'Query too short (minimum 3 characters)' };
+    if (cleanedQuery.length > 300)
+      return { error: 'Query too long (maximum 300 characters)' };
+    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery))
+      return {
+        error:
+          'Query contains invalid characters (letters, numbers, and spaces only)',
+      };
+
+    // Preprocess query
+    const preprocessedQuery = preprocessQuery(cleanedQuery);
+
+    // Generate embedding for the query
     const queryVector = this.aiService.generateDummyEmbedding(
-      cleanedQuery,
+      preprocessedQuery,
       1536,
     );
 
+    // Fetch all items with embeddings
     const items = await this.aiService.getAllEmbeddings();
 
-    // Calculate scores
-    const scored = items
+    // Calculate cosine similarity for each item
+    const scoredItems = items
       .map((item) => ({
         id: item.id,
         title: item.title,
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      // Only keep items with similarity > threshold
+      // Only keep items with similarity above threshold
       .filter((item) => item.score > 0.1) // adjust threshold as needed
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 5); // top 5 results
 
+    // Return empty results if no matches
     return {
-      query,
-      results: scored.map((r, idx) => ({ rank: idx + 1, ...r })),
+      query: cleanedQuery,
+      results: scoredItems.length
+        ? scoredItems.map((item, idx) => ({ rank: idx + 1, ...item }))
+        : [],
     };
   }
 
@@ -68,23 +89,43 @@ export class AIController {
     @Query('q') query: string,
     @Query('limit') limit?: string,
   ): Promise<SearchResponseDto> {
+    const startTotal = Date.now();
     const lim = limit ? parseInt(limit, 10) : 10;
-    const cleanedQuery = preprocessQuery(query);
-    const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
 
+    this.logger.log(`🔍 Vector search - query received: "${query}"`);
+
+    const cleanedQuery = preprocessQuery(query);
+    this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
+
+    // ---- Embedding ----
+    const embedStart = Date.now();
+    const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
+    const embedTime = Date.now() - embedStart;
+    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+
+    // ---- Vector DB Search (ONE CALL ONLY) ----
+    const searchStart = Date.now();
     const rawResults =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
       );
+    const searchTime = Date.now() - searchStart;
 
+    this.logger.log(`📡 Vector DB search duration: ${searchTime}ms`);
+    this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
+
+    const total = Date.now() - startTotal;
+    this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
+
+    // ---- Return ----
     if (Array.isArray(rawResults)) {
       return { query, results: rawResults };
     } else {
-      // No results found, return empty array and include the message
       return { query, results: [], message: rawResults.message };
     }
   }
+
 
   // ------------------- SEED DATABASE -------------------
   @Post('seed')
