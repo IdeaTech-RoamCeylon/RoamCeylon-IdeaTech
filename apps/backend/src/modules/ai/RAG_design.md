@@ -31,4 +31,67 @@
 
 ---
 
+## Examples
+
+### Sample Embedding Output
+
+For the input: "Visit the ancient city of Anuradhapura."
+
+```json
+{
+  "input": "Visit the ancient city of Anuradhapura.",
+  "embedding": [0.012, -0.034, 0.256, ...] // 768-dim float array
+}
+```
+
+---
+
+### Sample Search Output
+
+Query: "Historical sites in Sri Lanka"
+
+```json
+[
+  {
+    "document_id": "doc_123",
+    "content": "Anuradhapura is a UNESCO World Heritage site...",
+    "score": 0.92
+  },
+  {
+    "document_id": "doc_456",
+    "content": "Polonnaruwa is known for its ancient ruins...",
+    "score": 0.87
+  }
+]
+```
+
+---
+
+### Sample Trip Planner Prompt Using Retrieved Results
+
+**Prompt Template:**
+```
+You are a travel planner. Based on the following information, suggest a 3-day itinerary:
+
+Context:
+{retrieved_results}
+
+User Request:
+{user_query}
+```
+
+**Filled Example:**
+```
+You are a travel planner. Based on the following information, suggest a 3-day itinerary:
+
+Context:
+1. Anuradhapura is a UNESCO World Heritage site...
+2. Polonnaruwa is known for its ancient ruins...
+
+User Request:
+I want to visit historical sites in Sri Lanka.
+```
+
+---
+
 **This document will be updated as the RAG pipeline evolves in future sprints.**

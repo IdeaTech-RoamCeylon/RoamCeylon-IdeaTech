@@ -82,7 +82,8 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
-  ): Promise<SearchResultDto[]> {
+    similarityThreshold = 0.7, // You can adjust this threshold as needed
+  ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
@@ -102,7 +103,8 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
       [vectorLiteral, limit],
     );
 
-    return result.rows.map((row, index) => {
+    // Map and score results
+    const searchResults = result.rows.map((row, index) => {
       const score = this.normalizeScore(row.distance);
 
       return {
@@ -116,5 +118,21 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         },
       };
     });
+
+    // Remove duplicates by ID and filter by similarity threshold
+    const filteredResults = searchResults
+      .filter(
+        (item, index, self) =>
+          index === self.findIndex((t) => t.id === item.id),
+      )
+      .filter((item) => item.score > similarityThreshold);
+
+    if (filteredResults.length === 0) {
+      return {
+        message: 'No relevant items found. Please try a different query.',
+      };
+    }
+
+    return filteredResults;
   }
 }

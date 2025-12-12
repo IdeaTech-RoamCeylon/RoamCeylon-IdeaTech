@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Query, Logger } from '@nestjs/common';
 import { AIService } from './ai.service';
-import { SearchService, SearchResultDto } from './retrieval/search.service';
+import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
 
 export interface SearchResponseDto {
@@ -13,6 +13,7 @@ export interface SearchResponseDto {
     score: number;
     metadata?: any;
   }[];
+  message?: string;
 }
 
 @Controller('ai')
@@ -71,27 +72,29 @@ export class AIController {
     const cleanedQuery = preprocessQuery(query);
     const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
 
-    const results: SearchResultDto[] =
+    const rawResults =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
       );
 
-    return { query, results };
+    if (Array.isArray(rawResults)) {
+      return { query, results: rawResults };
+    } else {
+      // No results found, return empty array and include the message
+      return { query, results: [], message: rawResults.message };
+    }
   }
 
   // ------------------- SEED DATABASE -------------------
   @Post('seed')
-  async seedDatabase() {
+  async seedDatabase(): Promise<{ message: string }> {
     this.logger.log('AI Planner seed database triggered');
     try {
       await this.aiService.seedEmbeddingsFromAiPlanner();
       return { message: 'Seeding completed successfully!' };
-    } catch (error) {
-      return {
-        message: 'Seeding failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+    } catch {
+      return { message: 'Seeding failed.' };
     }
   }
 

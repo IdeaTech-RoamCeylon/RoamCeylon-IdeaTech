@@ -24,7 +24,7 @@ describe('MarketplaceController (e2e)', () => {
       .get('/marketplace/categories')
       .expect(200)
       .expect((res) => {
-        const body = res.body as any[];
+        const body = res.body as unknown[];
         expect(Array.isArray(body)).toBe(true);
         expect(body.length).toBeGreaterThan(0);
       });
@@ -35,7 +35,7 @@ describe('MarketplaceController (e2e)', () => {
       .get('/marketplace/products')
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body)).toBe(true);
+        expect(Array.isArray(res.body as unknown)).toBe(true);
       });
   });
 
@@ -44,7 +44,7 @@ describe('MarketplaceController (e2e)', () => {
       .get('/marketplace/products/101')
       .expect(200)
       .expect((res) => {
-        expect(res.body).toHaveProperty('id', '101');
+        expect(res.body as unknown).toHaveProperty('id', '101');
       });
   });
 });
