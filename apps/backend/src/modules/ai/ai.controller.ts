@@ -32,17 +32,26 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
+    const startTotal = Date.now();
+    this.logger.log(`🔍 Search query received: "${query}"`);
+
     if (!query) return { error: 'Query parameter "query" is required' };
 
+    // Preprocess logging
     const cleanedQuery = preprocessQuery(query);
-    const queryVector = this.aiService.generateDummyEmbedding(
-      cleanedQuery,
-      1536,
-    );
+    this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
 
+    // Embedding timing
+    const embedStart = Date.now();
+    const queryVector = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
+    const embedTime = Date.now() - embedStart;
+
+    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+
+    // Search timing
+    const searchStart = Date.now();
     const items = await this.aiService.getAllEmbeddings();
 
-    // Calculate scores
     const scored = items
       .map((item) => ({
         id: item.id,
@@ -50,10 +59,17 @@ export class AIController {
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      // Only keep items with similarity > threshold
-      .filter((item) => item.score > 0.1) // adjust threshold as needed
+      .filter((item) => item.score > 0.1)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
+
+    const searchTime = Date.now() - searchStart;
+
+    this.logger.log(`⏱️ Search duration: ${searchTime}ms`);
+    this.logger.log(`🏆 Ranked results: ${JSON.stringify(scored)}`);
+
+    const total = Date.now() - startTotal;
+    this.logger.log(`✅ Total search pipeline time: ${total}ms`);
 
     return {
       query,
@@ -67,15 +83,33 @@ export class AIController {
     @Query('q') query: string,
     @Query('limit') limit?: string,
   ): Promise<SearchResponseDto> {
+    const startTotal = Date.now();
     const lim = limit ? parseInt(limit, 10) : 10;
-    const cleanedQuery = preprocessQuery(query);
-    const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
 
+    this.logger.log(`🔍 Vector search - query received: "${query}"`);
+
+    const cleanedQuery = preprocessQuery(query);
+    this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
+
+    const embedStart = Date.now();
+    const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
+    const embedTime = Date.now() - embedStart;
+
+    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+
+    const searchStart = Date.now();
     const results: SearchResultDto[] =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
       );
+    const searchTime = Date.now() - searchStart;
+
+    this.logger.log(`📡 Vector DB search duration: ${searchTime}ms`);
+    this.logger.log(`🏆 Ranked results: ${JSON.stringify(results)}`);
+
+    const total = Date.now() - startTotal;
+    this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
 
     return { query, results };
   }

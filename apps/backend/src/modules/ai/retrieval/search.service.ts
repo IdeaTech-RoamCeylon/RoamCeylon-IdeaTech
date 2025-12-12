@@ -70,36 +70,46 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<SearchResultDto[]> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
-    }
+   }
 
-    const vectorLiteral = `[${embedding.join(',')}]`;
+   const vectorLiteral = `[${embedding.join(',')}]`;
 
-    const result = await this.client.query<RawEmbeddingRow>(
-      `SELECT 
-          id,
-          title,
-          content,
-          embedding::text AS embedding_str,
-          embedding <=> $1::vector AS distance
-       FROM embeddings
-       ORDER BY distance
-       LIMIT $2`,
-      [vectorLiteral, limit],
-    );
+   const start = Date.now();
+   this.logger.log(`📡 Running pgvector search with limit=${limit}`);
 
-    return result.rows.map((row, index) => {
-      const score = this.normalizeScore(row.distance);
+   const result = await this.client.query<RawEmbeddingRow>(
+    `SELECT 
+      id,
+      title,
+      content,
+      embedding::text AS embedding_str,
+      embedding <=> $1::vector AS distance
+    FROM embeddings
+    ORDER BY distance
+    LIMIT $2`,
+    [vectorLiteral, limit],
+   );
 
-      return {
-        rank: index + 1,
-        id: row.id,
-        title: row.title,
-        content: row.content,
-        score,
-        metadata: {
-          createdAt: row.created_at,
-        },
-      };
-    });
-  }
+   const dbTime = Date.now() - start;
+   this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
+
+   const mapped = result.rows.map((row, index) => {
+    const score = this.normalizeScore(row.distance);
+
+    return {
+      rank: index + 1,
+      id: row.id,
+      title: row.title,
+      content: row.content,
+      score,
+      metadata: {
+        createdAt: row.created_at,
+      },
+    };
+  });
+
+  this.logger.log(`Vector search results: ${JSON.stringify(mapped)}`);
+
+  return mapped;
+}
 }
