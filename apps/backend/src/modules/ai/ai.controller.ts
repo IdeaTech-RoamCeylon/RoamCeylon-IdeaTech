@@ -92,10 +92,14 @@ export class AIController {
     const cleanedQuery = preprocessQuery(query);
     this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
 
+    // ---- Embedding ----
     const embedStart = Date.now();
     const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
     const embedTime = Date.now() - embedStart;
+    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
 
+    // ---- Vector DB Search (ONE CALL ONLY) ----
+    const searchStart = Date.now();
     const rawResults =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
@@ -104,18 +108,19 @@ export class AIController {
     const searchTime = Date.now() - searchStart;
 
     this.logger.log(`📡 Vector DB search duration: ${searchTime}ms`);
-    this.logger.log(`🏆 Ranked results: ${JSON.stringify(results)}`);
+    this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
 
     const total = Date.now() - startTotal;
     this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
 
+    // ---- Return ----
     if (Array.isArray(rawResults)) {
       return { query, results: rawResults };
     } else {
-      // No results found, return empty array and include the message
       return { query, results: [], message: rawResults.message };
     }
   }
+
 
   // ------------------- SEED DATABASE -------------------
   @Post('seed')
