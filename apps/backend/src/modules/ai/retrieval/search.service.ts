@@ -86,9 +86,13 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
-    }
+   }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
+
+    this.logger.log(`📡 Running pgvector search with limit=${limit}`);
+
+    const start = Date.now();
 
     const result = await this.client.query<RawEmbeddingRow>(
       `SELECT 
@@ -103,8 +107,11 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
       [vectorLiteral, limit],
     );
 
-    // Map and score results
-    const searchResults = result.rows.map((row, index) => {
+    const dbTime = Date.now() - start;
+    this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
+
+    // Map + normalize
+    const mapped = result.rows.map((row, index) => {
       const score = this.normalizeScore(row.distance);
 
       return {
@@ -119,13 +126,16 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
       };
     });
 
-    // Remove duplicates by ID and filter by similarity threshold
-    const filteredResults = searchResults
+    this.logger.log(`🏆 Vector search results: ${JSON.stringify(mapped)}`);
+
+    
+    // Remove duplicates + apply similarity
+    const filteredResults = mapped
       .filter(
         (item, index, self) =>
           index === self.findIndex((t) => t.id === item.id),
       )
-      .filter((item) => item.score > similarityThreshold);
+      .filter((item) => item.score >= similarityThreshold);
 
     if (filteredResults.length === 0) {
       return {
