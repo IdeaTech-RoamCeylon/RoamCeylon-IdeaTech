@@ -40,7 +40,8 @@ model User {
 
 model embeddings {
   id         Int                    @id @default(autoincrement())
-  text       String
+  title      String?
+  content    String?
   embedding  Unsupported("vector")?
   created_at DateTime               @default(now())
 }
