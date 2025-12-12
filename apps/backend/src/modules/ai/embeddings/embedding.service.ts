@@ -151,6 +151,7 @@ export class EmbeddingService {
     const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
     return magnitude > 0 ? vector.map((v) => v / magnitude) : vector;
   }
+  
 
   private hashToken(token: string): number {
     let hash = 0;
