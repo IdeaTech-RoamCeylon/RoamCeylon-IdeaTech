@@ -33,49 +33,53 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    // Empty or missing
-    if (!query || query.trim() === '') {
+    // Validate query
+    if (!query || query.trim() === '')
       return { error: 'Query cannot be empty' };
-    }
 
-    // Too short
-    if (query.length < 3) {
+    const cleanedQuery = query.trim();
+
+    if (cleanedQuery.length < 3)
       return { error: 'Query too short (minimum 3 characters)' };
-    }
-
-    // Invalid characters (basic safety filter — FIXED)
-    const safePattern = /^[a-zA-Z0-9]+$/;
-    if (!safePattern.test(query)) {
-      return { error: 'Query contains invalid characters' };
-    }
-
-    // Too long
-    if (query.length > 15) {
+    if (cleanedQuery.length > 300)
       return { error: 'Query too long (maximum 300 characters)' };
-    }
+    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery))
+      return {
+        error:
+          'Query contains invalid characters (letters, numbers, and spaces only)',
+      };
 
-    const cleanedQuery = preprocessQuery(query);
+    // Preprocess query
+    const preprocessedQuery = preprocessQuery(cleanedQuery);
+
+    // Generate embedding for the query
     const queryVector = this.aiService.generateDummyEmbedding(
-      cleanedQuery,
+      preprocessedQuery,
       1536,
     );
 
+    // Fetch all items with embeddings
     const items = await this.aiService.getAllEmbeddings();
 
-    const scored = items
+    // Calculate cosine similarity for each item
+    const scoredItems = items
       .map((item) => ({
         id: item.id,
         title: item.title,
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      .filter((item) => item.score > 0.5)
+      // Only keep items with similarity above threshold
+      .filter((item) => item.score > 0.1) // adjust threshold as needed
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 5); // top 5 results
 
+    // Return empty results if no matches
     return {
-      query,
-      results: scored.map((r, idx) => ({ rank: idx + 1, ...r })),
+      query: cleanedQuery,
+      results: scoredItems.length
+        ? scoredItems.map((item, idx) => ({ rank: idx + 1, ...item }))
+        : [],
     };
   }
 
