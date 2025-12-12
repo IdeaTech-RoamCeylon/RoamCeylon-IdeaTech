@@ -86,7 +86,7 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
-    }
+   }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
 
