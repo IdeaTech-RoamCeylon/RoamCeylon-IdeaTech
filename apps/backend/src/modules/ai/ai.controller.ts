@@ -42,6 +42,7 @@ export class AIController {
 
     const items = await this.aiService.getAllEmbeddings();
 
+    // Calculate scores
     const scored = items
       .map((item) => ({
         id: item.id,
@@ -49,6 +50,8 @@ export class AIController {
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
+      // Only keep items with similarity > threshold
+      .filter((item) => item.score > 0.1) // adjust threshold as needed
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 

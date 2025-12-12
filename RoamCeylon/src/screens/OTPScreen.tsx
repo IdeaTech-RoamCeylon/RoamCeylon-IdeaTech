@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { verifyOtp } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
+import { showToast } from '../utils/toast';
 
 type AuthStackParamList = {
   PhoneEntry: undefined;
@@ -24,7 +25,7 @@ const OTPScreen = () => {
 
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter a 6-digit verification code');
+      showToast.error('Please enter a 6-digit verification code', 'Invalid OTP');
       return;
     }
 
@@ -36,16 +37,15 @@ const OTPScreen = () => {
       // Call login to store token and fetch user profile
       await login(response.accessToken);
       
+      showToast.success('OTP verified successfully!', 'Success');
+      
       // Navigate to ProfileSetupScreen
       // The RootNavigator will keep user in AuthStack until profile is complete
       navigation.navigate('ProfileSetup');
       
     } catch (error: any) {
       console.error('Failed to verify OTP:', error);
-      Alert.alert(
-        'Verification Failed',
-        error.response?.data?.message || 'Invalid OTP. Please try again.'
-      );
+      showToast.apiError(error, 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -13,7 +13,9 @@ export interface SearchResultDto {
   title: string;
   content: string;
   score: number;
-  metadata?: any;
+  metadata?: {
+    createdAt: string | null;
+  };
 }
 
 export interface RawEmbeddingRow {
@@ -21,7 +23,16 @@ export interface RawEmbeddingRow {
   title: string;
   content: string;
   embedding_str: string;
-  created_at: string;
+  created_at: string | null;
+  distance: number;
+}
+
+export interface RawEmbeddingRow {
+  id: number | string;
+  title: string;
+  content: string;
+  embedding_str: string;
+  created_at: string | null;
   distance: number;
 }
 
@@ -33,13 +44,12 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly configService: ConfigService) {}
 
-  // ------------------ POSTGRES CLIENT ------------------
   private createClient(): Client {
     return new Client({
       user: this.configService.get<string>('DB_USER'),
       host: this.configService.get<string>('DB_HOST'),
       database: this.configService.get<string>('DB_NAME'),
-      password: String(this.configService.get<string>('DB_PASSWORD') || ''),
+      password: this.configService.get<string>('DB_PASSWORD') ?? '',
       port: Number(this.configService.get<string>('DB_PORT')),
     });
   }
@@ -67,28 +77,38 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     embedding: number[],
     limit = 10,
   ): Promise<SearchResultDto[]> {
-    if (!this.isConnected) throw new Error('Database not connected');
+    if (!this.isConnected) {
+      throw new Error('Database not connected');
+    }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
 
     const result = await this.client.query<RawEmbeddingRow>(
-      `SELECT id, title, content,
-            embedding::text as embedding_str,
-            created_at,
-            embedding <=> $1::vector as distance
-     FROM embeddings
-     ORDER BY distance
-     LIMIT $2`,
+      `SELECT 
+          id,
+          title,
+          content,
+          embedding::text AS embedding_str,
+          embedding <=> $1::vector AS distance
+       FROM embeddings
+       ORDER BY distance
+       LIMIT $2`,
       [vectorLiteral, limit],
     );
 
-    return result.rows.map((r, idx) => ({
-      rank: idx + 1,
-      id: r.id,
-      title: r.title,
-      content: r.content,
-      score: this.normalizeScore(Number(r.distance)),
-      metadata: { createdAt: r.created_at },
-    }));
+    return result.rows.map((row, index) => {
+      const score = this.normalizeScore(row.distance);
+
+      return {
+        rank: index + 1,
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        score,
+        metadata: {
+          createdAt: row.created_at,
+        },
+      };
+    });
   }
 }
