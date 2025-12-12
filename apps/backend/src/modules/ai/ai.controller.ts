@@ -33,48 +33,53 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    const startTotal = Date.now();
-    this.logger.log(`🔍 Search query received: "${query}"`);
+    // Validate query
+    if (!query || query.trim() === '')
+      return { error: 'Query cannot be empty' };
 
-    if (!query) return { error: 'Query parameter "query" is required' };
+    const cleanedQuery = query.trim();
 
-    // Preprocess logging
-    const cleanedQuery = preprocessQuery(query);
-    this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
+    if (cleanedQuery.length < 3)
+      return { error: 'Query too short (minimum 3 characters)' };
+    if (cleanedQuery.length > 300)
+      return { error: 'Query too long (maximum 300 characters)' };
+    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery))
+      return {
+        error:
+          'Query contains invalid characters (letters, numbers, and spaces only)',
+      };
 
-    // Embedding timing
-    const embedStart = Date.now();
-    const queryVector = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
-    const embedTime = Date.now() - embedStart;
+    // Preprocess query
+    const preprocessedQuery = preprocessQuery(cleanedQuery);
 
-    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+    // Generate embedding for the query
+    const queryVector = this.aiService.generateDummyEmbedding(
+      preprocessedQuery,
+      1536,
+    );
 
-    // Search timing
-    const searchStart = Date.now();
+    // Fetch all items with embeddings
     const items = await this.aiService.getAllEmbeddings();
 
-    const scored = items
+    // Calculate cosine similarity for each item
+    const scoredItems = items
       .map((item) => ({
         id: item.id,
         title: item.title,
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      .filter((item) => item.score > 0.1)
+      // Only keep items with similarity above threshold
+      .filter((item) => item.score > 0.1) // adjust threshold as needed
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 5); // top 5 results
 
-    const searchTime = Date.now() - searchStart;
-
-    this.logger.log(`⏱️ Search duration: ${searchTime}ms`);
-    this.logger.log(`🏆 Ranked results: ${JSON.stringify(scored)}`);
-
-    const total = Date.now() - startTotal;
-    this.logger.log(`✅ Total search pipeline time: ${total}ms`);
-
+    // Return empty results if no matches
     return {
-      query,
-      results: scored.map((r, idx) => ({ rank: idx + 1, ...r })),
+      query: cleanedQuery,
+      results: scoredItems.length
+        ? scoredItems.map((item, idx) => ({ rank: idx + 1, ...item }))
+        : [],
     };
   }
 
