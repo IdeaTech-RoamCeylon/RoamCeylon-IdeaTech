@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { showToast } from '../utils/toast';
 
 // Base API configuration
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
@@ -46,6 +47,9 @@ class ApiService {
           message: error.message,
           data: error.response?.data,
         });
+
+        // Show global error toast
+        showToast.apiError(error);
 
         if (error.response?.status === 401) {
           // Token expired or invalid - handle logout

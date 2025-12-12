@@ -1,17 +1,8 @@
 import apiService from './api';
+import { Category, Product } from '../types';
 
-// Types for marketplace API responses
-export interface Category {
-  id: string;
-  name: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-}
+// Re-export types for backwards compatibility
+export type { Category, Product };
 
 // Marketplace API endpoints
 class MarketplaceApi {

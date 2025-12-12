@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Card } from '../../components';
 import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
@@ -13,37 +14,37 @@ const HomeScreen = () => {
       </View>
 
       <View style={styles.grid}>
-        <TouchableOpacity
+        <Card
           style={styles.card}
           onPress={() => navigation.navigate('Explore' as never)}
         >
           <Text style={styles.cardTitle}>🗺️ Explore</Text>
           <Text style={styles.cardText}>Discover destinations</Text>
-        </TouchableOpacity>
+        </Card>
 
-        <TouchableOpacity
+        <Card
           style={styles.card}
           onPress={() => navigation.navigate('Marketplace' as never)}
         >
           <Text style={styles.cardTitle}>🛍️ Marketplace</Text>
           <Text style={styles.cardText}>Shop local goods</Text>
-        </TouchableOpacity>
+        </Card>
 
-        <TouchableOpacity
+        <Card
           style={styles.card}
           onPress={() => navigation.navigate('Transport' as never)}
         >
           <Text style={styles.cardTitle}>🚗 Transport</Text>
           <Text style={styles.cardText}>Book rides</Text>
-        </TouchableOpacity>
+        </Card>
 
-        <TouchableOpacity
+        <Card
           style={styles.card}
           onPress={() => navigation.navigate('Profile' as never)}
         >
           <Text style={styles.cardTitle}>👤 Profile</Text>
           <Text style={styles.cardText}>Your account</Text>
-        </TouchableOpacity>
+        </Card>
       </View>
     </ScrollView>
   );
@@ -76,15 +77,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    backgroundColor: '#fff',
     margin: '1%',
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   cardTitle: {
     fontSize: 24,

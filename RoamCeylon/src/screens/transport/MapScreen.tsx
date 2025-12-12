@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { MAPBOX_CONFIG } from '../config/mapbox.config';
+import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 
 // Lazy load Mapbox to prevent build errors
 let MapboxGL: any = null;

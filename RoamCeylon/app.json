@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby places and help you plan your journey around Sri Lanka.",
         "NSLocationAlwaysUsageDescription": "This app uses your location to provide better travel recommendations even when the app is in the background."
-      }
+      },
+      "bundleIdentifier": "com.anonymous.RoamCeylon"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,8 +30,9 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.anonymous.RoamCeylon"
     },
@@ -42,10 +44,21 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken": "sk.eyJ1Ijoic29lc2gtY29vcmF5IiwiYSI6ImNtaXlrZ2xqYTBlZWEzZHNrMzVoYzBndmkifQ.dyng-Fd67bWctiWRDPIZGg",
-          "RNMapboxMapsImpl": "mapbox"
+          "RNMapboxMapsImpl": "mapbox",
+          "RNMapboxMapsVersion": "11.10.0"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow RoamCeylon to use your location."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b8cee23e-c523-4302-b1ca-169331200d13"
+      }
+    }
   }
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { MainStackParamList } from '../navigation/MainStack';
+import { MainStackParamList } from '../../types';
 
 type ProductDetailsNavigationProp = StackNavigationProp<MainStackParamList, 'ProductDetails'>;
 type ProductDetailsRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;

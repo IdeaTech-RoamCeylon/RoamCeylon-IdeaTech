@@ -45,6 +45,21 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   private createClient(): Client {
+    // Check if we have individual vars, otherwise use DATABASE_URL
+    const dbUrl = this.configService.get<string>('DATABASE_URL');
+
+    // If DATABASE_URL is present, use it for connection string
+    if (dbUrl) {
+      return new Client({
+        connectionString: dbUrl,
+        // Nhost requires SSL, usually inferred from url ?sslmode=require but explicit is safer
+        ssl: dbUrl.includes('sslmode=')
+          ? { rejectUnauthorized: false }
+          : undefined,
+      });
+    }
+
+    // Fallback to individual vars (which appear to be missing in your .env)
     return new Client({
       user: this.configService.get<string>('DB_USER'),
       host: this.configService.get<string>('DB_HOST'),
