@@ -24,9 +24,9 @@ describe('MarketplaceController (e2e)', () => {
       .get('/marketplace/categories')
       .expect(200)
       .expect((res) => {
-        const body = res.body as unknown[];
-        expect(Array.isArray(body)).toBe(true);
-        expect(body.length).toBeGreaterThan(0);
+        const body = res.body as { data: unknown[] };
+        expect(Array.isArray(body.data)).toBe(true);
+        expect(body.data.length).toBeGreaterThan(0);
       });
   });
 
@@ -35,7 +35,8 @@ describe('MarketplaceController (e2e)', () => {
       .get('/marketplace/products')
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body as unknown)).toBe(true);
+        const body = res.body as { data: unknown[] };
+        expect(Array.isArray(body.data)).toBe(true);
       });
   });
 
@@ -44,6 +45,11 @@ describe('MarketplaceController (e2e)', () => {
       .get('/marketplace/products/101')
       .expect(200)
       .expect((res) => {
+        // Product By ID returns raw product or wrapped?
+        // Service: getProductById -> returns found product directly (unwrapped in response? No, controller returns service result directly).
+        // Service: return response.data.find(...) => returns Product object.
+        // So this one endpoint returns the object directly, NOT wrapped in data: ... if my previous edit was correct.
+        // Let's re-verify service code.
         expect(res.body as unknown).toHaveProperty('id', '101');
       });
   });

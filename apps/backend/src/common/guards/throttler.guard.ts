@@ -1,5 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
+interface RequestWithIp {
+    ip?: string;
+    [key: string]: any;
+}
+
 @Injectable()
 export class ThrottlerGuard implements CanActivate {
     private requestCounts = new Map<string, number[]>();
@@ -7,7 +12,7 @@ export class ThrottlerGuard implements CanActivate {
     private readonly ttl = 60000; // 1 minute
 
     canActivate(context: ExecutionContext): boolean {
-        const request = context.switchToHttp().getRequest();
+        const request = context.switchToHttp().getRequest<RequestWithIp>();
         // Use IP or a mock ID for simplicity
         const ip = request.ip || 'mock-ip';
         const now = Date.now();
