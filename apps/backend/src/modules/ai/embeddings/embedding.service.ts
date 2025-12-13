@@ -189,4 +189,15 @@ export class EmbeddingService {
 
     return magA && magB ? dot / (magA * magB) : 0;
   }
+
+  isPartialMatch(token: string, text: string): boolean {
+    if (token.length < 4) return false;
+
+    // gallefort → galle fort
+    for (let i = 0; i <= token.length - 4; i++) {
+      const sub = token.substring(i, i + 4);
+      if (text.includes(sub)) return true;
+    }
+    return false;
+  }
 }
