@@ -33,6 +33,20 @@ class MarketplaceApi {
       throw error;
     }
   }
+
+  /**
+   * Fetch a single product by ID
+   * @param id - Product ID
+   */
+  async getProductById(id: string): Promise<Product | undefined> {
+    try {
+      const product = await apiService.get<Product>(`/marketplace/products/${id}`);
+      return product;
+    } catch (error) {
+      console.error(`Error fetching product with id ${id}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const marketplaceApi = new MarketplaceApi();

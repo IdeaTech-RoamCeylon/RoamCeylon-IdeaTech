@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { MainStackParamList } from '../../types';
+import { MainStackParamList, Product } from '../../types';
+import marketplaceApi from '../../services/marketplaceApi';
 
 type ProductDetailsNavigationProp = StackNavigationProp<MainStackParamList, 'ProductDetails'>;
 type ProductDetailsRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;
@@ -12,8 +13,57 @@ const ProductDetailsScreen = () => {
   const route = useRoute<ProductDetailsRouteProp>();
   const productId = route.params?.productId;
 
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('Medium');
+
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (!productId) {
+        setError('No product ID provided');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await marketplaceApi.getProductById(productId);
+        if (data) {
+          setProduct(data);
+        } else {
+          setError('Product not found');
+        }
+      } catch (err) {
+        setError('Failed to load product details');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductDetails();
+  }, [productId]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>{error || 'Product not found'}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonSimple}>
+           <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const sizes = ['Small', 'Medium', 'Large'];
 
@@ -31,7 +81,12 @@ const ProductDetailsScreen = () => {
 
       {/* Product Image Placeholder */}
       <View style={styles.imageContainer}>
-        <Text style={styles.productImageIcon}>🏺</Text>
+        {/* In real app, would use <Image source={{ uri: product.image }} /> */}
+        <Text style={styles.productImageIcon}>
+           {product.category === 'Electronics' ? '📱' : 
+            product.category === 'Food & Spices' ? '🌶️' : 
+            product.category === 'Clothing' ? '👕' : '🏺'}
+        </Text>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>Authentic</Text>
         </View>
@@ -40,8 +95,8 @@ const ProductDetailsScreen = () => {
       {/* Product Info */}
       <View style={styles.content}>
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Traditional Clay Pottery</Text>
-          <Text style={styles.price}>Rs. 900.00</Text>
+          <Text style={styles.title}>{product.name}</Text>
+          <Text style={styles.price}>Rs. {product.price.toFixed(2)}</Text>
         </View>
 
         <View style={styles.ratingSection}>
@@ -69,7 +124,7 @@ const ProductDetailsScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.description}>
-            Handcrafted traditional clay pottery made by skilled artisans in Sri Lanka. Each piece is unique and represents centuries of craftsmanship. Perfect for home decoration or as a special gift.
+            {product.description}
           </Text>
         </View>
 
@@ -433,6 +488,24 @@ const styles = StyleSheet.create({
   buyNowButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 20,
+  },
+  backButtonSimple: {
+    padding: 10,
+    backgroundColor: '#FF6B35',
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
   },
 });
