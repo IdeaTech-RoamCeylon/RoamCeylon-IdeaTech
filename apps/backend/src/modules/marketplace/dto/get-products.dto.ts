@@ -4,4 +4,8 @@ export class GetProductsDto {
   @IsOptional()
   @IsString()
   category?: string;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
 }

@@ -61,4 +61,13 @@ export class TransportService {
   getRideRequests(): RideRequest[] {
     return this.rideRequests;
   }
+
+  simulate() {
+    this.seedDrivers();
+    this.seedRideRequests();
+    return {
+      drivers: this.drivers,
+      rides: this.rideRequests,
+    };
+  }
 }

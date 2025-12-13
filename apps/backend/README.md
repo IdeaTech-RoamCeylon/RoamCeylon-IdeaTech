@@ -96,3 +96,28 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## API Documentation
+
+### Authentication
+- `POST /auth/send-otp`: Request OTP for a phone number. Rate limited.
+- `POST /auth/verify-otp`: Verify OTP and get access token. Rate limited.
+
+### Marketplace
+Wrapped responses: `{ data: ..., meta: ... }`
+
+- `GET /marketplace/categories`: Get product categories.
+- `GET /marketplace/products`: Get products. Supports query params:
+  - `category`: Filter by category.
+  - `sortBy`: `price` | `name`.
+- `GET /marketplace/products/:id`: Get product details.
+
+### Transport
+- `GET /transport/drivers`: Get mocked driver locations.
+- `GET /transport/simulate`: **[New]** Simulate transport environment. Returns `{ drivers: [...], rides: [...] }`.
+
+### User
+- `GET /users/me`: Get current user profile.
+
+## Rate Limiting
+Basic rate limiting is enabled for Auth endpoints (3 requests per minute).
