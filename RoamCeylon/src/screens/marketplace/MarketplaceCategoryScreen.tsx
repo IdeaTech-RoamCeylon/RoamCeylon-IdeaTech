@@ -26,7 +26,7 @@ const MarketplaceCategoryScreen = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await marketplaceApi.getProducts(categoryId);
+      const data = await marketplaceApi.getProducts(categoryName);
       setProducts(data);
     } catch (err) {
       setError('Failed to load products. Please try again.');
