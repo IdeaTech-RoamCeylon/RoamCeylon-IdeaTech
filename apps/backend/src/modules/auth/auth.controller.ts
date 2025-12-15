@@ -9,7 +9,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('send-otp')
   // @Throttle removed (handled by guard default logic)

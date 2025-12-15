@@ -26,7 +26,7 @@ export interface Wrapper<T> {
 export class MarketplaceService {
   private readonly logger = new Logger(MarketplaceService.name);
 
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) { }
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async getCategories(): Promise<Wrapper<Category[]>> {
     const cacheKey = 'marketplace:categories';
@@ -60,7 +60,10 @@ export class MarketplaceService {
     return { data: categories, meta: { count: categories.length } };
   }
 
-  async getProducts(category?: string, sortBy?: string): Promise<Wrapper<Product[]>> {
+  async getProducts(
+    category?: string,
+    sortBy?: string,
+  ): Promise<Wrapper<Product[]>> {
     const cacheKey = category
       ? `marketplace:products:cat:${category}`
       : 'marketplace:products:all';
