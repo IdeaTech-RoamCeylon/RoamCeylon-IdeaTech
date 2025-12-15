@@ -32,10 +32,13 @@ describe('MarketplaceService', () => {
   describe('getCategories', () => {
     it('should return cached categories if available', async () => {
       const cachedCategories = [{ id: '1', name: 'Cached' }];
-      mockCacheManager.get.mockResolvedValue(cachedCategories);
+      mockCacheManager.get.mockResolvedValue(cachedCategories); // Cache returns raw array (as per service logic) or wrapped? 
+      // Wait, service logic: if (cached) return { data: cached ... }
+      // So cache STORES raw array. 
+      // Service returns Wrapper.
 
       const result = await service.getCategories();
-      expect(result).toEqual(cachedCategories);
+      expect(result.data).toEqual(cachedCategories);
       expect(mockCacheManager.get).toHaveBeenCalledWith(
         'marketplace:categories',
       );
@@ -46,7 +49,7 @@ describe('MarketplaceService', () => {
       mockCacheManager.get.mockResolvedValue(null);
 
       const result = await service.getCategories();
-      expect(result).toHaveLength(4); // Based on hardcoded data
+      expect(result.data).toHaveLength(4); // Based on hardcoded data
       expect(mockCacheManager.set).toHaveBeenCalledWith(
         'marketplace:categories',
         expect.any(Array),
@@ -60,7 +63,7 @@ describe('MarketplaceService', () => {
       mockCacheManager.get.mockResolvedValue(cachedProducts);
 
       const result = await service.getProducts();
-      expect(result).toEqual(cachedProducts);
+      expect(result.data).toEqual(cachedProducts);
       expect(mockCacheManager.get).toHaveBeenCalledWith(
         'marketplace:products:all',
       );
@@ -71,7 +74,8 @@ describe('MarketplaceService', () => {
       const category = 'Souvenirs';
 
       const result = await service.getProducts(category);
-      expect(result[0].category).toBe(category);
+      // Service returns { data: [...] }
+      expect(result.data[0].category).toBe(category);
       expect(mockCacheManager.get).toHaveBeenCalledWith(
         `marketplace:products:cat:${category}`,
       );

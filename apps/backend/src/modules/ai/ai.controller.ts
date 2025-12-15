@@ -11,6 +11,7 @@ export interface SearchResponseDto {
     title: string;
     content: string;
     score: number;
+    confidence?: 'High' | 'Medium' | 'Low'; // NEW: confidence field
     metadata?: any;
   }[];
   message?: string;
@@ -33,48 +34,86 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    const startTotal = Date.now();
-    this.logger.log(`🔍 Search query received: "${query}"`);
+    if (!query || query.trim() === '') {
+      return { error: 'Query cannot be empty' };
+    }
 
-    if (!query) return { error: 'Query parameter "query" is required' };
+    const cleanedQuery = query.trim();
 
-    // Preprocess logging
-    const cleanedQuery = preprocessQuery(query);
-    this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
+    if (cleanedQuery.length < 3) {
+      return { error: 'Query too short (minimum 3 characters)' };
+    }
 
-    // Embedding timing
-    const embedStart = Date.now();
-    const queryVector = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
-    const embedTime = Date.now() - embedStart;
+    if (cleanedQuery.length > 300) {
+      return { error: 'Query too long (maximum 300 characters)' };
+    }
 
-    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery)) {
+      return {
+        error:
+          'Query contains invalid characters (letters, numbers, and spaces only)',
+      };
+    }
 
-    // Search timing
-    const searchStart = Date.now();
+    // ---------------- PREPROCESS ----------------
+    const preprocessedQuery = preprocessQuery(cleanedQuery);
+    const queryTokens = preprocessedQuery.split(/\s+/);
+
+    // ---------------- EMBEDDING ----------------
+    const queryVector = this.aiService.generateDummyEmbedding(
+      preprocessedQuery,
+      1536,
+    );
+
     const items = await this.aiService.getAllEmbeddings();
 
-    const scored = items
+    // ---------------- STAGE 1: KEYWORD GATE ----------------
+    const keywordFiltered = items.filter((item) => {
+      const text = `${item.title} ${item.content}`.toLowerCase();
+
+      return queryTokens.some((token) => {
+        return (
+          text.includes(token) || this.aiService.isPartialMatch(token, text) // fuzzy (galle → gallefort)
+        );
+      });
+    });
+
+    // If nothing passes lexical filter → stop
+    if (keywordFiltered.length === 0) {
+      return {
+        query: cleanedQuery,
+        message: 'No strong matches found. Try another query.',
+        results: [],
+      };
+    }
+
+    // ---------------- VECTOR SIMILARITY ----------------
+    const scored = keywordFiltered
       .map((item) => ({
         id: item.id,
         title: item.title,
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      .filter((item) => item.score > 0.1)
+      .filter((item) => item.score >= 0.55) // IMPORTANT threshold
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
-    const searchTime = Date.now() - searchStart;
-
-    this.logger.log(`⏱️ Search duration: ${searchTime}ms`);
-    this.logger.log(`🏆 Ranked results: ${JSON.stringify(scored)}`);
-
-    const total = Date.now() - startTotal;
-    this.logger.log(`✅ Total search pipeline time: ${total}ms`);
+    // ---------------- FALLBACK ----------------
+    if (scored.length === 0) {
+      return {
+        query: cleanedQuery,
+        message: 'No strong matches found. Try another query.',
+        results: [],
+      };
+    }
 
     return {
-      query,
-      results: scored.map((r, idx) => ({ rank: idx + 1, ...r })),
+      query: cleanedQuery,
+      results: scored.map((item, idx) => ({
+        rank: idx + 1,
+        ...item,
+      })),
     };
   }
 
@@ -120,7 +159,6 @@ export class AIController {
       return { query, results: [], message: rawResults.message };
     }
   }
-
 
   // ------------------- SEED DATABASE -------------------
   @Post('seed')

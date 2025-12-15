@@ -17,18 +17,23 @@ export interface Category {
   image: string;
 }
 
+export interface Wrapper<T> {
+  data: T;
+  meta?: Record<string, any>;
+}
+
 @Injectable()
 export class MarketplaceService {
   private readonly logger = new Logger(MarketplaceService.name);
 
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) { }
 
-  async getCategories(): Promise<Category[]> {
+  async getCategories(): Promise<Wrapper<Category[]>> {
     const cacheKey = 'marketplace:categories';
     const cached = await this.cacheManager.get<Category[]>(cacheKey);
     if (cached) {
       this.logger.log(`Cache hit for ${cacheKey}`);
-      return cached;
+      return { data: cached, meta: { count: cached.length } };
     }
 
     const categories = [
@@ -52,17 +57,17 @@ export class MarketplaceService {
 
     await this.cacheManager.set(cacheKey, categories);
     this.logger.log(`Cache set for ${cacheKey}`);
-    return categories;
+    return { data: categories, meta: { count: categories.length } };
   }
 
-  async getProducts(category?: string): Promise<Product[]> {
+  async getProducts(category?: string, sortBy?: string): Promise<Wrapper<Product[]>> {
     const cacheKey = category
       ? `marketplace:products:cat:${category}`
       : 'marketplace:products:all';
     const cached = await this.cacheManager.get<Product[]>(cacheKey);
     if (cached) {
       this.logger.log(`Cache hit for ${cacheKey}`);
-      return cached;
+      return { data: cached, meta: { count: cached.length } };
     }
 
     const allProducts = [
@@ -105,13 +110,21 @@ export class MarketplaceService {
       result = allProducts.filter((p) => p.category === category);
     }
 
+    if (sortBy) {
+      if (sortBy === 'price') {
+        result.sort((a, b) => a.price - b.price);
+      } else if (sortBy === 'name') {
+        result.sort((a, b) => a.name.localeCompare(b.name));
+      }
+    }
+
     await this.cacheManager.set(cacheKey, result);
     this.logger.log(`Cache set for ${cacheKey}`);
-    return result;
+    return { data: result, meta: { count: result.length } };
   }
 
   async getProductById(id: string): Promise<Product | undefined> {
-    const products = await this.getProducts();
-    return products.find((p) => p.id === id);
+    const response = await this.getProducts();
+    return response.data.find((p) => p.id === id);
   }
 }

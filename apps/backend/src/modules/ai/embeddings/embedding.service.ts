@@ -74,8 +74,6 @@ export class EmbeddingService {
           [item.title, item.description, vectorLiteral],
         );
       }
-
-      console.log('Seeding completed!');
     } catch (err) {
       console.error('Seeding error:', err);
       throw err;
@@ -127,29 +125,42 @@ export class EmbeddingService {
 
   // ------------------ UTILS ------------------
   generateDummyEmbedding(text: string, dim = 1536): number[] {
-    if (!text) {
-      return Array.from({ length: dim }, () => 0 as number);
-    }
+    if (!text) return Array.from({ length: dim }, () => 0);
 
+    // Lowercase, remove non-alphanumeric except space
     const cleaned = text
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, '')
       .trim();
 
+    // Tokenize words (split on spaces)
     const tokens = cleaned.split(/\s+/);
 
-    const vector: number[] = Array.from({ length: dim }, () => 0 as number);
+    const vector: number[] = Array.from({ length: dim }, () => 0);
 
     tokens.forEach((token, index) => {
-      const hash = this.hashToken(token);
-
-      for (let i = 0; i < dim; i++) {
-        vector[i] += (((hash + i * 13) % 100) / 100) * (1 / (index + 1));
-      }
+      // Also split tokens into character-level n-grams for better matching
+      const ngrams = this.getCharNGrams(token, 3); // trigrams
+      ngrams.forEach((ng) => {
+        const hash = this.hashToken(ng);
+        for (let i = 0; i < dim; i++) {
+          vector[i] += (((hash + i * 13) % 100) / 100) * (1 / (index + 1));
+        }
+      });
     });
 
+    // Normalize vector
     const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
     return magnitude > 0 ? vector.map((v) => v / magnitude) : vector;
+  }
+
+  // Generate character n-grams
+  private getCharNGrams(word: string, n: number): string[] {
+    const ngrams: string[] = [];
+    for (let i = 0; i <= word.length - n; i++) {
+      ngrams.push(word.substring(i, i + n));
+    }
+    return ngrams.length > 0 ? ngrams : [word];
   }
 
   private hashToken(token: string): number {
@@ -177,5 +188,16 @@ export class EmbeddingService {
     magB = Math.sqrt(magB);
 
     return magA && magB ? dot / (magA * magB) : 0;
+  }
+
+  isPartialMatch(token: string, text: string): boolean {
+    if (token.length < 4) return false;
+
+    // gallefort → galle fort
+    for (let i = 0; i <= token.length - 4; i++) {
+      const sub = token.substring(i, i + 4);
+      if (text.includes(sub)) return true;
+    }
+    return false;
   }
 }
