@@ -32,9 +32,9 @@ describe('MarketplaceService', () => {
   describe('getCategories', () => {
     it('should return cached categories if available', async () => {
       const cachedCategories = [{ id: '1', name: 'Cached' }];
-      mockCacheManager.get.mockResolvedValue(cachedCategories); // Cache returns raw array (as per service logic) or wrapped? 
+      mockCacheManager.get.mockResolvedValue(cachedCategories); // Cache returns raw array (as per service logic) or wrapped?
       // Wait, service logic: if (cached) return { data: cached ... }
-      // So cache STORES raw array. 
+      // So cache STORES raw array.
       // Service returns Wrapper.
 
       const result = await service.getCategories();
