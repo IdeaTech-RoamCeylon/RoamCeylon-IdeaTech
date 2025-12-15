@@ -5,23 +5,23 @@ export class AuthService {
   // In-memory storage for mock auth (in real app, this would be in database)
   private static lastVerifiedPhone: string = '+94771234567';
 
-  sendOtp(phoneNumber: string): { message: string } {
+  sendOtp(_phoneNumber: string): { message: string } {
     return { message: 'OTP sent successfully' };
   }
 
   verifyOtp(
-    phoneNumber: string,
-    otp: string,
+    _phoneNumber: string,
+    _otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
     // Store the verified phone number
-    AuthService.lastVerifiedPhone = phoneNumber;
+    AuthService.lastVerifiedPhone = _phoneNumber;
 
     // Mock JWT token
     return {
       accessToken: 'mock-jwt-token',
       user: {
         id: 'mock-user-id',
-        phoneNumber,
+        phoneNumber: _phoneNumber,
       },
     };
   }

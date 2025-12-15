@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 describe('MarketplaceController (e2e)', () => {
   let app: INestApplication;
 
