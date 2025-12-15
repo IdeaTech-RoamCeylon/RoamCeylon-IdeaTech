@@ -6,7 +6,7 @@ import { Driver } from './item.interface';
 export class TransportController {
   private readonly logger = new Logger(TransportController.name);
 
-  constructor(private readonly transportService: TransportService) { }
+  constructor(private readonly transportService: TransportService) {}
 
   @Post('seed')
   seedData() {

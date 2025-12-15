@@ -13,6 +13,7 @@ export interface SearchResultDto {
   title: string;
   content: string;
   score: number;
+  confidence?: 'High' | 'Medium' | 'Low'; // NEW: confidence field
   metadata?: {
     createdAt: string | null;
   };
@@ -126,6 +127,12 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     return 1 - Math.min(Math.max(distance, 0), 1);
   }
 
+  private getConfidence(score: number): 'High' | 'Medium' | 'Low' {
+    if (score >= 0.8) return 'High';
+    if (score >= 0.5) return 'Medium';
+    return 'Low';
+  }
+
   async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
@@ -181,7 +188,12 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         (item, index, self) =>
           index === self.findIndex((t) => t.id === item.id),
       )
-      .filter((item) => item.score >= similarityThreshold);
+      .filter((item) => item.score > similarityThreshold)
+      .map((item, idx) => ({
+        ...item,
+        rank: idx + 1,
+        confidence: this.getConfidence(item.score), // NEW: add confidence
+      }));
 
     if (filteredResults.length === 0) {
       return {

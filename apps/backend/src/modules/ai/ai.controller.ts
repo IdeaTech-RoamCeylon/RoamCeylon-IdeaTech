@@ -11,6 +11,7 @@ export interface SearchResponseDto {
     title: string;
     content: string;
     score: number;
+    confidence?: 'High' | 'Medium' | 'Low'; // NEW: confidence field
     metadata?: any;
   }[];
   message?: string;
@@ -33,53 +34,146 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    // Validate query
-    if (!query || query.trim() === '')
+    const totalStart = process.hrtime.bigint();
+
+    // ---------------- VALIDATION ----------------
+    if (!query || query.trim() === '') {
       return { error: 'Query cannot be empty' };
+    }
 
     const cleanedQuery = query.trim();
 
-    if (cleanedQuery.length < 3)
+    if (cleanedQuery.length < 3) {
       return { error: 'Query too short (minimum 3 characters)' };
-    if (cleanedQuery.length > 300)
+    }
+
+    if (cleanedQuery.length > 300) {
       return { error: 'Query too long (maximum 300 characters)' };
-    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery))
+    }
+
+    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery)) {
       return {
         error:
           'Query contains invalid characters (letters, numbers, and spaces only)',
       };
+    }
 
-    // Preprocess query
+    // ---------------- PREPROCESS ----------------
     const preprocessedQuery = preprocessQuery(cleanedQuery);
+    const queryTokens = preprocessedQuery.split(/\s+/);
+    const queryComplexity = queryTokens.length * preprocessedQuery.length;
 
-    // Generate embedding for the query
+    // ---------------- VECTOR GENERATION ----------------
+    const embeddingStart = process.hrtime.bigint();
+
     const queryVector = this.aiService.generateDummyEmbedding(
       preprocessedQuery,
       1536,
     );
 
-    // Fetch all items with embeddings
-    const items = await this.aiService.getAllEmbeddings();
+    const embeddingEnd = process.hrtime.bigint();
+    const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
 
-    // Calculate cosine similarity for each item
-    const scoredItems = items
+    // ---------------- FETCH DATA ----------------
+    const items = await this.aiService.getAllEmbeddings();
+    const rowsScanned = items.length;
+
+    // ---------------- SEARCH EXECUTION ----------------
+    const searchStart = process.hrtime.bigint();
+
+    // -------- KEYWORD + FUZZY GATE --------
+    const keywordFiltered = items.filter((item) => {
+      const text = `${item.title} ${item.content}`.toLowerCase();
+
+      return queryTokens.some(
+        (token) =>
+          text.includes(token) || this.aiService.isPartialMatch(token, text),
+      );
+    });
+
+    const rowsAfterGate = keywordFiltered.length;
+
+    // -------- STOP EARLY --------
+    if (rowsAfterGate === 0) {
+      const totalEnd = process.hrtime.bigint();
+      const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
+
+      this.logger.log(`
+        [SEARCH METRICS]
+        Query            : "${cleanedQuery}"
+        Tokens           : ${queryTokens.length}
+        Query Complexity : ${queryComplexity}
+        Rows Scanned     : ${rowsScanned}
+        Rows After Gate  : 0
+        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+        Total Time       : ${totalTimeMs.toFixed(2)} ms
+        `);
+
+      return {
+        query: cleanedQuery,
+        message: 'No strong matches found. Try another query.',
+        results: [],
+      };
+    }
+
+    // -------- VECTOR SIMILARITY --------
+    const scored = keywordFiltered
       .map((item) => ({
         id: item.id,
         title: item.title,
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      // Only keep items with similarity above threshold
-      .filter((item) => item.score > 0.1) // adjust threshold as needed
+      .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5); // top 5 results
+      .slice(0, 5);
 
-    // Return empty results if no matches
+    const searchEnd = process.hrtime.bigint();
+    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
+
+    const totalEnd = process.hrtime.bigint();
+    const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
+
+    // -------- FALLBACK --------
+    if (scored.length === 0) {
+      this.logger.log(`
+        [SEARCH METRICS]
+        Query            : "${cleanedQuery}"
+        Tokens           : ${queryTokens.length}
+        Query Complexity : ${queryComplexity}
+        Rows Scanned     : ${rowsScanned}
+        Rows After Gate  : ${rowsAfterGate}
+        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+        Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+        Total Time       : ${totalTimeMs.toFixed(2)} ms
+        `);
+
+      return {
+        query: cleanedQuery,
+        message: 'No strong matches found. Try another query.',
+        results: [],
+      };
+    }
+
+    // ---------------- FINAL LOG ----------------
+    this.logger.log(`
+      [SEARCH METRICS]
+      Query            : "${cleanedQuery}"
+      Tokens           : ${queryTokens.length}
+      Query Complexity : ${queryComplexity}
+      Rows Scanned     : ${rowsScanned}
+      Rows After Gate  : ${rowsAfterGate}
+      Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+      Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+      Total Time       : ${totalTimeMs.toFixed(2)} ms
+      `);
+
     return {
       query: cleanedQuery,
-      results: scoredItems.length
-        ? scoredItems.map((item, idx) => ({ rank: idx + 1, ...item }))
-        : [],
+      results: scored.map((item, idx) => ({
+        rank: idx + 1,
+        ...item,
+      })),
     };
   }
 
@@ -125,7 +219,6 @@ export class AIController {
       return { query, results: [], message: rawResults.message };
     }
   }
-
 
   // ------------------- SEED DATABASE -------------------
   @Post('seed')

@@ -1,4 +1,11 @@
-import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Logger,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { GetProductsDto } from './dto/get-products.dto';
 
@@ -6,7 +13,7 @@ import { GetProductsDto } from './dto/get-products.dto';
 export class MarketplaceController {
   private readonly logger = new Logger(MarketplaceController.name);
 
-  constructor(private readonly marketplaceService: MarketplaceService) { }
+  constructor(private readonly marketplaceService: MarketplaceService) {}
 
   @Get('categories')
   getCategories() {
@@ -23,8 +30,12 @@ export class MarketplaceController {
   }
 
   @Get('products/:id')
-  getProductById(@Param('id') id: string) {
+  async getProductById(@Param('id') id: string) {
     this.logger.log(`Fetching product details for id: ${id}`);
-    return this.marketplaceService.getProductById(id);
+    const product = await this.marketplaceService.getProductById(id);
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    return product;
   }
 }
