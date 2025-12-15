@@ -43,10 +43,15 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     if (dbUrl) {
       return new Client({
         connectionString: dbUrl,
-        // Nhost requires SSL, usually inferred from url ?sslmode=require but explicit is safer
+        // Nhost requires SSL with proper configuration
         ssl: dbUrl.includes('sslmode=')
           ? { rejectUnauthorized: false }
           : undefined,
+        // Add keepalive settings to prevent connection drops
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
+        connectionTimeoutMillis: 10000,
+        query_timeout: 30000,
       });
     }
 
@@ -57,14 +62,56 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
       database: this.configService.get<string>('DB_NAME'),
       password: this.configService.get<string>('DB_PASSWORD') ?? '',
       port: Number(this.configService.get<string>('DB_PORT')),
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
   }
 
   async onModuleInit() {
     this.client = this.createClient();
-    await this.client.connect();
-    this.isConnected = true;
-    this.logger.log('Postgres client connected in SearchService');
+
+    // Add error handler to prevent crash
+    this.client.on('error', (err) => {
+      this.logger.error(`Database connection error: ${err.message}`);
+      this.isConnected = false;
+      // Attempt to reconnect after a delay
+      setTimeout(() => {
+        void this.reconnect();
+      }, 5000);
+    });
+
+    try {
+      await this.client.connect();
+      this.isConnected = true;
+      this.logger.log('Postgres client connected in SearchService');
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to connect to database: ${error.message}`);
+      this.isConnected = false;
+    }
+  }
+
+  private async reconnect() {
+    if (this.isConnected) return;
+
+    try {
+      this.logger.log('Attempting to reconnect to database...');
+      this.client = this.createClient();
+      this.client.on('error', (err) => {
+        this.logger.error(`Database connection error: ${err.message}`);
+        this.isConnected = false;
+      });
+      await this.client.connect();
+      this.isConnected = true;
+      this.logger.log('Successfully reconnected to database');
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Reconnection failed: ${error.message}`);
+      // Try again after delay
+      setTimeout(() => {
+        void this.reconnect();
+      }, 10000);
+    }
   }
 
   async onModuleDestroy() {
@@ -86,7 +133,7 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
-   }
+    }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
 
@@ -128,7 +175,6 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log(`🏆 Vector search results: ${JSON.stringify(mapped)}`);
 
-    
     // Remove duplicates + apply similarity
     const filteredResults = mapped
       .filter(

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
@@ -7,6 +7,79 @@ import marketplaceApi, { Product } from '../../services/marketplaceApi';
 
 type MarketplaceCategoryRouteProp = RouteProp<MainStackParamList, 'MarketplaceCategory'>;
 type MarketplaceCategoryNavigationProp = StackNavigationProp<MainStackParamList, 'MarketplaceCategory'>;
+
+// Memoize product icons outside component
+const PRODUCT_ICONS: Record<string, string> = {
+  'Wooden Elephant': '🐘',
+  'Ceylon Tea': '☕',
+  'Ceylon Black Tea': '☕',
+  'Handwoven Basket': '🧺',
+  'Cinnamon Sticks': '🌿',
+  'Batik Sarong': '🧵',
+  'Clay Pottery': '🏺',
+  'Ceylon Sapphire': '💎',
+};
+
+const FILTER_OPTIONS = ['All', 'Traditional', 'Modern', 'Best Sellers', 'New Arrivals'];
+
+// Separate filter chip component
+interface FilterChipProps {
+  filter: string;
+  isActive: boolean;
+  onPress: (filter: string) => void;
+}
+
+const FilterChip = React.memo<FilterChipProps>(({ filter, isActive, onPress }) => {
+  const handlePress = useCallback(() => {
+    onPress(filter);
+  }, [filter, onPress]);
+
+  return (
+    <TouchableOpacity
+      style={[styles.filterChip, isActive && styles.filterChipActive]}
+      onPress={handlePress}
+    >
+      <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+        {filter}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
+FilterChip.displayName = 'FilterChip';
+
+// Separate product card component
+interface ProductCardProps {
+  product: Product;
+  onPress: (product: Product) => void;
+}
+
+const ProductCard = React.memo<ProductCardProps>(({ product, onPress }) => {
+  const handlePress = useCallback(() => {
+    onPress(product);
+  }, [product, onPress]);
+
+  return (
+    <TouchableOpacity 
+      style={styles.productCard}
+      onPress={handlePress}
+    >
+      <View style={styles.productImagePlaceholder}>
+        <Text style={styles.productIcon}>
+          {PRODUCT_ICONS[product.name] || '🛍️'}
+        </Text>
+      </View>
+      <Text style={styles.productName}>{product.name}</Text>
+      <Text style={styles.productPrice}>Rs. {product.price.toFixed(2)}</Text>
+      <View style={styles.ratingContainer}>
+        <Text style={styles.starIcon}>⭐</Text>
+        <Text style={styles.ratingText}>4.8 (24)</Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+ProductCard.displayName = 'ProductCard';
 
 const MarketplaceCategoryScreen = () => {
   const route = useRoute<MarketplaceCategoryRouteProp>();
@@ -18,11 +91,7 @@ const MarketplaceCategoryScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  useEffect(() => {
-    fetchProducts();
-  }, [categoryId]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -34,26 +103,38 @@ const MarketplaceCategoryScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryName]);
 
-  const handleProductPress = (product: Product) => {
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleProductPress = useCallback((product: Product) => {
     navigation.navigate('ProductDetails', { productId: product.id });
-  };
+  }, [navigation]);
 
-  // Product icons mapping
-  const productIcons: Record<string, string> = {
-    'Wooden Elephant': '🐘',
-    'Ceylon Tea': '☕',
-    'Ceylon Black Tea': '☕',
-    'Handwoven Basket': '🧺',
-    'Cinnamon Sticks': '🌿',
-    'Batik Sarong': '🧵',
-    'Clay Pottery': '🏺',
-    'Ceylon Sapphire': '💎',
-  };
+  const handleFilterPress = useCallback((filter: string) => {
+    setActiveFilter(filter);
+  }, []);
 
-  return (
-    <ScrollView style={styles.container}>
+  // Memoized filter keyExtractor
+  const filterKeyExtractor = useCallback((item: string) => item, []);
+
+  // Memoized product keyExtractor
+  const productKeyExtractor = useCallback((item: Product) => item.id.toString(), []);
+
+  // Memoized renderItem for filters
+  const renderFilterItem = useCallback(({ item }: { item: string }) => (
+    <FilterChip filter={item} isActive={activeFilter === item} onPress={handleFilterPress} />
+  ), [activeFilter, handleFilterPress]);
+
+  // Memoized renderItem for products
+  const renderProductItem = useCallback(({ item }: { item: Product }) => (
+    <ProductCard product={item} onPress={handleProductPress} />
+  ), [handleProductPress]);
+
+  const ListHeaderComponent = useMemo(() => (
+    <>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>← Back</Text>
@@ -62,82 +143,87 @@ const MarketplaceCategoryScreen = () => {
         <Text style={styles.subtitle}>Explore authentic Sri Lankan products</Text>
       </View>
 
-      {/* Filters */}
       <View style={styles.filtersContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {['All', 'Traditional', 'Modern', 'Best Sellers', 'New Arrivals'].map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
-              onPress={() => setActiveFilter(filter)}
-            >
-              <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <FlatList
+          data={FILTER_OPTIONS}
+          renderItem={renderFilterItem}
+          keyExtractor={filterKeyExtractor}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersList}
+        />
       </View>
+    </>
+  ), [categoryName, navigation, renderFilterItem, filterKeyExtractor]);
 
-      {/* Product Grid */}
-      <View style={styles.content}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FF6B35" />
-            <Text style={styles.loadingText}>Loading products...</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : products.length > 0 ? (
-          <>
-            <View style={styles.grid}>
-              {products.map((product) => (
-                <TouchableOpacity 
-                  key={product.id} 
-                  style={styles.productCard}
-                  onPress={() => handleProductPress(product)}
-                >
-                  <View style={styles.productImagePlaceholder}>
-                    <Text style={styles.productIcon}>
-                      {productIcons[product.name] || '🛍️'}
-                    </Text>
-                  </View>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.productPrice}>Rs. {product.price.toFixed(2)}</Text>
-                  <View style={styles.ratingContainer}>
-                    <Text style={styles.starIcon}>⭐</Text>
-                    <Text style={styles.ratingText}>4.8 (24)</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+  const ListEmptyComponent = useMemo(() => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6B35" />
+          <Text style={styles.loadingText}>Loading products...</Text>
+        </View>
+      );
+    }
+    
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
-            {/* Placeholder notice */}
-            <View style={styles.placeholder}>
-              <Text style={styles.placeholderText}>🎨</Text>
-              <Text style={styles.placeholderTitle}>Mock Data Display</Text>
-              <Text style={styles.placeholderSubtitle}>
-                Showing products from the backend API.
-              </Text>
-            </View>
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No Products Found</Text>
-            <Text style={styles.emptySubtitle}>
-              There are no products available in this category yet.
-            </Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+    if (products.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>📦</Text>
+          <Text style={styles.emptyTitle}>No Products Found</Text>
+          <Text style={styles.emptySubtitle}>
+            There are no products available in this category yet.
+          </Text>
+        </View>
+      );
+    }
+
+    return null;
+  }, [loading, error, products.length, fetchProducts]);
+
+  const ListFooterComponent = useMemo(() => {
+    if (!loading && !error && products.length > 0) {
+      return (
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderText}>🎨</Text>
+          <Text style={styles.placeholderTitle}>Mock Data Display</Text>
+          <Text style={styles.placeholderSubtitle}>
+            Showing products from the backend API.
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }, [loading, error, products.length]);
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={products}
+        renderItem={renderProductItem}
+        keyExtractor={productKeyExtractor}
+        numColumns={2}
+        contentContainerStyle={styles.content}
+        columnWrapperStyle={styles.productColumnWrapper}
+        ListHeaderComponent={ListHeaderComponent}
+        ListHeaderComponentStyle={styles.headerWrapper}
+        ListEmptyComponent={ListEmptyComponent}
+        ListFooterComponent={ListFooterComponent}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 };
 
@@ -145,6 +231,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  headerWrapper: {
+    marginHorizontal: -15,
+    marginTop: -15,
+    marginBottom: 0,
   },
   header: {
     backgroundColor: '#FF6B35',
@@ -173,10 +264,11 @@ const styles = StyleSheet.create({
   filtersContainer: {
     backgroundColor: '#fff',
     paddingVertical: 15,
-    paddingHorizontal: 10,
-    marginTop: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  filtersList: {
+    paddingHorizontal: 10,
   },
   filterChip: {
     backgroundColor: '#f0f0f0',
@@ -199,15 +291,13 @@ const styles = StyleSheet.create({
   content: {
     padding: 15,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
+  productColumnWrapper: {
+    justifyContent: 'space-between',
   },
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
-    margin: '1%',
+    marginBottom: 10,
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -336,4 +426,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MarketplaceCategoryScreen;
+export default React.memo(MarketplaceCategoryScreen);

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { checkAuthStatus, storeAuthToken, removeAuthToken, getMe, UserProfile } from '../services/auth';
 
 interface AuthContextType {
@@ -21,8 +21,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
-  // Fetch user profile data
-  const refreshUser = async () => {
+  // Memoize refreshUser to prevent recreation
+  const refreshUser = useCallback(async () => {
     try {
       console.log('=== AuthContext: Fetching user from /users/me ===');
       const userData = await getMe();
@@ -38,14 +38,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setIsProfileComplete(false);
     }
-  };
+  }, []);
 
-  // Update user profile and check completion
-  const updateUserProfile = (userData: UserProfile) => {
+  // Memoize updateUserProfile to prevent recreation
+  const updateUserProfile = useCallback((userData: UserProfile) => {
     setUser(userData);
     const profileComplete = !!(userData?.name && userData?.email);
     setIsProfileComplete(profileComplete);
-  };
+  }, []);
+
+  // Memoize login to prevent recreation
+  const login = useCallback(async (token: string) => {
+    await storeAuthToken(token);
+    setIsAuthenticated(true);
+    
+    // Fetch user profile after login
+    await refreshUser();
+  }, [refreshUser]);
+
+  // Memoize logout to prevent recreation
+  const logout = useCallback(async () => {
+    await removeAuthToken();
+    setIsAuthenticated(false);
+    setUser(null);
+    setIsProfileComplete(false);
+  }, []);
 
   useEffect(() => {
     // Check auth status on app start
@@ -61,37 +78,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     };
     checkAuth();
-  }, []);
+  }, [refreshUser]);
 
-  const login = async (token: string) => {
-    await storeAuthToken(token);
-    setIsAuthenticated(true);
-    
-    // Fetch user profile after login
-    await refreshUser();
-  };
-
-  const logout = async () => {
-    await removeAuthToken();
-    setIsAuthenticated(false);
-    setUser(null);
-    setIsProfileComplete(false);
-  };
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    isAuthenticated,
+    isLoading,
+    user,
+    isProfileComplete,
+    setUser,
+    updateUserProfile,
+    login,
+    logout,
+    refreshUser,
+  }), [isAuthenticated, isLoading, user, isProfileComplete, updateUserProfile, login, logout, refreshUser]);
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        isAuthenticated, 
-        isLoading, 
-        user,
-        isProfileComplete,
-        setUser,
-        updateUserProfile,
-        login, 
-        logout,
-        refreshUser 
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

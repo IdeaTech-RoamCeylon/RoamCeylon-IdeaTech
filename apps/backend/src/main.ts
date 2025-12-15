@@ -18,6 +18,12 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  await app.listen(process.env.PORT ?? 3000);
+
+  const port = process.env.PORT ?? 3000;
+  // Listen on 0.0.0.0 to accept connections from network (not just localhost)
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`\n🚀 Server is running on http://localhost:${port}`);
+  console.log(`📱 Mobile access: http://192.168.152.99:${port}\n`);
 }
 void bootstrap();
