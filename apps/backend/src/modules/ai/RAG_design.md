@@ -1,97 +1,139 @@
-# Retrieval-Augmented Generation (RAG) Design Document
-
-## Error Handling
-
-- All API endpoints return clear error messages and appropriate HTTP status codes (e.g., 400 for bad requests, 500 for server/database errors).
-- If the embedding or retrieval service fails (e.g., database connection error), the error is logged and a generic error message is returned to the client.
-- Malformed or missing queries result in a 400 response with a descriptive message.
-- Unexpected exceptions are caught and logged for debugging.
-
-## Edge Cases
-
-- **Empty Query:** Returns an empty result set with a note indicating the query was empty.
-- **No Results Found:** Returns an empty results array and a message indicating no relevant locations were found.
-- **Duplicate or Similar Results:** The system de-duplicates results based on ID or text similarity before returning.
-- **Extremely Long Queries:** Queries are truncated to a maximum length before embedding to prevent performance issues.
-- **Non-ASCII Characters:** Queries are normalized to handle Unicode and special characters.
-
-## How Ranking Affects the Final Trip Planner Prompt
-
-- Only the top N ranked results (by normalized score) are included in the Trip Planner prompt.
-- Higher-ranked locations are prioritized in the suggested itinerary.
-- The prompt template lists locations in order of rank, ensuring the most relevant places are considered first.
-- Scores may be used to adjust the level of detail or confidence in the AI's recommendations.
-
-## How Irrelevant Results Are Filtered
-
-- Results with a normalized score below a configurable threshold (e.g., 0.5) are excluded from the prompt.
-- Additional filtering may be applied based on location type, user preferences, or business rules.
-- The system logs when results are filtered out for transparency and debugging.
-- The frontend is notified if too few relevant results are found, allowing for fallback strategies.
+# RAG Pipeline Design & AI Module Documentation
 
 ---
 
-## Examples
+## 1. RAG Pipeline Design
 
-### Sample Embedding Output
+**Overview:**
+- **Ingestion:**  
+  - Sample tourism data is stored in `data/sample-tourism.json`.
+  - Embeddings are generated for each description using a dummy embedding function in `embeddings/embedding.service.ts`.
+  - Embeddings are stored in the PostgreSQL database with a pgvector column.
 
-For the input: "Visit the ancient city of Anuradhapura."
+- **Retrieval:**  
+  - User queries are received via endpoints in `ai.controller.ts`.
+  - The query is preprocessed and converted to an embedding using the same dummy function.
+  - The system searches the database for similar embeddings using cosine similarity (`retrieval/search.service.ts`).
+  - Top results are filtered, ranked, and returned to the user.
 
-```json
-{
-  "input": "Visit the ancient city of Anuradhapura.",
-  "embedding": [0.012, -0.034, 0.256, ...] // 768-dim float array
-}
-```
+- **Augmentation (future):**  
+  - Retrieved results will be used to augment AI prompts for trip planning and recommendations.
 
 ---
 
-### Sample Search Output
+## 2. Search Ranking Logic
 
-Query: "Historical sites in Sri Lanka"
+- **Similarity Calculation:**  
+  - Cosine similarity is calculated between the query embedding and each stored embedding (`embeddings/embedding.service.ts`).
+  - Scores are normalized to a 0–1 range.
 
-```json
-[
+- **Filtering:**  
+  - Results below a similarity threshold are filtered out.
+  - Duplicate results (by ID) are removed.
+
+- **Confidence Scoring:**  
+  - Each result is assigned a confidence level in `retrieval/search.service.ts`:
+    - High: score ≥ 0.8
+    - Medium: 0.5 ≤ score < 0.8
+    - Low: score < 0.5
+
+- **Ranking:**  
+  - Results are sorted by score (highest first).
+  - The top N results are returned in the response.
+
+---
+
+## 3. Debug Endpoint Usage
+
+- **Endpoint:**  
+  - `GET /ai/debug/embedding?text=YourText`
+
+- **Returns:**  
+  - Cleaned query
+  - Generated embedding vector
+  - Embedding dimension
+  - Min/max values of the vector
+  - Validation notes
+
+- **Example Request:**  
+  ```
+  GET /ai/debug/embedding?text=Sigiriya
+  ```
+
+- **Example Response:**  
+  ```json
   {
-    "document_id": "doc_123",
-    "content": "Anuradhapura is a UNESCO World Heritage site...",
-    "score": 0.92
-  },
-  {
-    "document_id": "doc_456",
-    "content": "Polonnaruwa is known for its ancient ruins...",
-    "score": 0.87
+    "cleanedQuery": "sigiriya",
+    "embedding": [0.12, 0.34, ...],
+    "dimension": 1536,
+    "min": -0.5,
+    "max": 0.5,
+    "notes": []
   }
-]
-```
+  ```
 
 ---
 
-### Sample Trip Planner Prompt Using Retrieved Results
+## 4. Known Limitations
 
-**Prompt Template:**
-```
-You are a travel planner. Based on the following information, suggest a 3-day itinerary:
+- **Dummy embeddings:**  
+  - Current embeddings are not semantically meaningful; all similarity and confidence scores are for demonstration only.
 
-Context:
-{retrieved_results}
+- **Similarity scores:**  
+  - May not reflect true relevance until real embeddings are integrated.
 
-User Request:
-{user_query}
-```
+- **Confidence levels:**  
+  - May not correspond to actual confidence in result relevance.
 
-**Filled Example:**
-```
-You are a travel planner. Based on the following information, suggest a 3-day itinerary:
+- **Seeding:**  
+  - Running the seed endpoint deletes all existing data in the embeddings table.
 
-Context:
-1. Anuradhapura is a UNESCO World Heritage site...
-2. Polonnaruwa is known for its ancient ruins...
-
-User Request:
-I want to visit historical sites in Sri Lanka.
-```
+- **Error handling & security:**  
+  - Minimal; not production-ready.
 
 ---
 
-**This document will be updated as the RAG pipeline evolves in future sprints.**
+## 5. Folder Structure & Extensibility
+
+```
+ai/
+├── ai.controller.ts         # API endpoints
+├── ai.module.ts             # NestJS module definition
+├── ai.service.ts            # Main AI service logic
+├── RAG_design.md            # This documentation
+├── data/
+│     └── sample-tourism.json    # Sample tourism data
+├── embeddings/
+│     ├── embedding.service.ts   # Embedding logic (generation, seeding)
+│     └── embedding.utils.ts     # Preprocessing utilities
+├── prompts/
+│     └── planner.prompt.ts      # Prompt templates for future AI tasks
+├── retrieval/
+│     └── search.service.ts      # Search and ranking logic
+```
+
+- **To extend:**  
+  - Replace dummy embedding logic with real model in `embedding.service.ts`.
+  - Add new prompt templates in `prompts/`.
+  - Adjust ranking or filtering logic in `search.service.ts`.
+
+---
+
+## 6. Future Upgrades
+
+- **Integrate real embeddings:**  
+  - Use OpenAI, Hugging Face, or local models for semantic embeddings.
+  - Update seeding and search to use real vectors.
+
+- **Tune thresholds and ranking:**  
+  - Adjust similarity thresholds and confidence logic as needed.
+
+- **Enhance error handling and security:**  
+  - Add validation, authentication, and robust error responses.
+
+- **Expand RAG pipeline:**  
+  - Integrate retrieved results into AI-generated trip plans and recommendations.
+
+---
+
+**This document is the reference for the AI module as of Sprint 1. Update as the system evolves.**

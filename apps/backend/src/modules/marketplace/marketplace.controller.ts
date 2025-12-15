@@ -6,7 +6,7 @@ import { GetProductsDto } from './dto/get-products.dto';
 export class MarketplaceController {
   private readonly logger = new Logger(MarketplaceController.name);
 
-  constructor(private readonly marketplaceService: MarketplaceService) { }
+  constructor(private readonly marketplaceService: MarketplaceService) {}
 
   @Get('categories')
   getCategories() {
