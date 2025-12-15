@@ -34,53 +34,86 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
-    // Validate query
-    if (!query || query.trim() === '')
+    if (!query || query.trim() === '') {
       return { error: 'Query cannot be empty' };
+    }
 
     const cleanedQuery = query.trim();
 
-    if (cleanedQuery.length < 3)
+    if (cleanedQuery.length < 3) {
       return { error: 'Query too short (minimum 3 characters)' };
-    if (cleanedQuery.length > 300)
+    }
+
+    if (cleanedQuery.length > 300) {
       return { error: 'Query too long (maximum 300 characters)' };
-    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery))
+    }
+
+    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery)) {
       return {
         error:
           'Query contains invalid characters (letters, numbers, and spaces only)',
       };
+    }
 
-    // Preprocess query
+    // ---------------- PREPROCESS ----------------
     const preprocessedQuery = preprocessQuery(cleanedQuery);
+    const queryTokens = preprocessedQuery.split(/\s+/);
 
-    // Generate embedding for the query
+    // ---------------- EMBEDDING ----------------
     const queryVector = this.aiService.generateDummyEmbedding(
       preprocessedQuery,
       1536,
     );
 
-    // Fetch all items with embeddings
     const items = await this.aiService.getAllEmbeddings();
 
-    // Calculate cosine similarity for each item
-    const scoredItems = items
+    // ---------------- STAGE 1: KEYWORD GATE ----------------
+    const keywordFiltered = items.filter((item) => {
+      const text = `${item.title} ${item.content}`.toLowerCase();
+
+      return queryTokens.some((token) => {
+        return (
+          text.includes(token) || this.aiService.isPartialMatch(token, text) // fuzzy (galle → gallefort)
+        );
+      });
+    });
+
+    // If nothing passes lexical filter → stop
+    if (keywordFiltered.length === 0) {
+      return {
+        query: cleanedQuery,
+        message: 'No strong matches found. Try another query.',
+        results: [],
+      };
+    }
+
+    // ---------------- VECTOR SIMILARITY ----------------
+    const scored = keywordFiltered
       .map((item) => ({
         id: item.id,
         title: item.title,
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      // Only keep items with similarity above threshold
-      .filter((item) => item.score > 0.1) // adjust threshold as needed
+      .filter((item) => item.score >= 0.55) // IMPORTANT threshold
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5); // top 5 results
+      .slice(0, 5);
 
-    // Return empty results if no matches
+    // ---------------- FALLBACK ----------------
+    if (scored.length === 0) {
+      return {
+        query: cleanedQuery,
+        message: 'No strong matches found. Try another query.',
+        results: [],
+      };
+    }
+
     return {
       query: cleanedQuery,
-      results: scoredItems.length
-        ? scoredItems.map((item, idx) => ({ rank: idx + 1, ...item }))
-        : [],
+      results: scored.map((item, idx) => ({
+        rank: idx + 1,
+        ...item,
+      })),
     };
   }
 

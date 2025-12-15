@@ -28,4 +28,8 @@ export class AIService {
   cosineSimilarity(a: number[], b: number[]): number {
     return this.embeddingService.cosineSimilarity(a, b);
   }
+
+  isPartialMatch(token: string, text: string): boolean {
+    return this.embeddingService.isPartialMatch(token, text);
+  }
 }
