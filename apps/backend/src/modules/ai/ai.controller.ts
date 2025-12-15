@@ -11,6 +11,7 @@ export interface SearchResponseDto {
     title: string;
     content: string;
     score: number;
+    confidence?: 'High' | 'Medium' | 'Low'; // NEW: confidence field
     metadata?: any;
   }[];
   message?: string;
