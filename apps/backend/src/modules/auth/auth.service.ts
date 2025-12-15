@@ -6,7 +6,6 @@ export class AuthService {
   private static lastVerifiedPhone: string = '+94771234567';
 
   sendOtp(phoneNumber: string): { message: string } {
-    console.log(`Sending OTP to ${phoneNumber}`);
     return { message: 'OTP sent successfully' };
   }
 
@@ -14,8 +13,6 @@ export class AuthService {
     phoneNumber: string,
     otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
-
     // Store the verified phone number
     AuthService.lastVerifiedPhone = phoneNumber;
 
