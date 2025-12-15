@@ -33,6 +33,9 @@ export class AIController {
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: string) {
+    const totalStart = process.hrtime.bigint();
+
+    // ---------------- VALIDATION ----------------
     if (!query || query.trim() === '') {
       return { error: 'Query cannot be empty' };
     }
@@ -57,28 +60,54 @@ export class AIController {
     // ---------------- PREPROCESS ----------------
     const preprocessedQuery = preprocessQuery(cleanedQuery);
     const queryTokens = preprocessedQuery.split(/\s+/);
+    const queryComplexity = queryTokens.length * preprocessedQuery.length;
 
-    // ---------------- EMBEDDING ----------------
+    // ---------------- VECTOR GENERATION ----------------
+    const embeddingStart = process.hrtime.bigint();
+
     const queryVector = this.aiService.generateDummyEmbedding(
       preprocessedQuery,
       1536,
     );
 
-    const items = await this.aiService.getAllEmbeddings();
+    const embeddingEnd = process.hrtime.bigint();
+    const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
 
-    // ---------------- STAGE 1: KEYWORD GATE ----------------
+    // ---------------- FETCH DATA ----------------
+    const items = await this.aiService.getAllEmbeddings();
+    const rowsScanned = items.length;
+
+    // ---------------- SEARCH EXECUTION ----------------
+    const searchStart = process.hrtime.bigint();
+
+    // -------- KEYWORD + FUZZY GATE --------
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
 
-      return queryTokens.some((token) => {
-        return (
-          text.includes(token) || this.aiService.isPartialMatch(token, text) // fuzzy (galle → gallefort)
-        );
-      });
+      return queryTokens.some(
+        (token) =>
+          text.includes(token) || this.aiService.isPartialMatch(token, text),
+      );
     });
 
-    // If nothing passes lexical filter → stop
-    if (keywordFiltered.length === 0) {
+    const rowsAfterGate = keywordFiltered.length;
+
+    // -------- STOP EARLY --------
+    if (rowsAfterGate === 0) {
+      const totalEnd = process.hrtime.bigint();
+      const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
+
+      this.logger.log(`
+        [SEARCH METRICS]
+        Query            : "${cleanedQuery}"
+        Tokens           : ${queryTokens.length}
+        Query Complexity : ${queryComplexity}
+        Rows Scanned     : ${rowsScanned}
+        Rows After Gate  : 0
+        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+        Total Time       : ${totalTimeMs.toFixed(2)} ms
+        `);
+
       return {
         query: cleanedQuery,
         message: 'No strong matches found. Try another query.',
@@ -86,7 +115,7 @@ export class AIController {
       };
     }
 
-    // ---------------- VECTOR SIMILARITY ----------------
+    // -------- VECTOR SIMILARITY --------
     const scored = keywordFiltered
       .map((item) => ({
         id: item.id,
@@ -94,18 +123,49 @@ export class AIController {
         content: item.content,
         score: this.aiService.cosineSimilarity(queryVector, item.embedding),
       }))
-      .filter((item) => item.score >= 0.55) // IMPORTANT threshold
+      .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
-    // ---------------- FALLBACK ----------------
+    const searchEnd = process.hrtime.bigint();
+    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
+
+    const totalEnd = process.hrtime.bigint();
+    const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
+
+    // -------- FALLBACK --------
     if (scored.length === 0) {
+      this.logger.log(`
+        [SEARCH METRICS]
+        Query            : "${cleanedQuery}"
+        Tokens           : ${queryTokens.length}
+        Query Complexity : ${queryComplexity}
+        Rows Scanned     : ${rowsScanned}
+        Rows After Gate  : ${rowsAfterGate}
+        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+        Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+        Total Time       : ${totalTimeMs.toFixed(2)} ms
+        `);
+
       return {
         query: cleanedQuery,
         message: 'No strong matches found. Try another query.',
         results: [],
       };
     }
+
+    // ---------------- FINAL LOG ----------------
+    this.logger.log(`
+      [SEARCH METRICS]
+      Query            : "${cleanedQuery}"
+      Tokens           : ${queryTokens.length}
+      Query Complexity : ${queryComplexity}
+      Rows Scanned     : ${rowsScanned}
+      Rows After Gate  : ${rowsAfterGate}
+      Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+      Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+      Total Time       : ${totalTimeMs.toFixed(2)} ms
+      `);
 
     return {
       query: cleanedQuery,
