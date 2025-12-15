@@ -1,15 +1,18 @@
-import { Body, Controller, Post, Logger } from '@nestjs/common';
+import { Body, Controller, Post, Logger, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '../../common/guards/throttler.guard';
 import { AuthService } from './auth.service';
 import { CreateOtpDto } from './dto/create-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('send-otp')
+  // @Throttle removed (handled by guard default logic)
   sendOtp(@Body() createOtpDto: CreateOtpDto): { message: string } {
     this.logger.log(
       `Auth send-otp triggered for phone: ${createOtpDto.phoneNumber}`,
@@ -18,6 +21,7 @@ export class AuthController {
   }
 
   @Post('verify-otp')
+  // @Throttle removed
   verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): {
     accessToken: string;
     user: { id: string; phoneNumber: string };
