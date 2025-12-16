@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,6 +7,8 @@ import marketplaceApi from '../../services/marketplaceApi';
 
 type ProductDetailsNavigationProp = StackNavigationProp<MainStackParamList, 'ProductDetails'>;
 type ProductDetailsRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;
+
+const SIZES = ['Small', 'Medium', 'Large'];
 
 const ProductDetailsScreen = () => {
   const navigation = useNavigation<ProductDetailsNavigationProp>();
@@ -19,32 +21,56 @@ const ProductDetailsScreen = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('Medium');
 
-  useEffect(() => {
-    const fetchProductDetails = async () => {
-      if (!productId) {
-        setError('No product ID provided');
-        setLoading(false);
-        return;
-      }
+  const fetchProductDetails = useCallback(async () => {
+    if (!productId) {
+      setError('No product ID provided');
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        const data = await marketplaceApi.getProductById(productId);
-        if (data) {
-          setProduct(data);
-        } else {
-          setError('Product not found');
-        }
-      } catch (err) {
-        setError('Failed to load product details');
-        console.error(err);
-      } finally {
-        setLoading(false);
+    try {
+      setLoading(true);
+      const data = await marketplaceApi.getProductById(productId);
+      if (data) {
+        setProduct(data);
+      } else {
+        setError('Product not found');
       }
-    };
-
-    fetchProductDetails();
+    } catch (err) {
+      setError('Failed to load product details');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [productId]);
+
+  useEffect(() => {
+    fetchProductDetails();
+  }, [fetchProductDetails]);
+
+  const handleGoBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const handleIncreaseQuantity = useCallback(() => {
+    setQuantity(q => q + 1);
+  }, []);
+
+  const handleDecreaseQuantity = useCallback(() => {
+    setQuantity(q => Math.max(1, q - 1));
+  }, []);
+
+  const handleSizeSelect = useCallback((size: string) => {
+    setSelectedSize(size);
+  }, []);
+
+  const getProductIcon = useMemo(() => {
+    if (!product) return '🏺';
+    if (product.category === 'Electronics') return '📱';
+    if (product.category === 'Food & Spices') return '🌶️';
+    if (product.category === 'Clothing') return '👕';
+    return '🏺';
+  }, [product]);
 
   if (loading) {
     return (
@@ -65,13 +91,13 @@ const ProductDetailsScreen = () => {
     );
   }
 
-  const sizes = ['Small', 'Medium', 'Large'];
+
 
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={handleGoBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <TouchableOpacity>
@@ -83,9 +109,7 @@ const ProductDetailsScreen = () => {
       <View style={styles.imageContainer}>
         {/* In real app, would use <Image source={{ uri: product.image }} /> */}
         <Text style={styles.productImageIcon}>
-           {product.category === 'Electronics' ? '📱' : 
-            product.category === 'Food & Spices' ? '🌶️' : 
-            product.category === 'Clothing' ? '👕' : '🏺'}
+          {getProductIcon}
         </Text>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>Authentic</Text>
@@ -132,14 +156,14 @@ const ProductDetailsScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Size</Text>
           <View style={styles.sizeContainer}>
-            {sizes.map((size) => (
+            {SIZES.map((size) => (
               <TouchableOpacity
                 key={size}
                 style={[
                   styles.sizeChip,
                   selectedSize === size && styles.sizeChipActive,
                 ]}
-                onPress={() => setSelectedSize(size)}
+                onPress={() => handleSizeSelect(size)}
               >
                 <Text
                   style={[
@@ -160,14 +184,14 @@ const ProductDetailsScreen = () => {
           <View style={styles.quantityContainer}>
             <TouchableOpacity
               style={styles.quantityButton}
-              onPress={() => setQuantity(Math.max(1, quantity - 1))}
+              onPress={handleDecreaseQuantity}
             >
               <Text style={styles.quantityButtonText}>−</Text>
             </TouchableOpacity>
             <Text style={styles.quantityText}>{quantity}</Text>
             <TouchableOpacity
               style={styles.quantityButton}
-              onPress={() => setQuantity(quantity + 1)}
+              onPress={handleIncreaseQuantity}
             >
               <Text style={styles.quantityButtonText}>+</Text>
             </TouchableOpacity>
@@ -510,4 +534,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductDetailsScreen;
+export default React.memo(ProductDetailsScreen);

@@ -14,6 +14,8 @@ model DriverLocation {
   driverId  String
   location  Unsupported("geometry")
   updatedAt DateTime
+
+  @@index([location], name: "driver_location_idx", type: Gist)
 }
 
 model RideRequest {
@@ -23,6 +25,9 @@ model RideRequest {
   destination    Unsupported("geometry")
   status         String
   createdAt      DateTime                @default(now())
+
+  @@index([pickupLocation], name: "ride_request_pickup_idx", type: Gist)
+  @@index([destination], name: "ride_request_dest_idx", type: Gist)
 }
 
 model SystemMetadata {

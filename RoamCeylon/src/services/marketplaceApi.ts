@@ -4,6 +4,12 @@ import { Category, Product } from '../types';
 // Re-export types for backwards compatibility
 export type { Category, Product };
 
+// Backend returns wrapped responses like { data: [...] }
+interface WrappedResponse<T> {
+  data: T;
+  meta?: Record<string, any>;
+}
+
 // Marketplace API endpoints
 class MarketplaceApi {
   /**
@@ -11,8 +17,12 @@ class MarketplaceApi {
    */
   async getCategories(): Promise<Category[]> {
     try {
-      const categories = await apiService.get<Category[]>('/marketplace/categories');
-      return categories;
+      const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
+      // Handle both wrapped and unwrapped responses
+      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
+        return response.data;
+      }
+      return response as Category[];
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
@@ -26,8 +36,12 @@ class MarketplaceApi {
   async getProducts(category?: string): Promise<Product[]> {
     try {
       const params = category ? { category } : {};
-      const products = await apiService.get<Product[]>('/marketplace/products', { params });
-      return products;
+      const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
+      // Handle both wrapped and unwrapped responses
+      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
+        return response.data;
+      }
+      return response as Product[];
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;

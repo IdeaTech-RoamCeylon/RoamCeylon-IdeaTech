@@ -10,12 +10,34 @@ const ProfileScreen = () => {
     await logout();
   };
 
+  // Get phone number from potentially nested structure
+  const getPhoneNumber = () => {
+    if (user?.phoneNumber) return user.phoneNumber;
+    if ((user as any)?.data?.phoneNumber) return (user as any).data.phoneNumber;
+    return undefined;
+  };
+
+  // Get name from potentially nested structure
+  const getName = () => {
+    if (user?.name) return user.name;
+    if ((user as any)?.data?.firstName) {
+      const firstName = (user as any).data.firstName;
+      const lastName = (user as any).data.lastName || '';
+      return `${firstName} ${lastName}`.trim();
+    }
+    return undefined;
+  };
+
   // Format phone number for display
   const formatPhoneNumber = (phone: string | undefined) => {
     if (!phone) return 'Phone number not available';
     // Example: +94771234567 -> +94 77 123 4567
     if (phone.startsWith('+94') && phone.length === 12) {
       return `${phone.slice(0, 3)} ${phone.slice(3, 5)} ${phone.slice(5, 8)} ${phone.slice(8)}`;
+    }
+    // Handle without + prefix
+    if (phone.startsWith('94') && phone.length === 11) {
+      return `+${phone.slice(0, 2)} ${phone.slice(2, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
     }
     return phone;
   };
@@ -39,20 +61,23 @@ const ProfileScreen = () => {
     );
   }
 
+  const displayName = getName();
+  const phoneNumber = getPhoneNumber();
+
   console.log('=== ProfileScreen Render ===');
-  console.log('User object:', JSON.stringify(user, null, 2));
-  console.log('Phone number:', user?.phoneNumber);
+  console.log('Display Name:', displayName);
+  console.log('Phone number:', phoneNumber);
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {user?.name ? getInitials(user.name) : '👤'}
+            {displayName ? getInitials(displayName) : '👤'}
           </Text>
         </View>
-        <Text style={styles.name}>{user?.name || 'Welcome Back!'}</Text>
-        <Text style={styles.phone}>{formatPhoneNumber(user?.phoneNumber)}</Text>
+        <Text style={styles.name}>{displayName || 'Welcome Back!'}</Text>
+        <Text style={styles.phone}>{formatPhoneNumber(phoneNumber)}</Text>
       </View>
 
       <View style={styles.content}>

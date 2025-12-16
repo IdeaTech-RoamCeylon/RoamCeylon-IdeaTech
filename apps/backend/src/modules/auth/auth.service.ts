@@ -5,26 +5,25 @@ export class AuthService {
   // In-memory storage for mock auth (in real app, this would be in database)
   private static lastVerifiedPhone: string = '+94771234567';
 
-  sendOtp(phoneNumber: string): { message: string } {
-    console.log(`Sending OTP to ${phoneNumber}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  sendOtp(_phoneNumber: string): { message: string } {
     return { message: 'OTP sent successfully' };
   }
 
   verifyOtp(
-    phoneNumber: string,
-    otp: string,
+    _phoneNumber: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
-
     // Store the verified phone number
-    AuthService.lastVerifiedPhone = phoneNumber;
+    AuthService.lastVerifiedPhone = _phoneNumber;
 
     // Mock JWT token
     return {
       accessToken: 'mock-jwt-token',
       user: {
         id: 'mock-user-id',
-        phoneNumber,
+        phoneNumber: _phoneNumber,
       },
     };
   }
