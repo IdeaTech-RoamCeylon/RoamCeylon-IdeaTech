@@ -99,7 +99,7 @@ export class AIController {
 
       // Log matched tokens
       if (matchedTokens.length > 0) {
-        this.logger.log(`Item ID ${item.id} matched tokens: ${matchedTokens}`);
+        this.logger.log(`Item ID ${item.id} matched tokens: ${matchedTokens.join(', ')}`);
       }    
 
       // Return true if any token matched
@@ -202,7 +202,7 @@ export class AIController {
     const validated = this.validateAndPreprocess(q);
     if (typeof validated === 'string') return { query: typeof q === 'string' ? q : '', results: [], message: validated };
 
-    const { cleaned, tokens: queryTokens } = validated;
+    const { cleaned} = validated;
 
        const startTotal = Date.now();
 
@@ -213,7 +213,7 @@ export class AIController {
         ? Math.min(parsedLimit, 20)
         : 10;
 
-    this.logger.log(`🔍 Vector search - query received: "${q}"`);
+    this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
 
     this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
 
