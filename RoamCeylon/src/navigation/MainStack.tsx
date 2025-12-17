@@ -8,6 +8,7 @@ import MarketplaceCategoryScreen from '../screens/marketplace/MarketplaceCategor
 import ProductDetailsScreen from '../screens/marketplace/ProductDetailsScreen';
 import TransportScreen from '../screens/transport/TransportScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import AITripPlannerScreen from '../screens/planner/AITripPlannerScreen';
 
 const Stack = createStackNavigator<MainStackParamList>();
 
@@ -26,6 +27,7 @@ const MainStack = () => {
             <Stack.Screen name="Transport" component={TransportScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+            <Stack.Screen name="AITripPlanner" component={AITripPlannerScreen} />
         </Stack.Navigator>
     );
 };
