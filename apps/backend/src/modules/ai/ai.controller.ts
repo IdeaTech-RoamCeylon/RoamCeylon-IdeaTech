@@ -36,20 +36,44 @@ export class AIController {
   private validateAndPreprocess(
     query: unknown,
   ): { cleaned: string; tokens: string[] } | string {
-    if (typeof query !== 'string') return 'Invalid query format.';
-    const trimmed = query.trim();
-    if (!trimmed) return 'Query cannot be empty.';
-    if (trimmed.length < 3) return 'Query too short (minimum 3 characters).';
-    if (trimmed.length > 300) return 'Query too long (maximum 300 characters).';
+    if (typeof query !== 'string') {
+      return 'Invalid query format.';
+    }
 
+    const trimmed = query.trim();
+    if (!trimmed) {
+      return 'Query cannot be empty.';
+    }
+
+    // Preprocess FIRST
     const cleaned = preprocessQuery(trimmed);
-    if (!cleaned) return 'Query contains invalid characters.';
+
+    if (!cleaned) {
+      return 'Query contains no valid searchable characters.';
+    }
+
+    // Length validation AFTER preprocessing
+    if (cleaned.length < 3) {
+      return 'Query too short (minimum 3 characters).';
+    }
+
+    if (cleaned.length > 300) {
+      return 'Query too long (maximum 300 characters).';
+    }
 
     const tokens = cleaned.split(/\s+/);
-    if (tokens.every((t) => STOP_WORDS.has(t)))
-      return 'Query contains no meaningful searchable terms.';
 
-    return { cleaned, tokens };
+    // Remove stop words before final check
+    const meaningfulTokens = tokens.filter((t) => !STOP_WORDS.has(t));
+
+    if (meaningfulTokens.length === 0) {
+      return 'Query contains no meaningful searchable terms.';
+    }
+
+    return {
+      cleaned,
+      tokens: meaningfulTokens,
+    };
   }
 
   // ---------------- Cosine similarity search (in-memory) ----------------
@@ -88,12 +112,6 @@ export class AIController {
     // Filter out stop words before keyword matching
     const queryTokensFiltered = queryTokens.filter(
       (token) => !STOP_WORDS.has(token),
-    );
-
-    // 🔹 Log preprocessed query and filtered tokens
-    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-    this.logger.log(
-      `🔑 Query tokens used for keyword matching: ${JSON.stringify(queryTokensFiltered)}`,
     );
 
     const keywordFiltered = items.filter((item) => {
