@@ -178,7 +178,7 @@ const MarketplaceCategoryScreen = () => {
       );
     }
     return null;
-  }, [loading, error, products]);
+  }, [loading, error, products?.length]);
 
   return (
     <View style={styles.container}>

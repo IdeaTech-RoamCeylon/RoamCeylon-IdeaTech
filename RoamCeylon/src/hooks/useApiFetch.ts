@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { showToast } from '../utils/toast';
 
 interface UseApiFetchOptions {
@@ -46,6 +46,7 @@ export function useApiFetch<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasFetchedRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -69,13 +70,29 @@ export function useApiFetch<T>(
     } finally {
       setLoading(false);
     }
-  }, [fetchFn, showSuccessToast, successMessage, showErrorToast, errorMessage]);
+  }, [showSuccessToast, successMessage, showErrorToast, errorMessage]);
 
   useEffect(() => {
-    if (autoFetch) {
-      fetchData();
+    if (autoFetch && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchFn().then(result => {
+        setData(result);
+        if (showSuccessToast) {
+          showToast.success(successMessage, 'Success');
+        }
+      }).catch(err => {
+        const errorMsg = errorMessage || 'Failed to load data. Please try again.';
+        setError(errorMsg);
+        if (showErrorToast) {
+          showToast.apiError(err, errorMsg);
+        }
+        console.error('API fetch error:', err);
+      }).finally(() => {
+        setLoading(false);
+      });
+      setLoading(true);
     }
-  }, [fetchData, autoFetch]);
+  }, [autoFetch]);
 
   return {
     data,
