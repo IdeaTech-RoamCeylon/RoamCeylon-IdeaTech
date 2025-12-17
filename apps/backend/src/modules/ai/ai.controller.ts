@@ -118,12 +118,20 @@ export class AIController {
 
     // -------- VECTOR SIMILARITY --------
     const scored = keywordFiltered
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        score: this.aiService.cosineSimilarity(queryVector, item.embedding),
-      }))
+      .map((item) => {
+        const score = this.aiService.cosineSimilarity(
+          queryVector,
+          item.embedding,
+        );
+
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          score,
+          confidence: this.searchService.getConfidence(score),
+        };
+      })
       .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
@@ -136,18 +144,6 @@ export class AIController {
 
     // -------- FALLBACK --------
     if (scored.length === 0) {
-      this.logger.log(`
-        [SEARCH METRICS]
-        Query            : "${cleanedQuery}"
-        Tokens           : ${queryTokens.length}
-        Query Complexity : ${queryComplexity}
-        Rows Scanned     : ${rowsScanned}
-        Rows After Gate  : ${rowsAfterGate}
-        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
-        Search Exec Time : ${searchTimeMs.toFixed(2)} ms
-        Total Time       : ${totalTimeMs.toFixed(2)} ms
-        `);
-
       return {
         query: cleanedQuery,
         message: 'No strong matches found. Try another query.',
