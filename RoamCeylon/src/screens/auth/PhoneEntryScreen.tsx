@@ -23,7 +23,6 @@ const PhoneEntryScreen = () => {
     setLoading(true);
     try {
       await sendOtp(phoneNumber);
-      console.log('OTP sent successfully to:', phoneNumber);
       showToast.success('Verification code sent!', 'Success');
       navigation.navigate('OTP', { phoneNumber });
     } catch (error: any) {

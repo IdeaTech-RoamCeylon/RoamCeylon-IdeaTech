@@ -24,14 +24,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Memoize refreshUser to prevent recreation
   const refreshUser = useCallback(async () => {
     try {
-      console.log('=== AuthContext: Fetching user from /users/me ===');
       const userData = await getMe();
-      console.log('User data from backend:', JSON.stringify(userData, null, 2));
       setUser(userData);
       
       // Check if profile is complete (has name and email)
       const profileComplete = !!(userData?.name && userData?.email);
-      console.log('Profile complete?', profileComplete);
       setIsProfileComplete(profileComplete);
     } catch (error) {
       console.error('Failed to fetch user profile:', error);

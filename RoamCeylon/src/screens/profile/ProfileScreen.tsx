@@ -6,7 +6,6 @@ const ProfileScreen = () => {
   const { logout, user, isLoading } = useAuth();
 
   const handleLogout = async () => {
-    console.log('Logging out...');
     await logout();
   };
 
@@ -63,10 +62,6 @@ const ProfileScreen = () => {
 
   const displayName = getName();
   const phoneNumber = getPhoneNumber();
-
-  console.log('=== ProfileScreen Render ===');
-  console.log('Display Name:', displayName);
-  console.log('Phone number:', phoneNumber);
 
   return (
     <ScrollView style={styles.container}>

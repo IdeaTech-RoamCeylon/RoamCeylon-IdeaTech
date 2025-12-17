@@ -28,7 +28,6 @@ const OTPScreen = () => {
     setLoading(true);
     try {
       const response = await verifyOtp(phoneNumber, otp);
-      console.log('OTP verified successfully:', response);
       
       // Call login to store token and fetch user profile
       await login(response.accessToken);
