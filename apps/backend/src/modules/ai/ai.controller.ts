@@ -2,6 +2,7 @@ import { Controller, Get, Post, Query, Logger } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
+import { STOP_WORDS } from '../../constants/stop-words';
 
 export interface SearchResponseDto {
   query: string;
@@ -31,45 +32,47 @@ export class AIController {
     return { message: 'AI Planner Module Operational' };
   }
 
+  // ------------------- Helper: Validate & Preprocess -------------------
+  private validateAndPreprocess(
+    query: unknown,
+  ): { cleaned: string; tokens: string[] } | string {
+    if (typeof query !== 'string') return 'Invalid query format.';
+    const trimmed = query.trim();
+    if (!trimmed) return 'Query cannot be empty.';
+    if (trimmed.length < 3) return 'Query too short (minimum 3 characters).';
+    if (trimmed.length > 300) return 'Query too long (maximum 300 characters).';
+
+    const cleaned = preprocessQuery(trimmed);
+    if (!cleaned) return 'Query contains invalid characters.';
+
+    const tokens = cleaned.split(/\s+/);
+    if (tokens.every((t) => STOP_WORDS.has(t)))
+      return 'Query contains no meaningful searchable terms.';
+
+    return { cleaned, tokens };
+  }
+
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
-  async search(@Query('query') query: string) {
+  async search(@Query('query') query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
 
-    // ---------------- VALIDATION ----------------
-    if (!query || query.trim() === '') {
-      return { error: 'Query cannot be empty' };
-    }
-
-    const cleanedQuery = query.trim();
-
-    if (cleanedQuery.length < 3) {
-      return { error: 'Query too short (minimum 3 characters)' };
-    }
-
-    if (cleanedQuery.length > 300) {
-      return { error: 'Query too long (maximum 300 characters)' };
-    }
-
-    if (!/^[a-zA-Z0-9\s]+$/.test(cleanedQuery)) {
+    // ---------- TYPE SAFETY ----------
+    const validated = this.validateAndPreprocess(query);
+    if (typeof validated === 'string')
       return {
-        error:
-          'Query contains invalid characters (letters, numbers, and spaces only)',
+        query: typeof query === 'string' ? query : '',
+        results: [],
+        message: validated,
       };
-    }
 
-    // ---------------- PREPROCESS ----------------
-    const preprocessedQuery = preprocessQuery(cleanedQuery);
-    const queryTokens = preprocessedQuery.split(/\s+/);
-    const queryComplexity = queryTokens.length * preprocessedQuery.length;
+    const { cleaned, tokens: queryTokens } = validated;
+    const queryComplexity = queryTokens.length * cleaned.length;
 
     // ---------------- VECTOR GENERATION ----------------
     const embeddingStart = process.hrtime.bigint();
 
-    const queryVector = this.aiService.generateDummyEmbedding(
-      preprocessedQuery,
-      1536,
-    );
+    const queryVector = this.aiService.generateDummyEmbedding(cleaned, 1536);
 
     const embeddingEnd = process.hrtime.bigint();
     const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
@@ -82,13 +85,35 @@ export class AIController {
     const searchStart = process.hrtime.bigint();
 
     // -------- KEYWORD + FUZZY GATE --------
+    // Filter out stop words before keyword matching
+    const queryTokensFiltered = queryTokens.filter(
+      (token) => !STOP_WORDS.has(token),
+    );
+
+    // 🔹 Log preprocessed query and filtered tokens
+    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
+    this.logger.log(
+      `🔑 Query tokens used for keyword matching: ${JSON.stringify(queryTokensFiltered)}`,
+    );
+
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
 
-      return queryTokens.some(
+      // Find matched tokens
+      const matchedTokens = queryTokensFiltered.filter(
         (token) =>
           text.includes(token) || this.aiService.isPartialMatch(token, text),
       );
+
+      // Log matched tokens
+      if (matchedTokens.length > 0) {
+        this.logger.log(
+          `Item ID ${item.id} matched tokens: ${matchedTokens.join(', ')}`,
+        );
+      }
+
+      // Return true if any token matched
+      return matchedTokens.length > 0;
     });
 
     const rowsAfterGate = keywordFiltered.length;
@@ -100,7 +125,7 @@ export class AIController {
 
       this.logger.log(`
         [SEARCH METRICS]
-        Query            : "${cleanedQuery}"
+        Query            : "${cleaned}"
         Tokens           : ${queryTokens.length}
         Query Complexity : ${queryComplexity}
         Rows Scanned     : ${rowsScanned}
@@ -110,7 +135,7 @@ export class AIController {
         `);
 
       return {
-        query: cleanedQuery,
+        query: cleaned,
         message: 'No strong matches found. Try another query.',
         results: [],
       };
@@ -144,8 +169,20 @@ export class AIController {
 
     // -------- FALLBACK --------
     if (scored.length === 0) {
+      this.logger.log(`
+        [SEARCH METRICS]
+        Query            : "${cleaned}"
+        Tokens           : ${queryTokens.length}
+        Query Complexity : ${queryComplexity}
+        Rows Scanned     : ${rowsScanned}
+        Rows After Gate  : ${rowsAfterGate}
+        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+        Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+        Total Time       : ${totalTimeMs.toFixed(2)} ms
+        `);
+
       return {
-        query: cleanedQuery,
+        query: cleaned,
         message: 'No strong matches found. Try another query.',
         results: [],
       };
@@ -154,7 +191,7 @@ export class AIController {
     // ---------------- FINAL LOG ----------------
     this.logger.log(`
       [SEARCH METRICS]
-      Query            : "${cleanedQuery}"
+      Query            : "${cleaned}"
       Tokens           : ${queryTokens.length}
       Query Complexity : ${queryComplexity}
       Rows Scanned     : ${rowsScanned}
@@ -165,7 +202,7 @@ export class AIController {
       `);
 
     return {
-      query: cleanedQuery,
+      query: cleaned,
       results: scored.map((item, idx) => ({
         rank: idx + 1,
         ...item,
@@ -176,25 +213,41 @@ export class AIController {
   // ---------------- Vector DB search (Postgres + pgvector) ----------------
   @Get('search/vector')
   async searchVector(
-    @Query('q') query: string,
+    @Query('q') q: unknown,
     @Query('limit') limit?: string,
   ): Promise<SearchResponseDto> {
+    const validated = this.validateAndPreprocess(q);
+    if (typeof validated === 'string')
+      return {
+        query: typeof q === 'string' ? q : '',
+        results: [],
+        message: validated,
+      };
+
+    const { cleaned } = validated;
+
     const startTotal = Date.now();
-    const lim = limit ? parseInt(limit, 10) : 10;
 
-    this.logger.log(`🔍 Vector search - query received: "${query}"`);
+    const parsedLimit = Number(limit);
 
-    const cleanedQuery = preprocessQuery(query);
-    this.logger.log(`🧹 Preprocessed query: "${cleanedQuery}"`);
+    const lim =
+      Number.isInteger(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 20)
+        : 10;
+
+    this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
+
+    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
 
     // ---- Embedding ----
     const embedStart = Date.now();
-    const embedding = this.aiService.generateDummyEmbedding(cleanedQuery, 1536);
+    const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
     const embedTime = Date.now() - embedStart;
     this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
 
     // ---- Vector DB Search (ONE CALL ONLY) ----
     const searchStart = Date.now();
+
     const rawResults =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
@@ -202,7 +255,7 @@ export class AIController {
       );
     const searchTime = Date.now() - searchStart;
 
-    this.logger.log(`📡 Vector DB search duration: ${searchTime}ms`);
+    this.logger.log(`⏳ Vector DB search duration: ${searchTime}ms`);
     this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
 
     const total = Date.now() - startTotal;
@@ -210,9 +263,9 @@ export class AIController {
 
     // ---- Return ----
     if (Array.isArray(rawResults)) {
-      return { query, results: rawResults };
+      return { query: cleaned, results: rawResults };
     } else {
-      return { query, results: [], message: rawResults.message };
+      return { query: cleaned, results: [], message: rawResults.message };
     }
   }
 
