@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList, Category } from '../../types';
 import marketplaceApi from '../../services/marketplaceApi';
+import { useApiFetch } from '../../hooks';
+import { LoadingState, ErrorState } from '../../components';
 
 type MarketplaceNavigationProp = StackNavigationProp<MainStackParamList, 'Marketplace'>;
 
@@ -48,27 +50,12 @@ CategoryCard.displayName = 'CategoryCard';
 
 const MarketplaceHomeScreen = () => {
   const navigation = useNavigation<MarketplaceNavigationProp>();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await marketplaceApi.getCategories();
-      setCategories(data);
-    } catch (err) {
-      setError('Failed to load categories. Please try again.');
-      console.error('Error fetching categories:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  
+  // Use custom hook for API fetching - eliminates manual state management
+  const { data: categories, loading, error, refetch } = useApiFetch(
+    marketplaceApi.getCategories,
+    { showErrorToast: true, errorMessage: 'Failed to load categories. Please try again.' }
+  );
 
   const handleCategoryPress = useCallback((category: Category) => {
     navigation.navigate('MarketplaceCategory', { 
@@ -96,28 +83,15 @@ const MarketplaceHomeScreen = () => {
 
   const ListEmptyComponent = useMemo(() => {
     if (loading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Loading categories...</Text>
-        </View>
-      );
+      return <LoadingState message="Loading categories..." />;
     }
     
     if (error) {
-      return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchCategories}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return <ErrorState message={error} onRetry={refetch} />;
     }
 
     return null;
-  }, [loading, error, fetchCategories]);
+  }, [loading, error, refetch]);
 
   const ListFooterComponent = useMemo(() => {
     if (!loading && !error) {
@@ -142,7 +116,7 @@ const MarketplaceHomeScreen = () => {
       </View>
 
       <FlatList
-        data={categories}
+        data={categories || []}
         renderItem={renderCategoryItem}
         keyExtractor={keyExtractor}
         numColumns={numColumns}
@@ -240,43 +214,6 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    backgroundColor: '#fff',
-    padding: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-  },
-  errorIcon: {
-    fontSize: 48,
-    marginBottom: 15,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
 import marketplaceApi, { Product } from '../../services/marketplaceApi';
+import { useApiFetch } from '../../hooks';
+import { LoadingState, ErrorState, EmptyState } from '../../components';
 
 type MarketplaceCategoryRouteProp = RouteProp<MainStackParamList, 'MarketplaceCategory'>;
 type MarketplaceCategoryNavigationProp = StackNavigationProp<MainStackParamList, 'MarketplaceCategory'>;
@@ -86,28 +88,13 @@ const MarketplaceCategoryScreen = () => {
   const navigation = useNavigation<MarketplaceCategoryNavigationProp>();
   const { categoryId, categoryName } = route.params;
   
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use custom hook for API fetching
+  const { data: products, loading, error, refetch } = useApiFetch(
+    () => marketplaceApi.getProducts(categoryName),
+    { showErrorToast: true, errorMessage: 'Failed to load products. Please try again.' }
+  );
+
   const [activeFilter, setActiveFilter] = useState('All');
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await marketplaceApi.getProducts(categoryName);
-      setProducts(data);
-    } catch (err) {
-      setError('Failed to load products. Please try again.');
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [categoryName]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
 
   const handleProductPress = useCallback((product: Product) => {
     navigation.navigate('ProductDetails', { productId: product.id });
@@ -158,43 +145,28 @@ const MarketplaceCategoryScreen = () => {
 
   const ListEmptyComponent = useMemo(() => {
     if (loading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Loading products...</Text>
-        </View>
-      );
+      return <LoadingState message="Loading products..." />;
     }
     
     if (error) {
-      return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return <ErrorState message={error} onRetry={refetch} />;
     }
 
-    if (products.length === 0) {
+    if (!products || products.length === 0) {
       return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📦</Text>
-          <Text style={styles.emptyTitle}>No Products Found</Text>
-          <Text style={styles.emptySubtitle}>
-            There are no products available in this category yet.
-          </Text>
-        </View>
+        <EmptyState
+          icon="📦"
+          message="No Products Found"
+          subtitle="There are no products available in this category yet."
+        />
       );
     }
 
     return null;
-  }, [loading, error, products.length, fetchProducts]);
+  }, [loading, error, products, refetch]);
 
   const ListFooterComponent = useMemo(() => {
-    if (!loading && !error && products.length > 0) {
+    if (!loading && !error && products && products.length > 0) {
       return (
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>🎨</Text>
@@ -206,12 +178,12 @@ const MarketplaceCategoryScreen = () => {
       );
     }
     return null;
-  }, [loading, error, products.length]);
+  }, [loading, error, products]);
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={products}
+        data={products || []}
         renderItem={renderProductItem}
         keyExtractor={productKeyExtractor}
         numColumns={2}
@@ -364,65 +336,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     textAlign: 'center',
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    backgroundColor: '#fff',
-    padding: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-  },
-  errorIcon: {
-    fontSize: 48,
-    marginBottom: 15,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    backgroundColor: '#fff',
-    padding: 40,
-    borderRadius: 15,
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
 
