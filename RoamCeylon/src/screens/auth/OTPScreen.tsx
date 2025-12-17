@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 10,
     paddingHorizontal: 15,
-    fontSize: 20,
+    fontSize: 15,
     marginBottom: 20,
     textAlign: 'center',
     letterSpacing: 10,
