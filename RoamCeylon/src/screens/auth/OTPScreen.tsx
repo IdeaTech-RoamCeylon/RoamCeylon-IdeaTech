@@ -28,7 +28,6 @@ const OTPScreen = () => {
     setLoading(true);
     try {
       const response = await verifyOtp(phoneNumber, otp);
-      console.log('OTP verified successfully:', response);
       
       // Call login to store token and fetch user profile
       await login(response.accessToken);
@@ -106,7 +105,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 10,
     paddingHorizontal: 15,
-    fontSize: 20,
+    fontSize: 15,
     marginBottom: 20,
     textAlign: 'center',
     letterSpacing: 10,

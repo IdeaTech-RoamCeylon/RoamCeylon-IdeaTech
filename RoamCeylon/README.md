@@ -51,31 +51,62 @@ Once the dev server starts, you have several options:
 ```
 RoamCeylon/
 ├── src/
+│   ├── components/              # Reusable UI components
+│   │   ├── Button.tsx           # Button component (primary, secondary, outline)
+│   │   ├── Input.tsx            # Input component with error states
+│   │   ├── Card.tsx             # Card component (clickable & static)
+│   │   ├── Loader.tsx           # Loading spinner component
+│   │   ├── ErrorBoundary.tsx    # Error boundary for crash handling
+│   │   └── index.ts             # Component exports
+│   │
 │   ├── navigation/              # Navigation configuration
 │   │   ├── AuthStack.tsx        # Auth flow navigation
 │   │   ├── MainStack.tsx        # Main app navigation
 │   │   └── RootNavigator.tsx    # Root navigation container
 │   │
 │   ├── screens/                 # Screen components
-│   │   ├── SplashScreen.tsx
-│   │   ├── WelcomeScreen.tsx
-│   │   ├── PhoneEntryScreen.tsx
-│   │   ├── OTPScreen.tsx
-│   │   ├── ProfileSetupScreen.tsx
-│   │   ├── HomeScreen.tsx
-│   │   ├── ExploreScreen.tsx
-│   │   ├── MarketplaceScreen.tsx
-│   │   ├── TransportScreen.tsx   # Includes MapScreen
-│   │   ├── MapScreen.tsx         # Mapbox integration with fallback
-│   │   └── ProfileScreen.tsx
-│   │   └── ProfileScreen.tsx
+│   │   ├── auth/                # Authentication screens
+│   │   │   ├── SplashScreen.tsx
+│   │   │   ├── WelcomeScreen.tsx
+│   │   │   ├── PhoneEntryScreen.tsx
+│   │   │   ├── OTPScreen.tsx
+│   │   │   └── ProfileSetupScreen.tsx
+│   │   │
+│   │   ├── home/
+│   │   │   └── HomeScreen.tsx
+│   │   │
+│   │   ├── explore/
+│   │   │   └── ExploreScreen.tsx
+│   │   │
+│   │   ├── marketplace/         # Marketplace feature
+│   │   │   ├── MarketplaceHomeScreen.tsx      # Categories view
+│   │   │   ├── MarketplaceCategoryScreen.tsx  # Products by category
+│   │   │   └── ProductDetailsScreen.tsx       # Product details
+│   │   │
+│   │   ├── transport/
+│   │   │   ├── TransportScreen.tsx
+│   │   │   └── MapScreen.tsx    # Mapbox integration with fallback
+│   │   │
+│   │   ├── profile/
+│   │   │   └── ProfileScreen.tsx
+│   │   │
+│   │   └── ComponentShowcaseScreen.tsx  # UI component demo
 │   │
 │   ├── services/                # API and business logic
-│   │   ├── api.ts               # Axios HTTP client
-│   │   └── auth.ts              # Authentication service
+│   │   ├── api.ts               # Axios HTTP client with interceptors
+│   │   ├── auth.ts              # Authentication service
+│   │   └── marketplaceApi.ts    # Marketplace API endpoints
 │   │
 │   ├── context/                 # React Context providers
-│   │   └── AuthContext.tsx      # Global auth state
+│   │   └── AuthContext.tsx      # Global auth state management
+│   │
+│   ├── utils/                   # Utility functions
+│   │   └── toast.ts             # Toast notification helpers
+│   │
+│   ├── types/                   # TypeScript type definitions
+│   │   ├── navigation.types.ts  # Navigation types
+│   │   ├── marketplace.types.ts # Marketplace types
+│   │   └── index.ts             # Type exports
 │   │
 │   └── config/                  # App configuration
 │       └── mapbox.config.ts     # Mapbox settings
@@ -232,6 +263,190 @@ timeout: 10000; // 10 seconds
 
 ---
 
+## 🎨 UI Components
+
+The app includes a library of reusable UI components for consistent design across screens.
+
+### Button Component
+
+Three variants available: **primary**, **secondary**, and **outline**.
+
+```typescript
+import { Button } from './src/components';
+
+// Primary button (default)
+<Button title="Continue" onPress={handlePress} />
+
+// Secondary button
+<Button title="Cancel" variant="secondary" onPress={handleCancel} />
+
+// Outline button
+<Button title="Learn More" variant="outline" onPress={handleLearnMore} />
+
+// Loading state
+<Button title="Submit" loading={isLoading} onPress={handleSubmit} />
+
+// Disabled state
+<Button title="Submit" disabled onPress={handleSubmit} />
+```
+
+### Input Component
+
+Text input with error state support.
+
+```typescript
+import { Input } from './src/components';
+
+// Basic input
+<Input
+  placeholder="Enter your name"
+  value={name}
+  onChangeText={setName}
+/>
+
+// Input with error
+<Input
+  placeholder="Email"
+  value={email}
+  onChangeText={setEmail}
+  error="Invalid email format"
+/>
+
+// Phone input
+<Input
+  placeholder="+94 XX XXX XXXX"
+  keyboardType="phone-pad"
+  value={phone}
+  onChangeText={setPhone}
+/>
+```
+
+### Card Component
+
+Container component for content grouping.
+
+```typescript
+import { Card } from './src/components';
+
+// Static card
+<Card>
+  <Text>Card content here</Text>
+</Card>
+
+// Clickable card
+<Card onPress={handleCardPress}>
+  <Text>Tap me!</Text>
+</Card>
+
+// Custom styled card
+<Card style={{ backgroundColor: '#f0f8ff' }}>
+  <Text>Custom background</Text>
+</Card>
+```
+
+### Loader Component
+
+Loading spinner with customization options.
+
+```typescript
+import { Loader } from './src/components';
+
+// Small loader
+<Loader size="small" />
+
+// Large loader
+<Loader size="large" />
+
+// Loader with text
+<Loader text="Loading data..." />
+
+// Custom color
+<Loader color="#0066CC" text="Please wait..." />
+```
+
+### Component Showcase
+
+View all components in action on the **ComponentShowcaseScreen**. This screen demonstrates all component variants and states for easy testing and reference.
+
+---
+
+## 🔔 Toast Notifications
+
+The app uses `react-native-toast-message` for user feedback with a custom utility wrapper.
+
+### Toast Utility
+
+```typescript
+import { showToast } from './src/utils/toast';
+
+// Success toast
+showToast.success('Profile updated successfully!', 'Success');
+
+// Error toast
+showToast.error('Failed to save changes', 'Error');
+
+// Info toast
+showToast.info('New features available', 'Info');
+
+// API error handling (automatic)
+try {
+  await apiService.post('/endpoint', data);
+} catch (error) {
+  showToast.apiError(error); // Automatically formats API errors
+}
+```
+
+### Toast Features
+
+- **Automatic API Error Handling**: The API service automatically shows toast notifications for failed requests
+- **Network Error Detection**: Special handling for network connectivity issues
+- **Status Code Messages**: User-friendly messages for 400, 401, 403, 404, 500 errors
+- **Custom Fallback**: Generic error message when specific error info is unavailable
+
+### Toast Configuration
+
+Toast messages appear at the top of the screen and auto-dismiss after 3 seconds. They're integrated throughout the app for:
+
+- Authentication flow (OTP sent, verification success/failure)
+- Profile updates
+- API errors
+- Network connectivity issues
+
+---
+
+## 🛡️ Error Handling
+
+### Error Boundary
+
+The app includes an `ErrorBoundary` component that catches React errors and prevents app crashes.
+
+```typescript
+import { ErrorBoundary } from './src/components';
+
+// Wrap your app or specific components
+<ErrorBoundary>
+  <YourApp />
+</ErrorBoundary>
+```
+
+The ErrorBoundary:
+
+- Catches JavaScript errors in child components
+- Displays a user-friendly error screen
+- Logs error details for debugging
+- Prevents the entire app from crashing
+
+### Global API Error Handling
+
+The API service includes automatic error handling:
+
+- **401 Unauthorized**: Auto-logout and token cleanup
+- **Network Errors**: User-friendly "No internet connection" message
+- **Toast Notifications**: Automatic error display to users
+- **Error Logging**: Console logging for debugging (console.error preserved)
+
+---
+
 ## 📦 Key Dependencies
 
 ### Navigation & UI
@@ -242,6 +457,7 @@ timeout: 10000; // 10 seconds
 - `react-native-safe-area-context` - Safe area management
 - `react-native-gesture-handler` - Gesture system
 - `expo-status-bar` - Status bar component
+- `react-native-toast-message` - Toast notifications for user feedback
 
 ### API & Storage
 
@@ -253,6 +469,7 @@ timeout: 10000; // 10 seconds
 
 - `@rnmapbox/maps` - Mapbox SDK for interactive maps
   - ⚠️ Requires custom native build (not available in Expo Go)
+- `expo-location` - Location services
 
 ### Development
 
@@ -260,6 +477,7 @@ timeout: 10000; // 10 seconds
 - `@types/react` - React type definitions
 - `eslint` - Code linting
 - `prettier` - Code formatting
+- `expo-dev-client` - Custom development builds
 
 ---
 
@@ -293,13 +511,16 @@ npm run format     # Format code with Prettier
 
 ### Main Screens
 
-| Screen          | Description    | Features                            |
-| --------------- | -------------- | ----------------------------------- |
-| **Home**        | Dashboard      | Quick access to all features        |
-| **Explore**     | Destinations   | Browse tourist attractions          |
-| **Marketplace** | Local products | Shopping experience                 |
-| **Transport**   | Ride booking   | Interactive Mapbox map of Sri Lanka |
-| **Profile**     | User settings  | Profile edit, logout                |
+| Screen                  | Description          | Features                                   |
+| ----------------------- | -------------------- | ------------------------------------------ |
+| **Home**                | Dashboard            | Quick access to all features               |
+| **Explore**             | Destinations         | Browse tourist attractions                 |
+| **MarketplaceHome**     | Categories           | Browse product categories                  |
+| **MarketplaceCategory** | Products by category | View products, filter, navigate to details |
+| **ProductDetails**      | Product information  | View product details, pricing, description |
+| **Transport**           | Ride booking         | Interactive Mapbox map of Sri Lanka        |
+| **Profile**             | User settings        | Profile edit, logout                       |
+| **ComponentShowcase**   | UI component demo    | View all reusable components               |
 
 ---
 
@@ -512,12 +733,16 @@ npx expo start --port 8082
 - **Framework**: React Native 0.81.5
 - **Runtime**: Expo SDK 54
 - **Language**: TypeScript 5.9
-- **UI Library**: React Native core components
+- **UI Library**: React Native core components + Custom component library
 - **State Management**: React Context API
-- **Navigation**: React Navigation 6
-- **HTTP Client**: Axios
+- **Navigation**: React Navigation 7
+- **HTTP Client**: Axios 1.13
 - **Storage**: Expo SecureStore
-- **Maps**: Mapbox GL JS (via @rnmapbox/maps)
+- **Maps**: Mapbox GL JS (via @rnmapbox/maps 10.2)
+- **Notifications**: React Native Toast Message 2.3
+- **Error Handling**: Custom ErrorBoundary component
+- **Location**: Expo Location
+- **Development**: Expo Dev Client for custom builds
 
 ---
 

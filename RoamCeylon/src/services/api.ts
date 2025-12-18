@@ -24,7 +24,6 @@ class ApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
         return config;
       },
       error => {
@@ -36,7 +35,6 @@ class ApiService {
     // Response interceptor - handle errors
     this.client.interceptors.response.use(
       response => {
-        console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
         return response;
       },
       async error => {
@@ -54,7 +52,6 @@ class ApiService {
         if (error.response?.status === 401) {
           // Token expired or invalid - handle logout
           await SecureStore.deleteItemAsync('authToken');
-          console.log('Token cleared due to 401 error');
         }
         return Promise.reject(error);
       }

@@ -24,4 +24,5 @@ export type MainStackParamList = {
   Map: undefined;
   Profile: undefined;
   ComponentShowcase: undefined;
+  AITripPlanner: undefined;
 };
