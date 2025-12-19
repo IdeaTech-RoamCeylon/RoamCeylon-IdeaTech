@@ -22,17 +22,9 @@ const MapScreen = () => {
     // Check if Mapbox is properly configured
     const checkMapboxSetup = async () => {
       try {
-        console.log('=== Mapbox Configuration Debug ===');
-        console.log('MapboxGL available:', !!MapboxGL);
-        console.log('Access Token:', MAPBOX_CONFIG.accessToken);
-        console.log('Token length:', MAPBOX_CONFIG.accessToken?.length);
-        console.log('Token starts with pk:', MAPBOX_CONFIG.accessToken?.startsWith('pk.'));
-        
         if (MapboxGL && MAPBOX_CONFIG.accessToken && MAPBOX_CONFIG.accessToken.startsWith('pk.')) {
-          console.log('✅ Mapbox is configured');
           setIsMapboxConfigured(true);
         } else {
-          console.log('❌ Mapbox is NOT configured');
           setIsMapboxConfigured(false);
         }
       } catch (error) {

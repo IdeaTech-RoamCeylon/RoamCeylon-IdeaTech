@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList, Product } from '../../types';
 import marketplaceApi from '../../services/marketplaceApi';
+import { useApiFetch } from '../../hooks';
+import { LoadingState } from '../../components';
 
 type ProductDetailsNavigationProp = StackNavigationProp<MainStackParamList, 'ProductDetails'>;
 type ProductDetailsRouteProp = RouteProp<MainStackParamList, 'ProductDetails'>;
@@ -15,38 +17,14 @@ const ProductDetailsScreen = () => {
   const route = useRoute<ProductDetailsRouteProp>();
   const productId = route.params?.productId;
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use custom hook for API fetching
+  const { data: product, loading, error } = useApiFetch(
+    () => productId ? marketplaceApi.getProductById(productId) : Promise.reject('No product ID'),
+    { showErrorToast: true, errorMessage: 'Failed to load product details' }
+  );
+
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('Medium');
-
-  const fetchProductDetails = useCallback(async () => {
-    if (!productId) {
-      setError('No product ID provided');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await marketplaceApi.getProductById(productId);
-      if (data) {
-        setProduct(data);
-      } else {
-        setError('Product not found');
-      }
-    } catch (err) {
-      setError('Failed to load product details');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [productId]);
-
-  useEffect(() => {
-    fetchProductDetails();
-  }, [fetchProductDetails]);
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
@@ -75,7 +53,7 @@ const ProductDetailsScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <LoadingState />
       </View>
     );
   }

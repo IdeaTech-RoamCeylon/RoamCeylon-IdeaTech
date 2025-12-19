@@ -8,15 +8,15 @@ const ComponentShowcaseScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const handlePrimaryButton = () => {
-    console.log('Primary button pressed');
+    // Button pressed
   };
 
   const handleSecondaryButton = () => {
-    console.log('Secondary button pressed');
+    // Button pressed
   };
 
   const handleOutlineButton = () => {
-    console.log('Outline button pressed');
+    // Button pressed
   };
 
   const handleLoadingButton = () => {
@@ -25,7 +25,7 @@ const ComponentShowcaseScreen = () => {
   };
 
   const handleCardPress = () => {
-    console.log('Card pressed');
+    // Card pressed
   };
 
   const handleInputChange = (text: string) => {

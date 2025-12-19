@@ -1,9 +1,8 @@
-import { Controller, Get, Post, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Query, Logger, Body } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
 import { STOP_WORDS } from '../../constants/stop-words';
-
 
 export interface SearchResponseDto {
   query: string;
@@ -17,6 +16,12 @@ export interface SearchResponseDto {
     metadata?: any;
   }[];
   message?: string;
+}
+export interface TripPlanRequestDto {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  preferences?: string[];
 }
 
 @Controller('ai')
@@ -34,30 +39,62 @@ export class AIController {
   }
 
   // ------------------- Helper: Validate & Preprocess -------------------
-  private validateAndPreprocess(query: unknown): { cleaned: string; tokens: string[] } | string {
-    if (typeof query !== 'string') return 'Invalid query format.';
-    const trimmed = query.trim();
-    if (!trimmed) return 'Query cannot be empty.';
-    if (trimmed.length < 3) return 'Query too short (minimum 3 characters).';
-    if (trimmed.length > 300) return 'Query too long (maximum 300 characters).';
+  private validateAndPreprocess(
+    query: unknown,
+  ): { cleaned: string; tokens: string[] } | string {
+    if (typeof query !== 'string') {
+      return 'Invalid query format.';
+    }
 
+    const trimmed = query.trim();
+    if (!trimmed) {
+      return 'Query cannot be empty.';
+    }
+
+    // Preprocess FIRST
     const cleaned = preprocessQuery(trimmed);
-    if (!cleaned) return 'Query contains invalid characters.';
+
+    if (!cleaned) {
+      return 'Query contains no valid searchable characters.';
+    }
+
+    // Length validation AFTER preprocessing
+    if (cleaned.length < 3) {
+      return 'Query too short (minimum 3 characters).';
+    }
+
+    if (cleaned.length > 300) {
+      return 'Query too long (maximum 300 characters).';
+    }
 
     const tokens = cleaned.split(/\s+/);
-    if (tokens.every(t => STOP_WORDS.has(t))) return 'Query contains no meaningful searchable terms.';
 
-    return { cleaned, tokens };
+    // Remove stop words before final check
+    const meaningfulTokens = tokens.filter((t) => !STOP_WORDS.has(t));
+
+    if (meaningfulTokens.length === 0) {
+      return 'Query contains no meaningful searchable terms.';
+    }
+
+    return {
+      cleaned,
+      tokens: meaningfulTokens,
+    };
   }
 
   // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
-    
+
     // ---------- TYPE SAFETY ----------
     const validated = this.validateAndPreprocess(query);
-    if (typeof validated === 'string') return { query: typeof query === 'string' ? query : '', results: [], message: validated };
+    if (typeof validated === 'string')
+      return {
+        query: typeof query === 'string' ? query : '',
+        results: [],
+        message: validated,
+      };
 
     const { cleaned, tokens: queryTokens } = validated;
     const queryComplexity = queryTokens.length * cleaned.length;
@@ -65,10 +102,7 @@ export class AIController {
     // ---------------- VECTOR GENERATION ----------------
     const embeddingStart = process.hrtime.bigint();
 
-    const queryVector = this.aiService.generateDummyEmbedding(
-      cleaned,
-      1536,
-    );
+    const queryVector = this.aiService.generateDummyEmbedding(cleaned, 1536);
 
     const embeddingEnd = process.hrtime.bigint();
     const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
@@ -82,29 +116,29 @@ export class AIController {
 
     // -------- KEYWORD + FUZZY GATE --------
     // Filter out stop words before keyword matching
-    const queryTokensFiltered = queryTokens.filter(token => !STOP_WORDS.has(token));
-    
-    // 🔹 Log preprocessed query and filtered tokens
-    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-    this.logger.log(`🔑 Query tokens used for keyword matching: ${JSON.stringify(queryTokensFiltered)}`);
+    const queryTokensFiltered = queryTokens.filter(
+      (token) => !STOP_WORDS.has(token),
+    );
 
-    
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
-      
+
       // Find matched tokens
-      const matchedTokens = queryTokensFiltered.filter(token =>
-         text.includes(token) || this.aiService.isPartialMatch(token, text)
+      const matchedTokens = queryTokensFiltered.filter(
+        (token) =>
+          text.includes(token) || this.aiService.isPartialMatch(token, text),
       );
 
       // Log matched tokens
       if (matchedTokens.length > 0) {
-        this.logger.log(`Item ID ${item.id} matched tokens: ${matchedTokens.join(', ')}`);
-      }    
+        this.logger.log(
+          `Item ID ${item.id} matched tokens: ${matchedTokens.join(', ')}`,
+        );
+      }
 
       // Return true if any token matched
       return matchedTokens.length > 0;
-   });
+    });
 
     const rowsAfterGate = keywordFiltered.length;
 
@@ -133,12 +167,20 @@ export class AIController {
 
     // -------- VECTOR SIMILARITY --------
     const scored = keywordFiltered
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        score: this.aiService.cosineSimilarity(queryVector, item.embedding),
-      }))
+      .map((item) => {
+        const score = this.aiService.cosineSimilarity(
+          queryVector,
+          item.embedding,
+        );
+
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          score,
+          confidence: this.searchService.getConfidence(score),
+        };
+      })
       .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
@@ -198,13 +240,17 @@ export class AIController {
     @Query('q') q: unknown,
     @Query('limit') limit?: string,
   ): Promise<SearchResponseDto> {
-    
     const validated = this.validateAndPreprocess(q);
-    if (typeof validated === 'string') return { query: typeof q === 'string' ? q : '', results: [], message: validated };
+    if (typeof validated === 'string')
+      return {
+        query: typeof q === 'string' ? q : '',
+        results: [],
+        message: validated,
+      };
 
-    const { cleaned} = validated;
+    const { cleaned } = validated;
 
-       const startTotal = Date.now();
+    const startTotal = Date.now();
 
     const parsedLimit = Number(limit);
 
@@ -288,6 +334,26 @@ export class AIController {
       min,
       max,
       notes,
+    };
+  }
+  // ------------------- TRIP PLANNER -------------------
+  @Post('trip-plan')
+  tripPlan(@Body() body: TripPlanRequestDto): { plan: any; message: string } {
+    // For now, return a mock response
+    return {
+      plan: {
+        destination: body.destination || 'Colombo',
+        dates: {
+          start: body.startDate || '2025-01-01',
+          end: body.endDate || '2025-01-07',
+        },
+        itinerary: [
+          { day: 1, activity: 'Arrival and city tour' },
+          { day: 2, activity: 'Visit local attractions' },
+          { day: 3, activity: 'Beach day' },
+        ],
+      },
+      message: 'Trip plan generated (mock response).',
     };
   }
 }

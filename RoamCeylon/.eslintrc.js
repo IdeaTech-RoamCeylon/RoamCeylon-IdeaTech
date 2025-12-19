@@ -20,6 +20,8 @@ module.exports = {
     'react/prop-types': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-explicit-any': 'warn',
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
   },
   settings: {
     react: {
@@ -27,6 +29,7 @@ module.exports = {
     },
   },
   env: {
-    'react-native/react-native': true,
+    es2021: true,
+    node: true,
   },
 };
