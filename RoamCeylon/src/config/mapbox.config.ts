@@ -27,7 +27,7 @@ export const MAPBOX_CONFIG = {
       y: 10,
     },
     logoViewPosition: 0,
-    attributionButtonPosition: 1,
+    attributionButtonPosition: { bottom: 8, right: 8 },
   },
 };
 

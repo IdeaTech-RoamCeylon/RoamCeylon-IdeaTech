@@ -21,7 +21,7 @@ export interface VerifyOTPResponse {
 
 export interface UserProfile {
   id: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   name?: string;
   email?: string;
   birthday?: string; // Format: YYYY-MM-DD or ISO date string
@@ -60,22 +60,21 @@ export const sendOtp = async (phoneNumber: string): Promise<OTPResponse> => {
 
 export const verifyOtp = async (
   phoneNumber: string,
-  otp: string,
-  sessionId: string
-): Promise<VerifyOTPResponse> => {
+  otp: string
+): Promise<{ accessToken: string; user: { id: string; phoneNumber: string } }> => {
   try {
-    // Placeholder implementation - replace with actual API endpoint
-    const response = await apiService.post<VerifyOTPResponse>('/auth/verify-otp', {
+    // Backend returns { accessToken: "mock-jwt-token", user: {...} }
+    const response = await apiService.post<{ accessToken: string; user: { id: string; phoneNumber: string } }>('/auth/verify-otp', {
       phoneNumber,
       otp,
-      sessionId,
     });
 
     // Store token if verification successful
-    if (response.success && response.token) {
-      await storeAuthToken(response.token);
+    if (response.accessToken) {
+      await storeAuthToken(response.accessToken);
     }
 
+    // Return the response as-is since it matches our expected format
     return response;
   } catch (error) {
     console.error('Verify OTP error:', error);
@@ -85,7 +84,7 @@ export const verifyOtp = async (
 
 export const getMe = async (): Promise<UserProfile> => {
   try {
-    const response = await apiService.get<UserProfile>('/auth/me');
+    const response = await apiService.get<UserProfile>('/users/me');
     return response;
   } catch (error) {
     console.error('Get user profile error:', error);

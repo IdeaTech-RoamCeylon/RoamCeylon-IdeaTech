@@ -1,0 +1,44 @@
+{
+  "tourism_samples": [
+    {
+      "title": "Sigiriya Rock Fortress",
+      "description": "Sigiriya, known as Lion Rock, is an ancient fortress in central Sri Lanka with frescoes, water gardens, and terraced landscapes. Visitors can climb to the summit for panoramic views."
+    },
+    {
+      "title": "Ella",
+      "description": "Ella is a tranquil hill town with lush tea plantations, waterfalls, and scenic hiking trails like Ella Rock and Little Adam’s Peak."
+    },
+    {
+      "title": "Galle Fort",
+      "description": "Galle Fort, a UNESCO World Heritage Site, is a historic coastal fortress with cobblestone streets, colonial buildings, museums, and cultural events."
+    },
+    {
+      "title": "Temple of the Tooth Relic",
+      "description": "Located in Kandy, this temple houses a sacred tooth of Buddha. Visitors can experience ceremonies, ornate architecture, and traditional rituals."
+    },
+    {
+      "title": "Yala National Park",
+      "description": "Yala National Park is a wildlife sanctuary in southeastern Sri Lanka, home to leopards, elephants, and birds. Guided safaris allow visitors to explore its landscapes."
+    },
+    {
+      "title": "Nuwara Eliya",
+      "description": "Nuwara Eliya, ‘Little England,’ is a cool highland town with tea estates, waterfalls, lakes, and colonial-era architecture."
+    },
+    {
+      "title": "Mirissa Beach",
+      "description": "Mirissa is a southern coastal town with golden beaches, turquoise waters, whale watching, surfing, and local seafood restaurants."
+    },
+    {
+      "title": "Anuradhapura Sacred City",
+      "description": "Anuradhapura is an ancient UNESCO city with stupas, monasteries, and historical ruins. Pilgrims and tourists explore its religious and cultural heritage."
+    },
+    {
+      "title": "Horton Plains National Park",
+      "description": "Horton Plains is a highland plateau with cloud forests, grasslands, waterfalls, and the dramatic World’s End cliff offering panoramic views."
+    },
+    {
+      "title": "Trincomalee",
+      "description": "Trincomalee is a historic coastal city in northeastern Sri Lanka, known for pristine beaches, Koneswaram Temple, diving spots, and colonial-era forts."
+    }
+  ]
+}

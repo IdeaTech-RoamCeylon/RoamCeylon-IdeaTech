@@ -24,12 +24,20 @@
     "packages/*"
   ],
   "dependencies": {
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/config": "^4.0.2",
+    "@nestjs/platform-socket.io": "^11.1.9",
+    "@nestjs/websockets": "^11.1.9",
     "@prisma/client": "^7.1.0",
     "@react-navigation/native": "^7.1.24",
     "@react-navigation/native-stack": "^7.8.5",
     "@react-navigation/stack": "^7.6.11",
+    "cache-manager": "^7.2.7",
+    "cache-manager-ioredis-yet": "^2.1.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
     "expo": "^54.0.26",
+    "ioredis": "^5.8.2",
     "pg": "^8.16.3",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0"

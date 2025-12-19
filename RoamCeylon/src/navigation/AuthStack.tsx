@@ -1,18 +1,11 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import SplashScreen from '../screens/SplashScreen';
-import WelcomeScreen from '../screens/WelcomeScreen';
-import PhoneEntryScreen from '../screens/PhoneEntryScreen';
-import OTPScreen from '../screens/OTPScreen';
-import ProfileSetupScreen from '../screens/ProfileSetupScreen';
-
-export type AuthStackParamList = {
-  Splash: undefined;
-  Welcome: undefined;
-  PhoneEntry: undefined;
-  OTP: undefined;
-  ProfileSetup: undefined;
-};
+import { AuthStackParamList } from '../types';
+import SplashScreen from '../screens/auth/SplashScreen';
+import WelcomeScreen from '../screens/auth/WelcomeScreen';
+import PhoneEntryScreen from '../screens/auth/PhoneEntryScreen';
+import OTPScreen from '../screens/auth/OTPScreen';
+import ProfileSetupScreen from '../screens/auth/ProfileSetupScreen';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
