@@ -1,20 +1,37 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Logger, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '../../common/guards/throttler.guard';
 import { AuthService } from './auth.service';
+import { CreateOtpDto } from './dto/create-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @Post('send-otp')
-  sendOtp(@Body('phoneNumber') phoneNumber: string): { message: string } {
-    return this.authService.sendOtp(phoneNumber);
+  // @Throttle removed (handled by guard default logic)
+  sendOtp(@Body() createOtpDto: CreateOtpDto): { message: string } {
+    this.logger.log(
+      `Auth send-otp triggered for phone: ${createOtpDto.phoneNumber}`,
+    );
+    return this.authService.sendOtp(createOtpDto.phoneNumber);
   }
 
   @Post('verify-otp')
-  verifyOtp(
-    @Body('phoneNumber') phoneNumber: string,
-    @Body('otp') otp: string,
-  ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    return this.authService.verifyOtp(phoneNumber, otp);
+  // @Throttle removed
+  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): {
+    accessToken: string;
+    user: { id: string; phoneNumber: string };
+  } {
+    this.logger.log(
+      `Auth verify-otp triggered for phone: ${verifyOtpDto.phoneNumber}`,
+    );
+    return this.authService.verifyOtp(
+      verifyOtpDto.phoneNumber,
+      verifyOtpDto.otp,
+    );
   }
 }
