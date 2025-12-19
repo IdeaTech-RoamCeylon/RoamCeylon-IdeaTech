@@ -127,7 +127,7 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     return 1 - Math.min(Math.max(distance, 0), 1);
   }
 
-  private getConfidence(score: number): 'High' | 'Medium' | 'Low' {
+  getConfidence(score: number): 'High' | 'Medium' | 'Low' {
     if (score >= 0.8) return 'High';
     if (score >= 0.5) return 'Medium';
     return 'Low';
