@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Query, Logger, Body } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -16,6 +16,12 @@ export interface SearchResponseDto {
     metadata?: any;
   }[];
   message?: string;
+}
+export interface TripPlanRequestDto {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  preferences?: string[];
 }
 
 @Controller('ai')
@@ -328,6 +334,26 @@ export class AIController {
       min,
       max,
       notes,
+    };
+  }
+  // ------------------- TRIP PLANNER -------------------
+  @Post('trip-plan')
+  tripPlan(@Body() body: TripPlanRequestDto): { plan: any; message: string } {
+    // For now, return a mock response
+    return {
+      plan: {
+        destination: body.destination || 'Colombo',
+        dates: {
+          start: body.startDate || '2025-01-01',
+          end: body.endDate || '2025-01-07',
+        },
+        itinerary: [
+          { day: 1, activity: 'Arrival and city tour' },
+          { day: 2, activity: 'Visit local attractions' },
+          { day: 3, activity: 'Beach day' },
+        ],
+      },
+      message: 'Trip plan generated (mock response).',
     };
   }
 }
