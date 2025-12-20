@@ -17,12 +17,12 @@ export interface SearchResponseDto {
   }[];
   message?: string;
 }
-export interface TripPlanRequestDto {
-  destination: string;
-  startDate: string;
-  endDate: string;
-  preferences?: string[];
-}
+
+export interface TripPlanRequestDto { 
+  destination: string; 
+  startDate: string; 
+  endDate: string; 
+  preferences?: string[]; }
 
 @Controller('ai')
 export class AIController {
@@ -82,16 +82,17 @@ export class AIController {
     };
   }
 
-  // ---------------- Cosine similarity search (in-memory) ----------------
-  @Get('search')
-  async search(@Query('query') query: unknown): Promise<SearchResponseDto> {
+  private async executeSearch(query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
-
+    
+    const originalQuery =
+      typeof query === 'string' ? query.trim() : '';
+    
     // ---------- TYPE SAFETY ----------
     const validated = this.validateAndPreprocess(query);
     if (typeof validated === 'string')
       return {
-        query: typeof query === 'string' ? query : '',
+        query: originalQuery,
         results: [],
         message: validated,
       };
@@ -101,12 +102,10 @@ export class AIController {
 
     // ---------------- VECTOR GENERATION ----------------
     const embeddingStart = process.hrtime.bigint();
-
     const queryVector = this.aiService.generateDummyEmbedding(cleaned, 1536);
-
     const embeddingEnd = process.hrtime.bigint();
     const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
-
+    
     // ---------------- FETCH DATA ----------------
     const items = await this.aiService.getAllEmbeddings();
     const rowsScanned = items.length;
@@ -114,58 +113,33 @@ export class AIController {
     // ---------------- SEARCH EXECUTION ----------------
     const searchStart = process.hrtime.bigint();
 
-    // -------- KEYWORD + FUZZY GATE --------
-    // Filter out stop words before keyword matching
-    const queryTokensFiltered = queryTokens.filter(
-      (token) => !STOP_WORDS.has(token),
-    );
-
+    // -------- KEYWORD + FUZZY GATE --------     
+    // 🔹 Log preprocessed query and filtered tokens
+    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
+       
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
+      
+    // Find matched tokens
+    const matchedTokens = queryTokens.filter(token =>
+      text.includes(token) || this.aiService.isPartialMatch(token, text)
+    );   
 
-      // Find matched tokens
-      const matchedTokens = queryTokensFiltered.filter(
-        (token) =>
-          text.includes(token) || this.aiService.isPartialMatch(token, text),
-      );
-
-      // Log matched tokens
-      if (matchedTokens.length > 0) {
-        this.logger.log(
-          `Item ID ${item.id} matched tokens: ${matchedTokens.join(', ')}`,
-        );
-      }
-
-      // Return true if any token matched
-      return matchedTokens.length > 0;
-    });
+    // Return true if any token matched    
+    return matchedTokens.length > 0;
+   });
 
     const rowsAfterGate = keywordFiltered.length;
 
     // -------- STOP EARLY --------
     if (rowsAfterGate === 0) {
-      const totalEnd = process.hrtime.bigint();
-      const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
-
-      this.logger.log(`
-        [SEARCH METRICS]
-        Query            : "${cleaned}"
-        Tokens           : ${queryTokens.length}
-        Query Complexity : ${queryComplexity}
-        Rows Scanned     : ${rowsScanned}
-        Rows After Gate  : 0
-        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
-        Total Time       : ${totalTimeMs.toFixed(2)} ms
-        `);
-
       return {
         query: cleaned,
-        message: 'No strong matches found. Try another query.',
         results: [],
+        message: 'No strong matches found.',
       };
     }
-
-    // -------- VECTOR SIMILARITY --------
+    
     const scored = keywordFiltered
       .map((item) => {
         const score = this.aiService.cosineSimilarity(
@@ -183,7 +157,7 @@ export class AIController {
       })
       .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 5);    
 
     const searchEnd = process.hrtime.bigint();
     const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
@@ -191,42 +165,21 @@ export class AIController {
     const totalEnd = process.hrtime.bigint();
     const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
 
-    // -------- FALLBACK --------
-    if (scored.length === 0) {
-      this.logger.log(`
-        [SEARCH METRICS]
-        Query            : "${cleaned}"
-        Tokens           : ${queryTokens.length}
-        Query Complexity : ${queryComplexity}
-        Rows Scanned     : ${rowsScanned}
-        Rows After Gate  : ${rowsAfterGate}
-        Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
-        Search Exec Time : ${searchTimeMs.toFixed(2)} ms
-        Total Time       : ${totalTimeMs.toFixed(2)} ms
-        `);
 
-      return {
-        query: cleaned,
-        message: 'No strong matches found. Try another query.',
-        results: [],
-      };
-    }
-
-    // ---------------- FINAL LOG ----------------
     this.logger.log(`
-      [SEARCH METRICS]
-      Query            : "${cleaned}"
-      Tokens           : ${queryTokens.length}
-      Query Complexity : ${queryComplexity}
-      Rows Scanned     : ${rowsScanned}
-      Rows After Gate  : ${rowsAfterGate}
-      Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
-      Search Exec Time : ${searchTimeMs.toFixed(2)} ms
-      Total Time       : ${totalTimeMs.toFixed(2)} ms
-      `);
+    [SEARCH METRICS]
+    Query            : "${originalQuery}"
+    Tokens           : ${queryTokens.length}
+    Query Complexity : ${queryComplexity}
+    Rows Scanned     : ${rowsScanned}
+    Rows After Gate  : ${rowsAfterGate}
+    Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+    Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+    Total Time       : ${totalTimeMs.toFixed(2)} ms
+  `);
 
     return {
-      query: cleaned,
+      query: originalQuery,
       results: scored.map((item, idx) => ({
         rank: idx + 1,
         ...item,
@@ -234,6 +187,12 @@ export class AIController {
     };
   }
 
+    // ---------------- Cosine similarity search (in-memory) ----------------
+  @Get('search')
+  async search(@Query('query') query: unknown): Promise<SearchResponseDto> {
+    return this.executeSearch(query);
+  }
+  
   // ---------------- Vector DB search (Postgres + pgvector) ----------------
   @Get('search/vector')
   async searchVector(
@@ -260,7 +219,6 @@ export class AIController {
         : 10;
 
     this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
-
     this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
 
     // ---- Embedding ----
@@ -336,24 +294,50 @@ export class AIController {
       notes,
     };
   }
+
   // ------------------- TRIP PLANNER -------------------
   @Post('trip-plan')
-  tripPlan(@Body() body: TripPlanRequestDto): { plan: any; message: string } {
-    // For now, return a mock response
+   async tripPlan( 
+    @Body() body: TripPlanRequestDto, 
+  ): Promise<{ plan: any; message: string }> { 
+    // 🔹 Use destination + preferences as search query 
+    const query = [body.destination, ...(body.preferences || [])].join(' ');
+    const searchResults = await this.executeSearch(query); 
+
+    if (!searchResults.results.length) {
+      return {
+        plan: null,
+        message: 'Unable to generate trip plan – no relevant destinations found.',
+      };
+    }
+    
+    // Take top 3 results as planner context 
+    const context = searchResults.results.slice(0, 3);
+    
+    this.logger.log(`🧭 Planner invoked search with query: "${query}"`);
+
     return {
-      plan: {
-        destination: body.destination || 'Colombo',
-        dates: {
-          start: body.startDate || '2025-01-01',
-          end: body.endDate || '2025-01-07',
+      plan: { 
+        destination: body.destination, 
+        dates: { 
+          start: body.startDate, 
+          end: body.endDate, 
+        }, 
+        basedOn: context.map((r) => ({ 
+          title: r.title, 
+          content: r.content, 
+          confidence: r.confidence, 
+        })), 
+        
+        itinerary: [ 
+          { day: 1, 
+            activity: `Arrival at ${context[0]?.title || 'city tour'}`,
+           }, 
+           { day: 2, activity: 'Visit local attractions' }, 
+           { day: 3, activity: 'Beach day' }, 
+          ], 
         },
-        itinerary: [
-          { day: 1, activity: 'Arrival and city tour' },
-          { day: 2, activity: 'Visit local attractions' },
-          { day: 3, activity: 'Beach day' },
-        ],
-      },
-      message: 'Trip plan generated (mock response).',
-    };
-  }
+        message: 'Trip plan generated using search context (mock planner).', 
+      }; 
+    } 
 }
