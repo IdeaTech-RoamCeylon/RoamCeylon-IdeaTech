@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Query, Logger, Body } from '@nestjs/common';
+import { Controller, Get, Post, Query, Logger, Body, UseGuards } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
 import { STOP_WORDS } from '../../constants/stop-words';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 export interface SearchResponseDto {
   query: string;
@@ -18,11 +19,12 @@ export interface SearchResponseDto {
   message?: string;
 }
 
-export interface TripPlanRequestDto { 
-  destination: string; 
-  startDate: string; 
-  endDate: string; 
-  preferences?: string[]; }
+export interface TripPlanRequestDto {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  preferences?: string[];
+}
 
 @Controller('ai')
 export class AIController {
@@ -31,7 +33,7 @@ export class AIController {
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
-  ) {}
+  ) { }
 
   @Get('health')
   getHealth() {
@@ -88,7 +90,7 @@ export class AIController {
     const validated = this.validateAndPreprocess(query);
     if (typeof validated === 'string') {
       return {
-        query: originalQuery,
+        query: String(query),
         results: [],
         message: validated,
       };
@@ -140,7 +142,7 @@ export class AIController {
       })
       .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);    
+      .slice(0, 5);
 
     const totalTimeMs =
       Number(process.hrtime.bigint() - totalStart) / 1_000_000;
@@ -157,7 +159,7 @@ export class AIController {
   `);
 
     return {
-      query: originalQuery,
+      query: String(query),
       results: scored.map((item, idx) => ({
         rank: idx + 1,
         ...item,
@@ -275,6 +277,7 @@ export class AIController {
 
   // ------------------- TRIP PLANNER -------------------
   @Post('trip-plan')
+  @UseGuards(JwtAuthGuard)
   async tripPlan(
     @Body() body: TripPlanRequestDto,
   ): Promise<{ plan: any; message: string }> {
