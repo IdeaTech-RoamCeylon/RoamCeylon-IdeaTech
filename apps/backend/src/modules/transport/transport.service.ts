@@ -6,7 +6,7 @@ import { Driver, RideRequest } from './item.interface';
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
@@ -23,12 +23,17 @@ export class TransportService {
       await this.prisma.user.upsert({
         where: { id: d.id },
         update: { name: d.name },
-        create: { id: d.id, name: d.name, phone: `+9477000000${d.id.replace('d', '')}` },
+        create: {
+          id: d.id,
+          name: d.name,
+          phone: `+9477000000${d.id.replace('d', '')}`,
+        },
       });
 
       // Insert Location (Raw query needed for geometry)
       // We diligently delete old location for this driver to avoid duplicates if re-seeding
-      await this.prisma.client.$executeRaw`DELETE FROM "DriverLocation" WHERE "driverId" = ${d.id}`;
+      await this.prisma.client
+        .$executeRaw`DELETE FROM "DriverLocation" WHERE "driverId" = ${d.id}`;
 
       await this.prisma.client.$executeRaw`
         INSERT INTO "DriverLocation" ("driverId", location, "updatedAt")
@@ -40,7 +45,7 @@ export class TransportService {
   }
 
   seedRideRequests() {
-    // Current requirement focuses on Drivers. 
+    // Current requirement focuses on Drivers.
     // We can leave this as a stub or implement similarly later.
     return { message: 'Ride requests seeding not yet migrated to PostGIS' };
   }

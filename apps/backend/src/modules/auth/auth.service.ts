@@ -6,7 +6,7 @@ export class AuthService {
   // In-memory storage for mock auth (in real app, this would be in database)
   private static lastVerifiedPhone: string = '+94771234567';
 
-  constructor(private readonly jwtService: JwtService) { }
+  constructor(private readonly jwtService: JwtService) {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   sendOtp(_phoneNumber: string): { message: string } {

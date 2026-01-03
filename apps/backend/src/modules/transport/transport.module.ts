@@ -9,4 +9,4 @@ import { PrismaModule } from '../../prisma/prisma.module';
   controllers: [TransportController],
   providers: [TransportService, TransportGateway],
 })
-export class TransportModule { }
+export class TransportModule {}
