@@ -49,8 +49,8 @@ export class TransportService {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
       const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
-      SELECT
-      d."driverId" as id,
+        SELECT
+        d."driverId" as id,
         u.name,
         ST_X(d.location:: geometry) as lng,
         ST_Y(d.location:: geometry) as lat
@@ -88,16 +88,6 @@ export class TransportService {
     return this.seedDrivers();
   }
 
-<<<<<<< HEAD
-  private mapToDriver(rows: DriverRow[]): Driver[] {
-    return rows.map(r => ({
-      id: r.id,
-      name: r.name || 'Unknown',
-      lat: r.lat,
-      lng: r.lng,
-      status: 'available', // Schema doesn't have status yet, default to available
-    }));
-=======
   private mapToDriver(rows: any[]): Driver[] {
     return rows.map((r) => {
       // Safe access by checking if r is object, though we know it comes from DB
@@ -110,7 +100,6 @@ export class TransportService {
         status: 'available', // Schema doesn't have status yet, default to available
       };
     });
->>>>>>> c0e8a27ccb35b5293d35cfdefcf59502b25671b9
   }
 }
 
