@@ -88,18 +88,6 @@ export class TransportService {
     return this.seedDrivers();
   }
 
-<<<<<<< HEAD
-
-  private mapToDriver(rows: DriverRow[]): Driver[] {
-    return rows.map(r => ({
-      id: r.id,
-      name: r.name || 'Unknown',
-      lat: r.lat,
-      lng: r.lng,
-      status: 'available', // Schema doesn't have status yet, default to available
-    }));
-
-=======
   private mapToDriver(rows: DriverRow[]): Driver[] {
     return rows.map((r) => {
       return {
@@ -110,7 +98,6 @@ export class TransportService {
         status: 'available', // Schema doesn't have status yet, default to available
       };
     });
->>>>>>> 898217e90996383118021d6edfd1547aed2fc103
   }
 }
 
