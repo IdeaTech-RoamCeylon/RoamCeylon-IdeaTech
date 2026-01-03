@@ -88,7 +88,7 @@ export class AIController {
     const validated = this.validateAndPreprocess(query);
     if (typeof validated === 'string') {
       return {
-        query: originalQuery,
+        query: String(query),
         results: [],
         message: validated,
       };
@@ -157,7 +157,7 @@ export class AIController {
   `);
 
     return {
-      query: originalQuery,
+      query: String(query),
       results: scored.map((item, idx) => ({
         rank: idx + 1,
         ...item,
