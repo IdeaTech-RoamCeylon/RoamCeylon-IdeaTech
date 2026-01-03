@@ -24,7 +24,7 @@ export class TransformInterceptor<T>
         next: CallHandler,
     ): Observable<Response<T>> {
         const ctx = context.switchToHttp();
-        const request = ctx.getRequest();
+        const request = ctx.getRequest(); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
         const response = ctx.getResponse(); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
         return next.handle().pipe(
@@ -43,10 +43,10 @@ export class TransformInterceptor<T>
                 }
 
                 return {
-                    statusCode: response.statusCode, // eslint-disable-line @typescript-eslint/no-unsafe-member-access
+                    statusCode: Number(response.statusCode), // Ensure number
                     success: true,
                     timestamp: new Date().toISOString(),
-                    path: request.url, // eslint-disable-line @typescript-eslint/no-unsafe-member-access
+                    path: String(request.url), // Ensure string
                     data: finalData,
                     meta,
                 };
