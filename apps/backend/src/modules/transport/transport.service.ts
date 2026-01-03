@@ -48,16 +48,12 @@ export class TransportService {
   async getDrivers(lat?: number, lng?: number): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
-<<<<<<< HEAD
       const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
-=======
-      const raw = await this.prisma.client.$queryRaw<any[]>`
->>>>>>> c0e8a27ccb35b5293d35cfdefcf59502b25671b9
-        SELECT 
-            d."driverId" as id,
-            u.name,
-            ST_X(d.location::geometry) as lng, 
-            ST_Y(d.location::geometry) as lat
+      SELECT
+      d."driverId" as id,
+        u.name,
+        ST_X(d.location:: geometry) as lng,
+        ST_Y(d.location:: geometry) as lat
         FROM "DriverLocation" d
         LEFT JOIN "User" u ON d."driverId" = u.id
         LIMIT 50
@@ -67,22 +63,18 @@ export class TransportService {
 
     // Find nearby
     const radius = 10000; // 10km
-<<<<<<< HEAD
     const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
-=======
-    const raw = await this.prisma.client.$queryRaw<any[]>`
->>>>>>> c0e8a27ccb35b5293d35cfdefcf59502b25671b9
-      SELECT 
-        d."driverId" as id,
+      SELECT
+      d."driverId" as id,
         u.name,
-        ST_X(d.location::geometry) as lng, 
-        ST_Y(d.location::geometry) as lat,
+        ST_X(d.location:: geometry) as lng,
+        ST_Y(d.location:: geometry) as lat,
         ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) as distance
       FROM "DriverLocation" d
       LEFT JOIN "User" u ON d."driverId" = u.id
       WHERE ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) < ${radius}
       ORDER BY distance ASC
-    `;
+        `;
 
     return this.mapToDriver(raw);
   }
