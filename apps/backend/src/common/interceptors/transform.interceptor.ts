@@ -24,10 +24,15 @@ export class TransformInterceptor<T>
         next: CallHandler,
     ): Observable<Response<T>> {
         const ctx = context.switchToHttp();
+<<<<<<< HEAD
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const request = ctx.getRequest();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = ctx.getResponse();
+=======
+        const request = ctx.getRequest(); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+        const response = ctx.getResponse(); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+>>>>>>> 898217e90996383118021d6edfd1547aed2fc103
 
         return next.handle().pipe(
             map((data: unknown) => {
@@ -45,12 +50,19 @@ export class TransformInterceptor<T>
                 }
 
                 return {
+<<<<<<< HEAD
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     statusCode: response.statusCode,
                     success: true,
                     timestamp: new Date().toISOString(),
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     path: request.url,
+=======
+                    statusCode: Number(response.statusCode), // Ensure number
+                    success: true,
+                    timestamp: new Date().toISOString(),
+                    path: String(request.url), // Ensure string
+>>>>>>> 898217e90996383118021d6edfd1547aed2fc103
                     data: finalData,
                     meta,
                 };
