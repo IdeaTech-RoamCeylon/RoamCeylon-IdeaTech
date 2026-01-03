@@ -88,7 +88,7 @@ export class TransportService {
     return this.seedDrivers();
   }
 
-<<<<<<< HEAD
+
   private mapToDriver(rows: DriverRow[]): Driver[] {
     return rows.map(r => ({
       id: r.id,
@@ -97,20 +97,7 @@ export class TransportService {
       lng: r.lng,
       status: 'available', // Schema doesn't have status yet, default to available
     }));
-=======
-  private mapToDriver(rows: any[]): Driver[] {
-    return rows.map((r) => {
-      // Safe access by checking if r is object, though we know it comes from DB
-      // We explicitly cast fields that are safe
-      return {
-        id: r.id as string,
-        name: (r.name as string) || 'Unknown',
-        lat: r.lat as number,
-        lng: r.lng as number,
-        status: 'available', // Schema doesn't have status yet, default to available
-      };
-    });
->>>>>>> c0e8a27ccb35b5293d35cfdefcf59502b25671b9
+
   }
 }
 
