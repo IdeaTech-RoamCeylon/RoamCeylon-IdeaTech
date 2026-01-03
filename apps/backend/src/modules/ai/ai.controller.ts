@@ -17,12 +17,12 @@ export interface SearchResponseDto {
   }[];
   message?: string;
 }
-export interface TripPlanRequestDto {
-  destination: string;
-  startDate: string;
-  endDate: string;
-  preferences?: string[];
-}
+
+export interface TripPlanRequestDto { 
+  destination: string; 
+  startDate: string; 
+  endDate: string; 
+  preferences?: string[]; }
 
 @Controller('ai')
 export class AIController {
@@ -88,7 +88,7 @@ export class AIController {
     const validated = this.validateAndPreprocess(query);
     if (typeof validated === 'string') {
       return {
-        query: typeof query === 'string' ? query : '',
+        query: originalQuery,
         results: [],
         message: validated,
       };
@@ -140,7 +140,7 @@ export class AIController {
       })
       .filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 5);    
 
     const totalTimeMs =
       Number(process.hrtime.bigint() - totalStart) / 1_000_000;
@@ -157,7 +157,7 @@ export class AIController {
   `);
 
     return {
-      query: cleaned,
+      query: originalQuery,
       results: scored.map((item, idx) => ({
         rank: idx + 1,
         ...item,
@@ -197,7 +197,6 @@ export class AIController {
         : 10;
 
     this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
-
     this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
 
     // ---- Embedding ----
@@ -273,6 +272,7 @@ export class AIController {
       notes,
     };
   }
+
   // ------------------- TRIP PLANNER -------------------
   @Post('trip-plan')
   async tripPlan(

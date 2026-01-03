@@ -127,7 +127,7 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     return 1 - Math.min(Math.max(distance, 0), 1);
   }
 
-  getConfidence(score: number): 'High' | 'Medium' | 'Low' {
+  public getConfidence(score: number): 'High' | 'Medium' | 'Low' {
     if (score >= 0.8) return 'High';
     if (score >= 0.5) return 'Medium';
     return 'Low';
@@ -164,43 +164,58 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     const dbTime = Date.now() - start;
     this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
 
-    // Map + normalize
-    const mapped = result.rows.map((row, index) => {
+    // Map + normalize (NO rank yet)
+    const normalized = result.rows.map((row) => {
       const score = this.normalizeScore(row.distance);
 
       return {
-        rank: index + 1,
         id: row.id,
         title: row.title,
         content: row.content,
         score,
         metadata: {
           createdAt: row.created_at,
-        },
+       },
       };
     });
 
-    this.logger.log(`🏆 Vector search results: ${JSON.stringify(mapped)}`);
+    // Remove duplicates
+    const unique = normalized.filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.id === item.id),
+      );
 
-    // Remove duplicates + apply similarity
-    const filteredResults = mapped
-      .filter(
-        (item, index, self) =>
-          index === self.findIndex((t) => t.id === item.id),
-      )
-      .filter((item) => item.score > similarityThreshold)
+    // Apply similarity threshold
+    const strongMatches = unique.filter(
+      (item) => item.score >= similarityThreshold,
+    );
+
+    // 🔥 Explicit re-ranking (MOST IMPORTANT STEP)
+    const ranked = strongMatches
+      .sort((a, b) => b.score - a.score)
       .map((item, idx) => ({
         ...item,
         rank: idx + 1,
-        confidence: this.getConfidence(item.score), // NEW: add confidence
-      }));
+        confidence: this.getConfidence(item.score),
+     }));
 
-    if (filteredResults.length === 0) {
+    this.logger.log(
+      `📊 Final ranked vector results: ${JSON.stringify(
+        ranked.map(r => ({
+          id: r.id,
+          score: Number(r.score.toFixed(4)),
+          confidence: r.confidence,
+       }))
+      )}`
+   );
+
+
+    if (ranked.length === 0) {
       return {
         message: 'No relevant items found. Please try a different query.',
-      };
+     };
     }
 
-    return filteredResults;
-  }
+  return ranked;
+ }
 }
