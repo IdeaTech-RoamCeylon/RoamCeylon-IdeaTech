@@ -36,6 +36,34 @@ interface EmbeddedItem {
   embedding: number[];
 }
 
+type ItineraryCategory =
+  | 'Arrival'
+  | 'Sightseeing'
+  | 'Culture'
+  | 'Nature'
+  | 'Beach'
+  | 'Relaxation';
+
+interface ItineraryItemDto {
+  order: number;
+  placeName: string;
+  shortDescription: string;
+  category: ItineraryCategory;
+  confidenceScore?: 'High' | 'Medium' | 'Low';
+}
+
+interface TripPlanResponseDto {
+  plan: {
+    destination: string;
+    dates: {
+      start: string;
+      end: string;
+    };
+    itinerary: ItineraryItemDto[];
+  };
+  message: string;
+}
+
 type VectorSearchResult = SearchResultItem[] | { message: string };
 
 /* -------------------- CONTROLLER -------------------- */
@@ -244,14 +272,37 @@ export class AIController {
   @Post('trip-plan')
   async tripPlan(
     @Body() body: TripPlanRequestDto,
-  ): Promise<{ plan: any; message: string }> {
-    // 🔹 Use destination + preferences as search query
-    const query = [body.destination, ...(body.preferences || [])].join(' ');
+  ): Promise<TripPlanResponseDto> {
+    // Build search query from destination + preferences
+    const query = [body.destination, ...(body.preferences ?? [])].join(' ');
 
     const searchResults = await this.executeSearch(query);
 
-    // Take top 3 results as planner context
+    // Use top 3 results as planning context
     const context = searchResults.results.slice(0, 3);
+
+    const itinerary = context.map(
+      (result, index): ItineraryItemDto => ({
+        order: index + 1,
+        placeName: result.title,
+        shortDescription: result.content,
+        category:
+          index === 0 ? 'Arrival' : index === 1 ? 'Sightseeing' : 'Relaxation',
+        confidenceScore: result.confidence,
+      }),
+    );
+
+    // Fallback if search returned nothing
+    if (itinerary.length === 0) {
+      itinerary.push({
+        order: 1,
+        placeName: body.destination,
+        shortDescription:
+          'Explore local attractions and get familiar with the area.',
+        category: 'Sightseeing',
+        confidenceScore: 'Low',
+      });
+    }
 
     return {
       plan: {
@@ -260,21 +311,9 @@ export class AIController {
           start: body.startDate,
           end: body.endDate,
         },
-        basedOn: context.map((r) => ({
-          title: r.title,
-          content: r.content,
-          confidence: r.confidence,
-        })),
-        itinerary: [
-          {
-            day: 1,
-            activity: `Arrival ${context[0]?.title ?? ''} and city tour`,
-          },
-          { day: 2, activity: 'Visit local attractions' },
-          { day: 3, activity: 'Beach day' },
-        ],
+        itinerary,
       },
-      message: 'Trip plan generated using search context (mock planner).',
+      message: 'Trip plan generated using AI search context (mock planner).',
     };
   }
 }
