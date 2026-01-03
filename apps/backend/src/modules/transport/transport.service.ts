@@ -39,7 +39,7 @@ export class TransportService {
     return { message: 'Drivers seeded to PostGIS', count: driversData.length };
   }
 
-  async seedRideRequests() {
+  seedRideRequests() {
     // Current requirement focuses on Drivers. 
     // We can leave this as a stub or implement similarly later.
     return { message: 'Ride requests seeding not yet migrated to PostGIS' };
@@ -48,7 +48,7 @@ export class TransportService {
   async getDrivers(lat?: number, lng?: number): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
-      const raw: any[] = await this.prisma.client.$queryRaw`
+      const raw = await this.prisma.client.$queryRaw<any[]>`
         SELECT 
             d."driverId" as id,
             u.name,
@@ -63,7 +63,7 @@ export class TransportService {
 
     // Find nearby
     const radius = 10000; // 10km
-    const raw: any[] = await this.prisma.client.$queryRaw`
+    const raw = await this.prisma.client.$queryRaw<any[]>`
       SELECT 
         d."driverId" as id,
         u.name,
@@ -89,12 +89,16 @@ export class TransportService {
   }
 
   private mapToDriver(rows: any[]): Driver[] {
-    return rows.map(r => ({
-      id: r.id,
-      name: r.name || 'Unknown',
-      lat: r.lat,
-      lng: r.lng,
-      status: 'available', // Schema doesn't have status yet, default to available
-    }));
+    return rows.map((r) => {
+      // Safe access by checking if r is object, though we know it comes from DB
+      // We explicitly cast fields that are safe
+      return {
+        id: r.id as string,
+        name: (r.name as string) || 'Unknown',
+        lat: r.lat as number,
+        lng: r.lng as number,
+        status: 'available', // Schema doesn't have status yet, default to available
+      };
+    });
   }
 }
