@@ -84,54 +84,37 @@ export class AIController {
 
   private async executeSearch(query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
-    
-    const originalQuery =
-      typeof query === 'string' ? query.trim() : '';
-    
-    // ---------- TYPE SAFETY ----------
+
     const validated = this.validateAndPreprocess(query);
-    if (typeof validated === 'string')
+    if (typeof validated === 'string') {
       return {
         query: originalQuery,
         results: [],
         message: validated,
       };
+    }
 
     const { cleaned, tokens: queryTokens } = validated;
     const queryComplexity = queryTokens.length * cleaned.length;
 
-    // ---------------- VECTOR GENERATION ----------------
     const embeddingStart = process.hrtime.bigint();
     const queryVector = this.aiService.generateDummyEmbedding(cleaned, 1536);
-    const embeddingEnd = process.hrtime.bigint();
-    const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
-    
-    // ---------------- FETCH DATA ----------------
+    const embeddingTimeMs =
+      Number(process.hrtime.bigint() - embeddingStart) / 1_000_000;
+
     const items = await this.aiService.getAllEmbeddings();
     const rowsScanned = items.length;
 
-    // ---------------- SEARCH EXECUTION ----------------
-    const searchStart = process.hrtime.bigint();
-
-    // -------- KEYWORD + FUZZY GATE --------     
-    // 🔹 Log preprocessed query and filtered tokens
-    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-       
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
-      
-    // Find matched tokens
-    const matchedTokens = queryTokens.filter(token =>
-      text.includes(token) || this.aiService.isPartialMatch(token, text)
-    );   
-
-    // Return true if any token matched    
-    return matchedTokens.length > 0;
-   });
+      return queryTokens.some(
+        (token) =>
+          text.includes(token) || this.aiService.isPartialMatch(token, text),
+      );
+    });
 
     const rowsAfterGate = keywordFiltered.length;
 
-    // -------- STOP EARLY --------
     if (rowsAfterGate === 0) {
       return {
         query: cleaned,
@@ -139,7 +122,7 @@ export class AIController {
         message: 'No strong matches found.',
       };
     }
-    
+
     const scored = keywordFiltered
       .map((item) => {
         const score = this.aiService.cosineSimilarity(
@@ -159,22 +142,17 @@ export class AIController {
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);    
 
-    const searchEnd = process.hrtime.bigint();
-    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
-
-    const totalEnd = process.hrtime.bigint();
-    const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
-
+    const totalTimeMs =
+      Number(process.hrtime.bigint() - totalStart) / 1_000_000;
 
     this.logger.log(`
     [SEARCH METRICS]
-    Query            : "${originalQuery}"
+    Query            : "${cleaned}"
     Tokens           : ${queryTokens.length}
     Query Complexity : ${queryComplexity}
     Rows Scanned     : ${rowsScanned}
     Rows After Gate  : ${rowsAfterGate}
     Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
-    Search Exec Time : ${searchTimeMs.toFixed(2)} ms
     Total Time       : ${totalTimeMs.toFixed(2)} ms
   `);
 
@@ -187,12 +165,12 @@ export class AIController {
     };
   }
 
-    // ---------------- Cosine similarity search (in-memory) ----------------
+  // ---------------- Cosine similarity search (in-memory) ----------------
   @Get('search')
   async search(@Query('query') query: unknown): Promise<SearchResponseDto> {
     return this.executeSearch(query);
   }
-  
+
   // ---------------- Vector DB search (Postgres + pgvector) ----------------
   @Get('search/vector')
   async searchVector(
@@ -297,47 +275,39 @@ export class AIController {
 
   // ------------------- TRIP PLANNER -------------------
   @Post('trip-plan')
-   async tripPlan( 
-    @Body() body: TripPlanRequestDto, 
-  ): Promise<{ plan: any; message: string }> { 
-    // 🔹 Use destination + preferences as search query 
+  async tripPlan(
+    @Body() body: TripPlanRequestDto,
+  ): Promise<{ plan: any; message: string }> {
+    // 🔹 Use destination + preferences as search query
     const query = [body.destination, ...(body.preferences || [])].join(' ');
-    const searchResults = await this.executeSearch(query); 
 
-    if (!searchResults.results.length) {
-      return {
-        plan: null,
-        message: 'Unable to generate trip plan – no relevant destinations found.',
-      };
-    }
-    
-    // Take top 3 results as planner context 
+    const searchResults = await this.executeSearch(query);
+
+    // Take top 3 results as planner context
     const context = searchResults.results.slice(0, 3);
-    
-    this.logger.log(`🧭 Planner invoked search with query: "${query}"`);
 
     return {
-      plan: { 
-        destination: body.destination, 
-        dates: { 
-          start: body.startDate, 
-          end: body.endDate, 
-        }, 
-        basedOn: context.map((r) => ({ 
-          title: r.title, 
-          content: r.content, 
-          confidence: r.confidence, 
-        })), 
-        
-        itinerary: [ 
-          { day: 1, 
-            activity: `Arrival at ${context[0]?.title || 'city tour'}`,
-           }, 
-           { day: 2, activity: 'Visit local attractions' }, 
-           { day: 3, activity: 'Beach day' }, 
-          ], 
+      plan: {
+        destination: body.destination,
+        dates: {
+          start: body.startDate,
+          end: body.endDate,
         },
-        message: 'Trip plan generated using search context (mock planner).', 
-      }; 
-    } 
+        basedOn: context.map((r) => ({
+          title: r.title,
+          content: r.content,
+          confidence: r.confidence,
+        })),
+        itinerary: [
+          {
+            day: 1,
+            activity: `Arrival ${context[0]?.title ?? ''} and city tour`,
+          },
+          { day: 2, activity: 'Visit local attractions' },
+          { day: 3, activity: 'Beach day' },
+        ],
+      },
+      message: 'Trip plan generated using search context (mock planner).',
+    };
+  }
 }
