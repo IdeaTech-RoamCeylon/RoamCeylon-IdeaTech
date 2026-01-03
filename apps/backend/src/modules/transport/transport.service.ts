@@ -39,7 +39,7 @@ export class TransportService {
     return { message: 'Drivers seeded to PostGIS', count: driversData.length };
   }
 
-  async seedRideRequests() {
+  seedRideRequests() {
     // Current requirement focuses on Drivers. 
     // We can leave this as a stub or implement similarly later.
     return { message: 'Ride requests seeding not yet migrated to PostGIS' };
@@ -48,7 +48,7 @@ export class TransportService {
   async getDrivers(lat?: number, lng?: number): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
-      const raw: any[] = await this.prisma.client.$queryRaw`
+      const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
         SELECT 
             d."driverId" as id,
             u.name,
@@ -63,7 +63,7 @@ export class TransportService {
 
     // Find nearby
     const radius = 10000; // 10km
-    const raw: any[] = await this.prisma.client.$queryRaw`
+    const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
       SELECT 
         d."driverId" as id,
         u.name,
@@ -88,7 +88,7 @@ export class TransportService {
     return this.seedDrivers();
   }
 
-  private mapToDriver(rows: any[]): Driver[] {
+  private mapToDriver(rows: DriverRow[]): Driver[] {
     return rows.map(r => ({
       id: r.id,
       name: r.name || 'Unknown',
@@ -97,4 +97,11 @@ export class TransportService {
       status: 'available', // Schema doesn't have status yet, default to available
     }));
   }
+}
+
+interface DriverRow {
+  id: string;
+  name: string | null;
+  lat: number;
+  lng: number;
 }

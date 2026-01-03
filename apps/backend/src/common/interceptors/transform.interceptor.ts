@@ -32,12 +32,13 @@ export class TransformInterceptor<T>
                 // Handle pagination metadata if present in data (convention: data.data and data.meta)
                 // If data has 'data' and 'meta' properties, unpack them.
                 let finalData = data;
-                let meta = undefined;
+                let meta: any = undefined;
 
                 if (data && typeof data === 'object' && !Array.isArray(data)) {
-                    if ('data' in data && 'meta' in data) {
-                        finalData = data.data;
-                        meta = data.meta;
+                    const dataObj = data as Record<string, unknown>;
+                    if ('data' in dataObj && 'meta' in dataObj) {
+                        finalData = dataObj.data;
+                        meta = dataObj.meta;
                     }
                 }
 
