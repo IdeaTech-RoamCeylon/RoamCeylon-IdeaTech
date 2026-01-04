@@ -14,6 +14,9 @@ export interface TripDestination {
     longitude: number;
   };
   metadata: DestinationMetadata;
+  
+  confidenceScore?: number; // FIELD for  "Prioritize higher confidence" rule
+
 }
 
 export interface DestinationMetadata {
