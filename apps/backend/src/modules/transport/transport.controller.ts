@@ -1,4 +1,11 @@
-import { Controller, Get, Post, Logger, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Logger,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { TransportService } from './transport.service';
 import { Driver } from './item.interface';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -8,7 +15,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class TransportController {
   private readonly logger = new Logger(TransportController.name);
 
-  constructor(private readonly transportService: TransportService) { }
+  constructor(private readonly transportService: TransportService) {}
 
   @Post('seed')
   seedData() {
