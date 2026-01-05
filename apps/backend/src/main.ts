@@ -17,7 +17,10 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new TransformInterceptor(),
+  );
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const port = process.env.PORT ?? 3000;
