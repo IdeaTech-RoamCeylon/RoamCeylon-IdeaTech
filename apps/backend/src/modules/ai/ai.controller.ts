@@ -50,6 +50,15 @@ interface ItineraryItemDto {
   shortDescription: string;
   category: ItineraryCategory;
   confidenceScore?: 'High' | 'Medium' | 'Low';
+  explanation?: {
+    selectionReason: string;
+    rankingFactors: {
+      relevanceScore: number;
+      confidenceLevel: string;
+      categoryMatch?: boolean;
+      preferenceMatch?: string[];
+    };
+  };
 }
 
 interface TripPlanResponseDto {
@@ -344,14 +353,72 @@ export class AIController {
       return defaultRotation[index % defaultRotation.length];
     };
 
+    const generateExplanation = (
+      result: SearchResultItem,
+      index: number,
+      category: ItineraryCategory,
+    ) => {
+      const matchedPreferences: string[] = [];
+
+      // Check which user preferences matched this result
+      if (preferences && preferences.length > 0) {
+        const text = `${result.title} ${result.content}`.toLowerCase();
+        for (const pref of preferences) {
+          if (text.includes(pref.toLowerCase())) {
+            matchedPreferences.push(pref);
+          }
+        }
+      }
+
+      // Build the selection reason based on multiple factors
+      const reasons: string[] = [];
+
+      if (matchedPreferences.length > 0) {
+        reasons.push(`matching preferences: ${matchedPreferences.join(', ')}`);
+      }
+
+      if (result.score && result.score >= 0.8) {
+        reasons.push(
+          `high relevance score (${(result.score * 100).toFixed(0)}%)`,
+        );
+      }
+
+      if (result.confidence === 'High') {
+        reasons.push(`high confidence match`);
+      }
+
+      if (index === 0) {
+        reasons.push(`arrival day activity`);
+      }
+
+      const selectionReason =
+        reasons.length > 0
+          ? `Selected based on ${reasons.join(', ')}`
+          : `Selected based on category fit (${category})`;
+
+      return {
+        selectionReason,
+        rankingFactors: {
+          relevanceScore: result.score || 0,
+          confidenceLevel: result.confidence || 'Low',
+          categoryMatch: true,
+          preferenceMatch:
+            matchedPreferences.length > 0 ? matchedPreferences : undefined,
+        },
+      };
+    };
+
     // Map search results to itinerary items
     searchResults.forEach((result, index) => {
+      const category = determineCategory(result.title, result.content, index);
+
       itinerary.push({
         order: index + 1,
         placeName: result.title,
         shortDescription: result.content,
-        category: determineCategory(result.title, result.content, index),
+        category,
         confidenceScore: result.confidence,
+        explanation: generateExplanation(result, index, category), // ADD THIS LINE
       });
     });
 
@@ -359,11 +426,21 @@ export class AIController {
     if (itinerary.length === 0) {
       itinerary.push({
         order: 1,
-        placeName: destination || 'Unknown Destination', // Fixed typo
+        placeName: destination || 'Unknown Destination',
         shortDescription:
           'Explore local attractions and get familiar with the area.',
         category: 'Arrival',
         confidenceScore: 'Low',
+        explanation: {
+          // ADD THIS OBJECT
+          selectionReason:
+            'Default suggestion - no specific matches found for your preferences',
+          rankingFactors: {
+            relevanceScore: 0,
+            confidenceLevel: 'Low',
+            categoryMatch: false,
+          },
+        },
       });
     }
 
