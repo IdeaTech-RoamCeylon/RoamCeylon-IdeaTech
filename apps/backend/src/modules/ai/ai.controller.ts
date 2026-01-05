@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Query, Logger, Body } from '@nestjs/common';
+import { Controller, Get, Post, Query, Logger, Body, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -49,6 +50,7 @@ interface ItineraryItemDto {
   placeName: string;
   shortDescription: string;
   category: ItineraryCategory;
+  estimated_time?: string;
   confidenceScore?: 'High' | 'Medium' | 'Low';
 }
 
@@ -69,13 +71,14 @@ type VectorSearchResult = SearchResultItem[] | { message: string };
 /* -------------------- CONTROLLER -------------------- */
 
 @Controller('ai')
+@UseGuards(ThrottlerGuard)
 export class AIController {
   private readonly logger = new Logger(AIController.name);
 
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
-  ) {}
+  ) { }
 
   @Get('health')
   getHealth() {
@@ -166,7 +169,10 @@ export class AIController {
         };
       })
       .filter((item) => item.score >= 0.55)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(a.id).localeCompare(String(b.id)); // Stable sort
+      })
       .slice(0, 5);
 
     const totalTimeMs =
@@ -346,11 +352,23 @@ export class AIController {
 
     // Map search results to itinerary items
     searchResults.forEach((result, index) => {
+      const category = determineCategory(result.title, result.content, index);
+      // Basic heuristic for time
+      const timeMap: Record<ItineraryCategory, string> = {
+        Arrival: '2 hours',
+        Sightseeing: '1.5 hours',
+        Culture: '2 hours',
+        Nature: '3 hours',
+        Beach: '3 hours',
+        Relaxation: '2 hours',
+      };
+
       itinerary.push({
         order: index + 1,
         placeName: result.title,
         shortDescription: result.content,
-        category: determineCategory(result.title, result.content, index),
+        category,
+        estimated_time: timeMap[category] || '1.5 hours',
         confidenceScore: result.confidence,
       });
     });
@@ -376,45 +394,75 @@ export class AIController {
   ): Promise<TripPlanResponseDto> {
     this.logger.log(`🗺️ Generating trip plan for: ${body.destination}`);
 
-    // Step 1: Build search query from destination + preferences
-    const query = [body.destination, ...(body.preferences ?? [])].join(' ');
+    try {
+      // Step 1: Build search query from destination + preferences
+      const query = [body.destination, ...(body.preferences ?? [])].join(' ');
 
-    // Step 2: Call internal search pipeline
-    const searchResults = await this.executeSearch(query);
+      // Step 2: Call internal search pipeline
+      const searchResults = await this.executeSearch(query);
 
-    // Step 3: Calculate trip duration
-    const startDate = new Date(body.startDate);
-    const endDate = new Date(body.endDate);
-    const dayCount =
-      Math.ceil(
-        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-      ) + 1;
+      // Step 3: Calculate trip duration
+      const startDate = new Date(body.startDate);
+      const endDate = new Date(body.endDate);
+      const dayCount =
+        Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ) + 1;
 
-    this.logger.log(`📅 Trip duration: ${dayCount} days`);
+      this.logger.log(`📅 Trip duration: ${dayCount} days`);
 
-    // Step 4: Select top results based on trip duration (more days = more places)
-    const maxPlaces = Math.min(dayCount * 2, searchResults.results.length, 10); // 2 activities per day, max 10
-    const topResults = searchResults.results.slice(0, maxPlaces);
+      // Step 4: Select top results based on trip duration (more days = more places)
+      const maxPlaces = Math.min(
+        dayCount * 2,
+        searchResults.results.length,
+        10,
+      ); // 2 activities per day, max 10
+      const topResults = searchResults.results.slice(0, maxPlaces);
 
-    // Step 5: Generate ordered itinerary with smart categorization
-    const itinerary = this.generateItinerary(
-      topResults,
-      dayCount,
-      body.preferences,
-      body.destination,
-    ); // Pass destination
+      // Step 5: Generate ordered itinerary with smart categorization
+      const itinerary = this.generateItinerary(
+        topResults,
+        dayCount,
+        body.preferences,
+        body.destination,
+      ); // Pass destination
 
-    // Step 6: Return structured plan
-    return {
-      plan: {
-        destination: body.destination,
-        dates: {
-          start: body.startDate,
-          end: body.endDate,
+      // Step 6: Return structured plan
+      return {
+        plan: {
+          destination: body.destination,
+          dates: {
+            start: body.startDate,
+            end: body.endDate,
+          },
+          itinerary,
         },
-        itinerary,
-      },
-      message: `Generated ${itinerary.length} activities for your ${dayCount}-day trip to ${body.destination}`,
-    };
+        message: `Generated ${itinerary.length} activities for your ${dayCount}-day trip to ${body.destination}`,
+      };
+    } catch (error) {
+      this.logger.error(`Trip planning failed: ${error.message}`, error.stack);
+      // Fallback response
+      return {
+        plan: {
+          destination: body.destination,
+          dates: {
+            start: body.startDate,
+            end: body.endDate,
+          },
+          itinerary: [
+            {
+              order: 1,
+              placeName: `${body.destination} City Center`,
+              shortDescription: 'Explore the heart of the city.',
+              category: 'Sightseeing',
+              estimated_time: '2 hours',
+              confidenceScore: 'Low',
+            },
+          ],
+        },
+        message:
+          'We encountered an issue generating your custom plan. Here is a generic suggestion instead.',
+      };
+    }
   }
 }
