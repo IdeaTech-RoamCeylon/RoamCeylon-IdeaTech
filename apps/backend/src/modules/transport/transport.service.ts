@@ -67,7 +67,7 @@ export class TransportService {
     }
 
     // Find nearby
-    const radius = 10000; // 10km
+    // Find nearby
     const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
     SELECT
     d."driverId" as id,

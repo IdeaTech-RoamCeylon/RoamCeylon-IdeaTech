@@ -440,7 +440,8 @@ export class AIController {
         message: `Generated ${itinerary.length} activities for your ${dayCount}-day trip to ${body.destination}`,
       };
     } catch (error) {
-      this.logger.error(`Trip planning failed: ${error.message}`, error.stack);
+      const err = error as Error;
+      this.logger.error(`Trip planning failed: ${err.message}`, err.stack);
       // Fallback response
       return {
         plan: {
