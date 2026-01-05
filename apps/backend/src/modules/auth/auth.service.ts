@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   // In-memory storage for mock auth (in real app, this would be in database)
   private static lastVerifiedPhone: string = '+94771234567';
+
+  constructor(private readonly jwtService: JwtService) {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   sendOtp(_phoneNumber: string): { message: string } {
@@ -18,9 +21,11 @@ export class AuthService {
     // Store the verified phone number
     AuthService.lastVerifiedPhone = _phoneNumber;
 
-    // Mock JWT token
+    // Payload for JWT
+    const payload = { username: _phoneNumber, sub: 'mock-user-id' };
+
     return {
-      accessToken: 'mock-jwt-token',
+      accessToken: this.jwtService.sign(payload),
       user: {
         id: 'mock-user-id',
         phoneNumber: _phoneNumber,

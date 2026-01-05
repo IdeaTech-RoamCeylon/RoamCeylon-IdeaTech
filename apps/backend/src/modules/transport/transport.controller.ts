@@ -1,8 +1,17 @@
-import { Controller, Get, Post, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Logger,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { TransportService } from './transport.service';
 import { Driver } from './item.interface';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('transport')
+@UseGuards(JwtAuthGuard)
 export class TransportController {
   private readonly logger = new Logger(TransportController.name);
 
@@ -11,9 +20,7 @@ export class TransportController {
   @Post('seed')
   seedData() {
     this.logger.log('Seeding transport data...');
-    const drivers = this.transportService.seedDrivers();
-    const rides = this.transportService.seedRideRequests();
-    return { drivers, rides };
+    return this.transportService.seedDrivers();
   }
 
   @Get('simulate')
@@ -23,8 +30,13 @@ export class TransportController {
   }
 
   @Get('drivers')
-  getDrivers(): Driver[] {
-    this.logger.log('Fetching drivers...');
-    return this.transportService.getDrivers();
+  getDrivers(
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ): Promise<Driver[]> {
+    this.logger.log(`Fetching drivers... location: ${lat}, ${lng}`);
+    const latitude = lat ? parseFloat(lat) : undefined;
+    const longitude = lng ? parseFloat(lng) : undefined;
+    return this.transportService.getDrivers(latitude, longitude);
   }
 }

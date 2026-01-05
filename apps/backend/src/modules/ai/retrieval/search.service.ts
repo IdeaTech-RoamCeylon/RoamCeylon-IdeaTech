@@ -175,15 +175,14 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         score,
         metadata: {
           createdAt: row.created_at,
-       },
+        },
       };
     });
 
     // Remove duplicates
     const unique = normalized.filter(
-      (item, index, self) =>
-        index === self.findIndex((t) => t.id === item.id),
-      );
+      (item, index, self) => index === self.findIndex((t) => t.id === item.id),
+    );
 
     // Apply similarity threshold
     const strongMatches = unique.filter(
@@ -197,25 +196,24 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         ...item,
         rank: idx + 1,
         confidence: this.getConfidence(item.score),
-     }));
+      }));
 
     this.logger.log(
       `📊 Final ranked vector results: ${JSON.stringify(
-        ranked.map(r => ({
+        ranked.map((r) => ({
           id: r.id,
           score: Number(r.score.toFixed(4)),
           confidence: r.confidence,
-       }))
-      )}`
-   );
-
+        })),
+      )}`,
+    );
 
     if (ranked.length === 0) {
       return {
         message: 'No relevant items found. Please try a different query.',
-     };
+      };
     }
 
-  return ranked;
- }
+    return ranked;
+  }
 }
