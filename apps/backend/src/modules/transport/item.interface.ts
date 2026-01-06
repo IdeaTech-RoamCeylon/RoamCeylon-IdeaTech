@@ -4,6 +4,7 @@ export interface Driver {
   lat: number;
   lng: number;
   status: string;
+  eta?: string;
 }
 
 export interface RideRequest {

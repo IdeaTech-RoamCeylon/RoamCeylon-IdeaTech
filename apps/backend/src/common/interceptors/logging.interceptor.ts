@@ -24,14 +24,16 @@ export class LoggingInterceptor implements NestInterceptor {
         next: () => {
           const response = context.switchToHttp().getResponse<Response>();
           const delay = Date.now() - now;
+          const className = context.getClass().name;
           this.logger.log(
-            `${method} ${url} ${response.statusCode} - ${userAgent} ${ip}: ${delay}ms`,
+            `[${className}] ${method} ${url} ${response.statusCode} - ${userAgent} ${ip}: ${delay}ms`,
           );
         },
         error: (err: Error) => {
           const delay = Date.now() - now;
+          const className = context.getClass().name;
           this.logger.error(
-            `${method} ${url} - ${userAgent} ${ip}: ${delay}ms - Error: ${err.message}`,
+            `[${className}] ${method} ${url} - ${userAgent} ${ip}: ${delay}ms - Error: ${err.message}`,
           );
         },
       }),
