@@ -51,6 +51,15 @@ interface ItineraryItemDto {
   shortDescription: string;
   category: ItineraryCategory;
   confidenceScore?: 'High' | 'Medium' | 'Low';
+  explanation?: {
+    selectionReason: string;
+    rankingFactors: {
+      relevanceScore: number;
+      confidenceLevel: string;
+      categoryMatch?: boolean;
+      preferenceMatch?: string[];
+    };
+  };
 }
 
 // NEW: Day-based planning structure
