@@ -262,6 +262,8 @@ const styles = StyleSheet.create({
   markerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    width: 100, // Explicit width for container
+    height: 80, // Explicit height for container
   },
   markerText: {
     fontSize: 30,
@@ -269,23 +271,23 @@ const styles = StyleSheet.create({
   driverMarker: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    padding: 8,
+    padding: 2,
     borderWidth: 2,
     borderColor: '#0066CC',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    // Removed elevation/shadows to debug visibility
     alignItems: 'center',
     justifyContent: 'center',
     width: 40,
     height: 40,
   },
   driverMarkerIcon: {
-    fontSize: 22,
+    fontSize: 24,
     textAlign: 'center',
-    lineHeight: 24,
+    textAlignVertical: 'center', // Android specific
+    includeFontPadding: false, // Android specific
+    height: 40,
+    width: 40,
+    marginTop: 2, // Slight adjustment for emoji centering
   },
   driverLabel: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
