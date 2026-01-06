@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Query, Logger, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Logger,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -29,12 +38,12 @@ export interface TripPlanRequestDto {
   preferences?: string[];
 }
 
-interface EmbeddedItem {
-  id: number | string;
-  title: string;
-  content: string;
-  embedding: number[];
-}
+// interface EmbeddedItem {
+//   id: number | string;
+//   title: string;
+//   content: string;
+//   embedding: number[];
+// }
 
 type ItineraryCategory =
   | 'Arrival'
@@ -50,25 +59,55 @@ interface ItineraryItemDto {
   shortDescription: string;
   category: ItineraryCategory;
   confidenceScore?: 'High' | 'Medium' | 'Low';
+  explanation?: {
+    selectionReason: string;
+    rankingFactors: {
+      relevanceScore: number;
+      confidenceLevel: string;
+      categoryMatch?: boolean;
+      preferenceMatch?: string[];
+    };
+  };
 }
 
+// NEW: Day-based planning structure
+interface DayPlan {
+  day: number;
+  date: string;
+  theme?: string;
+  activities: EnhancedItineraryItemDto[];
+}
+
+// NEW: Enhanced itinerary with additional fields
+interface EnhancedItineraryItemDto extends ItineraryItemDto {
+  dayNumber: number;
+  timeSlot?: 'Morning' | 'Afternoon' | 'Evening';
+  estimatedDuration?: string;
+  priority: number;
+}
+
+// NEW: Enhanced response with day-by-day structure
 interface TripPlanResponseDto {
   plan: {
     destination: string;
-    dates: {
-      start: string;
-      end: string;
+    dates: { start: string; end: string };
+    totalDays: number;
+    dayByDayPlan: DayPlan[];
+    summary: {
+      totalActivities: number;
+      categoriesIncluded: ItineraryCategory[];
+      preferencesMatched: string[];
     };
-    itinerary: ItineraryItemDto[];
   };
   message: string;
 }
 
-type VectorSearchResult = SearchResultItem[] | { message: string };
+// type VectorSearchResult = SearchResultItem[] | { message: string };
 
 /* -------------------- CONTROLLER -------------------- */
 
 @Controller('ai')
+@UseGuards(ThrottlerGuard)
 export class AIController {
   private readonly logger = new Logger(AIController.name);
 
@@ -83,65 +122,101 @@ export class AIController {
   }
 
   /* ---------- Validate & Preprocess ---------- */
+
   private validateAndPreprocess(
     query: unknown,
   ): { cleaned: string; tokens: string[] } | string {
-    if (typeof query !== 'string') return 'Invalid query format.';
+    if (typeof query !== 'string') {
+      return 'Invalid query format.';
+    }
 
     const trimmed = query.trim();
-    if (!trimmed) return 'Query cannot be empty.';
+    if (!trimmed) {
+      return 'Query cannot be empty.';
+    }
 
+    // Preprocess FIRST
     const cleaned = preprocessQuery(trimmed);
-    if (!cleaned) return 'Query contains no valid searchable characters.';
 
-    if (cleaned.length < 3) return 'Query too short (minimum 3 characters).';
+    if (!cleaned) {
+      return 'Query contains no valid searchable characters.';
+    }
 
-    if (cleaned.length > 300) return 'Query too long (maximum 300 characters).';
+    // Length validation AFTER preprocessing
+    if (cleaned.length < 3) {
+      return 'Query too short (minimum 3 characters).';
+    }
 
-    const tokens = cleaned.split(/\s+/).filter((t) => !STOP_WORDS.has(t));
+    if (cleaned.length > 300) {
+      return 'Query too long (maximum 300 characters).';
+    }
 
-    if (tokens.length === 0)
+    const tokens = cleaned.split(/\s+/);
+
+    // Remove stop words before final check
+    const meaningfulTokens = tokens.filter((t) => !STOP_WORDS.has(t));
+
+    if (meaningfulTokens.length === 0) {
       return 'Query contains no meaningful searchable terms.';
+    }
 
-    return { cleaned, tokens };
+    return {
+      cleaned,
+      tokens: meaningfulTokens,
+    };
   }
 
   /* ---------- In-memory cosine search ---------- */
   private async executeSearch(query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
-    const originalQuery = typeof query === 'string' ? query : '';
 
+    const originalQuery = typeof query === 'string' ? query.trim() : '';
+
+    // ---------- TYPE SAFETY ----------
     const validated = this.validateAndPreprocess(query);
-    if (typeof validated === 'string') {
+    if (typeof validated === 'string')
       return {
         query: originalQuery,
         results: [],
         message: validated,
       };
-    }
 
-    const { cleaned, tokens } = validated;
-    const queryComplexity = tokens.length * cleaned.length;
+    const { cleaned, tokens: queryTokens } = validated;
+    const queryComplexity = queryTokens.length * cleaned.length;
 
-    const embedStart = process.hrtime.bigint();
+    // ---------------- VECTOR GENERATION ----------------
+    const embeddingStart = process.hrtime.bigint();
     const queryVector = this.aiService.generateDummyEmbedding(cleaned, 1536);
-    const embeddingTimeMs =
-      Number(process.hrtime.bigint() - embedStart) / 1_000_000;
+    const embeddingEnd = process.hrtime.bigint();
+    const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
 
-    const items: EmbeddedItem[] = await this.aiService.getAllEmbeddings();
-
+    // ---------------- FETCH DATA ----------------
+    const items = await this.aiService.getAllEmbeddings();
     const rowsScanned = items.length;
+
+    // ---------------- SEARCH EXECUTION ----------------
+    const searchStart = process.hrtime.bigint();
+
+    // -------- KEYWORD + FUZZY GATE --------
+    // 🔹 Log preprocessed query and filtered tokens
+    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
 
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
-      return tokens.some(
+
+      // Find matched tokens
+      const matchedTokens = queryTokens.filter(
         (token) =>
           text.includes(token) || this.aiService.isPartialMatch(token, text),
       );
+
+      // Return true if any token matched
+      return matchedTokens.length > 0;
     });
 
     const rowsAfterGate = keywordFiltered.length;
 
+    // -------- STOP EARLY --------
     if (rowsAfterGate === 0) {
       return {
         query: cleaned,
@@ -166,22 +241,29 @@ export class AIController {
         };
       })
       .filter((item) => item.score >= 0.55)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(a.id).localeCompare(String(b.id)); // Stable sort
+      })
       .slice(0, 5);
 
-    const totalTimeMs =
-      Number(process.hrtime.bigint() - totalStart) / 1_000_000;
+    const searchEnd = process.hrtime.bigint();
+    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
+
+    const totalEnd = process.hrtime.bigint();
+    const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
 
     this.logger.log(`
-      [SEARCH METRICS]
-      Query            : "${cleaned}"
-      Tokens           : ${tokens.length}
-      Query Complexity : ${queryComplexity}
-      Rows Scanned     : ${rowsScanned}
-      Rows After Gate  : ${rowsAfterGate}
-      Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
-      Total Time       : ${totalTimeMs.toFixed(2)} ms
-      `);
+    [SEARCH METRICS]
+    Query            : "${originalQuery}"
+    Tokens           : ${queryTokens.length}
+    Query Complexity : ${queryComplexity}
+    Rows Scanned     : ${rowsScanned}
+    Rows After Gate  : ${rowsAfterGate}
+    Vector Gen Time  : ${embeddingTimeMs.toFixed(2)} ms
+    Search Exec Time : ${searchTimeMs.toFixed(2)} ms
+    Total Time       : ${totalTimeMs.toFixed(2)} ms
+  `);
 
     return {
       query: originalQuery,
@@ -205,39 +287,55 @@ export class AIController {
     @Query('limit') limit?: string,
   ): Promise<SearchResponseDto> {
     const validated = this.validateAndPreprocess(q);
-    if (typeof validated === 'string') {
+    if (typeof validated === 'string')
       return {
         query: typeof q === 'string' ? q : '',
         results: [],
         message: validated,
       };
-    }
 
     const { cleaned } = validated;
 
+    const startTotal = Date.now();
+
     const parsedLimit = Number(limit);
+
     const lim =
       Number.isInteger(parsedLimit) && parsedLimit > 0
         ? Math.min(parsedLimit, 20)
         : 10;
 
-    const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
+    this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
+    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
 
-    const rawResults: VectorSearchResult =
+    // ---- Embedding ----
+    const embedStart = Date.now();
+    const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
+    const embedTime = Date.now() - embedStart;
+    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+
+    // ---- Vector DB Search (ONE CALL ONLY) ----
+    const searchStart = Date.now();
+
+    const rawResults =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
       );
+    const searchTime = Date.now() - searchStart;
 
+    this.logger.log(`⏳ Vector DB search duration: ${searchTime}ms`);
+    this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
+
+    const total = Date.now() - startTotal;
+    this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
+
+    // ---- Return ----
     if (Array.isArray(rawResults)) {
       return { query: cleaned, results: rawResults };
+    } else {
+      return { query: cleaned, results: [], message: rawResults.message };
     }
-
-    return {
-      query: cleaned,
-      results: [],
-      message: rawResults.message,
-    };
   }
 
   /* ---------- Seed ---------- */
@@ -268,143 +366,381 @@ export class AIController {
     };
   }
 
+  /**
+   * Score search results based on preferences and relevance
+   */
+  private scoreResultsByPreferences(
+    results: SearchResultItem[],
+    preferences?: string[],
+  ): Array<SearchResultItem & { priorityScore: number }> {
+    return results.map((result) => {
+      let priorityScore = result.score;
+
+      const text = `${result.title} ${result.content}`.toLowerCase();
+
+      // Preference boosts
+      if (preferences && preferences.length > 0) {
+        preferences.forEach((pref) => {
+          const prefLower = pref.toLowerCase();
+          if (text.includes(prefLower)) priorityScore += 0.15;
+
+          const prefWords = prefLower.split(' ');
+          const matchCount = prefWords.filter((word) =>
+            text.includes(word),
+          ).length;
+          priorityScore += (matchCount / prefWords.length) * 0.08;
+        });
+      }
+
+      // Confidence boost
+      if (result.confidence === 'High') priorityScore += 0.05;
+
+      // Cap max score
+      priorityScore = Math.min(priorityScore, 1.2);
+
+      return { ...result, priorityScore, normalizedText: text }; // Add normalizedText for dedup
+    });
+  }
+
   /* ---------- Trip Planner ---------- */
+
+  /**
+   * Main enhanced itinerary generation
+   */
   private generateItinerary(
     searchResults: SearchResultItem[],
     dayCount: number,
+    startDate: string,
     preferences?: string[],
-    destination?: string, // Add destination parameter
-  ): ItineraryItemDto[] {
-    const itinerary: ItineraryItemDto[] = [];
+    destination?: string,
+  ): DayPlan[] {
+    const scored = this.scoreResultsByPreferences(searchResults, preferences);
+    const maxActivities = Math.min(15, scored.length);
+    const selectedResults = this.selectDiverseActivities(scored, maxActivities);
 
-    // Categorization keywords
-    const categoryKeywords: Record<ItineraryCategory, string[]> = {
-      Arrival: ['airport', 'hotel', 'accommodation', 'check-in'],
-      Sightseeing: [
-        'fortress',
-        'rock',
-        'temple',
-        'monument',
-        'historical',
-        'ancient',
-      ],
-      Culture: ['museum', 'art', 'cultural', 'traditional', 'heritage'],
-      Nature: [
-        'park',
-        'wildlife',
-        'forest',
-        'mountain',
-        'national park',
-        'lake',
-      ],
-      Beach: ['beach', 'ocean', 'coast', 'surf', 'whale', 'diving'],
-      Relaxation: ['spa', 'resort', 'tea', 'scenic', 'plantation'],
-    };
+    const dayPlans: DayPlan[] = [];
+    let activityIndex = 0;
 
-    // Helper to determine category
-    const determineCategory = (
-      title: string,
-      content: string,
-      index: number,
-    ): ItineraryCategory => {
-      const text = `${title} ${content}`.toLowerCase();
+    const categorySequence: ItineraryCategory[] = [
+      'Arrival',
+      'Sightseeing',
+      'Culture',
+      'Nature',
+      'Beach',
+      'Relaxation',
+    ];
 
-      // First day should be arrival-related
-      if (index === 0) return 'Arrival';
+    for (let day = 1; day <= dayCount; day++) {
+      const activitiesForDay: EnhancedItineraryItemDto[] = [];
+      const activitiesThisDay = Math.ceil(
+        (maxActivities - activityIndex) / (dayCount - day + 1),
+      );
 
-      // Check preferences first
-      if (preferences && preferences.length > 0) {
-        for (const pref of preferences) {
-          const prefLower = pref.toLowerCase();
-          if (text.includes(prefLower)) {
-            if (prefLower.includes('beach')) return 'Beach';
-            if (prefLower.includes('nature') || prefLower.includes('wildlife'))
-              return 'Nature';
-            if (prefLower.includes('culture') || prefLower.includes('temple'))
-              return 'Culture';
-          }
-        }
+      for (
+        let i = 0;
+        i < activitiesThisDay && activityIndex < selectedResults.length;
+        i++
+      ) {
+        const result = selectedResults[activityIndex];
+
+        // Prefer logical order using category sequence
+        let category = this.determineActivityCategory(
+          result.title,
+          result.content,
+          day,
+          i,
+          preferences,
+        );
+        const seqIndex = categorySequence.indexOf(category);
+        category = categorySequence[seqIndex >= 0 ? seqIndex : 0];
+
+        activitiesForDay.push({
+          order: activityIndex + 1,
+          dayNumber: day,
+          placeName: result.title,
+          shortDescription: result.content,
+          category,
+          timeSlot: this.assignTimeSlot(i, activitiesThisDay, day),
+          estimatedDuration: this.estimateDuration(category),
+          confidenceScore: result.confidence,
+          priority:
+            Math.round(
+              (scored.find((s) => s.id === result.id)?.priorityScore || 0) *
+                100,
+            ) / 100,
+        });
+
+        activityIndex++;
       }
 
-      // Match against category keywords
-      for (const [category, keywords] of Object.entries(categoryKeywords)) {
-        if (keywords.some((keyword) => text.includes(keyword))) {
-          return category as ItineraryCategory;
-        }
+      // Fallback for empty day 1
+      if (activitiesForDay.length === 0 && day === 1) {
+        activitiesForDay.push({
+          order: 1,
+          dayNumber: 1,
+          placeName: destination || 'Destination',
+          shortDescription:
+            'Arrival and check-in at accommodation. Explore nearby area.',
+          category: 'Arrival',
+          timeSlot: 'Afternoon',
+          estimatedDuration: '2-3 hours',
+          confidenceScore: 'Low',
+          priority: 0.5,
+        });
       }
 
-      // Default rotation
-      const defaultRotation: ItineraryCategory[] = [
-        'Sightseeing',
-        'Nature',
-        'Culture',
-        'Beach',
-        'Relaxation',
-      ];
-      return defaultRotation[index % defaultRotation.length];
-    };
+      const baseDate = new Date(startDate);
+      const dayDate = new Date(baseDate);
+      dayDate.setDate(baseDate.getDate() + day - 1);
 
-    // Map search results to itinerary items
-    searchResults.forEach((result, index) => {
-      itinerary.push({
-        order: index + 1,
-        placeName: result.title,
-        shortDescription: result.content,
-        category: determineCategory(result.title, result.content, index),
-        confidenceScore: result.confidence,
-      });
-    });
-
-    // Add fallback if no results
-    if (itinerary.length === 0) {
-      itinerary.push({
-        order: 1,
-        placeName: destination || 'Unknown Destination', // Fixed typo
-        shortDescription:
-          'Explore local attractions and get familiar with the area.',
-        category: 'Arrival',
-        confidenceScore: 'Low',
+      dayPlans.push({
+        day,
+        date: dayDate.toISOString().split('T')[0],
+        theme: this.generateDayTheme(activitiesForDay),
+        activities: activitiesForDay,
       });
     }
+    return dayPlans;
+  }
 
-    return itinerary;
+  /**
+   * Enhanced category determination with better logic
+   */
+  private determineActivityCategory(
+    title: string,
+    content: string,
+    dayNumber: number,
+    activityIndex: number,
+    preferences?: string[],
+  ): ItineraryCategory {
+    const text = `${title} ${content}`.toLowerCase();
+
+    // Day 1 afternoon should always be arrival
+    if (dayNumber === 1 && activityIndex === 0) return 'Arrival';
+
+    // Check preferences with priority
+    if (preferences && preferences.length > 0) {
+      for (const pref of preferences) {
+        const prefLower = pref.toLowerCase();
+        if (text.includes(prefLower)) {
+          if (prefLower.match(/beach|surf|diving|coast/)) return 'Beach';
+          if (prefLower.match(/nature|wildlife|park|safari/)) return 'Nature';
+          if (prefLower.match(/culture|temple|religious|heritage|traditional/))
+            return 'Culture';
+          if (prefLower.match(/relax|spa|resort/)) return 'Relaxation';
+        }
+      }
+    }
+
+    // Strong keyword matching with priority order
+    if (text.match(/beach|coast|ocean|surf|whale watching/)) return 'Beach';
+    if (text.match(/temple|pagoda|shrine|cultural center|museum/))
+      return 'Culture';
+    if (text.match(/national park|wildlife|safari|nature reserve|forest/))
+      return 'Nature';
+    if (text.match(/fortress|fort|rock|ancient|historical site|monument/))
+      return 'Sightseeing';
+    if (text.match(/spa|resort|tea|plantation|scenic|relaxation/))
+      return 'Relaxation';
+
+    // Default based on day progression
+    const rotationPattern: ItineraryCategory[] = [
+      'Sightseeing',
+      'Nature',
+      'Culture',
+      'Beach',
+      'Relaxation',
+    ];
+
+    return rotationPattern[
+      (dayNumber + activityIndex) % rotationPattern.length
+    ];
+  }
+
+  /**
+   * Ensure diversity in activity categories
+   */
+  private selectDiverseActivities(
+    scoredResults: Array<
+      SearchResultItem & { priorityScore: number; normalizedText?: string }
+    >,
+    maxCount: number,
+  ): SearchResultItem[] {
+    const selected: SearchResultItem[] = [];
+    const categoryCount: Record<string, number> = {};
+    const textSet = new Set<string>();
+    const maxPerCategory = Math.ceil(maxCount / 4);
+
+    const sorted = [...scoredResults].sort(
+      (a, b) => b.priorityScore - a.priorityScore,
+    );
+
+    for (const result of sorted) {
+      if (selected.length >= maxCount) break;
+
+      // Deduplication based on normalized text
+      const textKey =
+        result.normalizedText ||
+        `${result.title} ${result.content}`.toLowerCase();
+      if (textSet.has(textKey)) continue;
+
+      // Determine category
+      let category = 'General';
+      if (textKey.match(/beach|coast|ocean/)) category = 'Beach';
+      else if (textKey.match(/temple|cultural|heritage|museum/))
+        category = 'Culture';
+      else if (textKey.match(/park|wildlife|nature|mountain/))
+        category = 'Nature';
+      else if (textKey.match(/fortress|historical|ancient/))
+        category = 'Sightseeing';
+
+      // Respect category limit for diversity
+      const currentCount = categoryCount[category] || 0;
+      if (currentCount < maxPerCategory) {
+        selected.push(result);
+        categoryCount[category] = currentCount + 1;
+        textSet.add(textKey); // Mark as added
+      }
+    }
+
+    // Fill remaining if not enough
+    for (const result of sorted) {
+      if (selected.length >= maxCount) break;
+      const textKey =
+        result.normalizedText ||
+        `${result.title} ${result.content}`.toLowerCase();
+      if (!textSet.has(textKey)) {
+        selected.push(result);
+        textSet.add(textKey);
+      }
+    }
+
+    return selected;
+  }
+
+  /**
+   * Assign time slots to activities for better day structure
+   */
+  private assignTimeSlot(
+    activityIndex: number,
+    totalActivitiesInDay: number,
+    dayNumber?: number,
+  ): 'Morning' | 'Afternoon' | 'Evening' {
+    // 🔹 DAY 1 RULE
+    if (dayNumber === 1) {
+      // Arrival handled separately
+      if (activityIndex === 0) return 'Afternoon';
+      return 'Evening';
+    }
+
+    // 🔹 OTHER DAYS LOGIC
+    if (totalActivitiesInDay === 1) return 'Morning';
+
+    if (totalActivitiesInDay === 2) {
+      return activityIndex === 0 ? 'Morning' : 'Afternoon';
+    }
+
+    const ratio = activityIndex / (totalActivitiesInDay - 1);
+    if (ratio < 0.4) return 'Morning';
+    if (ratio < 0.7) return 'Afternoon';
+    return 'Evening';
+  }
+
+  /**
+   * Estimate activity duration based on category
+   */
+  private estimateDuration(category: ItineraryCategory): string {
+    const durations: Record<ItineraryCategory, string> = {
+      Arrival: '2-3 hours',
+      Sightseeing: '2-4 hours',
+      Culture: '2-3 hours',
+      Nature: '3-5 hours',
+      Beach: '2-4 hours',
+      Relaxation: '2-3 hours',
+    };
+    return durations[category];
+  }
+
+  /**
+   * Generate day themes based on activities
+   */
+  private generateDayTheme(activities: EnhancedItineraryItemDto[]): string {
+    const categories = activities.map((a) => a.category);
+    const uniqueCategories = [...new Set(categories)];
+
+    if (uniqueCategories.length === 1) {
+      return `${uniqueCategories[0]} Day`;
+    }
+
+    if (categories.includes('Beach') && categories.includes('Relaxation')) {
+      return 'Beach & Relaxation';
+    }
+
+    if (categories.includes('Culture') && categories.includes('Sightseeing')) {
+      return 'Cultural Exploration';
+    }
+
+    if (categories.includes('Nature')) {
+      return 'Nature & Wildlife';
+    }
+
+    return 'Mixed Activities';
   }
 
   @Post('trip-plan')
-  async tripPlan(
+  async tripPlanEnhanced(
     @Body() body: TripPlanRequestDto,
   ): Promise<TripPlanResponseDto> {
-    this.logger.log(`🗺️ Generating trip plan for: ${body.destination}`);
+    this.logger.log(
+      `🗺️ Generating enhanced trip plan for: ${body.destination}`,
+    );
 
-    // Step 1: Build search query from destination + preferences
-    const query = [body.destination, ...(body.preferences ?? [])].join(' ');
+    // Step 1: Build enriched search query
+    const searchTerms = [
+      body.destination,
+      'attractions',
+      'places to visit',
+      ...(body.preferences ?? []),
+    ];
+    const query = searchTerms.join(' ');
 
-    // Step 2: Call internal search pipeline
+    // Step 2: Execute search
     const searchResults = await this.executeSearch(query);
 
     // Step 3: Calculate trip duration
     const startDate = new Date(body.startDate);
     const endDate = new Date(body.endDate);
-    const dayCount =
+    const dayCount = Math.max(
+      1,
       Math.ceil(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-      ) + 1;
+      ) + 1,
+    );
 
     this.logger.log(`📅 Trip duration: ${dayCount} days`);
+    this.logger.log(
+      `🎯 Preferences: ${body.preferences?.join(', ') || 'None'}`,
+    );
 
-    // Step 4: Select top results based on trip duration (more days = more places)
-    const maxPlaces = Math.min(dayCount * 2, searchResults.results.length, 10); // 2 activities per day, max 10
-    const topResults = searchResults.results.slice(0, maxPlaces);
-
-    // Step 5: Generate ordered itinerary with smart categorization
-    const itinerary = this.generateItinerary(
-      topResults,
+    // Step 4: Generate enhanced day-by-day itinerary
+    const dayPlans = this.generateItinerary(
+      searchResults.results,
       dayCount,
+      body.startDate,
       body.preferences,
       body.destination,
-    ); // Pass destination
+    );
 
-    // Step 6: Return structured plan
+    // Step 5: Generate summary
+    const allActivities = dayPlans.flatMap((d) => d.activities);
+    const categories = [...new Set(allActivities.map((a) => a.category))];
+    const matchedPrefs =
+      body.preferences?.filter((pref) =>
+        allActivities.some(
+          (activity) => activity.category.toLowerCase() === pref.toLowerCase(),
+        ),
+      ) || [];
+
     return {
       plan: {
         destination: body.destination,
@@ -412,9 +748,15 @@ export class AIController {
           start: body.startDate,
           end: body.endDate,
         },
-        itinerary,
+        totalDays: dayCount,
+        dayByDayPlan: dayPlans,
+        summary: {
+          totalActivities: allActivities.length,
+          categoriesIncluded: categories,
+          preferencesMatched: matchedPrefs,
+        },
       },
-      message: `Generated ${itinerary.length} activities for your ${dayCount}-day trip to ${body.destination}`,
+      message: `Generated ${allActivities.length} activities across ${dayCount} days for ${body.destination}. Matched ${matchedPrefs.length} of your preferences.`,
     };
   }
 }

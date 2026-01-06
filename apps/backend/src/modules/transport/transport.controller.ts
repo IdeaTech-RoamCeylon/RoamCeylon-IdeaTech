@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { TransportService } from './transport.service';
 import { Driver } from './item.interface';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -15,7 +16,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class TransportController {
   private readonly logger = new Logger(TransportController.name);
 
-  constructor(private readonly transportService: TransportService) {}
+  constructor(private readonly transportService: TransportService) { }
 
   @Post('seed')
   seedData() {
@@ -30,13 +31,16 @@ export class TransportController {
   }
 
   @Get('drivers')
+  @UseGuards(ThrottlerGuard)
   getDrivers(
     @Query('lat') lat?: string,
     @Query('lng') lng?: string,
+    @Query('limit') limit?: string,
   ): Promise<Driver[]> {
-    this.logger.log(`Fetching drivers... location: ${lat}, ${lng}`);
+    this.logger.log(`Fetching drivers... location: ${lat}, ${lng}, limit: ${limit}`);
     const latitude = lat ? parseFloat(lat) : undefined;
     const longitude = lng ? parseFloat(lng) : undefined;
-    return this.transportService.getDrivers(latitude, longitude);
+    const limitVal = limit ? parseInt(limit, 10) : 5;
+    return this.transportService.getDrivers(latitude, longitude, limitVal);
   }
 }
