@@ -30,12 +30,12 @@ export interface TripPlanRequestDto {
   preferences?: string[];
 }
 
-interface EmbeddedItem {
-  id: number | string;
-  title: string;
-  content: string;
-  embedding: number[];
-}
+// interface EmbeddedItem {
+//   id: number | string;
+//   title: string;
+//   content: string;
+//   embedding: number[];
+// }
 
 type ItineraryCategory =
   | 'Arrival'
@@ -85,7 +85,7 @@ interface TripPlanResponseDto {
   message: string;
 }
 
-type VectorSearchResult = SearchResultItem[] | { message: string };
+// type VectorSearchResult = SearchResultItem[] | { message: string };
 
 /* -------------------- CONTROLLER -------------------- */
 
