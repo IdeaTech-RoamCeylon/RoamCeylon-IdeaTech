@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 import * as Location from 'expo-location';
 import { MOCK_DRIVERS } from '../../data/mockDrivers';
@@ -24,12 +24,37 @@ const MapScreen = () => {
     drivers, setDrivers,
     isMapboxConfigured, setIsMapboxConfigured 
   } = useMapContext();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Initial Map Load
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  type TransportStatus = 'IDLE' | 'SEARCHING' | 'FOUND' | 'NO_DRIVERS' | 'ERROR';
+  const [transportStatus, setTransportStatus] = useState<TransportStatus>('IDLE');
+
+  const fetchDrivers = async () => {
+    setTransportStatus('SEARCHING');
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Randomly simulate "No Drivers" for demonstration (10% chance)
+      // or if we really had an API, we'd check response.length
+      const randomChance = Math.random();
+      if (randomChance > 0.9) {
+        setDrivers([]);
+        setTransportStatus('NO_DRIVERS');
+      } else {
+        setDrivers(MOCK_DRIVERS);
+        setTransportStatus('FOUND');
+      }
+    } catch (e) {
+      setTransportStatus('ERROR');
+    }
+  };
 
   useEffect(() => {
     // Check if Mapbox is properly configured
     const checkMapboxSetup = async () => {
+    // ... logic remains same, but we will call fetchDrivers inside initMap
       try {
         if (MapboxGL && MAPBOX_CONFIG.accessToken && MAPBOX_CONFIG.accessToken.startsWith('pk.')) {
           setIsMapboxConfigured(true);
@@ -70,15 +95,18 @@ const MapScreen = () => {
       // If data already exists in context, skip loading
       if (userLocation && drivers.length > 0 && isMapboxConfigured) {
         setIsLoading(false);
+        setTransportStatus('FOUND');
         return;
       }
 
       await checkMapboxSetup();
       await getLocationPermission();
       
+      setIsLoading(false); // Map loaded, start searching drivers
+      
       // Initialize mock drivers if not already set
       if (drivers.length === 0) {
-        setDrivers(MOCK_DRIVERS);
+        fetchDrivers();
       }
     };
 
@@ -181,8 +209,37 @@ const MapScreen = () => {
 
       {/* Map overlay info */}
       <View style={styles.overlay}>
-        <Text style={styles.overlayTitle}>Sri Lanka</Text>
-        <Text style={styles.overlaySubtitle}>Explore the Island</Text>
+        {transportStatus === 'SEARCHING' && (
+          <View style={styles.statusRow}>
+            <ActivityIndicator size="small" color="#0066CC" />
+            <Text style={styles.statusText}> Looking for nearby drivers...</Text>
+          </View>
+        )}
+
+        {transportStatus === 'FOUND' && (
+           <View>
+            <Text style={styles.overlayTitle}>Sri Lanka</Text>
+            <Text style={styles.overlaySubtitle}>{drivers.length} Drivers Active</Text>
+           </View>
+        )}
+
+        {transportStatus === 'NO_DRIVERS' && (
+           <View style={styles.statusCenter}>
+            <Text style={styles.errorText}>No drivers found nearby.</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchDrivers}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+           </View>
+        )}
+
+        {transportStatus === 'ERROR' && (
+           <View style={styles.statusCenter}>
+            <Text style={styles.errorText}>Connection Error.</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchDrivers}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+           </View>
+        )}
       </View>
     </View>
   );
@@ -322,6 +379,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#333',
+  },
+  // Status Card Styles
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    marginLeft: 10,
+    color: '#0066CC',
+    fontWeight: '600',
+  },
+  statusCenter: {
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#d32f2f',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  retryButton: {
+    backgroundColor: '#0066CC',
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });
 
