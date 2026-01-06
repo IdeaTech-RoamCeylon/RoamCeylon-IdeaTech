@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 import * as Location from 'expo-location';
@@ -143,7 +143,8 @@ const MapScreen = () => {
         <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
 
         {/* Mock Drivers */}
-        {drivers.map((driver) => (
+        {/* Mock Drivers */}
+        {useMemo(() => drivers.map((driver) => (
           <MapboxGL.PointAnnotation
             key={driver.id}
             id={driver.id}
@@ -162,7 +163,7 @@ const MapScreen = () => {
               </View>
             </View>
           </MapboxGL.PointAnnotation>
-        ))}
+        )), [drivers])}
 
         {/* Default marker at Sri Lanka center (Optional, keeping for reference or removing if unwanted) */}
         {/* <MapboxGL.PointAnnotation
