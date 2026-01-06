@@ -107,8 +107,8 @@ export const verifyOtp = async (
 
 export const getMe = async (): Promise<UserProfile> => {
   try {
-    const response = await apiService.get<UserProfile>('/users/me');
-    return response;
+    const response = await apiService.get<ApiResponse<UserProfile>>('/users/me');
+    return response.data;
   } catch (error) {
     console.error('Get user profile error:', error);
     throw error;
