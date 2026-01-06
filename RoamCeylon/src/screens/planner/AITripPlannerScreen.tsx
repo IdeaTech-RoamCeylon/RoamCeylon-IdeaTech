@@ -7,8 +7,10 @@ import {
   TouchableOpacity, 
   TextInput, 
   ActivityIndicator,
-  Alert 
+  Alert,
+  Animated 
 } from 'react-native';
+import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
@@ -22,6 +24,20 @@ const AITripPlannerScreen = () => {
   const { query, setQuery, tripPlan, setTripPlan } = usePlannerContext();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (tripPlan) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [tripPlan]);
 
   const budgets = ['Low', 'Medium', 'High', 'Luxury'];
 
@@ -36,21 +52,23 @@ const AITripPlannerScreen = () => {
     }
 
     setIsLoading(true);
+    setError(null);
     // don't clear tripPlan immediately if you want to show previous results, but usually we want fresh request visual
-    // setTripPlan(null); 
+    setTripPlan(null); 
 
     try {
       const plan = await aiService.generateTripPlan(query);
       setTripPlan(plan);
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate trip plan. Please try again.');
+      setError('Failed to generate trip plan. Please try again.');
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const renderItinerary = (plan: TripPlanResponse) => (
-    <View style={styles.resultsContainer}>
+    <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
       <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
       <View style={styles.summaryContainer}>
         <View style={styles.summaryItem}>
@@ -82,7 +100,7 @@ const AITripPlannerScreen = () => {
       >
         <Text style={styles.resetButtonText}>Plan Another Trip</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 
   return (
@@ -155,7 +173,7 @@ const AITripPlannerScreen = () => {
                 </View>
               </View>
 
-              <TouchableOpacity
+                <TouchableOpacity
                 style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
                 onPress={handleGeneratePlan}
                 disabled={isLoading}
@@ -166,6 +184,12 @@ const AITripPlannerScreen = () => {
                   <Text style={styles.generateButtonText}>✨ Generate Plan</Text>
                 )}
               </TouchableOpacity>
+              
+              {error && (
+                <View style={styles.errorContainer}>
+                   <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
             </View>
           </>
         ) : (
@@ -378,6 +402,20 @@ const styles = StyleSheet.create({
     color: '#0066CC',
     fontWeight: '600',
     fontSize: 15,
+  },
+  errorContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#ffebee',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
