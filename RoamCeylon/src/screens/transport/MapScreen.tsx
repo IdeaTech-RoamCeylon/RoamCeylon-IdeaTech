@@ -30,6 +30,30 @@ const MapScreen = () => {
   type TransportStatus = 'IDLE' | 'SEARCHING' | 'FOUND' | 'NO_DRIVERS' | 'ERROR';
   const [transportStatus, setTransportStatus] = useState<TransportStatus>('IDLE');
 
+  const driverMarkers = useMemo(() => {
+    if (!drivers || !MapboxGL) return [];
+    return drivers.map((driver) => (
+      <MapboxGL.PointAnnotation
+        key={driver.id}
+        id={driver.id}
+        coordinate={driver.coordinate}
+      >
+        <View style={styles.markerContainer}>
+          <View style={styles.driverMarker}>
+            <Text style={styles.driverMarkerIcon}>
+              {driver.vehicleType === 'TukTuk' ? '🛺' : 
+               driver.vehicleType === 'Van' ? '🚐' : 
+               driver.vehicleType === 'Bike' ? '🏍️' : '🚗'}
+            </Text>
+          </View>
+          <View style={styles.driverLabel}>
+            <Text style={styles.driverLabelText}>{driver.name}</Text>
+          </View>
+        </View>
+      </MapboxGL.PointAnnotation>
+    ));
+  }, [drivers]);
+
   const fetchDrivers = async () => {
     setTransportStatus('SEARCHING');
     try {
@@ -171,27 +195,7 @@ const MapScreen = () => {
         <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
 
         {/* Mock Drivers */}
-        {/* Mock Drivers */}
-        {useMemo(() => drivers.map((driver) => (
-          <MapboxGL.PointAnnotation
-            key={driver.id}
-            id={driver.id}
-            coordinate={driver.coordinate}
-          >
-            <View style={styles.markerContainer}>
-              <View style={styles.driverMarker}>
-                <Text style={styles.driverMarkerIcon}>
-                  {driver.vehicleType === 'TukTuk' ? '🛺' : 
-                   driver.vehicleType === 'Van' ? '🚐' : 
-                   driver.vehicleType === 'Bike' ? '🏍️' : '🚗'}
-                </Text>
-              </View>
-              <View style={styles.driverLabel}>
-                <Text style={styles.driverLabelText}>{driver.name}</Text>
-              </View>
-            </View>
-          </MapboxGL.PointAnnotation>
-        )), [drivers])}
+        {driverMarkers}
 
         {/* Default marker at Sri Lanka center (Optional, keeping for reference or removing if unwanted) */}
         {/* <MapboxGL.PointAnnotation
