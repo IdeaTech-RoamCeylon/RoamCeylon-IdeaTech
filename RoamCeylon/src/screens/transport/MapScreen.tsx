@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
+import * as Location from 'expo-location';
+import { MOCK_DRIVERS } from '../../data/mockDrivers';
+import Toast from 'react-native-toast-message';
 
 // Lazy load Mapbox to prevent build errors
 let MapboxGL: any = null;
@@ -17,6 +20,8 @@ try {
 const MapScreen = () => {
   const [isMapboxConfigured, setIsMapboxConfigured] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if Mapbox is properly configured
@@ -35,7 +40,28 @@ const MapScreen = () => {
       }
     };
 
+    const getLocationPermission = async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permission to access location was denied');
+          Toast.show({
+            type: 'error',
+            text1: 'Location Permission Denied',
+            text2: 'Please enable location permissions to use the map.',
+          });
+          return;
+        }
+
+        let location = await Location.getCurrentPositionAsync({});
+        setLocation(location);
+      } catch (error) {
+        console.warn('Error fetching location:', error);
+      }
+    };
+
     checkMapboxSetup();
+    getLocationPermission();
   }, []);
 
   // Loading state
@@ -92,8 +118,33 @@ const MapScreen = () => {
           animationDuration={2000}
         />
         
-        {/* Default marker at Sri Lanka center */}
-        <MapboxGL.PointAnnotation
+        {/* User Location */}
+        <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
+
+        {/* Mock Drivers */}
+        {MOCK_DRIVERS.map((driver) => (
+          <MapboxGL.PointAnnotation
+            key={driver.id}
+            id={driver.id}
+            coordinate={driver.coordinate}
+          >
+            <View style={styles.markerContainer}>
+              <View style={styles.driverMarker}>
+                <Text style={styles.driverMarkerIcon}>
+                  {driver.vehicleType === 'TukTuk' ? '🛺' : 
+                   driver.vehicleType === 'Van' ? '🚐' : 
+                   driver.vehicleType === 'Bike' ? '🏍️' : '🚗'}
+                </Text>
+              </View>
+              <View style={styles.driverLabel}>
+                <Text style={styles.driverLabelText}>{driver.name}</Text>
+              </View>
+            </View>
+          </MapboxGL.PointAnnotation>
+        ))}
+
+        {/* Default marker at Sri Lanka center (Optional, keeping for reference or removing if unwanted) */}
+        {/* <MapboxGL.PointAnnotation
           id="sri-lanka-center"
           coordinate={[
             MAPBOX_CONFIG.defaultCenter.longitude,
@@ -103,7 +154,7 @@ const MapScreen = () => {
           <View style={styles.markerContainer}>
             <Text style={styles.markerText}>📍</Text>
           </View>
-        </MapboxGL.PointAnnotation>
+        </MapboxGL.PointAnnotation> */}
       </MapboxGL.MapView>
 
       {/* Map overlay info */}
@@ -214,6 +265,39 @@ const styles = StyleSheet.create({
   },
   markerText: {
     fontSize: 30,
+  },
+  driverMarker: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 2,
+    borderColor: '#0066CC',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+  },
+  driverMarkerIcon: {
+    fontSize: 22,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  driverLabel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  driverLabelText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#333',
   },
 });
 
