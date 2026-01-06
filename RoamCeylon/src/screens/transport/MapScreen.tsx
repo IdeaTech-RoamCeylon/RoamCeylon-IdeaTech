@@ -4,6 +4,7 @@ import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 import * as Location from 'expo-location';
 import { MOCK_DRIVERS } from '../../data/mockDrivers';
 import Toast from 'react-native-toast-message';
+import { useMapContext } from '../../context/MapContext';
 
 // Lazy load Mapbox to prevent build errors
 let MapboxGL: any = null;
@@ -18,9 +19,12 @@ try {
 }
 
 const MapScreen = () => {
-  const [isMapboxConfigured, setIsMapboxConfigured] = useState(false);
+  const { 
+    userLocation, setUserLocation, 
+    drivers, setDrivers,
+    isMapboxConfigured, setIsMapboxConfigured 
+  } = useMapContext();
   const [isLoading, setIsLoading] = useState(true);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,14 +58,31 @@ const MapScreen = () => {
         }
 
         let location = await Location.getCurrentPositionAsync({});
-        setLocation(location);
+        setUserLocation(location);
       } catch (error) {
         console.warn('Error fetching location:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    checkMapboxSetup();
-    getLocationPermission();
+    const initMap = async () => {
+      // If data already exists in context, skip loading
+      if (userLocation && drivers.length > 0 && isMapboxConfigured) {
+        setIsLoading(false);
+        return;
+      }
+
+      await checkMapboxSetup();
+      await getLocationPermission();
+      
+      // Initialize mock drivers if not already set
+      if (drivers.length === 0) {
+        setDrivers(MOCK_DRIVERS);
+      }
+    };
+
+    initMap();
   }, []);
 
   // Loading state
@@ -75,7 +96,7 @@ const MapScreen = () => {
   }
 
   // Render placeholder if Mapbox is not configured
-  if (!isMapboxConfigured) {
+  if (!isLoading && !isMapboxConfigured) {
     return (
       <View style={styles.placeholderContainer}>
         <View style={styles.placeholderContent}>
@@ -122,7 +143,7 @@ const MapScreen = () => {
         <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
 
         {/* Mock Drivers */}
-        {MOCK_DRIVERS.map((driver) => (
+        {drivers.map((driver) => (
           <MapboxGL.PointAnnotation
             key={driver.id}
             id={driver.id}

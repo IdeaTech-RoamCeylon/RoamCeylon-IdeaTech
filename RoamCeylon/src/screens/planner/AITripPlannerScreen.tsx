@@ -13,35 +13,34 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
 import { aiService, TripPlanResponse } from '../../services/aiService';
+import { usePlannerContext } from '../../context/PlannerContext';
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
+  const { query, setQuery, tripPlan, setTripPlan } = usePlannerContext();
   
-  const [destination, setDestination] = useState('');
-  const [duration, setDuration] = useState('');
-  const [budget, setBudget] = useState('Medium');
   const [isLoading, setIsLoading] = useState(false);
-  const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
 
   const budgets = ['Low', 'Medium', 'High', 'Luxury'];
 
+  const updateQuery = (key: keyof typeof query, value: string) => {
+    setQuery(prev => ({ ...prev, [key]: value }));
+  };
+
   const handleGeneratePlan = async () => {
-    if (!destination || !duration) {
+    if (!query.destination || !query.duration) {
       Alert.alert('Missing Info', 'Please enter both destination and duration.');
       return;
     }
 
     setIsLoading(true);
-    setTripPlan(null); // Clear previous results
+    // don't clear tripPlan immediately if you want to show previous results, but usually we want fresh request visual
+    // setTripPlan(null); 
 
     try {
-      const plan = await aiService.generateTripPlan({
-        destination,
-        duration,
-        budget,
-      });
+      const plan = await aiService.generateTripPlan(query);
       setTripPlan(plan);
     } catch (error) {
       Alert.alert('Error', 'Failed to generate trip plan. Please try again.');
@@ -115,8 +114,8 @@ const AITripPlannerScreen = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Kandy, Ella, Sigiriya"
-                  value={destination}
-                  onChangeText={setDestination}
+                  value={query.destination}
+                  onChangeText={(text) => updateQuery('destination', text)}
                 />
               </View>
 
@@ -126,8 +125,8 @@ const AITripPlannerScreen = () => {
                   style={styles.input}
                   placeholder="e.g. 3"
                   keyboardType="numeric"
-                  value={duration}
-                  onChangeText={setDuration}
+                  value={query.duration}
+                  onChangeText={(text) => updateQuery('duration', text)}
                 />
               </View>
 
@@ -139,14 +138,14 @@ const AITripPlannerScreen = () => {
                       key={b}
                       style={[
                         styles.budgetOption,
-                        budget === b && styles.budgetOptionSelected,
+                        query.budget === b && styles.budgetOptionSelected,
                       ]}
-                      onPress={() => setBudget(b)}
+                      onPress={() => updateQuery('budget', b)}
                     >
                       <Text
                         style={[
                           styles.budgetOptionText,
-                          budget === b && styles.budgetOptionTextSelected,
+                          query.budget === b && styles.budgetOptionTextSelected,
                         ]}
                       >
                         {b}
