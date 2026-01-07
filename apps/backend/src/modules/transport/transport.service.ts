@@ -6,7 +6,7 @@ import { Driver, RideRequest } from './item.interface';
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
@@ -65,6 +65,7 @@ export class TransportService {
         ST_Y(d.location:: geometry) as lat
         FROM "DriverLocation" d
         LEFT JOIN "User" u ON d."driverId" = u.id
+        ORDER BY d."driverId" ASC
         LIMIT ${limit}
         `;
       return this.mapToDriver(raw);
