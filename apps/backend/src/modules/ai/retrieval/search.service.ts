@@ -133,10 +133,72 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     return 'Low';
   }
 
+  /**
+   * Get confidence threshold value
+   */
+  public getConfidenceThreshold(level: 'High' | 'Medium' | 'Low'): number {
+    const thresholds = {
+      High: 0.8,
+      Medium: 0.5,
+      Low: 0.3,
+    };
+    return thresholds[level];
+  }
+
+  /**
+   * Check if results meet quality standards
+   * Made more flexible to accept partial result objects
+   */
+  public assessResultQuality(
+    results: Array<{
+      score: number;
+      confidence?: 'High' | 'Medium' | 'Low';
+    }>,
+  ): {
+    quality: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+    message?: string;
+  } {
+    if (results.length === 0) {
+      return {
+        quality: 'Poor',
+        message: 'No results found',
+      };
+    }
+
+    const avgScore =
+      results.reduce((sum, r) => sum + r.score, 0) / results.length;
+    const highConfidenceCount = results.filter(
+      (r) => r.confidence === 'High',
+    ).length;
+    const highConfidenceRatio = highConfidenceCount / results.length;
+
+    if (avgScore >= 0.8 && highConfidenceRatio >= 0.7) {
+      return { quality: 'Excellent' };
+    }
+
+    if (avgScore >= 0.65 && highConfidenceRatio >= 0.4) {
+      return { quality: 'Good' };
+    }
+
+    if (avgScore >= 0.5) {
+      return {
+        quality: 'Fair',
+        message: 'Results have moderate confidence. Consider refining your search.',
+      };
+    }
+
+    return {
+      quality: 'Poor',
+      message:
+        'Results have low confidence scores. Try different or more specific keywords.',
+    };
+  }
+
   async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
-    similarityThreshold = 0.7, // You can adjust this threshold as needed
+    similarityThreshold = 0.5, 
+    minConfidence?: 'High' | 'Medium' | 'Low', 
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
