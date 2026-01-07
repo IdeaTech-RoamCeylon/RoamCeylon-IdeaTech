@@ -12,7 +12,7 @@ import { SearchService } from './retrieval/search.service';
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 seconds
-        limit: 10,  // 10 requests per ttl
+        limit: 10, // 10 requests per ttl
       },
     ]),
   ],
