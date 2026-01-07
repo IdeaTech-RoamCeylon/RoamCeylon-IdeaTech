@@ -537,11 +537,14 @@ export class AIController {
     destination?: string,
   ): DayPlan[] {
     const filteredResults = searchResults.filter((result) => {
-      // Remove results with very low relevance scores
-      if (result.score && result.score < 0.5) return false;
+      // Allow reasonable low-confidence results to avoid empty itineraries
+      if (result.score !== undefined && result.score < 0.45) return false;
 
-      // Remove results with low confidence and low score
-      if (result.confidence === 'Low' && (!result.score || result.score < 0.7))
+      if (
+        result.confidence === 'Low' &&
+        result.score !== undefined &&
+        result.score < 0.55
+      )
         return false;
 
       // Remove very short descriptions (likely incomplete data)
@@ -584,8 +587,16 @@ export class AIController {
 
     for (let day = 1; day <= dayCount; day++) {
       const activitiesForDay: EnhancedItineraryItemDto[] = [];
-      const activitiesThisDay = Math.ceil(
-        (maxActivities - activityIndex) / (dayCount - day + 1),
+      const rawActivitiesThisDay = Math.max(
+        1,
+        Math.ceil((maxActivities - activityIndex) / (dayCount - day + 1)),
+      );
+
+      // Realistic daily cap
+      const MAX_ACTIVITIES_PER_DAY = dayCount === 1 ? 3 : 4;
+      const activitiesThisDay = Math.min(
+        rawActivitiesThisDay,
+        MAX_ACTIVITIES_PER_DAY,
       );
 
       for (
@@ -860,10 +871,6 @@ export class AIController {
   async tripPlanEnhanced(
     @Body() body: TripPlanRequestDto,
   ): Promise<TripPlanResponseDto> {
-    this.logger.log(
-      `🗺️ Generating enhanced trip plan for: ${body.destination}`,
-    );
-
     // Step 1: Build enriched search query
     const searchTerms = [
       body.destination,
@@ -886,11 +893,6 @@ export class AIController {
       ) + 1,
     );
 
-    this.logger.log(`📅 Trip duration: ${dayCount} days`);
-    this.logger.log(
-      `🎯 Preferences: ${body.preferences?.join(', ') || 'None'}`,
-    );
-
     // Step 4: Generate enhanced day-by-day itinerary
     const dayPlans = this.generateItinerary(
       searchResults.results,
@@ -903,12 +905,16 @@ export class AIController {
     // Step 5: Generate summary
     const allActivities = dayPlans.flatMap((d) => d.activities);
     const categories = [...new Set(allActivities.map((a) => a.category))];
-    const matchedPrefs =
-      body.preferences?.filter((pref) =>
-        allActivities.some(
-          (activity) => activity.category.toLowerCase() === pref.toLowerCase(),
-        ),
-      ) || [];
+    const normalizedPrefs =
+      body.preferences?.map((p) => p.toLowerCase().trim()) || [];
+
+    const matchedPrefs = Array.from(
+      new Set(
+        allActivities
+          .map((a) => a.category?.toLowerCase())
+          .filter((cat) => normalizedPrefs.includes(cat)),
+      ),
+    );
 
     return {
       plan: {
