@@ -72,11 +72,6 @@ const MapScreen = () => {
             return [];
           }
           
-          // Simulate occasional API failures for testing (5% chance)
-          if (randomChance < 0.05) {
-            throw new Error('Driver API connection failed');
-          }
-          
           return MOCK_DRIVERS;
         },
         {

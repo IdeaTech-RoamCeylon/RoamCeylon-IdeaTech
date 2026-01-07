@@ -44,12 +44,6 @@ class AIService {
       const result = await retryWithBackoff(
         async () => {
           await new Promise(resolve => setTimeout(resolve, AIService.MOCK_DELAY));
-          
-          // Simulate random failures for testing (10% chance)
-          if (Math.random() < 0.1) {
-            throw new Error('Simulated API failure');
-          }
-          
           return this.getMockTripPlan(request);
         },
         {
