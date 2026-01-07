@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Query, Logger, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Logger,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
@@ -106,7 +114,7 @@ export class AIController {
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
-  ) { }
+  ) {}
 
   @Get('health')
   getHealth() {
@@ -161,10 +169,9 @@ export class AIController {
   /* ---------- In-memory cosine search ---------- */
   private async executeSearch(query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
-    
-    const originalQuery =
-      typeof query === 'string' ? query.trim() : '';
-    
+
+    const originalQuery = typeof query === 'string' ? query.trim() : '';
+
     // ---------- TYPE SAFETY ----------
     const validated = this.validateAndPreprocess(query);
     if (typeof validated === 'string')
@@ -182,7 +189,7 @@ export class AIController {
     const queryVector = this.aiService.generateDummyEmbedding(cleaned, 1536);
     const embeddingEnd = process.hrtime.bigint();
     const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
-    
+
     // ---------------- FETCH DATA ----------------
     const items = await this.aiService.getAllEmbeddings();
     const rowsScanned = items.length;
@@ -190,21 +197,22 @@ export class AIController {
     // ---------------- SEARCH EXECUTION ----------------
     const searchStart = process.hrtime.bigint();
 
-    // -------- KEYWORD + FUZZY GATE --------     
+    // -------- KEYWORD + FUZZY GATE --------
     // 🔹 Log preprocessed query and filtered tokens
     this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-       
+
     const keywordFiltered = items.filter((item) => {
       const text = `${item.title} ${item.content}`.toLowerCase();
-      
-    // Find matched tokens
-    const matchedTokens = queryTokens.filter(token =>
-      text.includes(token) || this.aiService.isPartialMatch(token, text)
-    );   
 
-    // Return true if any token matched    
-    return matchedTokens.length > 0;
-   });
+      // Find matched tokens
+      const matchedTokens = queryTokens.filter(
+        (token) =>
+          text.includes(token) || this.aiService.isPartialMatch(token, text),
+      );
+
+      // Return true if any token matched
+      return matchedTokens.length > 0;
+    });
 
     const rowsAfterGate = keywordFiltered.length;
 
@@ -216,7 +224,7 @@ export class AIController {
         message: 'No strong matches found.',
       };
     }
-    
+
     const scored = keywordFiltered
       .map((item) => {
         const score = this.aiService.cosineSimilarity(
@@ -237,14 +245,13 @@ export class AIController {
         if (b.score !== a.score) return b.score - a.score;
         return String(a.id).localeCompare(String(b.id)); // Stable sort
       })
-      .slice(0, 5);    
+      .slice(0, 5);
 
     const searchEnd = process.hrtime.bigint();
     const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
 
     const totalEnd = process.hrtime.bigint();
     const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
-
 
     this.logger.log(`
     [SEARCH METRICS]
@@ -358,46 +365,170 @@ export class AIController {
       max: Math.max(...embedding),
     };
   }
-  
+
   /**
- * Score search results based on preferences and relevance
- */
+   * Score search results based on preferences and relevance
+   */
   private scoreResultsByPreferences(
-  results: SearchResultItem[],
-  preferences?: string[],
+    results: SearchResultItem[],
+    preferences?: string[],
   ): Array<SearchResultItem & { priorityScore: number }> {
-    return results.map((result) => {
-      let priorityScore = result.score;
+    if (!preferences || preferences.length === 0) {
+      return results.map((r) => ({
+        ...r,
+        priorityScore: r.score || 0.5,
+      }));
+    }
 
-      const text = `${result.title} ${result.content}`.toLowerCase();
+    return results
+      .map((result) => {
+        let priorityScore = result.score || 0.5;
 
-      // Preference boosts
-      if (preferences && preferences.length > 0) {
-        preferences.forEach((pref) => {
+        const text = `${result.title} ${result.content}`.toLowerCase();
+        let matchCount = 0;
+
+        for (const pref of preferences) {
           const prefLower = pref.toLowerCase();
-          if (text.includes(prefLower)) priorityScore += 0.15;
 
-          const prefWords = prefLower.split(' ');
-          const matchCount = prefWords.filter((word) => text.includes(word)).length;
-          priorityScore += (matchCount / prefWords.length) * 0.08;
-        });
-      }
+          // Exact phrase match in title (highest priority)
+          if (result.title.toLowerCase().includes(prefLower)) {
+            priorityScore += 0.3;
+            matchCount++;
+          }
+          // Match in content
+          else if (text.includes(prefLower)) {
+            priorityScore += 0.15;
+            matchCount++;
+          }
 
-      // Confidence boost
-      if (result.confidence === 'High') priorityScore += 0.05;
+          // Bonus for multiple word preferences (more specific)
+          if (prefLower.split(' ').length > 1 && text.includes(prefLower)) {
+            priorityScore += 0.1;
+          }
+        }
 
-      // Cap max score
-      priorityScore = Math.min(priorityScore, 1.2);
+        // Boost results that match multiple preferences
+        if (matchCount > 1) {
+          priorityScore += matchCount * 0.1;
+        }
 
-      return { ...result, priorityScore, normalizedText: text }; // Add normalizedText for dedup
-    });
+        // Confidence level weighting
+        if (result.confidence === 'High') {
+          priorityScore *= 1.2;
+        } else if (result.confidence === 'Medium') {
+          priorityScore *= 1.0;
+        } else if (result.confidence === 'Low') {
+          priorityScore *= 0.8;
+        }
+
+        // Cap the score
+        priorityScore = Math.min(priorityScore, 2.0);
+
+        return { ...result, priorityScore };
+      })
+      .sort((a, b) => b.priorityScore - a.priorityScore); // Sort by priority
   }
-  
   /* ---------- Trip Planner ---------- */
-
   /**
-  * Main enhanced itinerary generation
-  */
+   * Generate explanation metadata for itinerary items
+   */
+  private generateExplanation(
+    result: SearchResultItem,
+    priorityScore: number,
+    category: ItineraryCategory,
+    preferences?: string[],
+  ): {
+    selectionReason: string;
+    rankingFactors: {
+      relevanceScore: number;
+      confidenceLevel: string;
+      categoryMatch?: boolean;
+      preferenceMatch?: string[];
+    };
+  } {
+    const matchedPreferences: string[] = [];
+    let titleMatches = 0;
+    let contentMatches = 0;
+
+    // Check preference matches with detail
+    if (preferences && preferences.length > 0) {
+      const titleLower = result.title.toLowerCase();
+      const contentLower = result.content.toLowerCase();
+
+      for (const pref of preferences) {
+        const prefLower = pref.toLowerCase();
+
+        if (titleLower.includes(prefLower)) {
+          matchedPreferences.push(pref);
+          titleMatches++;
+        } else if (contentLower.includes(prefLower)) {
+          matchedPreferences.push(pref);
+          contentMatches++;
+        }
+      }
+    }
+
+    // Build accurate selection reason
+    const reasons: string[] = [];
+
+    // Preference matching (most important)
+    if (titleMatches > 0) {
+      reasons.push(
+        `strong match with preferences in title: ${matchedPreferences.slice(0, titleMatches).join(', ')}`,
+      );
+    } else if (contentMatches > 0) {
+      reasons.push(`matches preferences: ${matchedPreferences.join(', ')}`);
+    }
+
+    // Relevance score (second most important)
+    if (result.score && result.score >= 0.8) {
+      reasons.push(
+        `high relevance score (${(result.score * 100).toFixed(0)}%)`,
+      );
+    } else if (result.score && result.score >= 0.6) {
+      reasons.push(
+        `good relevance score (${(result.score * 100).toFixed(0)}%)`,
+      );
+    }
+
+    // Confidence level
+    if (result.confidence === 'High') {
+      reasons.push(`high confidence match`);
+    } else if (result.confidence === 'Medium') {
+      reasons.push(`medium confidence`);
+    }
+
+    // Priority boost
+    if (priorityScore > 1.5) {
+      reasons.push(`highly prioritized by multiple factors`);
+    } else if (priorityScore > 1.0) {
+      reasons.push(`boosted priority`);
+    }
+
+    // Category fit
+    if (reasons.length === 0) {
+      reasons.push(`fits ${category.toLowerCase()} category`);
+    }
+
+    const selectionReason =
+      reasons.length > 0
+        ? `Selected: ${reasons.join('; ')}`
+        : `Selected based on category fit (${category})`;
+
+    return {
+      selectionReason,
+      rankingFactors: {
+        relevanceScore: result.score || 0,
+        confidenceLevel: result.confidence || 'Low',
+        categoryMatch: true,
+        preferenceMatch:
+          matchedPreferences.length > 0 ? matchedPreferences : undefined,
+      },
+    };
+  }
+  /**
+   * Main enhanced itinerary generation
+   */
   private generateItinerary(
     searchResults: SearchResultItem[],
     dayCount: number,
@@ -405,26 +536,77 @@ export class AIController {
     preferences?: string[],
     destination?: string,
   ): DayPlan[] {
-    const scored = this.scoreResultsByPreferences(searchResults, preferences);
+    const filteredResults = searchResults.filter((result) => {
+      // Remove results with very low relevance scores
+      if (result.score && result.score < 0.5) return false;
+
+      // Remove results with low confidence and low score
+      if (result.confidence === 'Low' && (!result.score || result.score < 0.7))
+        return false;
+
+      // Remove very short descriptions (likely incomplete data)
+      if (result.content.length < 20) return false;
+
+      return true;
+    });
+    const scored = this.scoreResultsByPreferences(filteredResults, preferences);
     const maxActivities = Math.min(15, scored.length);
     const selectedResults = this.selectDiverseActivities(scored, maxActivities);
+
+    const avgScore =
+      selectedResults.reduce((sum, r) => sum + (r.score || 0), 0) /
+      selectedResults.length;
+    const highConfidenceCount = selectedResults.filter(
+      (r) => r.confidence === 'High',
+    ).length;
+
+    if (avgScore < 0.6) {
+      this.logger.warn(`Low average relevance score: ${avgScore.toFixed(2)}`);
+    }
+
+    if (highConfidenceCount < selectedResults.length * 0.3) {
+      this.logger.warn(
+        `Low confidence results: only ${highConfidenceCount}/${selectedResults.length} are high confidence`,
+      );
+    }
 
     const dayPlans: DayPlan[] = [];
     let activityIndex = 0;
 
-    const categorySequence: ItineraryCategory[] = ['Arrival','Sightseeing','Culture','Nature','Beach','Relaxation'];
+    const categorySequence: ItineraryCategory[] = [
+      'Arrival',
+      'Sightseeing',
+      'Culture',
+      'Nature',
+      'Beach',
+      'Relaxation',
+    ];
 
     for (let day = 1; day <= dayCount; day++) {
       const activitiesForDay: EnhancedItineraryItemDto[] = [];
-      const activitiesThisDay = Math.ceil((maxActivities - activityIndex) / (dayCount - day + 1));
+      const activitiesThisDay = Math.ceil(
+        (maxActivities - activityIndex) / (dayCount - day + 1),
+      );
 
-      for (let i = 0; i < activitiesThisDay && activityIndex < selectedResults.length; i++) {
+      for (
+        let i = 0;
+        i < activitiesThisDay && activityIndex < selectedResults.length;
+        i++
+      ) {
         const result = selectedResults[activityIndex];
+        const scoredResult = scored.find((s) => s.id === result.id);
+        const priorityScore = scoredResult?.priorityScore || 0;
 
         // Prefer logical order using category sequence
-        let category = this.determineActivityCategory(result.title, result.content, day, i, preferences);
+        let category = this.determineActivityCategory(
+          result.title,
+          result.content,
+          day,
+          i,
+          preferences,
+        );
         const seqIndex = categorySequence.indexOf(category);
-        category = categorySequence[seqIndex >=0 ? seqIndex : 0];
+        category = categorySequence[seqIndex >= 0 ? seqIndex : 0];
 
         activitiesForDay.push({
           order: activityIndex + 1,
@@ -435,7 +617,17 @@ export class AIController {
           timeSlot: this.assignTimeSlot(i, activitiesThisDay, day),
           estimatedDuration: this.estimateDuration(category),
           confidenceScore: result.confidence,
-          priority: Math.round((scored.find(s => s.id === result.id)?.priorityScore || 0) * 100) / 100,
+          priority:
+            Math.round(
+              (scored.find((s) => s.id === result.id)?.priorityScore || 0) *
+                100,
+            ) / 100,
+          explanation: this.generateExplanation(
+            result,
+            priorityScore,
+            category,
+            preferences,
+          ),
         });
 
         activityIndex++;
@@ -447,12 +639,22 @@ export class AIController {
           order: 1,
           dayNumber: 1,
           placeName: destination || 'Destination',
-          shortDescription: 'Arrival and check-in at accommodation. Explore nearby area.',
+          shortDescription:
+            'Arrival and check-in at accommodation. Explore nearby area.',
           category: 'Arrival',
           timeSlot: 'Afternoon',
           estimatedDuration: '2-3 hours',
           confidenceScore: 'Low',
           priority: 0.5,
+          explanation: {
+            selectionReason:
+              'Default arrival activity - no specific matches found',
+            rankingFactors: {
+              relevanceScore: 0,
+              confidenceLevel: 'Low',
+              categoryMatch: false,
+            },
+          },
         });
       }
 
@@ -471,8 +673,8 @@ export class AIController {
   }
 
   /**
- * Enhanced category determination with better logic
- */
+   * Enhanced category determination with better logic
+   */
   private determineActivityCategory(
     title: string,
     content: string,
@@ -492,7 +694,8 @@ export class AIController {
         if (text.includes(prefLower)) {
           if (prefLower.match(/beach|surf|diving|coast/)) return 'Beach';
           if (prefLower.match(/nature|wildlife|park|safari/)) return 'Nature';
-          if (prefLower.match(/culture|temple|religious|heritage|traditional/)) return 'Culture';
+          if (prefLower.match(/culture|temple|religious|heritage|traditional/))
+            return 'Culture';
           if (prefLower.match(/relax|spa|resort/)) return 'Relaxation';
         }
       }
@@ -500,10 +703,14 @@ export class AIController {
 
     // Strong keyword matching with priority order
     if (text.match(/beach|coast|ocean|surf|whale watching/)) return 'Beach';
-    if (text.match(/temple|pagoda|shrine|cultural center|museum/)) return 'Culture';
-    if (text.match(/national park|wildlife|safari|nature reserve|forest/)) return 'Nature';
-    if (text.match(/fortress|fort|rock|ancient|historical site|monument/)) return 'Sightseeing';
-    if (text.match(/spa|resort|tea|plantation|scenic|relaxation/)) return 'Relaxation';
+    if (text.match(/temple|pagoda|shrine|cultural center|museum/))
+      return 'Culture';
+    if (text.match(/national park|wildlife|safari|nature reserve|forest/))
+      return 'Nature';
+    if (text.match(/fortress|fort|rock|ancient|historical site|monument/))
+      return 'Sightseeing';
+    if (text.match(/spa|resort|tea|plantation|scenic|relaxation/))
+      return 'Relaxation';
 
     // Default based on day progression
     const rotationPattern: ItineraryCategory[] = [
@@ -513,16 +720,19 @@ export class AIController {
       'Beach',
       'Relaxation',
     ];
-  
-    return rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
+
+    return rotationPattern[
+      (dayNumber + activityIndex) % rotationPattern.length
+    ];
   }
 
-
   /**
-  * Ensure diversity in activity categories
-  */
+   * Ensure diversity in activity categories
+   */
   private selectDiverseActivities(
-    scoredResults: Array<SearchResultItem & { priorityScore: number; normalizedText?: string }>,
+    scoredResults: Array<
+      SearchResultItem & { priorityScore: number; normalizedText?: string }
+    >,
     maxCount: number,
   ): SearchResultItem[] {
     const selected: SearchResultItem[] = [];
@@ -530,21 +740,28 @@ export class AIController {
     const textSet = new Set<string>();
     const maxPerCategory = Math.ceil(maxCount / 4);
 
-    const sorted = [...scoredResults].sort((a, b) => b.priorityScore - a.priorityScore);
+    const sorted = [...scoredResults].sort(
+      (a, b) => b.priorityScore - a.priorityScore,
+    );
 
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
 
       // Deduplication based on normalized text
-      const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
+      const textKey =
+        result.normalizedText ||
+        `${result.title} ${result.content}`.toLowerCase();
       if (textSet.has(textKey)) continue;
 
       // Determine category
       let category = 'General';
       if (textKey.match(/beach|coast|ocean/)) category = 'Beach';
-      else if (textKey.match(/temple|cultural|heritage|museum/)) category = 'Culture';
-      else if (textKey.match(/park|wildlife|nature|mountain/)) category = 'Nature';
-      else if (textKey.match(/fortress|historical|ancient/)) category = 'Sightseeing';
+      else if (textKey.match(/temple|cultural|heritage|museum/))
+        category = 'Culture';
+      else if (textKey.match(/park|wildlife|nature|mountain/))
+        category = 'Nature';
+      else if (textKey.match(/fortress|historical|ancient/))
+        category = 'Sightseeing';
 
       // Respect category limit for diversity
       const currentCount = categoryCount[category] || 0;
@@ -558,7 +775,9 @@ export class AIController {
     // Fill remaining if not enough
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
-      const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
+      const textKey =
+        result.normalizedText ||
+        `${result.title} ${result.content}`.toLowerCase();
       if (!textSet.has(textKey)) {
         selected.push(result);
         textSet.add(textKey);
@@ -569,14 +788,13 @@ export class AIController {
   }
 
   /**
-  * Assign time slots to activities for better day structure
- */
+   * Assign time slots to activities for better day structure
+   */
   private assignTimeSlot(
     activityIndex: number,
     totalActivitiesInDay: number,
     dayNumber?: number,
   ): 'Morning' | 'Afternoon' | 'Evening' {
-
     // 🔹 DAY 1 RULE
     if (dayNumber === 1) {
       // Arrival handled separately
@@ -594,13 +812,12 @@ export class AIController {
     const ratio = activityIndex / (totalActivitiesInDay - 1);
     if (ratio < 0.4) return 'Morning';
     if (ratio < 0.7) return 'Afternoon';
-  return 'Evening';
- }
-
+    return 'Evening';
+  }
 
   /**
-  * Estimate activity duration based on category
-  */
+   * Estimate activity duration based on category
+   */
   private estimateDuration(category: ItineraryCategory): string {
     const durations: Record<ItineraryCategory, string> = {
       Arrival: '2-3 hours',
@@ -614,8 +831,8 @@ export class AIController {
   }
 
   /**
-  * Generate day themes based on activities
-  */
+   * Generate day themes based on activities
+   */
   private generateDayTheme(activities: EnhancedItineraryItemDto[]): string {
     const categories = activities.map((a) => a.category);
     const uniqueCategories = [...new Set(categories)];
@@ -623,16 +840,16 @@ export class AIController {
     if (uniqueCategories.length === 1) {
       return `${uniqueCategories[0]} Day`;
     }
-  
+
     if (categories.includes('Beach') && categories.includes('Relaxation')) {
       return 'Beach & Relaxation';
     }
-  
+
     if (categories.includes('Culture') && categories.includes('Sightseeing')) {
       return 'Cultural Exploration';
     }
-  
-    if (categories.includes('Nature') ) {
+
+    if (categories.includes('Nature')) {
       return 'Nature & Wildlife';
     }
 
@@ -643,7 +860,9 @@ export class AIController {
   async tripPlanEnhanced(
     @Body() body: TripPlanRequestDto,
   ): Promise<TripPlanResponseDto> {
-    this.logger.log(`🗺️ Generating enhanced trip plan for: ${body.destination}`);
+    this.logger.log(
+      `🗺️ Generating enhanced trip plan for: ${body.destination}`,
+    );
 
     // Step 1: Build enriched search query
     const searchTerms = [
@@ -662,46 +881,51 @@ export class AIController {
     const endDate = new Date(body.endDate);
     const dayCount = Math.max(
       1,
-    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-  );
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1,
+    );
 
-  this.logger.log(`📅 Trip duration: ${dayCount} days`);
-  this.logger.log(`🎯 Preferences: ${body.preferences?.join(', ') || 'None'}`);
+    this.logger.log(`📅 Trip duration: ${dayCount} days`);
+    this.logger.log(
+      `🎯 Preferences: ${body.preferences?.join(', ') || 'None'}`,
+    );
 
-  // Step 4: Generate enhanced day-by-day itinerary
-  const dayPlans = this.generateItinerary(
-    searchResults.results,
-    dayCount,
-    body.startDate,
-    body.preferences,
-    body.destination,
-  );
+    // Step 4: Generate enhanced day-by-day itinerary
+    const dayPlans = this.generateItinerary(
+      searchResults.results,
+      dayCount,
+      body.startDate,
+      body.preferences,
+      body.destination,
+    );
 
+    // Step 5: Generate summary
+    const allActivities = dayPlans.flatMap((d) => d.activities);
+    const categories = [...new Set(allActivities.map((a) => a.category))];
+    const matchedPrefs =
+      body.preferences?.filter((pref) =>
+        allActivities.some(
+          (activity) => activity.category.toLowerCase() === pref.toLowerCase(),
+        ),
+      ) || [];
 
-  // Step 5: Generate summary
-  const allActivities = dayPlans.flatMap((d) => d.activities);
-  const categories = [...new Set(allActivities.map((a) => a.category))];
-  const matchedPrefs = body.preferences?.filter((pref) =>
-    allActivities.some((activity) =>
-      activity.category.toLowerCase() === pref.toLowerCase()
-    )
-  ) || [];
-
-  return {
-    plan: {
-      destination: body.destination,
-      dates: {
-        start: body.startDate,
-        end: body.endDate,
+    return {
+      plan: {
+        destination: body.destination,
+        dates: {
+          start: body.startDate,
+          end: body.endDate,
+        },
+        totalDays: dayCount,
+        dayByDayPlan: dayPlans,
+        summary: {
+          totalActivities: allActivities.length,
+          categoriesIncluded: categories,
+          preferencesMatched: matchedPrefs,
+        },
       },
-      totalDays: dayCount,
-      dayByDayPlan: dayPlans,
-      summary: {
-        totalActivities: allActivities.length,
-        categoriesIncluded: categories,
-        preferencesMatched: matchedPrefs,
-      },
-    },
-    message: `Generated ${allActivities.length} activities across ${dayCount} days for ${body.destination}. Matched ${matchedPrefs.length} of your preferences.`,
-  };
-}}
+      message: `Generated ${allActivities.length} activities across ${dayCount} days for ${body.destination}. Matched ${matchedPrefs.length} of your preferences.`,
+    };
+  }
+}

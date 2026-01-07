@@ -6,7 +6,7 @@ import { Driver, RideRequest } from './item.interface';
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
@@ -50,7 +50,11 @@ export class TransportService {
     return { message: 'Ride requests seeding not yet migrated to PostGIS' };
   }
 
-  async getDrivers(lat?: number, lng?: number, limit: number = 5): Promise<Driver[]> {
+  async getDrivers(
+    lat?: number,
+    lng?: number,
+    limit: number = 5,
+  ): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
       const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
