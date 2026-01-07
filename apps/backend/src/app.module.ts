@@ -9,16 +9,17 @@ import { UsersModule } from './modules/users/users.module';
 import { TransportModule } from './modules/transport/transport.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { AIModule } from './modules/ai/ai.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // ThrottlerModule.forRoot([
-    //   {
-    //     ttl: 60000,
-    //     limit: 10,
-    //   },
-    // ]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
