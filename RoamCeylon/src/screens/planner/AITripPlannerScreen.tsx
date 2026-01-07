@@ -1,13 +1,107 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  TextInput, 
+  ActivityIndicator,
+  Alert,
+  Animated 
+} from 'react-native';
+import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
+import { aiService, TripPlanResponse } from '../../services/aiService';
+import { usePlannerContext } from '../../context/PlannerContext';
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
+  const { query, setQuery, tripPlan, setTripPlan } = usePlannerContext();
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (tripPlan) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [tripPlan]);
+
+  const budgets = ['Low', 'Medium', 'High', 'Luxury'];
+
+  const updateQuery = (key: keyof typeof query, value: string) => {
+    setQuery(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleGeneratePlan = async () => {
+    if (!query.destination || !query.duration) {
+      Alert.alert('Missing Info', 'Please enter both destination and duration.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    // don't clear tripPlan immediately if you want to show previous results, but usually we want fresh request visual
+    setTripPlan(null); 
+
+    try {
+      const plan = await aiService.generateTripPlan(query);
+      setTripPlan(plan);
+    } catch (error) {
+      setError('Failed to generate trip plan. Please try again.');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderItinerary = (plan: TripPlanResponse) => (
+    <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+      <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Duration</Text>
+          <Text style={styles.summaryValue}>{plan.duration} Days</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Budget</Text>
+          <Text style={styles.summaryValue}>{plan.budget}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>Daily Itinerary</Text>
+      {plan.itinerary.map((day) => (
+        <View key={day.day} style={styles.dayCard}>
+          <Text style={styles.dayTitle}>Day {day.day}</Text>
+          {day.activities.map((activity, index) => (
+            <View key={index} style={styles.activityRow}>
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.activityText}>{activity}</Text>
+            </View>
+          ))}
+        </View>
+      ))}
+
+      <TouchableOpacity 
+        style={styles.resetButton}
+        onPress={() => setTripPlan(null)}
+      >
+        <Text style={styles.resetButtonText}>Plan Another Trip</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
 
   return (
     <ScrollView style={styles.container}>
@@ -16,57 +110,91 @@ const AITripPlannerScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>AI Trip Planner</Text>
+        <View style={{ width: 40 }} /> 
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
-        {/* Icon */}
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>🤖✨</Text>
-        </View>
+        {!tripPlan ? (
+          <>
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>🤖✨</Text>
+            </View>
+            <Text style={styles.title}>Plan Your Adventure</Text>
+            <Text style={styles.subtitle}>
+              Let our AI assistant create a personalized itinerary for you.
+            </Text>
 
-        {/* Title */}
-        <Text style={styles.title}>AI Trip Planner</Text>
-        <Text style={styles.badge}>Coming Soon in Sprint 2</Text>
+            {/* Form */}
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Where to?</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Kandy, Ella, Sigiriya"
+                  value={query.destination}
+                  onChangeText={(text) => updateQuery('destination', text)}
+                />
+              </View>
 
-        {/* Description */}
-        <View style={styles.descriptionCard}>
-          <Text style={styles.sectionTitle}>What's Coming</Text>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>💬</Text>
-            <Text style={styles.featureText}>Chat-based trip planning with AI assistant</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🗺️</Text>
-            <Text style={styles.featureText}>Personalized itinerary recommendations</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>💰</Text>
-            <Text style={styles.featureText}>Smart budget planning</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🏨</Text>
-            <Text style={styles.featureText}>Accommodation and activity suggestions</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>📅</Text>
-            <Text style={styles.featureText}>Optimized travel schedules</Text>
-          </View>
-        </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Duration (Days)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 3"
+                  keyboardType="numeric"
+                  value={query.duration}
+                  onChangeText={(text) => updateQuery('duration', text)}
+                />
+              </View>
 
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>🚀 In Development</Text>
-          <Text style={styles.infoText}>
-            Our AI-powered trip planner is being built to help you create the perfect Sri Lankan adventure.
-            Get ready for intelligent recommendations tailored to your preferences, budget, and travel style.
-          </Text>
-        </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Budget Level</Text>
+                <View style={styles.budgetSelector}>
+                  {budgets.map((b) => (
+                    <TouchableOpacity
+                      key={b}
+                      style={[
+                        styles.budgetOption,
+                        query.budget === b && styles.budgetOptionSelected,
+                      ]}
+                      onPress={() => updateQuery('budget', b)}
+                    >
+                      <Text
+                        style={[
+                          styles.budgetOptionText,
+                          query.budget === b && styles.budgetOptionTextSelected,
+                        ]}
+                      >
+                        {b}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-        {/* Expected Release */}
-        <View style={styles.releaseCard}>
-          <Text style={styles.releaseText}>Expected in Next Release</Text>
-        </View>
+                <TouchableOpacity
+                style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
+                onPress={handleGeneratePlan}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.generateButtonText}>✨ Generate Plan</Text>
+                )}
+              </TouchableOpacity>
+              
+              {error && (
+                <View style={styles.errorContainer}>
+                   <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
+            </View>
+          </>
+        ) : (
+          renderItinerary(tripPlan)
+        )}
       </View>
     </ScrollView>
   );
@@ -81,8 +209,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 20,
     paddingTop: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
   backButton: {
     fontSize: 16,
@@ -94,95 +230,192 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 10,
+    marginBottom: 10,
   },
   icon: {
-    fontSize: 80,
+    fontSize: 60,
   },
   title: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  badge: {
-    backgroundColor: '#0066CC',
-    color: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+  subtitle: {
     fontSize: 14,
-    fontWeight: '600',
+    color: '#666',
+    textAlign: 'center',
     marginBottom: 30,
+    paddingHorizontal: 20,
   },
-  descriptionCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 15,
+  formContainer: {
     width: '100%',
-    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  budgetSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+  },
+  budgetOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  budgetOptionSelected: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#0066CC',
+  },
+  budgetOptionText: {
+    fontSize: 13,
+    color: '#666',
+  },
+  budgetOptionTextSelected: {
+    color: '#0066CC',
+    fontWeight: '600',
+  },
+  generateButton: {
+    backgroundColor: '#0066CC',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  generateButtonDisabled: {
+    backgroundColor: '#90CAF9',
+  },
+  generateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  // Iterinary Results Styles
+  resultsContainer: {
+    width: '100%',
+  },
+  resultTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 25,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
+  },
+  summaryItem: {
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0066CC',
+  },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 15,
   },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  featureText: {
-    fontSize: 16,
-    color: '#666',
-    flex: 1,
-    lineHeight: 22,
-  },
-  infoCard: {
-    backgroundColor: '#E3F2FD',
-    padding: 20,
-    borderRadius: 15,
-    width: '100%',
-    marginBottom: 20,
+  dayCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
     borderLeftWidth: 4,
     borderLeftColor: '#0066CC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  infoTitle: {
-    fontSize: 18,
+  dayTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#0066CC',
+    color: '#333',
     marginBottom: 10,
   },
-  infoText: {
-    fontSize: 15,
-    color: '#555',
-    lineHeight: 22,
+  activityRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    alignItems: 'flex-start',
   },
-  releaseCard: {
-    backgroundColor: '#FFF3E0',
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFB74D',
-  },
-  releaseText: {
+  bulletPoint: {
     fontSize: 16,
+    color: '#0066CC',
+    marginRight: 8,
+    marginTop: -2,
+  },
+  activityText: {
+    fontSize: 14,
+    color: '#555',
+    flex: 1,
+    lineHeight: 20,
+  },
+  resetButton: {
+    marginTop: 20,
+    padding: 15,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    color: '#0066CC',
     fontWeight: '600',
-    color: '#F57C00',
+    fontSize: 15,
+  },
+  errorContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#ffebee',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
