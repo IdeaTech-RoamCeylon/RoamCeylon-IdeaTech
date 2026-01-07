@@ -12,6 +12,7 @@ export interface VerifyOTPResponse {
   success: boolean;
   message: string;
   token?: string;
+  accessToken?: string;
   user?: {
     id: string;
     phoneNumber: string;
@@ -58,24 +59,46 @@ export const sendOtp = async (phoneNumber: string): Promise<OTPResponse> => {
   }
 };
 
+// Backend response wrapper structure
+export interface ApiResponse<T> {
+  statusCode: number;
+  success: boolean;
+  timestamp: string;
+  path: string;
+  data: T;
+  meta?: any;
+}
+
 export const verifyOtp = async (
   phoneNumber: string,
   otp: string
 ): Promise<{ accessToken: string; user: { id: string; phoneNumber: string } }> => {
   try {
-    // Backend returns { accessToken: "mock-jwt-token", user: {...} }
-    const response = await apiService.post<{ accessToken: string; user: { id: string; phoneNumber: string } }>('/auth/verify-otp', {
+    // Backend returns wrapped response: { data: { accessToken: "...", user: {...} }, success: true, ... }
+    const response = await apiService.post<ApiResponse<{ accessToken: string; user: { id: string; phoneNumber: string } }>>('/auth/verify-otp', {
       phoneNumber,
       otp,
     });
 
-    // Store token if verification successful
-    if (response.accessToken) {
-      await storeAuthToken(response.accessToken);
+    const accessToken = response.data?.accessToken;
+
+    if (!accessToken) {
+      console.error('Verify OTP response missing token:', response);
+      throw new Error('No access token received from server');
     }
 
-    // Return the response as-is since it matches our expected format
-    return response;
+    // Store token if verification successful
+    await storeAuthToken(accessToken);
+
+    const user = response.data?.user || {
+      id: '',
+      phoneNumber: phoneNumber
+    };
+
+    return {
+      accessToken,
+      user
+    };
   } catch (error) {
     console.error('Verify OTP error:', error);
     throw error;
@@ -84,8 +107,8 @@ export const verifyOtp = async (
 
 export const getMe = async (): Promise<UserProfile> => {
   try {
-    const response = await apiService.get<UserProfile>('/users/me');
-    return response;
+    const response = await apiService.get<ApiResponse<UserProfile>>('/users/me');
+    return response.data;
   } catch (error) {
     console.error('Get user profile error:', error);
     throw error;

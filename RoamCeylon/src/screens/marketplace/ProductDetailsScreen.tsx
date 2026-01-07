@@ -98,7 +98,7 @@ const ProductDetailsScreen = () => {
       <View style={styles.content}>
         <View style={styles.titleSection}>
           <Text style={styles.title}>{product.name}</Text>
-          <Text style={styles.price}>Rs. {product.price.toFixed(2)}</Text>
+          <Text style={styles.price}>Rs. {(product.price || 0).toFixed(2)}</Text>
         </View>
 
         <View style={styles.ratingSection}>

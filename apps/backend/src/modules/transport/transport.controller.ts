@@ -16,7 +16,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class TransportController {
   private readonly logger = new Logger(TransportController.name);
 
-  constructor(private readonly transportService: TransportService) { }
+  constructor(private readonly transportService: TransportService) {}
 
   @Post('seed')
   seedData() {
@@ -37,7 +37,9 @@ export class TransportController {
     @Query('lng') lng?: string,
     @Query('limit') limit?: string,
   ): Promise<Driver[]> {
-    this.logger.log(`Fetching drivers... location: ${lat}, ${lng}, limit: ${limit}`);
+    this.logger.log(
+      `Fetching drivers... location: ${lat}, ${lng}, limit: ${limit}`,
+    );
     const latitude = lat ? parseFloat(lat) : undefined;
     const longitude = lng ? parseFloat(lng) : undefined;
     const limitVal = limit ? parseInt(limit, 10) : 5;
