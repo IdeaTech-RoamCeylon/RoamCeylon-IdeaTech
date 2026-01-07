@@ -194,20 +194,20 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async searchEmbeddingsWithMetadataFromEmbedding(
+  public async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
-    similarityThreshold = 0.5, 
-    minConfidence?: 'High' | 'Medium' | 'Low', 
+    similarityThreshold = 0.5,
+    minConfidence?: 'High' | 'Medium' | 'Low',
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
-
+    
     this.logger.log(`📡 Running pgvector search with limit=${limit}`);
-
+    
     const start = Date.now();
 
     const result = await this.client.query<RawEmbeddingRow>(
@@ -226,7 +226,6 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     const dbTime = Date.now() - start;
     this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
 
-    // Map + normalize (NO rank yet)
     const normalized = result.rows.map((row) => {
       const score = this.normalizeScore(row.distance);
 
@@ -247,12 +246,10 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     );
 
     // Apply similarity threshold
-    const strongMatches = unique.filter(
-      (item) => item.score >= similarityThreshold,
-    );
+    const strongMatches = unique.filter((item) => item.score >= similarityThreshold);
 
-    // 🔥 Explicit re-ranking (MOST IMPORTANT STEP)
-    const ranked = strongMatches
+    // Initial ranking + attach confidence
+    let ranked = strongMatches
       .sort((a, b) => b.score - a.score)
       .map((item, idx) => ({
         ...item,
@@ -260,15 +257,27 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         confidence: this.getConfidence(item.score),
       }));
 
+    // If minConfidence was provided, filter by its numeric threshold
+    if (minConfidence) {
+      const confThreshold = this.getConfidenceThreshold(minConfidence);
+      ranked = ranked
+        .filter((r) => r.score >= confThreshold)
+        .sort((a, b) => b.score - a.score)
+        .map((item, idx) => ({
+          ...item,
+        rank: idx + 1, // recompute ranks after filtering
+      }));
+    }
+
     this.logger.log(
-      `📊 Final ranked vector results: ${JSON.stringify(
-        ranked.map((r) => ({
-          id: r.id,
-          score: Number(r.score.toFixed(4)),
-          confidence: r.confidence,
-        })),
-      )}`,
-    );
+    `📊 Final ranked vector results: ${JSON.stringify(
+      ranked.map((r) => ({
+        id: r.id,
+        score: Number(r.score.toFixed(4)),
+        confidence: r.confidence,
+      })),
+    )}`,
+  );
 
     if (ranked.length === 0) {
       return {

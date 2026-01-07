@@ -185,8 +185,8 @@ export class AIController {
    * Returns filtered results and appropriate fallback message if needed
    */
   private filterByConfidenceThreshold(
-  results: SearchResultItem[],
-  minConfidence: 'High' | 'Medium' | 'Low' = 'Medium',
+    results: SearchResultItem[],
+    minConfidence: 'High' | 'Medium' | 'Low' = 'Medium',
   ): { filtered: SearchResultItem[]; fallbackMessage?: string } {
   if (results.length === 0) {
     return {
