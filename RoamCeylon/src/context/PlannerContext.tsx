@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { TripPlanResponse } from '../services/aiService';
 
 interface PlannerContextProps {
@@ -27,13 +27,19 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
   });
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
 
-  const clearPlanner = () => {
+  const clearPlanner = useCallback(() => {
     setQuery({ destination: '', duration: '', budget: 'Medium' });
     setTripPlan(null);
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({ query, setQuery, tripPlan, setTripPlan, clearPlanner }),
+    [query, tripPlan, clearPlanner]
+  );
 
   return (
-    <PlannerContext.Provider value={{ query, setQuery, tripPlan, setTripPlan, clearPlanner }}>
+    <PlannerContext.Provider value={contextValue}>
       {children}
     </PlannerContext.Provider>
   );
