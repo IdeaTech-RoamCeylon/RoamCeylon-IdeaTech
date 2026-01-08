@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -16,12 +16,14 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
 import { aiService, TripPlanResponse } from '../../services/aiService';
 import { usePlannerContext } from '../../context/PlannerContext';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
   const { query, setQuery, tripPlan, setTripPlan } = usePlannerContext();
+  const networkStatus = useNetworkStatus();
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,35 +41,44 @@ const AITripPlannerScreen = () => {
     }
   }, [tripPlan]);
 
-  const budgets = ['Low', 'Medium', 'High', 'Luxury'];
+  // Memoize budgets array to prevent recreation
+  const budgets = useMemo(() => ['Low', 'Medium', 'High', 'Luxury'], []);
 
-  const updateQuery = (key: keyof typeof query, value: string) => {
+  // Memoize updateQuery to prevent recreation
+  const updateQuery = useCallback((key: keyof typeof query, value: string) => {
     setQuery(prev => ({ ...prev, [key]: value }));
-  };
+  }, [setQuery]);
 
-  const handleGeneratePlan = async () => {
+  const handleGeneratePlan = useCallback(async () => {
     if (!query.destination || !query.duration) {
       Alert.alert('Missing Info', 'Please enter both destination and duration.');
       return;
     }
 
+    // Check network connectivity
+    if (!networkStatus.isConnected) {
+      setError('No internet connection. Please check your network and try again.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    // don't clear tripPlan immediately if you want to show previous results, but usually we want fresh request visual
     setTripPlan(null); 
 
     try {
       const plan = await aiService.generateTripPlan(query);
       setTripPlan(plan);
     } catch (error) {
-      setError('Failed to generate trip plan. Please try again.');
-      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to generate trip plan: ${errorMessage}`);
+      console.error('[AITripPlannerScreen] Error generating plan:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [query, networkStatus.isConnected, setTripPlan]);
 
-  const renderItinerary = (plan: TripPlanResponse) => (
+  // Memoize renderItinerary to prevent recreation
+  const renderItinerary = useCallback((plan: TripPlanResponse) => (
     <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
       <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
       <View style={styles.summaryContainer}>
@@ -101,7 +112,7 @@ const AITripPlannerScreen = () => {
         <Text style={styles.resetButtonText}>Plan Another Trip</Text>
       </TouchableOpacity>
     </Animated.View>
-  );
+  ), [fadeAnim, setTripPlan]);
 
   return (
     <ScrollView style={styles.container}>
@@ -188,6 +199,19 @@ const AITripPlannerScreen = () => {
               {error && (
                 <View style={styles.errorContainer}>
                    <Text style={styles.errorText}>{error}</Text>
+                   <TouchableOpacity 
+                     style={styles.retryButton}
+                     onPress={handleGeneratePlan}
+                     disabled={isLoading || !networkStatus.isConnected}
+                   >
+                     <Text style={styles.retryButtonText}>Retry</Text>
+                   </TouchableOpacity>
+                </View>
+              )}
+              
+              {!networkStatus.isConnected && (
+                <View style={styles.offlineContainer}>
+                  <Text style={styles.offlineText}>📡 Offline</Text>
                 </View>
               )}
             </View>
@@ -416,6 +440,33 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
     fontSize: 14,
     textAlign: 'center',
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#0066CC',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  offlineContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffc107',
+    alignItems: 'center',
+  },
+  offlineText: {
+    color: '#856404',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

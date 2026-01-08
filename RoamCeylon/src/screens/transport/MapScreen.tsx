@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 import * as Location from 'expo-location';
 import { MOCK_DRIVERS } from '../../data/mockDrivers';
 import Toast from 'react-native-toast-message';
 import { useMapContext } from '../../context/MapContext';
+import { retryWithBackoff } from '../../utils/networkUtils';
 
 // Lazy load Mapbox to prevent build errors
 let MapboxGL: any = null;
@@ -54,31 +55,52 @@ const MapScreen = () => {
     ));
   }, [drivers]);
 
-  const fetchDrivers = async () => {
+  const fetchDrivers = useCallback(async () => {
     setTransportStatus('SEARCHING');
+    console.log('[MapScreen] Starting driver search...');
+    
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const result = await retryWithBackoff(
+        async () => {
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Randomly simulate "No Drivers" for demonstration (10% chance)
+          const randomChance = Math.random();
+          if (randomChance > 0.9) {
+            console.log('[MapScreen] No drivers available in area');
+            return [];
+          }
+          
+          return MOCK_DRIVERS;
+        },
+        {
+          maxAttempts: 3,
+          initialDelay: 1000,
+          onRetry: (attempt, delay) => {
+            console.log(`[MapScreen] Retrying driver fetch (attempt ${attempt}, delay ${delay}ms)`);
+          }
+        }
+      );
       
-      // Randomly simulate "No Drivers" for demonstration (10% chance)
-      // or if we really had an API, we'd check response.length
-      const randomChance = Math.random();
-      if (randomChance > 0.9) {
+      if (result.length === 0) {
         setDrivers([]);
         setTransportStatus('NO_DRIVERS');
+        console.log('[MapScreen] Driver search complete: No drivers found');
       } else {
-        setDrivers(MOCK_DRIVERS);
+        setDrivers(result);
         setTransportStatus('FOUND');
+        console.log(`[MapScreen] Driver search complete: Found ${result.length} drivers`);
       }
     } catch (e) {
+      console.error('[MapScreen] Driver fetch failed after retries:', e);
       setTransportStatus('ERROR');
     }
-  };
+  }, [setDrivers]);
 
   useEffect(() => {
     // Check if Mapbox is properly configured
     const checkMapboxSetup = async () => {
-    // ... logic remains same, but we will call fetchDrivers inside initMap
       try {
         if (MapboxGL && MAPBOX_CONFIG.accessToken && MAPBOX_CONFIG.accessToken.startsWith('pk.')) {
           setIsMapboxConfigured(true);
@@ -86,7 +108,7 @@ const MapScreen = () => {
           setIsMapboxConfigured(false);
         }
       } catch (error) {
-        console.error('Error checking Mapbox setup:', error);
+        console.error('[MapScreen] Error checking Mapbox setup:', error);
         setIsMapboxConfigured(false);
       } finally {
         setIsLoading(false);
@@ -98,6 +120,7 @@ const MapScreen = () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           setErrorMsg('Permission to access location was denied');
+          console.log('[MapScreen] Location permission denied');
           Toast.show({
             type: 'error',
             text1: 'Location Permission Denied',
@@ -108,8 +131,9 @@ const MapScreen = () => {
 
         let location = await Location.getCurrentPositionAsync({});
         setUserLocation(location);
+        console.log('[MapScreen] Location permission granted');
       } catch (error) {
-        console.warn('Error fetching location:', error);
+        console.warn('[MapScreen] Error fetching location:', error);
       } finally {
         setIsLoading(false);
       }
@@ -120,6 +144,7 @@ const MapScreen = () => {
       if (userLocation && drivers.length > 0 && isMapboxConfigured) {
         setIsLoading(false);
         setTransportStatus('FOUND');
+        console.log('[MapScreen] Using cached map data');
         return;
       }
 
@@ -197,7 +222,7 @@ const MapScreen = () => {
         {/* Mock Drivers */}
         {driverMarkers}
 
-        {/* Default marker at Sri Lanka center (Optional, keeping for reference or removing if unwanted) */}
+        {/* Default marker at Sri Lanka center (Optional, removed for cleaner map) */}
         {/* <MapboxGL.PointAnnotation
           id="sri-lanka-center"
           coordinate={[

@@ -47,5 +47,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TransportScreen;
+export default React.memo(TransportScreen);
+
 
