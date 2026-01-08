@@ -845,25 +845,46 @@ export class AIController {
    * Generate day themes based on activities
    */
   private generateDayTheme(activities: EnhancedItineraryItemDto[]): string {
-    const categories = activities.map((a) => a.category);
-    const uniqueCategories = [...new Set(categories)];
+    const categories = activities.map((a) => a.category.trim());
+    const uniqueCategories = [
+      ...new Set(categories.map((c) => c.toLowerCase())),
+    ];
 
+    // Single category day
     if (uniqueCategories.length === 1) {
-      return `${uniqueCategories[0]} Day`;
+      return `${uniqueCategories[0][0].toUpperCase() + uniqueCategories[0].slice(1)} Day`;
     }
 
-    if (categories.includes('Beach') && categories.includes('Relaxation')) {
+    // Combined patterns
+    if (
+      uniqueCategories.includes('beach') &&
+      uniqueCategories.includes('relaxation')
+    ) {
       return 'Beach & Relaxation';
     }
-
-    if (categories.includes('Culture') && categories.includes('Sightseeing')) {
+    if (
+      uniqueCategories.includes('culture') &&
+      uniqueCategories.includes('sightseeing')
+    ) {
       return 'Cultural Exploration';
     }
-
-    if (categories.includes('Nature')) {
+    if (
+      uniqueCategories.includes('nature') &&
+      uniqueCategories.includes('sightseeing')
+    ) {
+      return 'Nature & Sightseeing';
+    }
+    if (uniqueCategories.includes('nature')) {
       return 'Nature & Wildlife';
     }
+    if (uniqueCategories.includes('relaxation')) {
+      return 'Relaxation & Leisure';
+    }
+    if (uniqueCategories.includes('sightseeing')) {
+      return 'Sightseeing Day';
+    }
 
+    // Default fallback
     return 'Mixed Activities';
   }
 
