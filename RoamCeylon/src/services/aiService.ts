@@ -31,16 +31,11 @@ class AIService {
       //   {
       //     maxAttempts: 3,
       //     initialDelay: 1000,
-      //     onRetry: (attempt, delay) => {
-      //       console.log(`[AIService] Retrying trip plan generation (attempt ${attempt})`);
-      //     }
       //   }
       // );
       // return response;
 
       // Mock implementation with retry logic
-      console.log('[AIService] Generating trip plan for:', request);
-      
       const result = await retryWithBackoff(
         async () => {
           await new Promise(resolve => setTimeout(resolve, AIService.MOCK_DELAY));
@@ -49,9 +44,6 @@ class AIService {
         {
           maxAttempts: 3,
           initialDelay: 1000,
-          onRetry: (attempt, delay) => {
-            console.log(`[AIService] Retrying trip plan generation (attempt ${attempt}, delay ${delay}ms)`);
-          }
         }
       );
 

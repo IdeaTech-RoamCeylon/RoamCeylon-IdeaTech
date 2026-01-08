@@ -16,7 +16,7 @@ try {
     MapboxGL.setAccessToken(MAPBOX_CONFIG.accessToken);
   }
 } catch (error) {
-  console.warn('Mapbox SDK not available:', error);
+  // Mapbox SDK not available
 }
 
 const MapScreen = () => {
@@ -57,7 +57,6 @@ const MapScreen = () => {
 
   const fetchDrivers = useCallback(async () => {
     setTransportStatus('SEARCHING');
-    console.log('[MapScreen] Starting driver search...');
     
     try {
       const result = await retryWithBackoff(
@@ -68,7 +67,6 @@ const MapScreen = () => {
           // Randomly simulate "No Drivers" for demonstration (10% chance)
           const randomChance = Math.random();
           if (randomChance > 0.9) {
-            console.log('[MapScreen] No drivers available in area');
             return [];
           }
           
@@ -77,20 +75,15 @@ const MapScreen = () => {
         {
           maxAttempts: 3,
           initialDelay: 1000,
-          onRetry: (attempt, delay) => {
-            console.log(`[MapScreen] Retrying driver fetch (attempt ${attempt}, delay ${delay}ms)`);
-          }
         }
       );
       
       if (result.length === 0) {
         setDrivers([]);
         setTransportStatus('NO_DRIVERS');
-        console.log('[MapScreen] Driver search complete: No drivers found');
       } else {
         setDrivers(result);
         setTransportStatus('FOUND');
-        console.log(`[MapScreen] Driver search complete: Found ${result.length} drivers`);
       }
     } catch (e) {
       console.error('[MapScreen] Driver fetch failed after retries:', e);
@@ -108,7 +101,6 @@ const MapScreen = () => {
           setIsMapboxConfigured(false);
         }
       } catch (error) {
-        console.error('[MapScreen] Error checking Mapbox setup:', error);
         setIsMapboxConfigured(false);
       } finally {
         setIsLoading(false);
@@ -120,7 +112,6 @@ const MapScreen = () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           setErrorMsg('Permission to access location was denied');
-          console.log('[MapScreen] Location permission denied');
           Toast.show({
             type: 'error',
             text1: 'Location Permission Denied',
@@ -131,9 +122,7 @@ const MapScreen = () => {
 
         let location = await Location.getCurrentPositionAsync({});
         setUserLocation(location);
-        console.log('[MapScreen] Location permission granted');
       } catch (error) {
-        console.warn('[MapScreen] Error fetching location:', error);
       } finally {
         setIsLoading(false);
       }
@@ -144,7 +133,6 @@ const MapScreen = () => {
       if (userLocation && drivers.length > 0 && isMapboxConfigured) {
         setIsLoading(false);
         setTransportStatus('FOUND');
-        console.log('[MapScreen] Using cached map data');
         return;
       }
 
