@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   sendOtp(phoneNumber: string): { message: string } {
-    console.log(`Sending OTP to ${phoneNumber}`);
+    this.logger.log(`Sending OTP to ${phoneNumber}`);
     return { message: 'OTP sent successfully' };
   }
 
@@ -11,7 +13,7 @@ export class AuthService {
     phoneNumber: string,
     otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    console.log(`Verifying OTP ${otp} for ${phoneNumber}`);
+    this.logger.log(`Verifying OTP ${otp} for ${phoneNumber}`);
     // Mock JWT token
     return {
       accessToken: 'mock-jwt-token',

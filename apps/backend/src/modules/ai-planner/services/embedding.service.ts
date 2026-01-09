@@ -1,55 +1,53 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Client } from 'pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
 import tourismData from '../data/sample-tourism.json';
 
 @Injectable()
 export class EmbeddingService {
-  constructor(private readonly configService: ConfigService) {}
+  private readonly logger = new Logger(EmbeddingService.name);
 
-  private createDummyEmbeddingFromText(text: string, dim = 8): number[] {
+  constructor(private readonly prisma: PrismaService) { }
+
+  /**
+   * Generates a dummy embedding for testing purposes.
+   * Matches the 1536 dimensions defined in the schema.
+   */
+  private generateDummyEmbedding(text: string, dim = 1536): number[] {
+    // Basic deterministic generation for consistent results
+    const seed = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return Array.from(
       { length: dim },
-      (_, i) => (text.charCodeAt(i % text.length) % 100) / 100,
+      (_, i) => Math.abs(Math.sin(seed + i))
     );
   }
 
   async seedEmbeddings(): Promise<void> {
-    const client = new Client({
-      user: this.configService.get<string>('DB_USER'),
-      host: this.configService.get<string>('DB_HOST'),
-      database: this.configService.get<string>('DB_NAME'),
-      password: String(this.configService.get<string>('DB_PASSWORD') || ''),
-      port: Number(this.configService.get<string>('DB_PORT')),
-    });
+    this.logger.log('Starting embedding seeding...');
 
     try {
-      await client.connect();
-
-      // Use imported JSON directly (no fs, no path issues)
       const dataset = tourismData.tourism_samples;
 
       for (const item of dataset) {
-        const embedding = this.createDummyEmbeddingFromText(
-          item.description,
-          8,
+        const vector = this.generateDummyEmbedding(item.description);
+        const vectorString = `[${vector.join(',')}]`;
+
+        // Using findFirst/upsert would be better for stability, 
+        // but for seeding we'll check if text already exists or just insert.
+        // The schema has no unique constraint on text, so we'll just insert for now.
+
+        await this.prisma.$executeRawUnsafe(
+          `INSERT INTO embeddings (text, embedding) VALUES ($1, $2::vector)`,
+          `${item.title}: ${item.description}`,
+          vectorString,
         );
 
-        await client.query(
-          `
-          INSERT INTO embeddings (item_id, title, content, embedding)
-          VALUES ($1, $2, $3, $4)
-          `,
-          [item.id, item.title, item.description, embedding],
-        );
+        this.logger.debug(`Seeded: ${item.title}`);
       }
+
+      this.logger.log('Seeding completed successfully');
     } catch (err) {
-      console.error('Seeding error:', err);
-      throw err;
-    } finally {
-      console.log('Closing DB connection...');
-      await client.end();
-      console.log('🔌 Closed.');
+      this.logger.error('Seeding failure', err);
+      throw new Error(`Failed to seed embeddings: ${err.message}`);
     }
   }
 }

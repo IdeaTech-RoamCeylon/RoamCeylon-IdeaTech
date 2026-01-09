@@ -34,13 +34,18 @@ model DriverLocation {
   driverId  String
   location  Unsupported("geometry(Point, 4326)")
   updatedAt DateTime               @updatedAt
+
+  @@index([location], map: "driver_location_idx", type: Gist)
 }
 
 model RideRequest {
   id             Int                    @id @default(autoincrement())
   passengerId    String
+  driverId       String?
   pickupLocation Unsupported("geometry(Point, 4326)")
   destination    Unsupported("geometry(Point, 4326)")
   status         String
   createdAt      DateTime               @default(now())
+
+  @@index([pickupLocation], map: "ride_request_pickup_idx", type: Gist)
 }

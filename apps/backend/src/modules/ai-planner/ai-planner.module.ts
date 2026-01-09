@@ -3,12 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { AiPlannerService } from './ai-planner.service';
 import { AiPlannerController } from './ai-planner.controller';
 import { EmbeddingService } from './services/embedding.service';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true })
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule
   ],
   controllers: [AiPlannerController],
   providers: [AiPlannerService, EmbeddingService]
 })
-export class AiPlannerModule {}
+export class AiPlannerModule { }
