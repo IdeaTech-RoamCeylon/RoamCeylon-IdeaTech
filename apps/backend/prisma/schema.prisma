@@ -16,6 +16,7 @@ model DriverLocation {
   updatedAt DateTime
 
   @@index([location], name: "driver_location_idx", type: Gist)
+  @@index([driverId], name: "driver_id_idx")
 }
 
 model RideRequest {
@@ -28,6 +29,7 @@ model RideRequest {
 
   @@index([pickupLocation], name: "ride_request_pickup_idx", type: Gist)
   @@index([destination], name: "ride_request_dest_idx", type: Gist)
+  @@index([passengerId], name: "ride_request_passenger_idx")
 }
 
 model SystemMetadata {
