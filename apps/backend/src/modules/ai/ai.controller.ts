@@ -366,69 +366,78 @@ export class AIController {
     @Query('limit') limit?: string,
     @Query('minConfidence') minConfidence?: string, // optional confidence filter
   ): Promise<SearchResponseDto> {
-    const validated = this.validateAndPreprocess(q);
-    if (typeof validated === 'string')
+    try {
+      const validated = this.validateAndPreprocess(q);
+      if (typeof validated === 'string')
+        return {
+          query: typeof q === 'string' ? q : '',
+          results: [],
+          message: validated,
+        };
+
+      const { cleaned } = validated;
+
+      const startTotal = Date.now();
+
+      const parsedLimit = Number(limit);
+
+      const lim =
+        Number.isInteger(parsedLimit) && parsedLimit > 0
+          ? Math.min(parsedLimit, 20)
+          : 10;
+
+      this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
+      this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
+
+      // ---- Embedding ----
+      const embedStart = Date.now();
+      const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
+      const embedTime = Date.now() - embedStart;
+      this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
+
+      // ---- Vector DB Search (ONE CALL ONLY) ----
+      const searchStart = Date.now();
+
+      const rawResults =
+        await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
+          embedding,
+          lim,
+        );
+      const searchTime = Date.now() - searchStart;
+
+      this.logger.log(`⏳ Vector DB search duration: ${searchTime}ms`);
+      this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
+
+      const total = Date.now() - startTotal;
+      this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
+
+      // Apply confidence filtering to vector results
+      if (Array.isArray(rawResults)) {
+        const confidenceLevel =
+          minConfidence === 'High' || minConfidence === 'Medium' || minConfidence === 'Low'
+            ? minConfidence
+            : 'Medium';
+
+        const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
+          rawResults,
+          confidenceLevel,
+        );
+
+        return {
+          query: cleaned,
+          results: filtered,
+          message: fallbackMessage,
+        };
+      } else {
+        return { query: cleaned, results: [], message: rawResults.message };
+      }
+    } catch (error) {
+      this.logger.error(`Vector search failed: ${error.message}`, error.stack);
       return {
         query: typeof q === 'string' ? q : '',
         results: [],
-        message: validated,
+        message: 'A temporary issue occurred with our search service. Please try keyword search instead.',
       };
-
-    const { cleaned } = validated;
-
-    const startTotal = Date.now();
-
-    const parsedLimit = Number(limit);
-
-    const lim =
-      Number.isInteger(parsedLimit) && parsedLimit > 0
-        ? Math.min(parsedLimit, 20)
-        : 10;
-
-    this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
-    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-
-    // ---- Embedding ----
-    const embedStart = Date.now();
-    const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
-    const embedTime = Date.now() - embedStart;
-    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
-
-    // ---- Vector DB Search (ONE CALL ONLY) ----
-    const searchStart = Date.now();
-
-    const rawResults =
-      await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
-        embedding,
-        lim,
-      );
-    const searchTime = Date.now() - searchStart;
-
-    this.logger.log(`⏳ Vector DB search duration: ${searchTime}ms`);
-    this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
-
-    const total = Date.now() - startTotal;
-    this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
-
-    // Apply confidence filtering to vector results
-    if (Array.isArray(rawResults)) {
-      const confidenceLevel =
-        minConfidence === 'High' || minConfidence === 'Medium' || minConfidence === 'Low'
-          ? minConfidence
-          : 'Medium';
-
-      const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
-        rawResults,
-        confidenceLevel,
-      );
-
-      return {
-        query: cleaned,
-        results: filtered,
-        message: fallbackMessage,
-      };
-    } else {
-      return { query: cleaned, results: [], message: rawResults.message };
     }
   }
 

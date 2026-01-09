@@ -39,6 +39,26 @@
     {
       "title": "Trincomalee",
       "description": "Trincomalee is a historic coastal city in northeastern Sri Lanka, known for pristine beaches, Koneswaram Temple, diving spots, and colonial-era forts."
+    },
+    {
+      "title": "Arugam Bay",
+      "description": "Arugam Bay is a world-renowned surfing destination on the east coast, known for its laid-back vibe, point breaks, and vibrant nightlife."
+    },
+    {
+      "title": "Polonnaruwa Ancient City",
+      "description": "The second ancient capital of Sri Lanka, featuring well-preserved ruins of royal palaces, temples, and the magnificent Gal Vihara rock sculptures."
+    },
+    {
+      "title": "Jaffna Fort",
+      "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon."
+    },
+    {
+      "title": "Bentota Beach",
+      "description": "A popular resort town on the west coast, famous for water sports like jet skiing, windsurfing, and its beautiful golden sandy beaches."
+    },
+    {
+      "title": "Udawalawe National Park",
+      "description": "One of the best places in the world to see wild elephants in their natural habitat, featuring a large reservoir and extensive grasslands."
     }
   ]
 }

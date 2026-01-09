@@ -31,9 +31,22 @@ export class TransportService {
     this.logger.log('Seeding drivers into PostGIS...');
 
     const driversData = [
+      // Colombo Area (Existing + New)
       { id: 'd1', name: 'Kamal Perera', lat: 6.9271, lng: 79.8612 }, // Colombo
       { id: 'd2', name: 'Nimal Silva', lat: 6.9319, lng: 79.8475 }, // Pettah
       { id: 'd3', name: 'Sunil Cooray', lat: 6.9023, lng: 79.8596 }, // Bambalapitiya
+
+      // Kandy Area
+      { id: 'd4', name: 'Duminda Alwis', lat: 7.2906, lng: 80.6337 }, // Kandy Town
+      { id: 'd5', name: 'Isuru Perera', lat: 7.2944, lng: 80.5987 }, // Peradeniya
+
+      // Galle Area
+      { id: 'd6', name: 'Sameera Appuhami', lat: 6.0329, lng: 80.2168 }, // Galle Fort
+      { id: 'd7', name: 'Asiri Bandara', lat: 6.0394, lng: 80.2489 }, // Unawatuna
+
+      // Nuwara Eliya Area
+      { id: 'd8', name: 'Chamara Silva', lat: 6.9497, lng: 80.7891 }, // Nuwara Eliya
+      { id: 'd9', name: 'Pradeep Kumara', lat: 6.9744, lng: 80.7824 }, // Lake Gregory
     ];
 
     try {
@@ -60,7 +73,7 @@ export class TransportService {
           `;
         }
       });
-      return { message: 'Drivers seeded to PostGIS', count: driversData.length };
+      return { message: 'Diverse drivers seeded to PostGIS', count: driversData.length };
     } catch (error) {
       this.logger.error(`Seeding failed: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to seed transport data');
