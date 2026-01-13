@@ -7,10 +7,18 @@ export interface Driver {
   eta?: string;
 }
 
+export enum RideStatus {
+  REQUESTED = 'requested',
+  ACCEPTED = 'accepted',
+  EN_ROUTE = 'en_route',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
 export interface RideRequest {
   id: string;
   passenger: string;
   from: string;
   to: string;
-  status: string;
+  status: RideStatus | string;
 }

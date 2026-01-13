@@ -132,6 +132,55 @@ export class TransportService {
     }
   }
 
+  async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }) {
+    try {
+      const result = await this.prisma.client.$executeRaw`
+        INSERT INTO "RideRequest" ("passengerId", "pickupLocation", "destination", "status", "createdAt")
+        VALUES (
+          ${passengerId},
+          ST_SetSRID(ST_MakePoint(${pickup.lng}, ${pickup.lat}), 4326),
+          ST_SetSRID(ST_MakePoint(${destination.lng}, ${destination.lat}), 4326),
+          'requested',
+          NOW()
+        )
+      `;
+      // Fetch the last inserted to return ID (simplification for raw query)
+      // For production, RETURNING id is better but this is consistent with current pattern
+      const ride = await this.prisma.client.$queryRaw<any[]>`
+        SELECT id FROM "RideRequest" WHERE "passengerId" = ${passengerId} ORDER BY "createdAt" DESC LIMIT 1
+      `;
+      return this.wrapResponse({ rideId: ride[0]?.id, status: 'requested' });
+    } catch (error) {
+      this.logger.error(`Failed to create ride: ${error.message}`);
+      throw new InternalServerErrorException('Could not create ride');
+    }
+  }
+
+  async updateRideStatus(rideId: number, status: string) {
+    try {
+      await this.prisma.client.$executeRaw`
+        UPDATE "RideRequest" SET status = ${status} WHERE id = ${rideId}
+      `;
+      return this.wrapResponse({ rideId, status });
+    } catch (error) {
+      this.logger.error(`Failed to update ride status: ${error.message}`);
+      throw new InternalServerErrorException('Could not update ride status');
+    }
+  }
+
+  async getRide(rideId: number) {
+    try {
+      const rides = await this.prisma.client.$queryRaw<any[]>`
+        SELECT id, "passengerId", status FROM "RideRequest" WHERE id = ${rideId}
+      `;
+      if (!rides.length) return this.wrapResponse(null);
+      return this.wrapResponse(rides[0]);
+    } catch (error) {
+      this.logger.error(`Failed to get ride: ${error.message}`);
+      throw new InternalServerErrorException('Could not fetch ride');
+    }
+  }
+
   getRideRequests(): Wrapper<RideRequest[]> {
     return this.wrapResponse([]);
   }

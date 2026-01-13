@@ -38,6 +38,13 @@ export interface TripPlanRequestDto {
   preferences?: string[];
 }
 
+export interface AdvancedTripPlanRequestDto extends TripPlanRequestDto {
+  budget?: 'Budget' | 'Standard' | 'Luxury';
+  accommodationType?: string;
+  pace?: 'Relaxed' | 'Moderate' | 'Fast';
+  travelers?: number;
+}
+
 // interface EmbeddedItem {
 //   id: number | string;
 //   title: string;
@@ -1313,6 +1320,114 @@ export class AIController {
           },
         },
         message: 'We encountered a temporary issue generating your personalized plan. Showing a general recommendation instead.',
+      };
+    }
+  }
+
+  /**
+   * ADVANCED TRIP PLANNER (Sprint 3)
+   * This endpoint supports budget-aware planning, personalized pace,
+   * and multi-day grouping with descriptive metadata.
+   */
+  @Post('trip-plan/advanced')
+  async tripPlanAdvanced(
+    @Body() body: AdvancedTripPlanRequestDto,
+  ): Promise<TripPlanResponseDto> {
+    this.logger.log(`[Sprint 3] Advanced trip planning triggered for ${body.destination}`);
+
+    try {
+      // 1. Preprocessing & Validation
+      const destination = typeof body.destination === 'string' ? body.destination.trim() : 'Sri Lanka';
+      const preferences = Array.isArray(body.preferences) ? body.preferences : [];
+      const budget = body.budget || 'Standard';
+      const pace = body.pace || 'Moderate';
+
+      const { startDate, endDate, dayCount, isValid: datesAreValid } = this.validateDates(
+        body.startDate,
+        body.endDate,
+      );
+
+      // 2. Search Execution (Enhanced for advanced context)
+      const queryContext = [
+        destination,
+        budget === 'Luxury' ? 'premium' : budget === 'Budget' ? 'affordable' : '',
+        pace === 'Fast' ? 'highlights' : 'relaxed',
+        ...preferences,
+      ].join(' ');
+
+      const searchResults = await this.executeSearch(queryContext);
+
+      // 3. Daily Activity Count based on Pace
+      // Relaxed: 1-2 activities/day, Moderate: 2-3, Fast: 3-4
+      const paceMultiplier = pace === 'Relaxed' ? 1.5 : pace === 'Fast' ? 3.5 : 2.5;
+      const totalRequestedActivities = Math.min(Math.ceil(dayCount * paceMultiplier), 15);
+
+      const scored = this.scoreResultsByPreferences(searchResults.results, preferences);
+      const selected = this.selectDiverseActivities(scored, totalRequestedActivities, preferences);
+
+      // 4. Grouping & Day Generation
+      const dayPlans: DayPlan[] = [];
+      let activityIdx = 0;
+
+      for (let day = 1; day <= dayCount; day++) {
+        const activitiesThisDay: EnhancedItineraryItemDto[] = [];
+        const dailyCap = pace === 'Relaxed' ? 2 : pace === 'Fast' ? 4 : 3;
+
+        for (let i = 0; i < dailyCap && activityIdx < selected.length; i++) {
+          const item = selected[activityIdx];
+          const category = this.determineActivityCategory(item.title, item.content, day, i, preferences);
+
+          activitiesThisDay.push({
+            order: activityIdx + 1,
+            dayNumber: day,
+            placeName: item.title,
+            shortDescription: item.content,
+            category,
+            timeSlot: this.assignTimeSlot(i, dailyCap, day),
+            estimatedDuration: this.estimateDuration(category),
+            confidenceScore: item.confidence,
+            priority: 0.8, // Base priority for advanced matching
+          });
+          activityIdx++;
+        }
+
+        // Add Date logic
+        const dateObj = new Date(startDate);
+        dateObj.setDate(dateObj.getDate() + day - 1);
+
+        dayPlans.push({
+          day,
+          date: dateObj.toISOString().split('T')[0],
+          theme: this.generateDayTheme(activitiesThisDay),
+          activities: activitiesThisDay,
+        });
+      }
+
+      // 5. Final Metadata Consolidation
+      const allActivities = dayPlans.flatMap(dp => dp.activities);
+      const categoriesFound = [...new Set(allActivities.map(a => a.category))];
+
+      return {
+        plan: {
+          destination,
+          dates: { start: startDate, end: endDate },
+          totalDays: dayCount,
+          dayByDayPlan: dayPlans,
+          summary: {
+            totalActivities: allActivities.length,
+            categoriesIncluded: categoriesFound,
+            preferencesMatched: preferences.filter(p => queryContext.includes(p)),
+          },
+        },
+        message: `Advanced ${pace}-paced ${budget} itinerary generated for ${destination}.`,
+      };
+    } catch (error) {
+      this.logger.error(`Critical error in tripPlanAdvanced: ${error.message}`, error.stack);
+      // Fallback to simpler implementation on error to ensure 100% availability
+      const basePlan = await this.tripPlanEnhanced(body);
+      return {
+        ...basePlan,
+        message: 'Personalized advanced planning encountered a delay. Showing optimized standard plan.',
       };
     }
   }

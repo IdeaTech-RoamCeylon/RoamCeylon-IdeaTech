@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Body,
   Logger,
   Query,
   UseGuards,
@@ -35,5 +36,43 @@ export class TransportController {
   getDrivers(@Query() query: GetDriversDto): Promise<Wrapper<Driver[]>> {
     const { lat, lng, limit } = query;
     return this.transportService.getDrivers(lat, lng, limit);
+  }
+
+  @Post('ride')
+  async createRide(@Body() body: { passengerId: string, pickup: any, destination: any }) {
+    return this.transportService.createRide(body.passengerId, body.pickup, body.destination);
+  }
+
+  @Post('ride/status')
+  async updateRideStatus(@Body() body: { rideId: number, status: string }) {
+    return this.transportService.updateRideStatus(body.rideId, body.status);
+  }
+
+  /**
+   * RIDE STATUS (Sprint 3)
+   * Tracks real-time ride progress from the database.
+   */
+  @Get('ride-status')
+  async getRideStatus(@Query('rideId') rideId: string) {
+    this.logger.log(`[Sprint 3] Fetching ride status for ID: ${rideId}`);
+
+    // Parse ID safely
+    const parsedId = parseInt(rideId, 10);
+    if (isNaN(parsedId)) {
+      return {
+        data: { status: 'unknown', message: 'Invalid ID' },
+        meta: { timestamp: new Date().toISOString() }
+      };
+    }
+
+    const result = await this.transportService.getRide(parsedId);
+
+    return {
+      data: result.data || { status: 'not_found' },
+      meta: {
+        timestamp: new Date().toISOString(),
+        version: 'Sprint 3 Live',
+      },
+    };
   }
 }

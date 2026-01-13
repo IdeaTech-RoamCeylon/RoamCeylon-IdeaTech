@@ -30,6 +30,7 @@ model RideRequest {
   @@index([pickupLocation], name: "ride_request_pickup_idx", type: Gist)
   @@index([destination], name: "ride_request_dest_idx", type: Gist)
   @@index([passengerId], name: "ride_request_passenger_idx")
+  @@index([status], name: "ride_request_status_idx")
 }
 
 model SystemMetadata {
@@ -51,6 +52,8 @@ model embeddings {
   content    String?
   embedding  Unsupported("vector")?
   created_at DateTime               @default(now())
+
+  @@index([title], name: "embeddings_title_idx")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
