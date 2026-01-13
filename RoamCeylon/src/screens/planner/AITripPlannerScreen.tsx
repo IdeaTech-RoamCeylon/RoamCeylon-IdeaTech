@@ -17,6 +17,9 @@ import { MainStackParamList } from '../../types';
 import { aiService, TripPlanResponse } from '../../services/aiService';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import DaySelector from '../../components/DaySelector';
+import ItineraryList from '../../components/ItineraryList';
+import { mockTripPlan } from '../../data/mockTripPlan';
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
@@ -27,10 +30,12 @@ const AITripPlannerScreen = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState(1);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (tripPlan) {
+      setSelectedDay(1); // Reset to Day 1 when new plan is loaded
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
@@ -66,8 +71,21 @@ const AITripPlannerScreen = () => {
     setTripPlan(null); 
 
     try {
-      const plan = await aiService.generateTripPlan(query);
-      setTripPlan(plan);
+      // Use mock data for testing UI as requested
+      // const plan = await aiService.generateTripPlan(query);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Override mock plan details with user query if provided, to make it feel responsive
+      const customizedPlan = {
+        ...mockTripPlan,
+        destination: query.destination || mockTripPlan.destination,
+        duration: query.duration || mockTripPlan.duration,
+        budget: query.budget || mockTripPlan.budget,
+      };
+      
+      setTripPlan(customizedPlan);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to generate trip plan: ${errorMessage}`);
@@ -78,41 +96,50 @@ const AITripPlannerScreen = () => {
   }, [query, networkStatus.isConnected, setTripPlan]);
 
   // Memoize renderItinerary to prevent recreation
-  const renderItinerary = useCallback((plan: TripPlanResponse) => (
-    <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
-      <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Duration</Text>
-          <Text style={styles.summaryValue}>{plan.duration} Days</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Budget</Text>
-          <Text style={styles.summaryValue}>{plan.budget}</Text>
-        </View>
-      </View>
+  const renderItinerary = useCallback((plan: TripPlanResponse) => {
+    // Get unique day numbers from itinerary
+    const days = plan.itinerary.map(item => item.day);
+    
+    // Get activities for selected day
+    const currentDayItinerary = plan.itinerary.find(item => item.day === selectedDay);
+    const activities = currentDayItinerary ? currentDayItinerary.activities : [];
 
-      <Text style={styles.sectionTitle}>Daily Itinerary</Text>
-      {plan.itinerary.map((day) => (
-        <View key={day.day} style={styles.dayCard}>
-          <Text style={styles.dayTitle}>Day {day.day}</Text>
-          {day.activities.map((activity, index) => (
-            <View key={index} style={styles.activityRow}>
-              <Text style={styles.bulletPoint}>•</Text>
-              <Text style={styles.activityText}>{activity}</Text>
-            </View>
-          ))}
+    return (
+      <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+        <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Duration</Text>
+            <Text style={styles.summaryValue}>{plan.duration} Days</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Budget</Text>
+            <Text style={styles.summaryValue}>{plan.budget}</Text>
+          </View>
         </View>
-      ))}
 
-      <TouchableOpacity 
-        style={styles.resetButton}
-        onPress={() => setTripPlan(null)}
-      >
-        <Text style={styles.resetButtonText}>Plan Another Trip</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  ), [fadeAnim, setTripPlan]);
+        <Text style={styles.sectionTitle}>Daily Itinerary</Text>
+        
+        <DaySelector 
+          days={days}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+
+        <View style={styles.dayCard}>
+          <Text style={styles.dayTitle}>Day {selectedDay} Plan</Text>
+          <ItineraryList activities={activities} />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.resetButton}
+          onPress={() => setTripPlan(null)}
+        >
+          <Text style={styles.resetButtonText}>Plan Another Trip</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }, [fadeAnim, selectedDay, setTripPlan]);
 
   return (
     <ScrollView style={styles.container}>
