@@ -1,34 +1,53 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger('AuthService');
   // In-memory storage for mock auth (in real app, this would be in database)
   private static lastVerifiedPhone: string = '+94771234567';
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService) { }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  sendOtp(_phoneNumber: string): { message: string } {
-    return { message: 'OTP sent successfully' };
+  sendOtp(phoneNumber: string): { message: string } {
+    if (!phoneNumber || phoneNumber.trim().length < 8) {
+      throw new UnauthorizedException('Invalid phone number format');
+    }
+
+    this.logger.log(`Simulating OTP send to ${phoneNumber}`);
+    return { message: `OTP sent successfully to ${phoneNumber}` };
   }
 
   verifyOtp(
-    _phoneNumber: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _otp: string,
+    phoneNumber: string,
+    otp: string,
   ): { accessToken: string; user: { id: string; phoneNumber: string } } {
+    if (!phoneNumber || !otp) {
+      throw new UnauthorizedException('Phone number and OTP are required');
+    }
+
+    // For mock: accept '123456' as valid OTP for any number
+    if (otp !== '123456') {
+      this.logger.warn(`Failed login attempt for ${phoneNumber} with OTP ${otp}`);
+      throw new UnauthorizedException('Invalid OTP. Use 123456 for testing.');
+    }
+
     // Store the verified phone number
-    AuthService.lastVerifiedPhone = _phoneNumber;
+    AuthService.lastVerifiedPhone = phoneNumber;
 
     // Payload for JWT
-    const payload = { username: _phoneNumber, sub: 'mock-user-id' };
+    const payload = {
+      username: phoneNumber,
+      sub: `user-${Buffer.from(phoneNumber).toString('hex').slice(0, 8)}`
+    };
+
+    this.logger.log(`User ${phoneNumber} verified successfully`);
 
     return {
       accessToken: this.jwtService.sign(payload),
       user: {
-        id: 'mock-user-id',
-        phoneNumber: _phoneNumber,
+        id: payload.sub,
+        phoneNumber: phoneNumber,
       },
     };
   }
