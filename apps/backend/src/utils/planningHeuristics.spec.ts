@@ -1,13 +1,11 @@
-// src/utils/planningHeuristics.test.ts
-import { applyPlanningHeuristics } from './planningHeuristics';
-import { TripDestination } from '../types/tripPlanner';
+import { applyPlanningHeuristics, TripDestination } from './planningHeuristics';
 
 describe('Planning Heuristics Logic', () => {
   
   // Define the Mock Data
   const MOCK_DESTINATIONS: TripDestination[] = [
     {
-      id: '1', placeName: 'Kandy Temple', shortDescription: ' Temple', order: 1,
+      id: '1', placeName: 'Kandy Temple', shortDescription: 'Temple', order: 1,
       coordinates: { latitude: 7.2936, longitude: 80.6413 }, // Kandy
       confidenceScore: 0.95,
       metadata: { duration: '2h', category: 'culture' }

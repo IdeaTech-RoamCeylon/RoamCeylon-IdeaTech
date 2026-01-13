@@ -1,4 +1,20 @@
-import { TripDestination } from '../types/tripPlanner'; 
+// --- SELF-CONTAINED TYPES (To avoid import errors) ---
+export interface TripDestination {
+  id: string;
+  order: number;
+  placeName: string;
+  shortDescription: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  metadata: {
+    duration: string;
+    category: 'adventure' | 'relaxation' | 'culture' | 'shopping' | 'food';
+    bestTimeToVisit?: string;
+  };
+  confidenceScore?: number;
+}
 
 // --- CONFIGURATION ---
 const GROUP_RADIUS_KM = 10; // How close places must be to be grouped
@@ -27,8 +43,6 @@ export const applyPlanningHeuristics = (
 ): TripDestination[][] => {
   
   // 1. FILTER & SORT (Rule: Prioritize higher confidence)
-  // We filter out items without coordinates for grouping purposes,
-  // then sort by score (highest first).
   const validDestinations = allDestinations
     .filter(d => d.coordinates) 
     .sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
@@ -40,7 +54,6 @@ export const applyPlanningHeuristics = (
   for (const anchor of validDestinations) {
     if (processedIds.has(anchor.id)) continue;
 
-    // Start a new group with the highest confidence item in the area
     const group: TripDestination[] = [anchor];
     processedIds.add(anchor.id);
 
@@ -64,7 +77,6 @@ export const applyPlanningHeuristics = (
     groupedResults.push(group);
   }
 
-  // 3. LIMIT RESULTS (Rule: Limit number of suggestions)
-  // Returns top X groups (e.g., top 5 areas to visit)
+  // 3. LIMIT RESULTS
   return groupedResults.slice(0, MAX_SUGGESTIONS);
 };
