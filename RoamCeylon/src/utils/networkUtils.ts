@@ -72,17 +72,14 @@ export const retryWithBackoff = async <T>(
     } catch (error) {
       lastError = error as Error;
 
-      console.log(`[Retry] Attempt ${attempt}/${maxAttempts} failed:`, error);
 
       // If this was the last attempt, throw the error
       if (attempt === maxAttempts) {
-        console.error(`[Retry] All ${maxAttempts} attempts failed`);
         throw lastError;
       }
 
       // Calculate delay for next attempt
       const delay = calculateBackoff(attempt, initialDelay, maxDelay, backoffMultiplier);
-      console.log(`[Retry] Waiting ${delay}ms before attempt ${attempt + 1}`);
 
       // Call onRetry callback if provided
       if (onRetry) {
@@ -119,7 +116,6 @@ class RequestQueue {
     return new Promise((resolve, reject) => {
       const id = Math.random().toString(36).substring(7);
       this.queue.push({ id, fn, resolve, reject });
-      console.log(`[RequestQueue] Added request ${id}. Queue size: ${this.queue.length}`);
     });
   }
 
@@ -132,12 +128,10 @@ class RequestQueue {
     }
 
     this.isProcessing = true;
-    console.log(`[RequestQueue] Processing ${this.queue.length} queued requests`);
 
     // Check if we're connected
     const connected = await isConnected();
     if (!connected) {
-      console.log('[RequestQueue] Not connected, skipping queue processing');
       this.isProcessing = false;
       return;
     }
@@ -148,17 +142,14 @@ class RequestQueue {
       if (!request) continue;
 
       try {
-        console.log(`[RequestQueue] Processing request ${request.id}`);
         const result = await request.fn();
         request.resolve(result);
       } catch (error) {
-        console.error(`[RequestQueue] Request ${request.id} failed:`, error);
         request.reject(error);
       }
     }
 
     this.isProcessing = false;
-    console.log('[RequestQueue] Queue processing complete');
   }
 
   /**
@@ -169,7 +160,6 @@ class RequestQueue {
       request.reject(new Error('Request queue cleared'));
     });
     this.queue = [];
-    console.log('[RequestQueue] Queue cleared');
   }
 
   /**
