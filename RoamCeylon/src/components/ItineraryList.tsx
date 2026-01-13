@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import { TripActivity } from '../services/aiService';
+
 interface ItineraryListProps {
-  activities: string[];
+  activities: TripActivity[];
 }
 
 const ItineraryList: React.FC<ItineraryListProps> = ({ activities }) => {
@@ -15,7 +17,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({ activities }) => {
              {index !== activities.length - 1 && <View style={styles.line} />}
           </View>
           <View style={styles.contentContainer}>
-             <Text style={styles.activityText}>{activity}</Text>
+             <Text style={styles.activityText}>{activity.description}</Text>
           </View>
         </View>
       ))}

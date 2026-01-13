@@ -8,9 +8,14 @@ export interface TripPlanRequest {
   interests?: string[];
 }
 
+export interface TripActivity {
+  description: string;
+  coordinate?: [number, number]; // [longitude, latitude]
+}
+
 export interface TripDay {
   day: number;
-  activities: string[];
+  activities: TripActivity[];
 }
 
 export interface TripPlanResponse {
@@ -63,10 +68,10 @@ class AIService {
       itinerary.push({
         day: i,
         activities: [
-          `Morning visit to key attraction in ${destination}`,
-          `Lunch at a local ${budget} budget restaurant`,
-          'Afternoon sightseeing and cultural experience',
-          'Evening relaxation and dinner',
+          { description: `Morning visit to key attraction in ${destination}` },
+          { description: `Lunch at a local ${budget} budget restaurant` },
+          { description: 'Afternoon sightseeing and cultural experience' },
+          { description: 'Evening relaxation and dinner' },
         ],
       });
     }
