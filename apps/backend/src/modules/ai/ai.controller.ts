@@ -476,8 +476,7 @@ export class AIController {
         let priorityScore = result.score || 0.5;
 
         const text = `${result.title} ${result.content}`.toLowerCase();
-        let matchCount = 0;
-
+        
         /* ---------- INTEREST TYPE PERSONALIZATION ---------- */
         if (preferences) {
           for (const pref of preferences) {
@@ -1136,7 +1135,7 @@ export class AIController {
           `${item.title} ${item.content}`.toLowerCase().includes(pref.toLowerCase()),
         );
 
-         matchedItems.slice(0, 2).forEach((item, idx) => {
+         matchedItems.slice(0, 2).forEach((item) => {
           suggestions.push({
             order: suggestions.length + 1,
             dayNumber: 1,
