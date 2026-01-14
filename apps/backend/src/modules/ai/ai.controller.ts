@@ -69,8 +69,10 @@ interface ItineraryItemDto {
 interface DayPlan {
   day: number;
   date: string;
-  theme?: string;
+  theme: string;
+  themeExplanation?: string;
   activities: EnhancedItineraryItemDto[];
+  groupingReason?: string;
 }
 
 // Enhanced itinerary with additional fields
@@ -79,6 +81,7 @@ interface EnhancedItineraryItemDto extends ItineraryItemDto {
   timeSlot?: 'Morning' | 'Afternoon' | 'Evening';
   estimatedDuration?: string;
   priority: number;
+  dayPlacementReason?: string;
 }
 
 // Enhanced response with day-by-day structure
@@ -124,17 +127,18 @@ export class AIController {
       'Only partial results available. Some recommendations may not strongly match your preferences.',
   };
 
-  private readonly INTEREST_CATEGORY_MAP: Record<string, ItineraryCategory[]> = {
-    nature: ['Nature'],
-    history: ['History', 'Culture', 'Sightseeing'],
-    culture: ['Culture', 'History', 'Sightseeing'],
-    adventure: ['Adventure', 'Nature'],
-    beach: ['Beach', 'Relaxation'],
-    relaxation: ['Relaxation', 'Beach'],
-    food: ['Culture', 'Relaxation'],
-    shopping: ['Sightseeing', 'Culture'],
-    nightlife: ['Sightseeing', 'Relaxation'],
-  };
+  private readonly INTEREST_CATEGORY_MAP: Record<string, ItineraryCategory[]> =
+    {
+      nature: ['Nature'],
+      history: ['History', 'Culture', 'Sightseeing'],
+      culture: ['Culture', 'History', 'Sightseeing'],
+      adventure: ['Adventure', 'Nature'],
+      beach: ['Beach', 'Relaxation'],
+      relaxation: ['Relaxation', 'Beach'],
+      food: ['Culture', 'Relaxation'],
+      shopping: ['Sightseeing', 'Culture'],
+      nightlife: ['Sightseeing', 'Relaxation'],
+    };
 
   constructor(
     private readonly aiService: AIService,
@@ -476,7 +480,7 @@ export class AIController {
         let priorityScore = result.score || 0.5;
 
         const text = `${result.title} ${result.content}`.toLowerCase();
-        
+
         /* ---------- INTEREST TYPE PERSONALIZATION ---------- */
         if (preferences) {
           for (const pref of preferences) {
@@ -491,14 +495,14 @@ export class AIController {
               if (text.includes(cat.toLowerCase())) {
                 priorityScore +=
                   result.confidence === 'High'
-                  ? CATEGORY_MATCH_HIGH_BOOST
-                  : CATEGORY_MATCH_LOW_BOOST;
+                    ? CATEGORY_MATCH_HIGH_BOOST
+                    : CATEGORY_MATCH_LOW_BOOST;
                 break;
               }
             }
           }
         }
-          
+
         /* ---------- TRIP LENGTH PERSONALIZATION ---------- */
         if (tripType === 'short') {
           // Short trips → compact / high-value experiences
@@ -524,13 +528,13 @@ export class AIController {
         return { ...result, priorityScore };
       })
       .sort((a, b) => b.priorityScore - a.priorityScore);
-    }
-    
-    private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
-      if (dayCount <= 2) return 'short';
-      if (dayCount <= 5) return 'medium';
+  }
+
+  private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
+    if (dayCount <= 2) return 'short';
+    if (dayCount <= 5) return 'medium';
     return 'long';
-   }
+  }
 
   // Generate explanation metadata for itinerary items
   private generateExplanation(
@@ -722,9 +726,13 @@ export class AIController {
     }
 
     // Score + diversify
-    const scored = this.scoreResultsByPreferences(filteredResults, preferences, dayCount);
+    const scored = this.scoreResultsByPreferences(
+      filteredResults,
+      preferences,
+      dayCount,
+    );
 
-    // total max activities for the full trip
+    // total max activities for the full tripok
     const MAX_PER_DAY = dayCount === 1 ? 2 : 4; // Arrival day: max 2 activities
     const maxTotalActivities = Math.min(
       dayCount * MAX_PER_DAY,
@@ -769,8 +777,8 @@ export class AIController {
           preferences,
         );
 
-        activitiesForDay.push({
-          order: i + 1, // per-day ordering
+        const activityItem: EnhancedItineraryItemDto = {
+          order: i + 1,
           dayNumber: day,
           placeName: result.title,
           shortDescription: result.content,
@@ -785,7 +793,17 @@ export class AIController {
             category,
             preferences,
           ),
-        });
+        };
+
+        activitiesForDay.push(activityItem);
+
+        // Generate day placement explanation after adding to array
+        activityItem.dayPlacementReason = this.generateDayPlacementExplanation(
+          day,
+          activityItem,
+          dayCount,
+          activitiesForDay,
+        );
       }
 
       // Guarantee at least 1 activity per day
@@ -800,10 +818,15 @@ export class AIController {
         activitiesForDay[0].estimatedDuration = '2-3 hours';
       }
 
+      const themeData = this.generateDayTheme(activitiesForDay);
+      const groupingReason = this.generateGroupingExplanation(activitiesForDay);
+
       dayPlans.push({
         day,
         date: dayDate.toISOString().split('T')[0],
-        theme: this.generateDayTheme(activitiesForDay),
+        theme: themeData.theme,
+        themeExplanation: themeData.explanation,
+        groupingReason,
         activities: activitiesForDay,
       });
     }
@@ -883,17 +906,36 @@ export class AIController {
     if (preferences?.length) {
       for (const pref of preferences) {
         if (lower.includes(pref.toLowerCase())) {
-        const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
-        if (mapped?.length) return mapped[0];
+          const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
+          if (mapped?.length) return mapped[0];
         }
       }
     }
 
     if (lower.includes('beach') || lower.includes('surf')) return 'Beach';
-    if (lower.includes('fort') || lower.includes('historical') || lower.includes('ruins')|| lower.includes('temple') || lower.includes('kovil') || lower.includes('church')) return 'History';
+    if (
+      lower.includes('fort') ||
+      lower.includes('historical') ||
+      lower.includes('ruins') ||
+      lower.includes('temple') ||
+      lower.includes('kovil') ||
+      lower.includes('church')
+    )
+      return 'History';
     if (lower.includes('museum') || lower.includes('culture')) return 'Culture';
-    if (lower.includes('park') || lower.includes('wildlife') || lower.includes('forest') || lower.includes('nature')) return 'Nature';
-    if (lower.includes('adventure') || lower.includes('hiking') || lower.includes('rafting')) return 'Adventure';
+    if (
+      lower.includes('park') ||
+      lower.includes('wildlife') ||
+      lower.includes('forest') ||
+      lower.includes('nature')
+    )
+      return 'Nature';
+    if (
+      lower.includes('adventure') ||
+      lower.includes('hiking') ||
+      lower.includes('rafting')
+    )
+      return 'Adventure';
 
     return 'Sightseeing';
   }
@@ -921,7 +963,7 @@ export class AIController {
       'Nature',
       'Adventure',
       'Relaxation',
-      'Beach'
+      'Beach',
     ];
 
     if (!category || category === 'Sightseeing') {
@@ -1030,9 +1072,17 @@ export class AIController {
     return durations[category];
   }
 
-  // Generate day themes based on activities
-  private generateDayTheme(activities: EnhancedItineraryItemDto[]): string {
-    if (!activities?.length) return 'Exploration Day';
+  // Generate day themes based on activities with explanations
+  private generateDayTheme(activities: EnhancedItineraryItemDto[]): {
+    theme: string;
+    explanation: string;
+  } {
+    if (!activities?.length) {
+      return {
+        theme: 'Exploration Day',
+        explanation: 'No specific activities scheduled for this day.',
+      };
+    }
 
     const categories = activities
       .map((a) => (a.category || '').trim().toLowerCase())
@@ -1053,54 +1103,298 @@ export class AIController {
     const hasAny = (req: string[]) => req.some((r) => unique.includes(r));
 
     // Rules (ordered by priority)
-    // Put more "specific" combos near the top.
     const THEME_RULES: Array<{
-      all?: string[]; // must include all
-      any?: string[]; // must include at least one
+      all?: string[];
+      any?: string[];
       title: string;
+      explanation: string;
     }> = [
       // Arrival-aware themes
-      { all: ['arrival', 'sightseeing'], title: 'Arrival & City Highlights' },
-      { all: ['arrival', 'culture'], title: 'Arrival & Cultural Start' },
-      { all: ['arrival', 'beach'], title: 'Arrival & Coastal Unwind' },
-      { all: ['arrival', 'nature'], title: 'Arrival & Nature Intro' },
-      { any: ['arrival'], title: 'Arrival & Orientation' },
+      {
+        all: ['arrival', 'sightseeing'],
+        title: 'Arrival & City Highlights',
+        explanation:
+          'Arrival activities paired with city sightseeing to ease into your trip while exploring key landmarks.',
+      },
+      {
+        all: ['arrival', 'culture'],
+        title: 'Arrival & Cultural Start',
+        explanation:
+          'Arrival day combined with cultural experiences to provide an immersive introduction to local traditions.',
+      },
+      {
+        all: ['arrival', 'beach'],
+        title: 'Arrival & Coastal Unwind',
+        explanation:
+          'Arrival activities followed by beach time to help you relax and settle in after travel.',
+      },
+      {
+        all: ['arrival', 'nature'],
+        title: 'Arrival & Nature Intro',
+        explanation:
+          'Arrival paired with nature activities to start your trip with a refreshing outdoor experience.',
+      },
+      {
+        any: ['arrival'],
+        title: 'Arrival & Orientation',
+        explanation:
+          'First day focused on settling in and getting oriented with your destination.',
+      },
 
       // Strong combos
-      { all: ['beach', 'relaxation'], title: 'Beach & Relaxation' },
-      { all: ['culture', 'sightseeing'], title: 'Cultural Exploration' },
-      { all: ['nature', 'sightseeing'], title: 'Nature & Highlights' },
-      { all: ['culture', 'nature'], title: 'Culture & Nature' },
-      { all: ['beach', 'culture'], title: 'Coast & Culture' },
-      { all: ['beach', 'sightseeing'], title: 'Coastal Highlights' },
-      { all: ['nature', 'beach'], title: 'Nature & Coast' },
-      { all: ['relaxation', 'culture'], title: 'Relaxation & Culture' },
+      {
+        all: ['beach', 'relaxation'],
+        title: 'Beach & Relaxation',
+        explanation:
+          'Beach and relaxation activities are grouped together as they complement each other and are often located in the same coastal areas.',
+      },
+      {
+        all: ['culture', 'sightseeing'],
+        title: 'Cultural Exploration',
+        explanation:
+          'Cultural and sightseeing activities combined to provide deep insights into local heritage and landmarks.',
+      },
+      {
+        all: ['nature', 'sightseeing'],
+        title: 'Nature & Highlights',
+        explanation:
+          'Nature experiences paired with key highlights to showcase both natural beauty and important sites.',
+      },
+      {
+        all: ['culture', 'nature'],
+        title: 'Culture & Nature',
+        explanation:
+          'Cultural and nature activities balanced to explore both local traditions and natural landscapes.',
+      },
+      {
+        all: ['beach', 'culture'],
+        title: 'Coast & Culture',
+        explanation:
+          'Coastal experiences combined with cultural activities for a diverse day by the sea.',
+      },
+      {
+        all: ['beach', 'sightseeing'],
+        title: 'Coastal Highlights',
+        explanation:
+          'Beach activities paired with sightseeing to maximize coastal exploration.',
+      },
+      {
+        all: ['nature', 'beach'],
+        title: 'Nature & Coast',
+        explanation:
+          'Nature and beach activities grouped to provide varied outdoor experiences in scenic areas.',
+      },
+      {
+        all: ['relaxation', 'culture'],
+        title: 'Relaxation & Culture',
+        explanation:
+          'Relaxing activities combined with cultural experiences for a balanced, rejuvenating day.',
+      },
     ];
+
+    let theme = '';
+    let explanation = '';
 
     // 1) If single-category day → "{Category} Day"
     if (unique.length === 1) {
       const only = unique[0];
-      return `${only[0].toUpperCase() + only.slice(1)} Day`;
+      theme = `${only[0].toUpperCase() + only.slice(1)} Day`;
+      explanation = `This day focuses on ${only} activities to provide a concentrated experience.`;
+      return { theme, explanation };
     }
 
     // 2) Apply first matching rule
     for (const rule of THEME_RULES) {
       const okAll = rule.all ? hasAll(rule.all) : true;
       const okAny = rule.any ? hasAny(rule.any) : true;
-      if (okAll && okAny) return rule.title;
+      if (okAll && okAny) {
+        return { theme: rule.title, explanation: rule.explanation };
+      }
     }
 
     // 3) Weighted fallback based on dominant category
-    const DOMINANT_FALLBACK: Record<string, string> = {
-      beach: 'Beach Escape',
-      nature: 'Nature Day',
-      culture: 'Cultural Day',
-      relaxation: 'Relax & Recharge',
-      sightseeing: 'Highlights Day',
-      arrival: 'Arrival Day',
+    const DOMINANT_FALLBACK: Record<
+      string,
+      { theme: string; explanation: string }
+    > = {
+      beach: {
+        theme: 'Beach Escape',
+        explanation:
+          'This day focuses on beach activities to provide a concentrated coastal experience.',
+      },
+      nature: {
+        theme: 'Nature Day',
+        explanation:
+          'Nature activities are prioritized to immerse you in the natural beauty of the region.',
+      },
+      culture: {
+        theme: 'Cultural Day',
+        explanation:
+          'Cultural activities are highlighted to deepen your understanding of local traditions.',
+      },
+      relaxation: {
+        theme: 'Relax & Recharge',
+        explanation:
+          'Relaxation activities are scheduled to provide rest and recovery during your trip.',
+      },
+      sightseeing: {
+        theme: 'Highlights Day',
+        explanation:
+          'Sightseeing activities grouped to cover key landmarks and attractions efficiently.',
+      },
+      arrival: {
+        theme: 'Arrival Day',
+        explanation:
+          'First day activities designed to ease you into the destination after arrival.',
+      },
     };
 
-    return DOMINANT_FALLBACK[topCategory] || 'Discovery Day';
+    const fallback = DOMINANT_FALLBACK[topCategory] || {
+      theme: 'Discovery Day',
+      explanation: `This day combines ${unique.join(', ')} activities to provide variety while maintaining efficient routing between locations.`,
+    };
+
+    return fallback;
+  }
+
+  private generateDayPlacementExplanation(
+    dayNumber: number,
+    activity: EnhancedItineraryItemDto,
+    totalDays: number,
+    dayActivities: EnhancedItineraryItemDto[],
+  ): string {
+    const explanations: string[] = [];
+
+    // Day 1 specific logic
+    if (dayNumber === 1) {
+      if (activity.category === 'Arrival') {
+        return 'Placed on arrival day to allow time for check-in and settling in.';
+      }
+      explanations.push(
+        'Scheduled for Day 1 as a gentle introduction to the destination',
+      );
+    }
+
+    // Last day logic
+    if (dayNumber === totalDays) {
+      explanations.push(
+        'Placed on final day to conclude the trip with a memorable experience',
+      );
+    }
+
+    // Mid-trip logic
+    if (dayNumber > 1 && dayNumber < totalDays) {
+      explanations.push(
+        'Scheduled mid-trip when you are most settled and energized',
+      );
+    }
+
+    // Category-based reasoning
+    if (activity.category === 'Beach' || activity.category === 'Relaxation') {
+      explanations.push('positioned after more active days for recovery');
+    }
+
+    if (activity.category === 'Adventure' || activity.category === 'Nature') {
+      explanations.push('scheduled when energy levels are typically higher');
+    }
+
+    if (activity.category === 'Culture' || activity.category === 'History') {
+      explanations.push(
+        'timed to allow for in-depth exploration and appreciation',
+      );
+    }
+
+    // Grouping logic
+    const sameCategory = dayActivities.filter(
+      (a) => a.category === activity.category,
+    );
+    if (sameCategory.length > 1) {
+      explanations.push(
+        `grouped with ${sameCategory.length - 1} other ${activity.category.toLowerCase()} activities for efficient routing`,
+      );
+    }
+
+    // Priority-based
+    if (activity.priority > 0.8) {
+      explanations.push(
+        'prioritized due to high relevance to your preferences',
+      );
+    }
+
+    if (activity.priority < 0.4) {
+      explanations.push('included to add variety to the itinerary');
+    }
+
+    return explanations.length > 0
+      ? explanations.join('; ')
+      : 'Scheduled based on optimal trip flow and timing';
+  }
+
+  private generateGroupingExplanation(
+    activities: EnhancedItineraryItemDto[],
+  ): string {
+    if (activities.length <= 1) {
+      // Even single activities should have an explanation
+      if (activities.length === 1) {
+        const activity = activities[0];
+        if (activity.priority > 0.7) {
+          return `Single high-priority ${activity.category.toLowerCase()} activity selected for focused exploration`;
+        } else if (activity.priority < 0.4) {
+          return `Fallback activity provided to maintain trip structure`;
+        }
+        return `Single ${activity.category.toLowerCase()} activity scheduled for this day`;
+      }
+      return 'No activities scheduled for this day';
+    }
+
+    const categories = activities.map((a) => a.category);
+    const uniqueCategories = Array.from(new Set(categories));
+
+    const explanations: string[] = [];
+
+    // Category-based grouping
+    if (uniqueCategories.length === 1) {
+      explanations.push(
+        `All ${categories[0].toLowerCase()} activities grouped for a focused experience`,
+      );
+    } else if (uniqueCategories.length === 2) {
+      explanations.push(
+        `${uniqueCategories.join(' and ')} activities paired for complementary experiences`,
+      );
+    } else {
+      explanations.push(
+        `Diverse mix of ${uniqueCategories.length} activity types for a well-rounded day`,
+      );
+    }
+
+    // Time slot efficiency
+    const timeSlots = activities.map((a) => a.timeSlot).filter(Boolean);
+    if (timeSlots.length > 1) {
+      explanations.push(
+        'scheduled across different time slots for optimal pacing',
+      );
+    }
+
+    // Priority grouping
+    const highPriority = activities.filter((a) => a.priority > 0.7).length;
+    if (highPriority > 1) {
+      explanations.push(
+        `includes ${highPriority} high-priority activities matching your preferences`,
+      );
+    }
+
+    // Duration consideration
+    const totalEstimatedHours = activities.reduce((sum, a) => {
+      const duration = a.estimatedDuration || '';
+      const hours = parseInt(duration.split('-')[0]) || 2;
+      return sum + hours;
+    }, 0);
+
+    if (totalEstimatedHours > 8) {
+      explanations.push('balanced to avoid over-scheduling');
+    }
+
+    return explanations.join('; ');
   }
 
   @Post('trip-plan')
@@ -1110,9 +1404,10 @@ export class AIController {
     const isValidDestination = this.isValidDestination(body.destination);
     let dayByDayPlan: DayPlan[] = [];
     let preferencesMatched: string[] = [];
-    let suggestions: EnhancedItineraryItemDto[] = [];
+    const suggestions: EnhancedItineraryItemDto[] = [];
 
-    const startDateStr = body.startDate || new Date().toISOString().split('T')[0];
+    const startDateStr =
+      body.startDate || new Date().toISOString().split('T')[0];
     const endDateStr = body.endDate || startDateStr;
 
     const startDate = new Date(startDateStr);
@@ -1120,7 +1415,9 @@ export class AIController {
 
     const dayCount = Math.max(
       1,
-      Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1,
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1,
     );
 
     // ===== Fetch all embeddings once =====
@@ -1128,14 +1425,16 @@ export class AIController {
 
     // FALLBACK for invalid destination
     if (!isValidDestination) {
-       // Match preferences in database
+      // Match preferences in database
       (body.preferences ?? []).forEach((pref) => {
         const mappedCategories = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
         const matchedItems = allEmbeddings.filter((item) =>
-          `${item.title} ${item.content}`.toLowerCase().includes(pref.toLowerCase()),
+          `${item.title} ${item.content}`
+            .toLowerCase()
+            .includes(pref.toLowerCase()),
         );
 
-         matchedItems.slice(0, 2).forEach((item) => {
+        matchedItems.slice(0, 2).forEach((item) => {
           suggestions.push({
             order: suggestions.length + 1,
             dayNumber: 1,
@@ -1175,7 +1474,7 @@ export class AIController {
       // Calculate preferencesMatched based on actual returned activities
       preferencesMatched = (body.preferences ?? []).filter((pref) => {
         const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()] || [];
-      return suggestions.some((item) => mapped.includes(item.category));
+        return suggestions.some((item) => mapped.includes(item.category));
       });
 
       // Return fallback plan immediately
@@ -1183,15 +1482,15 @@ export class AIController {
         plan: {
           destination: body.destination || 'Unknown',
           dates: { start: startDateStr, end: endDateStr },
-        totalDays: dayCount,
-        dayByDayPlan: [
-          {
-            day: 1,
-            date: startDate.toISOString().split('T')[0],
-            theme: 'Suggested Places',
-            activities: suggestions,
-          },
-        ],
+          totalDays: dayCount,
+          dayByDayPlan: [
+            {
+              day: 1,
+              date: startDate.toISOString().split('T')[0],
+              theme: 'Suggested Places',
+              activities: suggestions,
+            },
+          ],
           summary: {
             totalActivities: suggestions.length,
             categoriesIncluded: [
@@ -1252,9 +1551,9 @@ export class AIController {
         },
       },
       message:
-      preferencesMatched.length > 0
-        ? 'High-confidence suggestions found for your preferred categories.'
-        : 'No strong preference matches found. Showing best available results.',
+        preferencesMatched.length > 0
+          ? 'High-confidence suggestions found for your preferred categories.'
+          : 'No strong preference matches found. Showing best available results.',
     };
   }
 }
