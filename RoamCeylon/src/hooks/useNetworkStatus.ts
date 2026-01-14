@@ -48,13 +48,6 @@ export const useNetworkStatus = () => {
     };
 
     setNetworkStatus(newStatus);
-
-    // Log network status changes
-    console.log('[NetworkStatus] Connection changed:', {
-      isConnected: newStatus.isConnected,
-      type: newStatus.type,
-      isInternetReachable: newStatus.isInternetReachable,
-    });
   };
 
   return networkStatus;

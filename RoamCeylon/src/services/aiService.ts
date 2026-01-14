@@ -8,9 +8,14 @@ export interface TripPlanRequest {
   interests?: string[];
 }
 
+export interface TripActivity {
+  description: string;
+  coordinate?: [number, number]; // [longitude, latitude]
+}
+
 export interface TripDay {
   day: number;
-  activities: string[];
+  activities: TripActivity[];
 }
 
 export interface TripPlanResponse {
@@ -31,16 +36,11 @@ class AIService {
       //   {
       //     maxAttempts: 3,
       //     initialDelay: 1000,
-      //     onRetry: (attempt, delay) => {
-      //       console.log(`[AIService] Retrying trip plan generation (attempt ${attempt})`);
-      //     }
       //   }
       // );
       // return response;
 
       // Mock implementation with retry logic
-      console.log('[AIService] Generating trip plan for:', request);
-      
       const result = await retryWithBackoff(
         async () => {
           await new Promise(resolve => setTimeout(resolve, AIService.MOCK_DELAY));
@@ -49,9 +49,6 @@ class AIService {
         {
           maxAttempts: 3,
           initialDelay: 1000,
-          onRetry: (attempt, delay) => {
-            console.log(`[AIService] Retrying trip plan generation (attempt ${attempt}, delay ${delay}ms)`);
-          }
         }
       );
 
@@ -71,10 +68,10 @@ class AIService {
       itinerary.push({
         day: i,
         activities: [
-          `Morning visit to key attraction in ${destination}`,
-          `Lunch at a local ${budget} budget restaurant`,
-          'Afternoon sightseeing and cultural experience',
-          'Evening relaxation and dinner',
+          { description: `Morning visit to key attraction in ${destination}` },
+          { description: `Lunch at a local ${budget} budget restaurant` },
+          { description: 'Afternoon sightseeing and cultural experience' },
+          { description: 'Evening relaxation and dinner' },
         ],
       });
     }

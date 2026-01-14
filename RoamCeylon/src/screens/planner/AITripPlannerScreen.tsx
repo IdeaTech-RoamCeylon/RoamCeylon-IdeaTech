@@ -17,6 +17,23 @@ import { MainStackParamList } from '../../types';
 import { aiService, TripPlanResponse } from '../../services/aiService';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import DaySelector from '../../components/DaySelector';
+import ItineraryList from '../../components/ItineraryList';
+import { mockTripPlan } from '../../data/mockTripPlan';
+
+import { MAPBOX_CONFIG } from '../../config/mapbox.config';
+
+// Lazy load Mapbox to prevent build errors
+let MapboxGL: any = null;
+
+try {
+  MapboxGL = require('@rnmapbox/maps').default;
+  if (MAPBOX_CONFIG.accessToken) {
+    MapboxGL.setAccessToken(MAPBOX_CONFIG.accessToken);
+  }
+} catch (error) {
+  console.warn('Mapbox SDK not available:', error);
+}
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
@@ -27,10 +44,12 @@ const AITripPlannerScreen = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState(1);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (tripPlan) {
+      setSelectedDay(1); // Reset to Day 1 when new plan is loaded
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
@@ -66,8 +85,21 @@ const AITripPlannerScreen = () => {
     setTripPlan(null); 
 
     try {
-      const plan = await aiService.generateTripPlan(query);
-      setTripPlan(plan);
+      // Use mock data for testing UI as requested
+      // const plan = await aiService.generateTripPlan(query);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Override mock plan details with user query if provided, to make it feel responsive
+      const customizedPlan = {
+        ...mockTripPlan,
+        destination: query.destination || mockTripPlan.destination,
+        duration: query.duration || mockTripPlan.duration,
+        budget: query.budget || mockTripPlan.budget,
+      };
+      
+      setTripPlan(customizedPlan);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to generate trip plan: ${errorMessage}`);
@@ -78,41 +110,132 @@ const AITripPlannerScreen = () => {
   }, [query, networkStatus.isConnected, setTripPlan]);
 
   // Memoize renderItinerary to prevent recreation
-  const renderItinerary = useCallback((plan: TripPlanResponse) => (
-    <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
-      <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Duration</Text>
-          <Text style={styles.summaryValue}>{plan.duration} Days</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Budget</Text>
-          <Text style={styles.summaryValue}>{plan.budget}</Text>
-        </View>
-      </View>
+  const renderItinerary = useCallback((plan: TripPlanResponse) => {
+    // Get unique day numbers from itinerary
+    const days = plan.itinerary.map(item => item.day);
+    
+    // Get activities for selected day
+    const currentDayItinerary = plan.itinerary.find(item => item.day === selectedDay);
+    const activities = currentDayItinerary ? currentDayItinerary.activities : [];
 
-      <Text style={styles.sectionTitle}>Daily Itinerary</Text>
-      {plan.itinerary.map((day) => (
-        <View key={day.day} style={styles.dayCard}>
-          <Text style={styles.dayTitle}>Day {day.day}</Text>
-          {day.activities.map((activity, index) => (
-            <View key={index} style={styles.activityRow}>
-              <Text style={styles.bulletPoint}>•</Text>
-              <Text style={styles.activityText}>{activity}</Text>
-            </View>
-          ))}
-        </View>
-      ))}
+    // Filter activities with coordinates
+    const mapActivities = activities.filter(a => a.coordinate);
+    const routeCoordinates = mapActivities.map(a => a.coordinate!);
+    
+    // Create GeoJSON for route line
+    const routeFeature = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: routeCoordinates,
+          },
+        },
+      ],
+    };
 
-      <TouchableOpacity 
-        style={styles.resetButton}
-        onPress={() => setTripPlan(null)}
-      >
-        <Text style={styles.resetButtonText}>Plan Another Trip</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  ), [fadeAnim, setTripPlan]);
+    return (
+      <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+        <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Duration</Text>
+            <Text style={styles.summaryValue}>{plan.duration} Days</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Budget</Text>
+            <Text style={styles.summaryValue}>{plan.budget}</Text>
+          </View>
+        </View>
+
+        {/* Day Selector */}
+        <DaySelector 
+          days={days}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+
+        {/* Map View */}
+        {MapboxGL && mapActivities.length > 0 && (
+          <View style={styles.mapContainer}>
+            <MapboxGL.MapView
+              style={styles.map}
+              styleURL={MAPBOX_CONFIG.defaultStyle}
+              logoEnabled={false}
+              attributionEnabled={false}
+            >
+              <MapboxGL.Camera
+                zoomLevel={11}
+                centerCoordinate={routeCoordinates[0]} // Center on first activity
+                animationMode="flyTo"
+                animationDuration={1500}
+                // Fit bounds if we have multiple points
+                bounds={
+                  routeCoordinates.length > 1 
+                  ? {
+                      ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
+                      sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
+                      paddingBottom: 40,
+                      paddingTop: 40,
+                      paddingLeft: 40,
+                      paddingRight: 40,
+                    }
+                  : undefined
+                }
+              />
+
+              {/* Route Line */}
+              {routeCoordinates.length > 1 && (
+                <MapboxGL.ShapeSource id="routeSource" shape={routeFeature}>
+                  <MapboxGL.LineLayer
+                    id="routeFill"
+                    style={{
+                      lineColor: '#0066CC',
+                      lineWidth: 3,
+                      lineCap: 'round',
+                      lineJoin: 'round',
+                      lineOpacity: 0.8,
+                      lineDasharray: [1, 1] // Dashed line for walking/travel path vibe
+                    }}
+                  />
+                </MapboxGL.ShapeSource>
+              )}
+
+              {/* Activity Markers */}
+              {mapActivities.map((activity, index) => (
+                <MapboxGL.PointAnnotation
+                  key={`${selectedDay}-${index}`}
+                  id={`marker-${index}`}
+                  coordinate={activity.coordinate}
+                >
+                  <View style={styles.markerContainer}>
+                    <View style={styles.markerBadge}>
+                      <Text style={styles.markerText}>{index + 1}</Text>
+                    </View>
+                  </View>
+                </MapboxGL.PointAnnotation>
+              ))}
+            </MapboxGL.MapView>
+          </View>
+        )}
+
+        <View style={styles.dayCard}>
+          <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
+          <ItineraryList activities={activities} />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.resetButton}
+          onPress={() => setTripPlan(null)}
+        >
+          <Text style={styles.resetButtonText}>Plan Another Trip</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }, [fadeAnim, selectedDay, setTripPlan]);
 
   return (
     <ScrollView style={styles.container}>
@@ -399,6 +522,41 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 10,
+  },
+  mapContainer: {
+    height: 250,
+    width: '100%',
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 20,
+    backgroundColor: '#e0e0e0', // Placeholder color
+  },
+  map: {
+    flex: 1,
+  },
+  markerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerBadge: {
+    backgroundColor: '#0066CC',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  markerText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   activityRow: {
     flexDirection: 'row',

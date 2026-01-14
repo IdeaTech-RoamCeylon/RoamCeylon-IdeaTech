@@ -38,19 +38,14 @@ export interface TripPlanRequestDto {
   preferences?: string[];
 }
 
-// interface EmbeddedItem {
-//   id: number | string;
-//   title: string;
-//   content: string;
-//   embedding: number[];
-// }
-
 type ItineraryCategory =
   | 'Arrival'
   | 'Sightseeing'
   | 'Culture'
+  | 'History'
   | 'Nature'
   | 'Beach'
+  | 'Adventure'
   | 'Relaxation';
 
 interface ItineraryItemDto {
@@ -119,10 +114,26 @@ export class AIController {
   };
 
   private readonly FALLBACK_MESSAGES = {
-    NO_HIGH_CONFIDENCE: 'No high-confidence matches found. Showing best available results.',
-    NO_MATCHES: 'No relevant items found. Please try refining your search with different keywords.',
-    LOW_QUALITY: 'Search results have low confidence scores. Consider adding more specific details to your query.',
-    PARTIAL_RESULTS: 'Only partial results available. Some recommendations may not strongly match your preferences.',
+    NO_HIGH_CONFIDENCE:
+      'No high-confidence matches found. Showing best available results.',
+    NO_MATCHES:
+      'No relevant items found. Please try refining your search with different keywords.',
+    LOW_QUALITY:
+      'Search results have low confidence scores. Consider adding more specific details to your query.',
+    PARTIAL_RESULTS:
+      'Only partial results available. Some recommendations may not strongly match your preferences.',
+  };
+
+  private readonly INTEREST_CATEGORY_MAP: Record<string, ItineraryCategory[]> = {
+    nature: ['Nature'],
+    history: ['History', 'Culture', 'Sightseeing'],
+    culture: ['Culture', 'History', 'Sightseeing'],
+    adventure: ['Adventure', 'Nature'],
+    beach: ['Beach', 'Relaxation'],
+    relaxation: ['Relaxation', 'Beach'],
+    food: ['Culture', 'Relaxation'],
+    shopping: ['Sightseeing', 'Culture'],
+    nightlife: ['Sightseeing', 'Relaxation'],
   };
 
   constructor(
@@ -179,7 +190,7 @@ export class AIController {
       tokens: meaningfulTokens,
     };
   }
-  
+
   /**
    * Filter results based on confidence thresholds
    * Returns filtered results and appropriate fallback message if needed
@@ -188,50 +199,58 @@ export class AIController {
     results: SearchResultItem[],
     minConfidence: 'High' | 'Medium' | 'Low' = 'Medium',
   ): { filtered: SearchResultItem[]; fallbackMessage?: string } {
-  if (results.length === 0) {
-    return {
-      filtered: [],
-      fallbackMessage: this.FALLBACK_MESSAGES.NO_MATCHES,
-    };
-  }
-
-  // Threshold map
-  const thresholdMap = {
-    High: this.CONFIDENCE_THRESHOLDS.HIGH,
-    Medium: this.CONFIDENCE_THRESHOLDS.MEDIUM,
-    Low: this.CONFIDENCE_THRESHOLDS.MINIMUM,
-  };
-  const threshold = thresholdMap[minConfidence];
-
-  // Filter results above threshold
-  const filtered = results.filter((item) => item.score !== undefined && item.score >= threshold);
-
-  // Default fallback
-  let fallbackMessage: string | undefined;
-
-  // Case 1: No results after filtering
-  if (filtered.length === 0) {
-    fallbackMessage = this.FALLBACK_MESSAGES.NO_MATCHES;
-  } 
-  // Case 2: Minimum confidence is High, but no high-confidence matches
-  else if (minConfidence === 'High' && !filtered.some((r) => r.confidence === 'High')) {
-    fallbackMessage = this.FALLBACK_MESSAGES.NO_HIGH_CONFIDENCE;
-  } 
-  // Case 3: Partial high-confidence coverage
-  else if (minConfidence === 'High') {
-    const highConfidenceCount = filtered.filter((r) => r.confidence === 'High').length;
-    if (highConfidenceCount < filtered.length * 0.5) {
-      fallbackMessage = this.FALLBACK_MESSAGES.PARTIAL_RESULTS;
+    if (results.length === 0) {
+      return {
+        filtered: [],
+        fallbackMessage: this.FALLBACK_MESSAGES.NO_MATCHES,
+      };
     }
-  } 
-  // Case 4: Average score is low
-  const avgScore = filtered.reduce((sum, r) => sum + (r.score || 0), 0) / filtered.length;
-  if (!fallbackMessage && avgScore < 0.65) {
-    fallbackMessage = this.FALLBACK_MESSAGES.LOW_QUALITY;
-  }
 
-  return { filtered, fallbackMessage };
-}
+    // Threshold map
+    const thresholdMap = {
+      High: this.CONFIDENCE_THRESHOLDS.HIGH,
+      Medium: this.CONFIDENCE_THRESHOLDS.MEDIUM,
+      Low: this.CONFIDENCE_THRESHOLDS.MINIMUM,
+    };
+    const threshold = thresholdMap[minConfidence];
+
+    // Filter results above threshold
+    const filtered = results.filter(
+      (item) => item.score !== undefined && item.score >= threshold,
+    );
+
+    // Default fallback
+    let fallbackMessage: string | undefined;
+
+    // Case 1: No results after filtering
+    if (filtered.length === 0) {
+      fallbackMessage = this.FALLBACK_MESSAGES.NO_MATCHES;
+    }
+    // Case 2: Minimum confidence is High, but no high-confidence matches
+    else if (
+      minConfidence === 'High' &&
+      !filtered.some((r) => r.confidence === 'High')
+    ) {
+      fallbackMessage = this.FALLBACK_MESSAGES.NO_HIGH_CONFIDENCE;
+    }
+    // Case 3: Partial high-confidence coverage
+    else if (minConfidence === 'High') {
+      const highConfidenceCount = filtered.filter(
+        (r) => r.confidence === 'High',
+      ).length;
+      if (highConfidenceCount < filtered.length * 0.5) {
+        fallbackMessage = this.FALLBACK_MESSAGES.PARTIAL_RESULTS;
+      }
+    }
+    // Case 4: Average score is low
+    const avgScore =
+      filtered.reduce((sum, r) => sum + (r.score || 0), 0) / filtered.length;
+    if (!fallbackMessage && avgScore < 0.65) {
+      fallbackMessage = this.FALLBACK_MESSAGES.LOW_QUALITY;
+    }
+
+    return { filtered, fallbackMessage };
+  }
 
   /* ---------- In-memory cosine search ---------- */
   private async executeSearch(query: unknown): Promise<SearchResponseDto> {
@@ -265,74 +284,71 @@ export class AIController {
     const searchStart = process.hrtime.bigint();
 
     // -------- KEYWORD + FUZZY GATE --------
-    // 🔹 Log preprocessed query and filtered tokens
-    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-
     const keywordFiltered = items.filter((item) => {
-    const text = `${item.title} ${item.content}`.toLowerCase();
+      const text = `${item.title} ${item.content}`.toLowerCase();
 
-    // Find matched tokens
-    const matchedTokens = queryTokens.filter(
-      (token) =>
-        text.includes(token) || this.aiService.isPartialMatch(token, text),
+      // Find matched tokens
+      const matchedTokens = queryTokens.filter(
+        (token) =>
+          text.includes(token) || this.aiService.isPartialMatch(token, text),
+      );
+
+      // Return true if any token matched
+      return matchedTokens.length > 0;
+    });
+
+    const rowsAfterGate = keywordFiltered.length;
+
+    // -------- STOP EARLY --------
+    if (rowsAfterGate === 0) {
+      return {
+        query: cleaned,
+        results: [],
+        message: 'No strong matches found.',
+      };
+    }
+
+    const scored = keywordFiltered
+      .map((item) => {
+        const score = this.aiService.cosineSimilarity(
+          queryVector,
+          item.embedding,
+        );
+
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          score,
+          confidence: this.searchService.getConfidence(score),
+          normalizedText: `${item.title} ${item.content}`.toLowerCase().trim(),
+        };
+      })
+      .filter((item) => item.score >= this.CONFIDENCE_THRESHOLDS.MINIMUM)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(a.id).localeCompare(String(b.id)); // Stable sort
+      })
+      .slice(0, 5)
+      .map((item, idx) => ({
+        rank: idx + 1,
+        ...item,
+      }));
+
+    // Apply confidence threshold filtering
+    const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
+      scored,
+      'Medium', // Require at least Medium confidence
     );
 
-    // Return true if any token matched
-    return matchedTokens.length > 0;
-  });
+    const searchEnd = process.hrtime.bigint();
+    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
 
-  const rowsAfterGate = keywordFiltered.length;
+    const totalEnd = process.hrtime.bigint();
+    const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
 
-  // -------- STOP EARLY --------
-  if (rowsAfterGate === 0) {
-    return {
-      query: cleaned,
-      results: [],
-      message: 'No strong matches found.',
-    };
-  }
-
-  const scored = keywordFiltered
-  .map((item) => {
-    const score = this.aiService.cosineSimilarity(
-      queryVector,
-      item.embedding,
-    );
-
-    return {
-      id: item.id,
-      title: item.title,
-      content: item.content,
-      score,
-      confidence: this.searchService.getConfidence(score),
-      normalizedText: `${item.title} ${item.content}`.toLowerCase().trim(),
-    };
-    })
-    .filter((item) => item.score >= this.CONFIDENCE_THRESHOLDS.MINIMUM)
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return String(a.id).localeCompare(String(b.id)); // Stable sort
-    })
-    .slice(0, 5)
-    .map((item, idx) => ({
-      rank: idx + 1, 
-      ...item,
-    }));
-
-  // Apply confidence threshold filtering
-  const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
-    scored,
-    'Medium', // Require at least Medium confidence
-  );
-
-  const searchEnd = process.hrtime.bigint();
-  const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
-
-  const totalEnd = process.hrtime.bigint();
-  const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
-
-  this.logger.log(
-    `[SEARCH METRICS]
+    this.logger.log(
+      `[SEARCH METRICS]
   Query           : "${originalQuery}"
   Tokens          : ${queryTokens.length}
   Query Complexity: ${queryComplexity}
@@ -341,17 +357,17 @@ export class AIController {
   Vector Gen Time : ${embeddingTimeMs.toFixed(2)} ms
   Search Exec Time: ${searchTimeMs.toFixed(2)} ms
   Total Time      : ${totalTimeMs.toFixed(2)} ms`,
-  );
+    );
 
-  return {
-    query: originalQuery,
-    results: filtered.map((item, idx) => ({
-      ...item,
-      rank: idx + 1, // Re-assign ranks after filtering
-    })),
-    message: fallbackMessage,
-  };
-}
+    return {
+      query: originalQuery,
+      results: filtered.map((item, idx) => ({
+        ...item,
+        rank: idx + 1, // Re-assign ranks after filtering
+      })),
+      message: fallbackMessage,
+    };
+  }
 
   /* ---------- REST endpoints ---------- */
 
@@ -376,8 +392,6 @@ export class AIController {
 
     const { cleaned } = validated;
 
-    const startTotal = Date.now();
-
     const parsedLimit = Number(limit);
 
     const lim =
@@ -385,35 +399,22 @@ export class AIController {
         ? Math.min(parsedLimit, 20)
         : 10;
 
-    this.logger.log(`🔍 Vector search - query received: "${String(q)}"`);
-    this.logger.log(`🧹 Preprocessed query: "${cleaned}"`);
-
     // ---- Embedding ----
-    const embedStart = Date.now();
     const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
-    const embedTime = Date.now() - embedStart;
-    this.logger.log(`⚙️ Embedding generated in ${embedTime}ms`);
 
     // ---- Vector DB Search (ONE CALL ONLY) ----
-    const searchStart = Date.now();
-
     const rawResults =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
       );
-    const searchTime = Date.now() - searchStart;
-
-    this.logger.log(`⏳ Vector DB search duration: ${searchTime}ms`);
-    this.logger.log(`🏆 Ranked results: ${JSON.stringify(rawResults)}`);
-
-    const total = Date.now() - startTotal;
-    this.logger.log(`✅ Total vector search pipeline time: ${total}ms`);
 
     // Apply confidence filtering to vector results
     if (Array.isArray(rawResults)) {
-            const confidenceLevel =
-        minConfidence === 'High' || minConfidence === 'Medium' || minConfidence === 'Low'
+      const confidenceLevel =
+        minConfidence === 'High' ||
+        minConfidence === 'Medium' ||
+        minConfidence === 'Low'
           ? minConfidence
           : 'Medium';
 
@@ -425,7 +426,7 @@ export class AIController {
       return {
         query: cleaned,
         results: filtered,
-        message: fallbackMessage, 
+        message: fallbackMessage,
       };
     } else {
       return { query: cleaned, results: [], message: rawResults.message };
@@ -466,66 +467,72 @@ export class AIController {
   private scoreResultsByPreferences(
     results: SearchResultItem[],
     preferences?: string[],
+    dayCount?: number,
   ): Array<SearchResultItem & { priorityScore: number }> {
-    if (!preferences || preferences.length === 0) {
-      return results.map((r) => ({
-        ...r,
-        priorityScore: r.score || 0.5,
-      }));
-    }
+    const tripType = dayCount ? this.getTripLengthType(dayCount) : undefined;
 
     return results
       .map((result) => {
         let priorityScore = result.score || 0.5;
 
         const text = `${result.title} ${result.content}`.toLowerCase();
-        let matchCount = 0;
+        
+        /* ---------- INTEREST TYPE PERSONALIZATION ---------- */
+        if (preferences) {
+          for (const pref of preferences) {
+            const prefLower = pref.toLowerCase();
+            const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower];
+            const CATEGORY_MATCH_HIGH_BOOST = 0.2;
+            const CATEGORY_MATCH_LOW_BOOST = 0.1;
 
-        for (const pref of preferences) {
-          const prefLower = pref.toLowerCase();
+            if (!mappedCategories) continue;
 
-          // Exact phrase match in title (highest priority)
-          if (result.title.toLowerCase().includes(prefLower)) {
-            priorityScore += 0.3;
-            matchCount++;
+            for (const cat of mappedCategories) {
+              if (text.includes(cat.toLowerCase())) {
+                priorityScore +=
+                  result.confidence === 'High'
+                  ? CATEGORY_MATCH_HIGH_BOOST
+                  : CATEGORY_MATCH_LOW_BOOST;
+                break;
+              }
+            }
           }
-          // Match in content
-          else if (text.includes(prefLower)) {
+        }
+          
+        /* ---------- TRIP LENGTH PERSONALIZATION ---------- */
+        if (tripType === 'short') {
+          // Short trips → compact / high-value experiences
+          if (text.match(/fort|temple|kovil|church|museum|beach/)) {
             priorityScore += 0.15;
-            matchCount++;
-          }
-
-          // Bonus for multiple word preferences (more specific)
-          if (prefLower.split(' ').length > 1 && text.includes(prefLower)) {
-            priorityScore += 0.1;
           }
         }
 
-        // Boost results that match multiple preferences
-        if (matchCount > 1) {
-          priorityScore += matchCount * 0.1;
+        if (tripType === 'long') {
+          // Long trips → nature + relaxation
+          if (text.match(/nature|park|wildlife|relax|spa|garden/)) {
+            priorityScore += 0.15;
+          }
         }
 
-        // Confidence level weighting
-        if (result.confidence === 'High') {
-          priorityScore *= 1.2;
-        } else if (result.confidence === 'Medium') {
-          priorityScore *= 1.0;
-        } else if (result.confidence === 'Low') {
-          priorityScore *= 0.8;
-        }
+        /* ---------- CONFIDENCE WEIGHTING ---------- */
+        if (result.confidence === 'High') priorityScore *= 1.2;
+        else if (result.confidence === 'Low') priorityScore *= 0.85;
 
-        // Cap the score
+        // Cap score to avoid overfitting
         priorityScore = Math.min(priorityScore, 2.0);
 
         return { ...result, priorityScore };
       })
-      .sort((a, b) => b.priorityScore - a.priorityScore); // Sort by priority
-  }
-  /* ---------- Trip Planner ---------- */
-  /**
-   * Generate explanation metadata for itinerary items
-   */
+      .sort((a, b) => b.priorityScore - a.priorityScore);
+    }
+    
+    private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
+      if (dayCount <= 2) return 'short';
+      if (dayCount <= 5) return 'medium';
+    return 'long';
+   }
+
+  // Generate explanation metadata for itinerary items
   private generateExplanation(
     result: SearchResultItem,
     priorityScore: number,
@@ -620,21 +627,20 @@ export class AIController {
       },
     };
   }
-  
+
+  // Prevents meaningless AI searches, Enables intelligent fallback logic
   private isValidDestination(destination?: string): boolean {
-  if (!destination) return false;
+    if (!destination) return false;
 
-  const trimmed = destination.trim().toLowerCase();
+    const trimmed = destination.trim().toLowerCase();
 
-  if (trimmed.length < 3) return false;
+    if (trimmed.length < 3) return false;
 
-  const invalidValues = ['unknown', 'n/a', 'none'];
-  return !invalidValues.includes(trimmed);
+    const invalidValues = ['unknown', 'n/a', 'none'];
+    return !invalidValues.includes(trimmed);
   }
 
-  /**
-   * Create fallback itinerary when confidence is too low
-   */
+  //Create fallback itinerary when confidence is too low
   private createFallbackItinerary(
     dayCount: number,
     startDate: string,
@@ -682,9 +688,7 @@ export class AIController {
     return dayPlans;
   }
 
-  /**
-   * Main enhanced itinerary generation
-   */
+  // Main enhanced itinerary generation (MULTI-DAY SAFE)
   private generateItinerary(
     searchResults: SearchResultItem[],
     dayCount: number,
@@ -692,9 +696,8 @@ export class AIController {
     preferences?: string[],
     destination?: string,
   ): DayPlan[] {
-    // Apply stricter confidence filtering with logging
+    // Strict filtering
     const filteredResults = searchResults.filter((result) => {
-      // Remove results below minimum threshold
       if (!result.score || result.score < this.CONFIDENCE_THRESHOLDS.MINIMUM) {
         this.logger.warn(
           `Filtered out low score result: "${result.title}" (score: ${result.score})`,
@@ -702,10 +705,9 @@ export class AIController {
         return false;
       }
 
-      // Remove very short descriptions
-      if (result.content.length < 20) {
+      if (!result.content || result.content.length < 20) {
         this.logger.warn(
-          `Filtered out short content: "${result.title}" (length: ${result.content.length})`,
+          `Filtered out short content: "${result.title}" (length: ${result.content?.length ?? 0})`,
         );
         return false;
       }
@@ -713,95 +715,70 @@ export class AIController {
       return true;
     });
 
-    // Check if we have enough quality results
+    // If nothing usable → full fallback plan
     if (filteredResults.length === 0) {
       this.logger.error('No results passed confidence threshold filters');
-      // Return minimal fallback itinerary
       return this.createFallbackItinerary(dayCount, startDate, destination);
     }
 
-    const scored = this.scoreResultsByPreferences(filteredResults, preferences);
-    const maxActivities = Math.min(15, scored.length);
-    const selectedResults = this.selectDiverseActivities(scored, maxActivities);
+    // Score + diversify
+    const scored = this.scoreResultsByPreferences(filteredResults, preferences, dayCount);
 
-    const avgScore =
-      selectedResults.reduce((sum, r) => sum + (r.score || 0), 0) /
-      selectedResults.length;
+    // total max activities for the full trip
+    const MAX_PER_DAY = dayCount === 1 ? 2 : 4; // Arrival day: max 2 activities
+    const maxTotalActivities = Math.min(
+      dayCount * MAX_PER_DAY,
+      15,
+      scored.length,
+    );
 
-    const highConfidenceCount = selectedResults.filter(
-      (r) => r.confidence === 'High',
-    ).length;
+    const selectedResults = this.selectDiverseActivities(
+      scored,
+      maxTotalActivities,
+      preferences,
+    );
 
-    if (avgScore < 0.6) {
-      this.logger.warn(`Low average relevance score: ${avgScore.toFixed(2)}`);
-    }
+    // Build day buckets (balanced distribution)
+    const dayBuckets = this.allocateAcrossDays(
+      selectedResults,
+      dayCount,
+      MAX_PER_DAY,
+    );
 
-    if (highConfidenceCount < selectedResults.length * 0.3) {
-      this.logger.warn(
-        `Low confidence warning: only ${highConfidenceCount}/${selectedResults.length} are high confidence`,
-      );
-    }
-
+    // Build day plans + pad empty days with fallback activity
     const dayPlans: DayPlan[] = [];
-    let activityIndex = 0;
-
-    const categorySequence: ItineraryCategory[] = [
-      'Arrival',
-      'Sightseeing',
-      'Culture',
-      'Nature',
-      'Beach',
-      'Relaxation',
-    ];
+    const baseDate = new Date(startDate);
 
     for (let day = 1; day <= dayCount; day++) {
+      const dayDate = new Date(baseDate);
+      dayDate.setDate(baseDate.getDate() + (day - 1));
+
+      const bucket = dayBuckets[day - 1] ?? [];
       const activitiesForDay: EnhancedItineraryItemDto[] = [];
-      const rawActivitiesThisDay = Math.max(
-        1,
-        Math.ceil((maxActivities - activityIndex) / (dayCount - day + 1)),
-      );
 
-      // Realistic daily cap
-      const MAX_ACTIVITIES_PER_DAY = dayCount === 1 ? 3 : 4;
-      const activitiesThisDay = Math.min(
-        rawActivitiesThisDay,
-        MAX_ACTIVITIES_PER_DAY,
-      );
-
-      for (
-        let i = 0;
-        i < activitiesThisDay && activityIndex < selectedResults.length;
-        i++
-      ) {
-        const result = selectedResults[activityIndex];
+      for (let i = 0; i < bucket.length; i++) {
+        const result = bucket[i];
         const scoredResult = scored.find((s) => s.id === result.id);
         const priorityScore = scoredResult?.priorityScore || 0;
 
-        // Prefer logical order using category sequence
-        let category = this.determineActivityCategory(
+        const category = this.determineActivityCategory(
           result.title,
           result.content,
           day,
           i,
           preferences,
         );
-        const seqIndex = categorySequence.indexOf(category);
-        category = categorySequence[seqIndex >= 0 ? seqIndex : 0];
 
         activitiesForDay.push({
-          order: activityIndex + 1,
+          order: i + 1, // per-day ordering
           dayNumber: day,
           placeName: result.title,
           shortDescription: result.content,
           category,
-          timeSlot: this.assignTimeSlot(i, activitiesThisDay, day),
+          timeSlot: this.assignTimeSlot(i, bucket.length, day),
           estimatedDuration: this.estimateDuration(category),
-          confidenceScore: result.confidence,
-          priority:
-            Math.round(
-              (scored.find((s) => s.id === result.id)?.priorityScore || 0) *
-                100,
-            ) / 100,
+          confidenceScore: result.confidence || 'Low',
+          priority: Math.round((priorityScore || 0) * 100) / 100,
           explanation: this.generateExplanation(
             result,
             priorityScore,
@@ -809,38 +786,19 @@ export class AIController {
             preferences,
           ),
         });
-
-        activityIndex++;
       }
 
-      // Fallback for empty day 1
-      if (activitiesForDay.length === 0 && day === 1) {
-        activitiesForDay.push({
-          order: 1,
-          dayNumber: 1,
-          placeName: destination || 'Destination',
-          shortDescription:
-            'Arrival and check-in at accommodation. Explore nearby area.',
-          category: 'Arrival',
-          timeSlot: 'Afternoon',
-          estimatedDuration: '2-3 hours',
-          confidenceScore: 'Low',
-          priority: 0.5,
-          explanation: {
-            selectionReason:
-              'Default arrival activity - no specific matches found',
-            rankingFactors: {
-              relevanceScore: 0,
-              confidenceLevel: 'Low',
-              categoryMatch: false,
-            },
-          },
-        });
+      // Guarantee at least 1 activity per day
+      if (activitiesForDay.length === 0) {
+        activitiesForDay.push(this.createSingleDayFallback(day, destination));
       }
 
-      const baseDate = new Date(startDate);
-      const dayDate = new Date(baseDate);
-      dayDate.setDate(baseDate.getDate() + day - 1);
+      // Guarantee day 1 has Arrival as first item
+      if (day === 1 && activitiesForDay.length > 0) {
+        activitiesForDay[0].category = 'Arrival';
+        activitiesForDay[0].timeSlot = 'Afternoon';
+        activitiesForDay[0].estimatedDuration = '2-3 hours';
+      }
 
       dayPlans.push({
         day,
@@ -849,7 +807,70 @@ export class AIController {
         activities: activitiesForDay,
       });
     }
+
     return dayPlans;
+  }
+
+  // Balanced distribution across days (keeps daily cap)
+  private allocateAcrossDays(
+    activities: SearchResultItem[],
+    dayCount: number,
+    maxPerDay: number,
+  ): SearchResultItem[][] {
+    const buckets: SearchResultItem[][] = Array.from(
+      { length: dayCount },
+      () => [],
+    );
+
+    // Round-robin distribution for balance
+    let dayIndex = 0;
+    for (const item of activities) {
+      // find next day that still has space
+      let tries = 0;
+      while (tries < dayCount && buckets[dayIndex].length >= maxPerDay) {
+        dayIndex = (dayIndex + 1) % dayCount;
+        tries++;
+      }
+
+      // if all full, stop
+      if (tries >= dayCount && buckets[dayIndex].length >= maxPerDay) break;
+
+      buckets[dayIndex].push(item);
+      dayIndex = (dayIndex + 1) % dayCount;
+    }
+
+    return buckets;
+  }
+
+  // Single fallback activity (used to pad empty days)
+  private createSingleDayFallback(
+    day: number,
+    destination?: string,
+  ): EnhancedItineraryItemDto {
+    const isDay1 = day === 1;
+
+    return {
+      order: 1,
+      dayNumber: day,
+      placeName: destination || 'Destination',
+      shortDescription: isDay1
+        ? 'Arrival and check-in at accommodation. Explore nearby area.'
+        : `Explore ${destination || 'the destination'} at your own pace. Visit local landmarks and attractions.`,
+      category: isDay1 ? 'Arrival' : 'Sightseeing',
+      timeSlot: isDay1 ? 'Afternoon' : 'Morning',
+      estimatedDuration: '3-4 hours',
+      confidenceScore: 'Low',
+      priority: 0.3,
+      explanation: {
+        selectionReason:
+          'Fallback activity - insufficient high-confidence recommendations available',
+        rankingFactors: {
+          relevanceScore: 0,
+          confidenceLevel: 'Low',
+          categoryMatch: false,
+        },
+      },
+    };
   }
 
   private inferCategoryFromText(
@@ -857,29 +878,27 @@ export class AIController {
     content: string,
     preferences?: string[],
   ): ItineraryCategory {
-  const text = `${title} ${content}`.toLowerCase();
+    const lower = `${title} ${content}`.toLowerCase();
 
-  if (preferences) {
-    for (const pref of preferences) {
-      const p = pref.toLowerCase();
-      if (p.match(/beach|coast/)) return 'Beach';
-      if (p.match(/culture|temple|heritage/)) return 'Culture';
-      if (p.match(/nature|wildlife|park/)) return 'Nature';
-      if (p.match(/relax|spa|resort/)) return 'Relaxation';
+    if (preferences?.length) {
+      for (const pref of preferences) {
+        if (lower.includes(pref.toLowerCase())) {
+        const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
+        if (mapped?.length) return mapped[0];
+        }
+      }
     }
+
+    if (lower.includes('beach') || lower.includes('surf')) return 'Beach';
+    if (lower.includes('fort') || lower.includes('historical') || lower.includes('ruins')|| lower.includes('temple') || lower.includes('kovil') || lower.includes('church')) return 'History';
+    if (lower.includes('museum') || lower.includes('culture')) return 'Culture';
+    if (lower.includes('park') || lower.includes('wildlife') || lower.includes('forest') || lower.includes('nature')) return 'Nature';
+    if (lower.includes('adventure') || lower.includes('hiking') || lower.includes('rafting')) return 'Adventure';
+
+    return 'Sightseeing';
   }
 
-  if (text.match(/beach|coast|ocean/)) return 'Beach';
-  if (text.match(/temple|museum|heritage/)) return 'Culture';
-  if (text.match(/park|wildlife|forest/)) return 'Nature';
-  if (text.match(/fort|ancient|historical/)) return 'Sightseeing';
-
-  return 'Sightseeing';
-  }
-
-  /**
-   * Enhanced category determination with better logic
-   */
+  // Enhanced category determination with better logic
   private determineActivityCategory(
     title: string,
     content: string,
@@ -896,23 +915,24 @@ export class AIController {
     // Optional: apply day rotation fallback if no strong match
     const rotationPattern: ItineraryCategory[] = [
       'Sightseeing',
-      'Nature',
+      'History',
       'Culture',
       'Beach',
+      'Nature',
+      'Adventure',
       'Relaxation',
+      'Beach'
     ];
 
     if (!category || category === 'Sightseeing') {
-      category = rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
+      category =
+        rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
     }
 
     return category;
   }
 
-
-  /**
-   * Ensure diversity in activity categories
-   */
+  // Ensure diversity in activity categories
   private selectDiverseActivities(
     scoredResults: Array<
       SearchResultItem & { priorityScore: number; normalizedText?: string }
@@ -938,7 +958,11 @@ export class AIController {
       if (textSet.has(textKey)) continue;
 
       // Determine category using the new helper
-      const category = this.inferCategoryFromText(result.title, result.content, preferences);
+      const category = this.inferCategoryFromText(
+        result.title,
+        result.content,
+        preferences,
+      );
 
       // Respect category limit for diversity
       const currentCount = categoryCount[category] || 0;
@@ -964,22 +988,20 @@ export class AIController {
     return selected;
   }
 
-  /**
-   * Assign time slots to activities for better day structure
-   */
+  // Assign time slots to activities for better day structure
   private assignTimeSlot(
     activityIndex: number,
     totalActivitiesInDay: number,
     dayNumber?: number,
   ): 'Morning' | 'Afternoon' | 'Evening' {
-    // 🔹 DAY 1 RULE
+    // DAY 1 RULE
     if (dayNumber === 1) {
       // Arrival handled separately
       if (activityIndex === 0) return 'Afternoon';
       return 'Evening';
     }
 
-    // 🔹 OTHER DAYS LOGIC
+    // OTHER DAYS LOGIC
     if (totalActivitiesInDay === 1) return 'Morning';
 
     if (totalActivitiesInDay === 2) {
@@ -992,205 +1014,247 @@ export class AIController {
     return 'Evening';
   }
 
-  /**
-   * Estimate activity duration based on category
-   */
+  // Estimate activity duration based on category
   private estimateDuration(category: ItineraryCategory): string {
     const durations: Record<ItineraryCategory, string> = {
       Arrival: '2-3 hours',
       Sightseeing: '2-4 hours',
       Culture: '2-3 hours',
+      History: '2-4 hours',
       Nature: '3-5 hours',
+      Adventure: '3-6 hours',
       Beach: '2-4 hours',
       Relaxation: '2-3 hours',
     };
+
     return durations[category];
   }
 
-  /**
-   * Generate day themes based on activities
-   */
+  // Generate day themes based on activities
   private generateDayTheme(activities: EnhancedItineraryItemDto[]): string {
-    const categories = activities.map((a) => a.category);
-    const uniqueCategories = [...new Set(categories)];
+    if (!activities?.length) return 'Exploration Day';
 
-    if (uniqueCategories.length === 1) {
-      return `${uniqueCategories[0]} Day`;
+    const categories = activities
+      .map((a) => (a.category || '').trim().toLowerCase())
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(categories));
+
+    const counts = categories.reduce<Record<string, number>>((acc, c) => {
+      acc[c] = (acc[c] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topCategory =
+      Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      'sightseeing';
+
+    const hasAll = (req: string[]) => req.every((r) => unique.includes(r));
+    const hasAny = (req: string[]) => req.some((r) => unique.includes(r));
+
+    // Rules (ordered by priority)
+    // Put more "specific" combos near the top.
+    const THEME_RULES: Array<{
+      all?: string[]; // must include all
+      any?: string[]; // must include at least one
+      title: string;
+    }> = [
+      // Arrival-aware themes
+      { all: ['arrival', 'sightseeing'], title: 'Arrival & City Highlights' },
+      { all: ['arrival', 'culture'], title: 'Arrival & Cultural Start' },
+      { all: ['arrival', 'beach'], title: 'Arrival & Coastal Unwind' },
+      { all: ['arrival', 'nature'], title: 'Arrival & Nature Intro' },
+      { any: ['arrival'], title: 'Arrival & Orientation' },
+
+      // Strong combos
+      { all: ['beach', 'relaxation'], title: 'Beach & Relaxation' },
+      { all: ['culture', 'sightseeing'], title: 'Cultural Exploration' },
+      { all: ['nature', 'sightseeing'], title: 'Nature & Highlights' },
+      { all: ['culture', 'nature'], title: 'Culture & Nature' },
+      { all: ['beach', 'culture'], title: 'Coast & Culture' },
+      { all: ['beach', 'sightseeing'], title: 'Coastal Highlights' },
+      { all: ['nature', 'beach'], title: 'Nature & Coast' },
+      { all: ['relaxation', 'culture'], title: 'Relaxation & Culture' },
+    ];
+
+    // 1) If single-category day → "{Category} Day"
+    if (unique.length === 1) {
+      const only = unique[0];
+      return `${only[0].toUpperCase() + only.slice(1)} Day`;
     }
 
-    if (categories.includes('Beach') && categories.includes('Relaxation')) {
-      return 'Beach & Relaxation';
+    // 2) Apply first matching rule
+    for (const rule of THEME_RULES) {
+      const okAll = rule.all ? hasAll(rule.all) : true;
+      const okAny = rule.any ? hasAny(rule.any) : true;
+      if (okAll && okAny) return rule.title;
     }
 
-    if (categories.includes('Culture') && categories.includes('Sightseeing')) {
-      return 'Cultural Exploration';
-    }
+    // 3) Weighted fallback based on dominant category
+    const DOMINANT_FALLBACK: Record<string, string> = {
+      beach: 'Beach Escape',
+      nature: 'Nature Day',
+      culture: 'Cultural Day',
+      relaxation: 'Relax & Recharge',
+      sightseeing: 'Highlights Day',
+      arrival: 'Arrival Day',
+    };
 
-    if (categories.includes('Nature')) {
-      return 'Nature & Wildlife';
-    }
-
-    return 'Mixed Activities';
+    return DOMINANT_FALLBACK[topCategory] || 'Discovery Day';
   }
 
   @Post('trip-plan')
-async tripPlanEnhanced(
-  @Body() body: TripPlanRequestDto,
-): Promise<TripPlanResponseDto> {
-  const isValidDestination = this.isValidDestination(body.destination);
+  async tripPlanEnhanced(
+    @Body() body: TripPlanRequestDto,
+  ): Promise<TripPlanResponseDto> {
+    const isValidDestination = this.isValidDestination(body.destination);
+    let dayByDayPlan: DayPlan[] = [];
+    let preferencesMatched: string[] = [];
+    let suggestions: EnhancedItineraryItemDto[] = [];
 
-  const validThemes: ItineraryCategory[] = [
-    'Arrival',
-    'Sightseeing',
-    'Culture',
-    'Nature',
-    'Beach',
-    'Relaxation',
-  ];
+    const startDateStr = body.startDate || new Date().toISOString().split('T')[0];
+    const endDateStr = body.endDate || startDateStr;
 
-  let dayByDayPlan: DayPlan[] = [];
-  let preferencesMatched: string[] = [];
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
 
-  // ----- Fetch all DB embeddings once -----
-  const allEmbeddings = await this.aiService.getAllEmbeddings();
-
-  // ----- FALLBACK for invalid destination -----
-  if (!isValidDestination) {
-    const suggestions: EnhancedItineraryItemDto[] = [];
-
-    // Match preferences in database
-    (body.preferences ?? []).forEach((pref) => {
-      const matchedItems = allEmbeddings.filter((item) => {
-        const text = `${item.title} ${item.content}`.toLowerCase();
-        return text.includes(pref.toLowerCase());
-      });
-
-      matchedItems.slice(0, 2).forEach((item) => {
-        suggestions.push({
-          order: suggestions.length + 1,
-          dayNumber: 1,
-          placeName: item.title,
-          shortDescription: item.content,
-          category: validThemes.includes(pref as ItineraryCategory)
-            ? (pref as ItineraryCategory)
-            : 'Sightseeing',
-          confidenceScore: 'Medium',
-          priority: 0.7,
-          explanation: {
-            selectionReason: `Matches your preference "${pref}" in title/content.`,
-            rankingFactors: {
-              relevanceScore: 0.6,
-              confidenceLevel: 'Medium',
-              categoryMatch: true,
-              preferenceMatch: [pref],
-            },
-          },
-        });
-      });
-    });
-
-    // If no matches found, use top 3 general attractions
-    if (suggestions.length === 0) {
-      allEmbeddings.slice(0, 3).forEach((item, idx) => {
-        suggestions.push({
-          order: idx + 1,
-          dayNumber: 1,
-          placeName: item.title,
-          shortDescription: item.content,
-          category: 'Sightseeing',
-          confidenceScore: 'High',
-          priority: 0.5,
-        });
-      });
-    }
-
-    // Calculate preferencesMatched based on actual returned activities
-    preferencesMatched = (body.preferences ?? []).filter((pref) =>
-      suggestions.some((item) => item.category.toLowerCase() === pref.toLowerCase())
+    const dayCount = Math.max(
+      1,
+      Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1,
     );
 
-    dayByDayPlan = [
-      {
-        day: 1,
-        date: new Date().toISOString().split('T')[0],
-        theme: 'Suggested Places',
-        activities: suggestions,
-      },
+    // ===== Fetch all embeddings once =====
+    const allEmbeddings = await this.aiService.getAllEmbeddings();
+
+    // FALLBACK for invalid destination
+    if (!isValidDestination) {
+       // Match preferences in database
+      (body.preferences ?? []).forEach((pref) => {
+        const mappedCategories = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
+        const matchedItems = allEmbeddings.filter((item) =>
+          `${item.title} ${item.content}`.toLowerCase().includes(pref.toLowerCase()),
+        );
+
+         matchedItems.slice(0, 2).forEach((item) => {
+          suggestions.push({
+            order: suggestions.length + 1,
+            dayNumber: 1,
+            placeName: item.title,
+            shortDescription: item.content,
+            category: mappedCategories?.[0] || 'Sightseeing',
+            confidenceScore: 'Medium',
+            priority: 0.7,
+            explanation: {
+              selectionReason: `Matches your preference "${pref}" in title/content.`,
+              rankingFactors: {
+                relevanceScore: 0.6,
+                confidenceLevel: 'Medium',
+                categoryMatch: true,
+                preferenceMatch: [pref],
+              },
+            },
+          });
+        });
+      });
+
+      // If no matches found, use top 3 general attractions
+      if (suggestions.length === 0) {
+        allEmbeddings.slice(0, 3).forEach((item, idx) => {
+          suggestions.push({
+            order: idx + 1,
+            dayNumber: 1,
+            placeName: item.title,
+            shortDescription: item.content,
+            category: 'Sightseeing',
+            confidenceScore: 'High',
+            priority: 0.5,
+          });
+        });
+      }
+
+      // Calculate preferencesMatched based on actual returned activities
+      preferencesMatched = (body.preferences ?? []).filter((pref) => {
+        const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()] || [];
+      return suggestions.some((item) => mapped.includes(item.category));
+      });
+
+      // Return fallback plan immediately
+      return {
+        plan: {
+          destination: body.destination || 'Unknown',
+          dates: { start: startDateStr, end: endDateStr },
+        totalDays: dayCount,
+        dayByDayPlan: [
+          {
+            day: 1,
+            date: startDate.toISOString().split('T')[0],
+            theme: 'Suggested Places',
+            activities: suggestions,
+          },
+        ],
+          summary: {
+            totalActivities: suggestions.length,
+            categoriesIncluded: [
+              ...new Set(suggestions.map((a) => a.category)),
+            ],
+            preferencesMatched,
+          },
+        },
+        message:
+          preferencesMatched.length > 0
+            ? 'High-confidence suggestions found for your preferred categories.'
+            : 'No strong preference matches found. Showing best available results.',
+      };
+    }
+
+    // ===== Normal itinerary mode =====
+    const searchTerms = [
+      body.destination,
+      'attractions',
+      'places to visit',
+      ...(body.preferences ?? []),
     ];
+    const query = searchTerms.join(' ');
+
+    const searchResults = await this.executeSearch(query);
+
+    dayByDayPlan = this.generateItinerary(
+      searchResults.results,
+      dayCount,
+      startDateStr,
+      body.preferences,
+      body.destination,
+    );
+
+    // Calculate preferencesMatched based on actual returned activities
+    const allCategoriesInPlan = dayByDayPlan.flatMap((d) =>
+      d.activities.map((a) => a.category),
+    );
+
+    preferencesMatched = (body.preferences ?? []).filter((pref) => {
+      const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()] || [];
+      return allCategoriesInPlan.some((cat) => mapped.includes(cat));
+    });
 
     return {
       plan: {
-        destination: body.destination || 'Unknown',
-        dates: { start: '', end: '' },
-        totalDays: 0,
+        destination: body.destination,
+        dates: { start: startDateStr, end: endDateStr },
+        totalDays: dayCount,
         dayByDayPlan,
         summary: {
-          totalActivities: suggestions.length,
-          categoriesIncluded: [...new Set(suggestions.map((a) => a.category))],
+          totalActivities: dayByDayPlan.reduce(
+            (sum, d) => sum + d.activities.length,
+            0,
+          ),
+          categoriesIncluded: [...new Set(allCategoriesInPlan)],
           preferencesMatched,
         },
       },
       message:
-        preferencesMatched.length > 0
-          ? 'High-confidence suggestions found for your preferred categories.'
-          : 'No high-confidence preference matches found. Showing best available recommendations.',
+      preferencesMatched.length > 0
+        ? 'High-confidence suggestions found for your preferred categories.'
+        : 'No strong preference matches found. Showing best available results.',
     };
   }
-
-  // ----- VALID DESTINATION: normal itinerary -----
-  const searchTerms = [
-    body.destination,
-    'attractions',
-    'places to visit',
-    ...(body.preferences ?? []),
-  ];
-  const query = searchTerms.join(' ');
-
-  const searchResults = await this.executeSearch(query);
-
-  const startDate = new Date(body.startDate);
-  const endDate = new Date(body.endDate);
-  const dayCount = Math.max(
-    1,
-    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1,
-  );
-
-  dayByDayPlan = this.generateItinerary(
-    searchResults.results,
-    dayCount,
-    body.startDate,
-    body.preferences,
-    body.destination,
-  );
-
-  // Calculate preferencesMatched based on actual returned activities
-  const allCategoriesInPlan = dayByDayPlan.flatMap((d) =>
-    d.activities.map((a) => a.category),
-  );
-
-  preferencesMatched = (body.preferences ?? []).filter((pref) =>
-    allCategoriesInPlan.some((cat) => cat.toLowerCase() === pref.toLowerCase())
-  );
-
-  const message =
-    preferencesMatched.length > 0
-      ? 'High-confidence suggestions found for your preferred categories.'
-      : 'No high-confidence preference matches found. Showing best available recommendations.';
-
-  
-  return {
-    plan: {
-      destination: body.destination,
-      dates: { start: body.startDate, end: body.endDate },
-      totalDays: dayCount,
-      dayByDayPlan,
-      summary: {
-        totalActivities: dayByDayPlan.reduce((sum, d) => sum + d.activities.length, 0),
-        categoriesIncluded: [...new Set(allCategoriesInPlan)],
-        preferencesMatched,
-      },
-    },
-    message,
-  };
-}
 }
