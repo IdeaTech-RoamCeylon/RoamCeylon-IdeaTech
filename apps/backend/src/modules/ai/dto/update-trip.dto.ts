@@ -1,10 +1,17 @@
-import { IsString, IsArray, IsNumber, IsOptional, ValidateNested, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsNumber,
+  IsOptional,
+  ValidateNested,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 // 1. Define the specific change happening
 class TripChangeDetailsDto {
   @IsString()
-  @IsIn(['REORDER', 'DELAY', 'ADD_PLACE', 'REMOVE_PLACE']) 
+  @IsIn(['REORDER', 'DELAY', 'ADD_PLACE', 'REMOVE_PLACE'])
   type: 'REORDER' | 'DELAY' | 'ADD_PLACE' | 'REMOVE_PLACE';
 
   @IsString()
