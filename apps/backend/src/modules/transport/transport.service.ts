@@ -50,7 +50,11 @@ export class TransportService {
     return { message: 'Ride requests seeding not yet migrated to PostGIS' };
   }
 
-  async getDrivers(lat?: number, lng?: number): Promise<Driver[]> {
+  async getDrivers(
+    lat?: number,
+    lng?: number,
+    limit: number = 5,
+  ): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
       const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
@@ -61,25 +65,26 @@ export class TransportService {
         ST_Y(d.location:: geometry) as lat
         FROM "DriverLocation" d
         LEFT JOIN "User" u ON d."driverId" = u.id
-        LIMIT 50
+        ORDER BY d."driverId" ASC
+        LIMIT ${limit}
         `;
       return this.mapToDriver(raw);
     }
 
     // Find nearby
-    const radius = 10000; // 10km
+    // Find nearby
     const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
-      SELECT
-      d."driverId" as id,
-        u.name,
-        ST_X(d.location:: geometry) as lng,
-        ST_Y(d.location:: geometry) as lat,
-        ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) as distance
+    SELECT
+    d."driverId" as id,
+      u.name,
+      ST_X(d.location:: geometry) as lng,
+      ST_Y(d.location:: geometry) as lat,
+      ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) as distance
       FROM "DriverLocation" d
       LEFT JOIN "User" u ON d."driverId" = u.id
-      WHERE ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) < ${radius}
-      ORDER BY distance ASC
-        `;
+      ORDER BY d.location < -> ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)
+      LIMIT ${limit}
+    `;
 
     return this.mapToDriver(raw);
   }
@@ -101,6 +106,9 @@ export class TransportService {
         lat: r.lat,
         lng: r.lng,
         status: 'available', // Schema doesn't have status yet, default to available
+        eta: r.distance
+          ? `${Math.ceil((r.distance / 1000 / 40) * 60)} mins`
+          : undefined, // 40km/h avg speed
       };
     });
   }
@@ -111,4 +119,5 @@ interface DriverRow {
   name: string | null;
   lat: number;
   lng: number;
+  distance?: number;
 }
