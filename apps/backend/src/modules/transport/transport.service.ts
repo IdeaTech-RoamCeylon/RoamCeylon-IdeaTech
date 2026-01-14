@@ -6,7 +6,7 @@ import { Driver, RideRequest } from './item.interface';
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
