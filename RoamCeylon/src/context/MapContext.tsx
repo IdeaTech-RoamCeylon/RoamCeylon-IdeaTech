@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import * as Location from 'expo-location';
 import { Driver } from '../data/mockDrivers';
 
@@ -18,15 +18,21 @@ export const MapProvider = ({ children }: { children: ReactNode }) => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isMapboxConfigured, setIsMapboxConfigured] = useState(false);
 
-  return (
-    <MapContext.Provider value={{
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
       userLocation,
       setUserLocation,
       drivers,
       setDrivers,
       isMapboxConfigured,
       setIsMapboxConfigured
-    }}>
+    }),
+    [userLocation, drivers, isMapboxConfigured]
+  );
+
+  return (
+    <MapContext.Provider value={contextValue}>
       {children}
     </MapContext.Provider>
   );

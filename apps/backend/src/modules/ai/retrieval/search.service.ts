@@ -133,19 +133,81 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     return 'Low';
   }
 
-  async searchEmbeddingsWithMetadataFromEmbedding(
+  /**
+   * Get confidence threshold value
+   */
+  public getConfidenceThreshold(level: 'High' | 'Medium' | 'Low'): number {
+    const thresholds = {
+      High: 0.8,
+      Medium: 0.5,
+      Low: 0.3,
+    };
+    return thresholds[level];
+  }
+
+  /**
+   * Check if results meet quality standards
+   * Made more flexible to accept partial result objects
+   */
+  public assessResultQuality(
+    results: Array<{
+      score: number;
+      confidence?: 'High' | 'Medium' | 'Low';
+    }>,
+  ): {
+    quality: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+    message?: string;
+  } {
+    if (results.length === 0) {
+      return {
+        quality: 'Poor',
+        message: 'No results found',
+      };
+    }
+
+    const avgScore =
+      results.reduce((sum, r) => sum + r.score, 0) / results.length;
+    const highConfidenceCount = results.filter(
+      (r) => r.confidence === 'High',
+    ).length;
+    const highConfidenceRatio = highConfidenceCount / results.length;
+
+    if (avgScore >= 0.8 && highConfidenceRatio >= 0.7) {
+      return { quality: 'Excellent' };
+    }
+
+    if (avgScore >= 0.65 && highConfidenceRatio >= 0.4) {
+      return { quality: 'Good' };
+    }
+
+    if (avgScore >= 0.5) {
+      return {
+        quality: 'Fair',
+        message: 'Results have moderate confidence. Consider refining your search.',
+      };
+    }
+
+    return {
+      quality: 'Poor',
+      message:
+        'Results have low confidence scores. Try different or more specific keywords.',
+    };
+  }
+
+  public async searchEmbeddingsWithMetadataFromEmbedding(
     embedding: number[],
     limit = 10,
-    similarityThreshold = 0.7, // You can adjust this threshold as needed
+    similarityThreshold = 0.5,
+    minConfidence?: 'High' | 'Medium' | 'Low',
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
-
+    
     this.logger.log(`📡 Running pgvector search with limit=${limit}`);
-
+    
     const start = Date.now();
 
     const result = await this.client.query<RawEmbeddingRow>(
@@ -164,7 +226,6 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     const dbTime = Date.now() - start;
     this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
 
-    // Map + normalize (NO rank yet)
     const normalized = result.rows.map((row) => {
       const score = this.normalizeScore(row.distance);
 
@@ -185,12 +246,10 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     );
 
     // Apply similarity threshold
-    const strongMatches = unique.filter(
-      (item) => item.score >= similarityThreshold,
-    );
+    const strongMatches = unique.filter((item) => item.score >= similarityThreshold);
 
-    // 🔥 Explicit re-ranking (MOST IMPORTANT STEP)
-    const ranked = strongMatches
+    // Initial ranking + attach confidence
+    let ranked = strongMatches
       .sort((a, b) => b.score - a.score)
       .map((item, idx) => ({
         ...item,
@@ -198,15 +257,27 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         confidence: this.getConfidence(item.score),
       }));
 
+    // If minConfidence was provided, filter by its numeric threshold
+    if (minConfidence) {
+      const confThreshold = this.getConfidenceThreshold(minConfidence);
+      ranked = ranked
+        .filter((r) => r.score >= confThreshold)
+        .sort((a, b) => b.score - a.score)
+        .map((item, idx) => ({
+          ...item,
+        rank: idx + 1, // recompute ranks after filtering
+      }));
+    }
+
     this.logger.log(
-      `📊 Final ranked vector results: ${JSON.stringify(
-        ranked.map((r) => ({
-          id: r.id,
-          score: Number(r.score.toFixed(4)),
-          confidence: r.confidence,
-        })),
-      )}`,
-    );
+    `📊 Final ranked vector results: ${JSON.stringify(
+      ranked.map((r) => ({
+        id: r.id,
+        score: Number(r.score.toFixed(4)),
+        confidence: r.confidence,
+      })),
+    )}`,
+  );
 
     if (ranked.length === 0) {
       return {
