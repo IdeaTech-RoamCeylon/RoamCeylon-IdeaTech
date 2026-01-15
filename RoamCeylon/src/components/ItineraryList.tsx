@@ -1,26 +1,43 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { TripActivity } from '../services/aiService';
 
 interface ItineraryListProps {
   activities: TripActivity[];
+  onActivitySelect?: (activity: TripActivity) => void;
+  selectedActivity?: TripActivity | null;
 }
 
-const ItineraryList: React.FC<ItineraryListProps> = ({ activities }) => {
+const ItineraryList: React.FC<ItineraryListProps> = ({ activities, onActivitySelect, selectedActivity }) => {
   return (
     <View style={styles.container}>
-      {activities.map((activity, index) => (
-        <View key={index} style={styles.activityRow}>
-          <View style={styles.timelineContainer}>
-             <View style={styles.dot} />
-             {index !== activities.length - 1 && <View style={styles.line} />}
-          </View>
-          <View style={styles.contentContainer}>
-             <Text style={styles.activityText}>{activity.description}</Text>
-          </View>
-        </View>
-      ))}
+      {activities.map((activity, index) => {
+        const isSelected = selectedActivity === activity;
+        const hasCoordinate = !!activity.coordinate;
+        
+        return (
+            <View key={index} style={styles.activityRow}>
+            <View style={styles.timelineContainer}>
+                <View style={[styles.dot, isSelected && styles.selectedDot]} />
+                {index !== activities.length - 1 && <View style={styles.line} />}
+            </View>
+            <TouchableOpacity 
+                style={styles.contentContainer}
+                activeOpacity={hasCoordinate ? 0.7 : 1}
+                onPress={() => hasCoordinate && onActivitySelect?.(activity)}
+            >
+                <Text style={[
+                    styles.activityText, 
+                    isSelected && styles.selectedActivityText,
+                    !hasCoordinate && styles.dimmedText
+                ]}>
+                    {activity.description}
+                </Text>
+            </TouchableOpacity>
+            </View>
+        );
+      })}
     </View>
   );
 };
@@ -75,6 +92,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2.22,
     elevation: 2,
+  },
+  selectedActivityText: {
+    borderColor: '#0066CC',
+    borderWidth: 2,
+    backgroundColor: '#F0F7FF',
+  },
+  dimmedText: {
+    color: '#888',
+    backgroundColor: '#FAFAFA',
+  },
+  selectedDot: {
+    backgroundColor: '#FF9800',
+    transform: [{ scale: 1.2 }],
   },
 });
 

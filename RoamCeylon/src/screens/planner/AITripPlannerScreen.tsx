@@ -14,7 +14,7 @@ import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
-import { aiService, TripPlanResponse } from '../../services/aiService';
+import { aiService, TripPlanResponse, TripActivity } from '../../services/aiService';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import DaySelector from '../../components/DaySelector';
@@ -45,6 +45,7 @@ const AITripPlannerScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -124,6 +125,40 @@ const AITripPlannerScreen = () => {
       ],
     };
 
+    // Camera settings based on selection or day bounds
+    let cameraSettings = {};
+    
+    if (selectedActivity && selectedActivity.coordinate) {
+      cameraSettings = {
+        centerCoordinate: selectedActivity.coordinate,
+        zoomLevel: 14,
+        animationMode: 'flyTo',
+        animationDuration: 1000,
+      };
+    } else if (routeCoordinates.length > 0) {
+      if (routeCoordinates.length > 1) {
+        cameraSettings = {
+            bounds: {
+              ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
+              sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
+              paddingBottom: 40,
+              paddingTop: 40,
+              paddingLeft: 40,
+              paddingRight: 40,
+            },
+            animationMode: 'flyTo',
+            animationDuration: 1500,
+        };
+      } else {
+         cameraSettings = {
+            centerCoordinate: routeCoordinates[0],
+            zoomLevel: 11,
+            animationMode: 'flyTo',
+            animationDuration: 1500,
+         };
+      }
+    }
+
     return (
       <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
         <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
@@ -142,7 +177,10 @@ const AITripPlannerScreen = () => {
         <DaySelector 
           days={days}
           selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
+          onSelectDay={(day) => {
+            setSelectedDay(day);
+            setSelectedActivity(null); // Reset activity selection when changing day
+          }}
         />
 
         {/* Map View */}
@@ -155,23 +193,7 @@ const AITripPlannerScreen = () => {
               attributionEnabled={false}
             >
               <MapboxGL.Camera
-                zoomLevel={11}
-                centerCoordinate={routeCoordinates[0]} // Center on first activity
-                animationMode="flyTo"
-                animationDuration={1500}
-                // Fit bounds if we have multiple points
-                bounds={
-                  routeCoordinates.length > 1 
-                  ? {
-                      ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
-                      sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
-                      paddingBottom: 40,
-                      paddingTop: 40,
-                      paddingLeft: 40,
-                      paddingRight: 40,
-                    }
-                  : undefined
-                }
+                 {...cameraSettings}
               />
 
               {/* Route Line */}
@@ -192,26 +214,34 @@ const AITripPlannerScreen = () => {
               )}
 
               {/* Activity Markers */}
-              {mapActivities.map((activity, index) => (
-                <MapboxGL.PointAnnotation
-                  key={`${selectedDay}-${index}`}
-                  id={`marker-${index}`}
-                  coordinate={activity.coordinate}
-                >
-                  <View style={styles.markerContainer}>
-                    <View style={styles.markerBadge}>
-                      <Text style={styles.markerText}>{index + 1}</Text>
+              {mapActivities.map((activity, index) => {
+                const isSelected = selectedActivity === activity;
+                return (
+                    <MapboxGL.PointAnnotation
+                    key={`${selectedDay}-${index}`}
+                    id={`marker-${index}`}
+                    coordinate={activity.coordinate}
+                    onSelected={() => setSelectedActivity(activity)}
+                    >
+                    <View style={styles.markerContainer}>
+                        <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
+                        <Text style={styles.markerText}>{index + 1}</Text>
+                        </View>
                     </View>
-                  </View>
-                </MapboxGL.PointAnnotation>
-              ))}
+                    </MapboxGL.PointAnnotation>
+                );
+              })}
             </MapboxGL.MapView>
           </View>
         )}
 
         <View style={styles.dayCard}>
           <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
-          <ItineraryList activities={activities} />
+          <ItineraryList 
+            activities={activities} 
+            onActivitySelect={setSelectedActivity}
+            selectedActivity={selectedActivity}
+          />
         </View>
 
         <TouchableOpacity 
@@ -222,7 +252,7 @@ const AITripPlannerScreen = () => {
         </TouchableOpacity>
       </Animated.View>
     );
-  }, [fadeAnim, selectedDay, setTripPlan]);
+  }, [fadeAnim, selectedDay, setTripPlan, selectedActivity]);
 
   return (
     <ScrollView style={styles.container}>
@@ -539,6 +569,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 3,
+  },
+  selectedMarkerBadge: {
+    backgroundColor: '#FF9800',
+    transform: [{ scale: 1.2 }],
   },
   markerText: {
     color: '#fff',
