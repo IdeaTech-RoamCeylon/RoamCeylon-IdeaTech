@@ -7,9 +7,19 @@ interface ItineraryListProps {
   activities: TripActivity[];
   onActivitySelect?: (activity: TripActivity) => void;
   selectedActivity?: TripActivity | null;
+  onMoveUp?: (index: number) => void;
+  onMoveDown?: (index: number) => void;
+  onDelete?: (index: number) => void;
 }
 
-const ItineraryList: React.FC<ItineraryListProps> = ({ activities, onActivitySelect, selectedActivity }) => {
+const ItineraryList: React.FC<ItineraryListProps> = ({ 
+  activities, 
+  onActivitySelect, 
+  selectedActivity,
+  onMoveUp,
+  onMoveDown,
+  onDelete
+}) => {
   return (
     <View style={styles.container}>
       {activities.map((activity, index) => {
@@ -34,6 +44,37 @@ const ItineraryList: React.FC<ItineraryListProps> = ({ activities, onActivitySel
                 ]}>
                     {activity.description}
                 </Text>
+
+                {isSelected && (
+                  <View style={styles.controlsContainer}>
+                    <View style={styles.moveControls}>
+                      {index > 0 && (
+                        <TouchableOpacity 
+                          style={styles.controlButton} 
+                          onPress={() => onMoveUp?.(index)}
+                        >
+                          <Text style={styles.controlText}>⬆️</Text>
+                        </TouchableOpacity>
+                      )}
+                      
+                      {index < activities.length - 1 && (
+                        <TouchableOpacity 
+                          style={styles.controlButton} 
+                          onPress={() => onMoveDown?.(index)}
+                        >
+                          <Text style={styles.controlText}>⬇️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    
+                    <TouchableOpacity 
+                      style={[styles.controlButton, styles.deleteButton]} 
+                      onPress={() => onDelete?.(index)}
+                    >
+                      <Text style={styles.controlText}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
             </TouchableOpacity>
             </View>
         );
@@ -105,6 +146,39 @@ const styles = StyleSheet.create({
   selectedDot: {
     backgroundColor: '#FF9800',
     transform: [{ scale: 1.2 }],
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 5,
+  },
+  moveControls: {
+    flexDirection: 'row',
+  },
+  controlButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  deleteButton: {
+    backgroundColor: '#ffebee',
+    borderColor: '#ffcdd2',
+    marginRight: 0,
+  },
+  controlText: {
+    fontSize: 16,
   },
 });
 

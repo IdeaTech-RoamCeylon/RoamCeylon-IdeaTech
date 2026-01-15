@@ -96,6 +96,62 @@ const AITripPlannerScreen = () => {
       setIsLoading(false);
     }
   }, [query, networkStatus.isConnected, setTripPlan]);
+  
+  // Handle moving an activity up or down
+  const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
+    if (!tripPlan) return;
+    
+    // Create deep copy of trip plan
+    const newPlan = JSON.parse(JSON.stringify(tripPlan));
+    const dayItinerary = newPlan.itinerary.find((d: any) => d.day === selectedDay);
+    
+    if (!dayItinerary) return;
+    
+    const activities = dayItinerary.activities;
+    
+    if (direction === 'up' && index > 0) {
+      // Swap with previous
+      [activities[index], activities[index - 1]] = [activities[index - 1], activities[index]];
+    } else if (direction === 'down' && index < activities.length - 1) {
+      // Swap with next
+      [activities[index], activities[index + 1]] = [activities[index + 1], activities[index]];
+    }
+    
+    setTripPlan(newPlan);
+  }, [tripPlan, selectedDay, setTripPlan]);
+
+  // Handle deleting an activity
+  const handleDeleteActivity = useCallback((index: number) => {
+    if (!tripPlan) return;
+    
+    Alert.alert(
+      "Remove Place?",
+      "Are you sure you want to remove this place from your itinerary?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Remove", 
+          style: "destructive",
+          onPress: () => {
+             const newPlan = JSON.parse(JSON.stringify(tripPlan));
+             const dayItinerary = newPlan.itinerary.find((d: any) => d.day === selectedDay);
+             
+             if (dayItinerary) {
+               // Remove item
+               const removed = dayItinerary.activities.splice(index, 1)[0];
+               
+               // If we removed the selected activity, deselect it
+               if (selectedActivity && selectedActivity.description === removed.description) {
+                 setSelectedActivity(null);
+               }
+               
+               setTripPlan(newPlan);
+             }
+          }
+        }
+      ]
+    );
+  }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
 
   // Memoize renderItinerary to prevent recreation
   const renderItinerary = useCallback((plan: TripPlanResponse) => {
@@ -241,6 +297,9 @@ const AITripPlannerScreen = () => {
             activities={activities} 
             onActivitySelect={setSelectedActivity}
             selectedActivity={selectedActivity}
+            onMoveUp={(index) => handleMoveActivity(index, 'up')}
+            onMoveDown={(index) => handleMoveActivity(index, 'down')}
+            onDelete={handleDeleteActivity}
           />
         </View>
 
