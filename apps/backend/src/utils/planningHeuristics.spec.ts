@@ -1,47 +1,48 @@
-import { applyPlanningHeuristics, TripDestination } from './planningHeuristics';
+import { distributeActivitiesAcrossDays, TripDestination } from './planningHeuristics';
 
-describe('Planning Heuristics Logic', () => {
-  // Define the Mock Data
-  const MOCK_DESTINATIONS: TripDestination[] = [
+describe('Multi-Day Planning Algorithm', () => {
+  
+  const MOCK_DATA: TripDestination[] = [
     {
-      id: '1',
-      placeName: 'Kandy Temple',
-      shortDescription: 'Temple',
-      order: 1,
-      coordinates: { latitude: 7.2936, longitude: 80.6413 }, // Kandy
-      confidenceScore: 0.95,
-      metadata: { duration: '2h', category: 'culture' },
+      id: '1', placeName: 'Main Temple', shortDescription: '', order: 0,
+      coordinates: { latitude: 7.29, longitude: 80.64 }, 
+      confidenceScore: 0.99, // Highest Priority (Anchor Day 1)
+      metadata: { duration: '3 hours', category: 'culture' }
     },
     {
-      id: '2',
-      placeName: 'Kandy Lake',
-      shortDescription: 'Lake',
-      order: 2,
-      coordinates: { latitude: 7.2926, longitude: 80.6423 }, // Very close to ID 1
-      confidenceScore: 0.8,
-      metadata: { duration: '1h', category: 'relaxation' },
+      id: '2', placeName: 'Nearby Lake', shortDescription: '', order: 0,
+      coordinates: { latitude: 7.292, longitude: 80.642 }, // Very close to Temple
+      confidenceScore: 0.80,
+      metadata: { duration: '2 hours', category: 'relaxation' }
     },
     {
-      id: '3',
-      placeName: 'Sigiriya',
-      shortDescription: 'Rock',
-      order: 3,
-      coordinates: { latitude: 7.957, longitude: 80.7603 }, // Far away
-      confidenceScore: 0.99,
-      metadata: { duration: '4h', category: 'adventure' },
+      id: '3', placeName: 'Far Away Fort', shortDescription: '', order: 0,
+      coordinates: { latitude: 8.0, longitude: 81.0 }, // Far away
+      confidenceScore: 0.95, // High Priority (Anchor Day 2)
+      metadata: { duration: '4 hours', category: 'culture' }
     },
+    {
+      id: '4', placeName: 'Giant Hike', shortDescription: '', order: 0,
+      coordinates: { latitude: 7.29, longitude: 80.64 }, 
+      confidenceScore: 0.50,
+      metadata: { duration: 'Full Day', category: 'adventure' } // 8 hours - Should NOT fit in Day 1 if full
+    }
   ];
 
-  it('groups nearby locations and sorts by confidence', () => {
-    const results = applyPlanningHeuristics(MOCK_DESTINATIONS);
+  it('balances days and respects distance', () => {
+    // Plan for 2 Days
+    const plan = distributeActivitiesAcrossDays(MOCK_DATA, 2);
 
-    // TEST 1: Should have 2 groups (Sigiriya alone, Kandy pair together)
-    expect(results.length).toBe(2);
+    // DAY 1 CHECK:
+    // Should pick 'Main Temple' (highest score) FIRST.
+    // Should pick 'Nearby Lake' SECOND (because it is close).
+    // Should NOT pick 'Far Away Fort' (too far) or 'Giant Hike' (too long).
+    expect(plan[0][0].placeName).toBe('Main Temple');
+    expect(plan[0][1].placeName).toBe('Nearby Lake');
+    expect(plan[0].length).toBe(2); 
 
-    // TEST 2: Higher confidence group (Sigiriya 0.99) should be first
-    expect(results[0][0].placeName).toBe('Sigiriya');
-
-    // TEST 3: The second group should contain the Kandy items
-    expect(results[1].length).toBe(2);
+    // DAY 2 CHECK:
+    // Should start with the next highest priority item left: 'Far Away Fort'
+    expect(plan[1][0].placeName).toBe('Far Away Fort');
   });
 });
