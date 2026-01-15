@@ -14,12 +14,12 @@ import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
-import { aiService, TripPlanResponse } from '../../services/aiService';
+import { aiService, TripPlanResponse, TripActivity } from '../../services/aiService';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import DaySelector from '../../components/DaySelector';
 import ItineraryList from '../../components/ItineraryList';
-import { mockTripPlan } from '../../data/mockTripPlan';
+
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 
@@ -45,6 +45,7 @@ const AITripPlannerScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -85,21 +86,8 @@ const AITripPlannerScreen = () => {
     setTripPlan(null); 
 
     try {
-      // Use mock data for testing UI as requested
-      // const plan = await aiService.generateTripPlan(query);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Override mock plan details with user query if provided, to make it feel responsive
-      const customizedPlan = {
-        ...mockTripPlan,
-        destination: query.destination || mockTripPlan.destination,
-        duration: query.duration || mockTripPlan.duration,
-        budget: query.budget || mockTripPlan.budget,
-      };
-      
-      setTripPlan(customizedPlan);
+      const plan = await aiService.generateTripPlan(query);
+      setTripPlan(plan);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to generate trip plan: ${errorMessage}`);
@@ -108,6 +96,62 @@ const AITripPlannerScreen = () => {
       setIsLoading(false);
     }
   }, [query, networkStatus.isConnected, setTripPlan]);
+  
+  // Handle moving an activity up or down
+  const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
+    if (!tripPlan) return;
+    
+    // Create deep copy of trip plan
+    const newPlan = JSON.parse(JSON.stringify(tripPlan));
+    const dayItinerary = newPlan.itinerary.find((d: any) => d.day === selectedDay);
+    
+    if (!dayItinerary) return;
+    
+    const activities = dayItinerary.activities;
+    
+    if (direction === 'up' && index > 0) {
+      // Swap with previous
+      [activities[index], activities[index - 1]] = [activities[index - 1], activities[index]];
+    } else if (direction === 'down' && index < activities.length - 1) {
+      // Swap with next
+      [activities[index], activities[index + 1]] = [activities[index + 1], activities[index]];
+    }
+    
+    setTripPlan(newPlan);
+  }, [tripPlan, selectedDay, setTripPlan]);
+
+  // Handle deleting an activity
+  const handleDeleteActivity = useCallback((index: number) => {
+    if (!tripPlan) return;
+    
+    Alert.alert(
+      "Remove Place?",
+      "Are you sure you want to remove this place from your itinerary?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Remove", 
+          style: "destructive",
+          onPress: () => {
+             const newPlan = JSON.parse(JSON.stringify(tripPlan));
+             const dayItinerary = newPlan.itinerary.find((d: any) => d.day === selectedDay);
+             
+             if (dayItinerary) {
+               // Remove item
+               const removed = dayItinerary.activities.splice(index, 1)[0];
+               
+               // If we removed the selected activity, deselect it
+               if (selectedActivity && selectedActivity.description === removed.description) {
+                 setSelectedActivity(null);
+               }
+               
+               setTripPlan(newPlan);
+             }
+          }
+        }
+      ]
+    );
+  }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
 
   // Memoize renderItinerary to prevent recreation
   const renderItinerary = useCallback((plan: TripPlanResponse) => {
@@ -137,6 +181,40 @@ const AITripPlannerScreen = () => {
       ],
     };
 
+    // Camera settings based on selection or day bounds
+    let cameraSettings = {};
+    
+    if (selectedActivity && selectedActivity.coordinate) {
+      cameraSettings = {
+        centerCoordinate: selectedActivity.coordinate,
+        zoomLevel: 14,
+        animationMode: 'flyTo',
+        animationDuration: 1000,
+      };
+    } else if (routeCoordinates.length > 0) {
+      if (routeCoordinates.length > 1) {
+        cameraSettings = {
+            bounds: {
+              ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
+              sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
+              paddingBottom: 40,
+              paddingTop: 40,
+              paddingLeft: 40,
+              paddingRight: 40,
+            },
+            animationMode: 'flyTo',
+            animationDuration: 1500,
+        };
+      } else {
+         cameraSettings = {
+            centerCoordinate: routeCoordinates[0],
+            zoomLevel: 11,
+            animationMode: 'flyTo',
+            animationDuration: 1500,
+         };
+      }
+    }
+
     return (
       <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
         <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
@@ -155,7 +233,10 @@ const AITripPlannerScreen = () => {
         <DaySelector 
           days={days}
           selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
+          onSelectDay={(day) => {
+            setSelectedDay(day);
+            setSelectedActivity(null); // Reset activity selection when changing day
+          }}
         />
 
         {/* Map View */}
@@ -168,23 +249,7 @@ const AITripPlannerScreen = () => {
               attributionEnabled={false}
             >
               <MapboxGL.Camera
-                zoomLevel={11}
-                centerCoordinate={routeCoordinates[0]} // Center on first activity
-                animationMode="flyTo"
-                animationDuration={1500}
-                // Fit bounds if we have multiple points
-                bounds={
-                  routeCoordinates.length > 1 
-                  ? {
-                      ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
-                      sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
-                      paddingBottom: 40,
-                      paddingTop: 40,
-                      paddingLeft: 40,
-                      paddingRight: 40,
-                    }
-                  : undefined
-                }
+                 {...cameraSettings}
               />
 
               {/* Route Line */}
@@ -205,26 +270,37 @@ const AITripPlannerScreen = () => {
               )}
 
               {/* Activity Markers */}
-              {mapActivities.map((activity, index) => (
-                <MapboxGL.PointAnnotation
-                  key={`${selectedDay}-${index}`}
-                  id={`marker-${index}`}
-                  coordinate={activity.coordinate}
-                >
-                  <View style={styles.markerContainer}>
-                    <View style={styles.markerBadge}>
-                      <Text style={styles.markerText}>{index + 1}</Text>
+              {mapActivities.map((activity, index) => {
+                const isSelected = selectedActivity === activity;
+                return (
+                    <MapboxGL.PointAnnotation
+                    key={`${selectedDay}-${index}`}
+                    id={`marker-${index}`}
+                    coordinate={activity.coordinate}
+                    onSelected={() => setSelectedActivity(activity)}
+                    >
+                    <View style={styles.markerContainer}>
+                        <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
+                        <Text style={styles.markerText}>{index + 1}</Text>
+                        </View>
                     </View>
-                  </View>
-                </MapboxGL.PointAnnotation>
-              ))}
+                    </MapboxGL.PointAnnotation>
+                );
+              })}
             </MapboxGL.MapView>
           </View>
         )}
 
         <View style={styles.dayCard}>
           <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
-          <ItineraryList activities={activities} />
+          <ItineraryList 
+            activities={activities} 
+            onActivitySelect={setSelectedActivity}
+            selectedActivity={selectedActivity}
+            onMoveUp={(index) => handleMoveActivity(index, 'up')}
+            onMoveDown={(index) => handleMoveActivity(index, 'down')}
+            onDelete={handleDeleteActivity}
+          />
         </View>
 
         <TouchableOpacity 
@@ -235,7 +311,7 @@ const AITripPlannerScreen = () => {
         </TouchableOpacity>
       </Animated.View>
     );
-  }, [fadeAnim, selectedDay, setTripPlan]);
+  }, [fadeAnim, selectedDay, setTripPlan, selectedActivity]);
 
   return (
     <ScrollView style={styles.container}>
@@ -552,6 +628,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 3,
+  },
+  selectedMarkerBadge: {
+    backgroundColor: '#FF9800',
+    transform: [{ scale: 1.2 }],
   },
   markerText: {
     color: '#fff',

@@ -1,26 +1,84 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { TripActivity } from '../services/aiService';
 
 interface ItineraryListProps {
   activities: TripActivity[];
+  onActivitySelect?: (activity: TripActivity) => void;
+  selectedActivity?: TripActivity | null;
+  onMoveUp?: (index: number) => void;
+  onMoveDown?: (index: number) => void;
+  onDelete?: (index: number) => void;
 }
 
-const ItineraryList: React.FC<ItineraryListProps> = ({ activities }) => {
+const ItineraryList: React.FC<ItineraryListProps> = ({ 
+  activities, 
+  onActivitySelect, 
+  selectedActivity,
+  onMoveUp,
+  onMoveDown,
+  onDelete
+}) => {
   return (
     <View style={styles.container}>
-      {activities.map((activity, index) => (
-        <View key={index} style={styles.activityRow}>
-          <View style={styles.timelineContainer}>
-             <View style={styles.dot} />
-             {index !== activities.length - 1 && <View style={styles.line} />}
-          </View>
-          <View style={styles.contentContainer}>
-             <Text style={styles.activityText}>{activity.description}</Text>
-          </View>
-        </View>
-      ))}
+      {activities.map((activity, index) => {
+        const isSelected = selectedActivity === activity;
+        const hasCoordinate = !!activity.coordinate;
+        
+        return (
+            <View key={index} style={styles.activityRow}>
+            <View style={styles.timelineContainer}>
+                <View style={[styles.dot, isSelected && styles.selectedDot]} />
+                {index !== activities.length - 1 && <View style={styles.line} />}
+            </View>
+            <TouchableOpacity 
+                style={styles.contentContainer}
+                activeOpacity={hasCoordinate ? 0.7 : 1}
+                onPress={() => hasCoordinate && onActivitySelect?.(activity)}
+            >
+                <Text style={[
+                    styles.activityText, 
+                    isSelected && styles.selectedActivityText,
+                    !hasCoordinate && styles.dimmedText
+                ]}>
+                    {activity.description}
+                </Text>
+
+                {isSelected && (
+                  <View style={styles.controlsContainer}>
+                    <View style={styles.moveControls}>
+                      {index > 0 && (
+                        <TouchableOpacity 
+                          style={styles.controlButton} 
+                          onPress={() => onMoveUp?.(index)}
+                        >
+                          <Text style={styles.controlText}>⬆️</Text>
+                        </TouchableOpacity>
+                      )}
+                      
+                      {index < activities.length - 1 && (
+                        <TouchableOpacity 
+                          style={styles.controlButton} 
+                          onPress={() => onMoveDown?.(index)}
+                        >
+                          <Text style={styles.controlText}>⬇️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    
+                    <TouchableOpacity 
+                      style={[styles.controlButton, styles.deleteButton]} 
+                      onPress={() => onDelete?.(index)}
+                    >
+                      <Text style={styles.controlText}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+            </TouchableOpacity>
+            </View>
+        );
+      })}
     </View>
   );
 };
@@ -75,6 +133,52 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2.22,
     elevation: 2,
+  },
+  selectedActivityText: {
+    borderColor: '#0066CC',
+    borderWidth: 2,
+    backgroundColor: '#F0F7FF',
+  },
+  dimmedText: {
+    color: '#888',
+    backgroundColor: '#FAFAFA',
+  },
+  selectedDot: {
+    backgroundColor: '#FF9800',
+    transform: [{ scale: 1.2 }],
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 5,
+  },
+  moveControls: {
+    flexDirection: 'row',
+  },
+  controlButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  deleteButton: {
+    backgroundColor: '#ffebee',
+    borderColor: '#ffcdd2',
+    marginRight: 0,
+  },
+  controlText: {
+    fontSize: 16,
   },
 });
 
