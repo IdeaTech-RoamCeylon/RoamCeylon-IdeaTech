@@ -19,7 +19,7 @@ import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import DaySelector from '../../components/DaySelector';
 import ItineraryList from '../../components/ItineraryList';
-import { mockTripPlan } from '../../data/mockTripPlan';
+
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 
@@ -85,21 +85,8 @@ const AITripPlannerScreen = () => {
     setTripPlan(null); 
 
     try {
-      // Use mock data for testing UI as requested
-      // const plan = await aiService.generateTripPlan(query);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Override mock plan details with user query if provided, to make it feel responsive
-      const customizedPlan = {
-        ...mockTripPlan,
-        destination: query.destination || mockTripPlan.destination,
-        duration: query.duration || mockTripPlan.duration,
-        budget: query.budget || mockTripPlan.budget,
-      };
-      
-      setTripPlan(customizedPlan);
+      const plan = await aiService.generateTripPlan(query);
+      setTripPlan(plan);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to generate trip plan: ${errorMessage}`);
