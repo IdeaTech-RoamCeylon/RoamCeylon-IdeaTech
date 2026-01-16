@@ -12,6 +12,7 @@ import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
 import { STOP_WORDS } from '../../constants/stop-words';
+import { ALGORITHM_VERSION, LOCK_DATE, LOCK_STATUS } from './planner.constants';
 
 /* -------------------- TYPES -------------------- */
 
@@ -179,11 +180,18 @@ export class AIController {
     private readonly searchService: SearchService,
   ) {}
 
-  @Get('health')
-  getHealth() {
-    return { message: 'AI Planner Module Operational' };
-  }
-
+ @Get('health')
+    getHealth() {
+      return { 
+        message: 'AI Planner Module Operational',
+        algorithm: {
+          version: ALGORITHM_VERSION,
+          status: LOCK_STATUS,
+          locked_since: LOCK_DATE,
+          changes_allowed: 'Critical bug fixes only'
+        }
+  };
+}
   /* ---------- Validate & Preprocess ---------- */
 
   private validateAndPreprocess(
