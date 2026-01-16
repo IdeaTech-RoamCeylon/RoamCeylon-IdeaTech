@@ -1,7 +1,8 @@
 # Trip Planner Algorithm - Locked v1.0.0
 
 **Date:** January 16, 2026  
-**Status:** Feature Freeze
+**Status:** Feature Freeze  
+**Implementation:** See `planner.constants.ts` for locked values
 
 ## What's Locked
 
@@ -15,6 +16,8 @@ The trip planning algorithm in `ai.controller.ts`:
 - Confidence: 0.8 (High), 0.5 (Medium), 0.55 (Min)
 - Activity limits: 15 total, 4/day (multi-day), 2/day (single)
 - Category divisor: 4
+- Proximity boosts: 0.30 (title), 0.20 (metadata), 0.15 (content)
+- Max priority score: 2.0
 
 ## Allowed
 
