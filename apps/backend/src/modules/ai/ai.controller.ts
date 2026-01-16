@@ -811,7 +811,18 @@ export class AIController {
 
         return { ...result, priorityScore };
       })
-      .sort((a, b) => b.priorityScore - a.priorityScore);
+      .sort((a, b) => {
+        const scoreDiff = b.priorityScore - a.priorityScore;
+        if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
+
+        // Stable tie-breakers
+        if (a.confidence !== b.confidence) {
+          const order = { High: 3, Medium: 2, Low: 1 };
+          return order[b.confidence!] - order[a.confidence!];
+        }
+        
+        return String(a.id).localeCompare(String(b.id));
+      });
     }
 
   private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
@@ -984,154 +995,85 @@ export class AIController {
     return 'Sightseeing';
   }
 
+  private categoryCache = new Map<string | number, ItineraryCategory>();
+
   private determineActivityCategory(
     title: string,
     content: string,
     dayNumber: number,
     activityIndex: number,
     preferences?: string[],
+    resultId?: string | number,
   ): ItineraryCategory {
-    if (dayNumber === 1 && activityIndex === 0) return 'Arrival';
+    
+    if (resultId && this.categoryCache.has(resultId)) {
+      return this.categoryCache.get(resultId)!;
+    }
 
     let category = this.inferCategoryFromText(title, content, preferences);
 
-    const rotationPattern: ItineraryCategory[] = [
-      'Sightseeing',
-      'History',
-      'Culture',
-      'Beach',
-      'Nature',
-      'Adventure',
-      'Relaxation',
-      'Beach',
-    ];
-
     if (!category || category === 'Sightseeing') {
-      category =
-        rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
+      const rotationPattern: ItineraryCategory[] = [
+        'Sightseeing',
+        'History',
+        'Culture',
+        'Nature',
+        'Beach',
+        'Relaxation',
+        'Adventure',
+      ];
+      category = rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
+    }
+
+    if (resultId) {
+      this.categoryCache.set(resultId, category);
     }
 
     return category;
   }
 
   private selectDiverseActivities(
-    scoredResults: Array<SearchResultItem & { priorityScore: number; normalizedText?: string }>,
+    scoredResults: Array<SearchResultItem & { priorityScore: number }>,
     maxCount: number,
-    preferences?: string[],
+    preferences?: string[]
   ): SearchResultItem[] {
     const selected: SearchResultItem[] = [];
     const categoryCount: Record<string, number> = {};
-    const preferenceCount: Record<string, number> = {};
     const textSet = new Set<string>();
   
+    // Single consistent threshold
     const maxPerCategory = Math.ceil(maxCount / 4);
-    const maxPerPreference = preferences?.length 
-      ? Math.ceil(maxCount / preferences.length) 
-      : maxCount;
+  
+    // Sort ONCE with stable sort
+    const sorted = [...scoredResults].sort((a, b) => {
+      const diff = b.priorityScore - a.priorityScore;
+      if (Math.abs(diff) > 0.001) return diff; // Tighter threshold
+      return String(a.id).localeCompare(String(b.id));
+    });
 
-    const sorted = [...scoredResults].sort((a, b) => b.priorityScore - a.priorityScore);
-
-    // ========== PHASE 1: Strict diversity constraints ==========
+    // Single-pass selection with clear rules
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
-
-      const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
+    
+      const textKey = `${result.title} ${result.content}`.toLowerCase();
       if (textSet.has(textKey)) continue;
-
-      const category = this.inferCategoryFromText(result.title, result.content, preferences);
     
-      // Check which preferences this result matches
-      const matchedPrefs = preferences?.filter(p => 
-        textKey.includes(p.toLowerCase())
-      ) || [];
-    
-      // Check if any matched preference is saturated
-      const prefSaturated = matchedPrefs.some(
-        pref => (preferenceCount[pref] || 0) >= maxPerPreference
+      const category = this.inferCategoryFromText(
+        result.title, 
+        result.content, 
+        preferences
       );
-
-      // Check if category is saturated
-      const currentCount = categoryCount[category] || 0;
-      const categorySaturated = currentCount >= maxPerCategory;
     
-      // Only add if both category AND preference constraints are satisfied
-      if (!categorySaturated && !prefSaturated) {
+      const currentCount = categoryCount[category] || 0;
+    
+      // Simple, consistent rule
+      if (currentCount < maxPerCategory) {
         selected.push(result);
         categoryCount[category] = currentCount + 1;
-      
-        // Track preference usage for all matched preferences
-        matchedPrefs.forEach(pref => {
-          preferenceCount[pref] = (preferenceCount[pref] || 0) + 1;
-        });
-      
         textSet.add(textKey);
       }
     }
-
-    // ========== PHASE 2: Relaxed fallback (if we haven't filled maxCount) ==========
-    // This ensures we don't return too few results due to strict constraints
-    if (selected.length < maxCount) {         
-      // Create backup counters with relaxed limits
-      const categoryBackup = { ...categoryCount };
-      const preferenceBackup = { ...preferenceCount };
-    
-      // Allow categories to go slightly over limit in fallback mode
-      const relaxedCategoryMax = maxPerCategory + 2;
-      const relaxedPreferenceMax = maxPerPreference + 1;
-    
-      for (const result of sorted) {
-        if (selected.length >= maxCount) break;
-      
-        const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
-        if (textSet.has(textKey)) continue; // Skip duplicates
-      
-        const category = this.inferCategoryFromText(result.title, result.content, preferences);
-        const currentCategoryCount = categoryBackup[category] || 0;
-      
-        // Check matched preferences
-        const matchedPrefs = preferences?.filter(p => 
-          textKey.includes(p.toLowerCase())
-        ) || [];
-      
-        // In fallback, check if we're way over the relaxed limits
-        const categoryOverLimit = currentCategoryCount >= relaxedCategoryMax;
-        const prefOverLimit = matchedPrefs.some(
-          pref => (preferenceBackup[pref] || 0) >= relaxedPreferenceMax
-        );
-      
-        // Add if we're within relaxed limits OR if no preferences matched (neutral item)
-        if (!categoryOverLimit && (!prefOverLimit || matchedPrefs.length === 0)) {
-          selected.push(result);
-          categoryBackup[category] = currentCategoryCount + 1;
-        
-          matchedPrefs.forEach(pref => {
-            preferenceBackup[pref] = (preferenceBackup[pref] || 0) + 1;
-          });
-        
-          textSet.add(textKey);
-        }
-      }
-    }
-
-    // ========== PHASE 3: Emergency fallback (ignore all constraints) ==========
-    // Only if we still don't have enough results after relaxed constraints
-    if (selected.length < Math.min(maxCount, Math.floor(maxCount * 0.6))) {
-      this.logger.warn(
-        `Diversity constraints too strict. Selected only ${selected.length}/${maxCount}. ` +
-        `Adding best remaining results without constraints.`
-      );
-    
-      for (const result of sorted) {
-        if (selected.length >= maxCount) break;
-      
-        const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
-        if (!textSet.has(textKey)) {
-          selected.push(result);
-          textSet.add(textKey);
-        }
-      }
-    }
-
+  
     return selected;
   }
 
@@ -1142,24 +1084,18 @@ export class AIController {
     dayCount: number,
     maxPerDay: number,
   ): SearchResultItem[][] {
+
     const buckets: SearchResultItem[][] = Array.from(
       { length: dayCount },
-      () => [],
+      () => []
     );
 
-    let dayIndex = 0;
-    for (const item of activities) {
-      let tries = 0;
-      while (tries < dayCount && buckets[dayIndex].length >= maxPerDay) {
-        dayIndex = (dayIndex + 1) % dayCount;
-        tries++;
+    activities.forEach((item, index) => {
+      const dayIndex = index % dayCount;
+      if (buckets[dayIndex].length < maxPerDay) {
+        buckets[dayIndex].push(item);
       }
-
-      if (tries >= dayCount && buckets[dayIndex].length >= maxPerDay) break;
-
-      buckets[dayIndex].push(item);
-      dayIndex = (dayIndex + 1) % dayCount;
-    }
+    });
 
     return buckets;
   }
