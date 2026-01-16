@@ -1,13 +1,10 @@
-// --- SELF-CONTAINED TYPES (To avoid import errors) ---
+// --- SELF-CONTAINED TYPES ---
 export interface TripDestination {
   id: string;
   order: number;
   placeName: string;
   shortDescription: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-  };
+  coordinates?: { latitude: number; longitude: number };
   metadata: {
     duration: string;
     category: 'adventure' | 'relaxation' | 'culture' | 'shopping' | 'food';
@@ -17,15 +14,12 @@ export interface TripDestination {
 }
 
 // --- CONFIGURATION ---
-const GROUP_RADIUS_KM = 10; // How close places must be to be grouped
-const MAX_SUGGESTIONS = 5; // Limit the number of resulting groups
+const MAX_HOURS_PER_DAY = 7; // Leave buffer for travel/lunch
 
 // --- HELPER: Haversine Distance Formula ---
-const getDistanceKm = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
+export const getDistanceKm = (
+  lat1: number, lon1: number, 
+  lat2: number, lon2: number
 ): number => {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -33,52 +27,91 @@ const getDistanceKm = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
-// --- MAIN FUNCTION ---
-export const applyPlanningHeuristics = (
+// --- HELPER: Parse Duration ---
+// Converts "2 hours", "Half Day" into numeric hours
+const parseDuration = (durationStr?: string): number => {
+  if (!durationStr) return 2; // Default
+  const lower = durationStr.toLowerCase();
+  if (lower.includes('half')) return 4;
+  if (lower.includes('full')) return 8;
+  const match = lower.match(/(\d+)/);
+  return match ? parseInt(match[0]) : 2; 
+};
+
+// --- MAIN ALGORITHM: Multi-Day Distributor ---
+export const distributeActivitiesAcrossDays = (
   allDestinations: TripDestination[],
+  numberOfDays: number
 ): TripDestination[][] => {
-  // 1. FILTER & SORT (Rule: Prioritize higher confidence)
-  const validDestinations = allDestinations
-    .filter((d) => d.coordinates)
-    .sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
+  
+  // 1. Prep: Calculate numeric duration for everyone
+  const pool = allDestinations.map(d => ({
+    ...d,
+    _hours: parseDuration(d.metadata.duration),
+    _assigned: false
+  }));
 
-  const groupedResults: TripDestination[][] = [];
-  const processedIds = new Set<string>();
+  // Sort by confidence (Highest priority first)
+  pool.sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
 
-  // 2. GROUP NEARBY LOCATIONS (Rule: Group nearby)
-  for (const anchor of validDestinations) {
-    if (processedIds.has(anchor.id)) continue;
+  const dayPlans: TripDestination[][] = [];
 
-    const group: TripDestination[] = [anchor];
-    processedIds.add(anchor.id);
+  for (let day = 0; day < numberOfDays; day++) {
+    const currentDay: TripDestination[] = [];
+    let currentDayHours = 0;
+    
+    // 2. Pick the best "Anchor" (Starting point) for this day
+    // We take the highest confidence item that hasn't been assigned yet.
+    const anchorIndex = pool.findIndex(p => !p._assigned);
+    if (anchorIndex === -1) break; // No more places left
 
-    // Find neighbors
-    for (const candidate of validDestinations) {
-      if (processedIds.has(candidate.id)) continue;
+    const anchor = pool[anchorIndex];
+    anchor._assigned = true;
+    currentDay.push(anchor);
+    currentDayHours += anchor._hours;
 
-      const dist = getDistanceKm(
-        anchor.coordinates!.latitude,
-        anchor.coordinates!.longitude,
-        candidate.coordinates!.latitude,
-        candidate.coordinates!.longitude,
-      );
+    // 3. Fill the rest of the day with NEAREST neighbors (Distance Logic)
+    while (currentDayHours < MAX_HOURS_PER_DAY) {
+      let bestCandidateIdx = -1;
+      let minDistance = Infinity;
 
-      if (dist <= GROUP_RADIUS_KM) {
-        group.push(candidate);
-        processedIds.add(candidate.id);
+      // Find the closest unassigned place to the LAST place added
+      const lastPlace = currentDay[currentDay.length - 1];
+
+      pool.forEach((candidate, idx) => {
+        if (candidate._assigned || !candidate.coordinates || !lastPlace.coordinates) return;
+
+        const dist = getDistanceKm(
+          lastPlace.coordinates.latitude, lastPlace.coordinates.longitude,
+          candidate.coordinates.latitude, candidate.coordinates.longitude
+        );
+
+        // Heuristic: Must be close AND fit in remaining time
+        if (dist < minDistance && (currentDayHours + candidate._hours <= MAX_HOURS_PER_DAY)) {
+          minDistance = dist;
+          bestCandidateIdx = idx;
+        }
+      });
+
+      // If we found a neighbor, add them
+      if (bestCandidateIdx !== -1) {
+        const candidate = pool[bestCandidateIdx];
+        candidate._assigned = true;
+        currentDay.push(candidate);
+        currentDayHours += candidate._hours;
+      } else {
+        break; // No more close places fit in this day
       }
     }
 
-    groupedResults.push(group);
+    dayPlans.push(currentDay);
   }
 
-  // 3. LIMIT RESULTS
-  return groupedResults.slice(0, MAX_SUGGESTIONS);
+  return dayPlans;
 };
