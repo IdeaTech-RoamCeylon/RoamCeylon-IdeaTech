@@ -963,8 +963,24 @@ export class AIController {
 
         return { ...result, priorityScore: Math.min(priorityScore, 2.0) };
       })
+<<<<<<< HEAD
       .sort((a, b) => b.priorityScore - a.priorityScore);
   }
+=======
+      .sort((a, b) => {
+        const scoreDiff = b.priorityScore - a.priorityScore;
+        if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
+
+        // Stable tie-breakers
+        if (a.confidence !== b.confidence) {
+          const order = { High: 3, Medium: 2, Low: 1 };
+          return order[b.confidence!] - order[a.confidence!];
+        }
+        
+        return String(a.id).localeCompare(String(b.id));
+      });
+    }
+>>>>>>> 1054088a6f2c9701cdaaa7788b9dd5eb027c1ba4
 
   private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
     if (dayCount <= 2) return 'short';
@@ -1136,48 +1152,59 @@ export class AIController {
     return 'Sightseeing';
   }
 
+  private categoryCache = new Map<string | number, ItineraryCategory>();
+
   private determineActivityCategory(
     title: string,
     content: string,
     dayNumber: number,
     activityIndex: number,
     preferences?: string[],
+    resultId?: string | number,
   ): ItineraryCategory {
-    if (dayNumber === 1 && activityIndex === 0) return 'Arrival';
+    
+    if (resultId && this.categoryCache.has(resultId)) {
+      return this.categoryCache.get(resultId)!;
+    }
 
     let category = this.inferCategoryFromText(title, content, preferences);
 
-    const rotationPattern: ItineraryCategory[] = [
-      'Sightseeing',
-      'History',
-      'Culture',
-      'Beach',
-      'Nature',
-      'Adventure',
-      'Relaxation',
-      'Beach',
-    ];
-
     if (!category || category === 'Sightseeing') {
-      category =
-        rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
+      const rotationPattern: ItineraryCategory[] = [
+        'Sightseeing',
+        'History',
+        'Culture',
+        'Nature',
+        'Beach',
+        'Relaxation',
+        'Adventure',
+      ];
+      category = rotationPattern[(dayNumber + activityIndex) % rotationPattern.length];
+    }
+
+    if (resultId) {
+      this.categoryCache.set(resultId, category);
     }
 
     return category;
   }
 
   private selectDiverseActivities(
+<<<<<<< HEAD
     scoredResults: Array<
       SearchResultItem & { priorityScore: number; normalizedText?: string }
     >,
+=======
+    scoredResults: Array<SearchResultItem & { priorityScore: number }>,
+>>>>>>> 1054088a6f2c9701cdaaa7788b9dd5eb027c1ba4
     maxCount: number,
-    preferences?: string[],
+    preferences?: string[]
   ): SearchResultItem[] {
     // Keep your existing diversity logic (unchanged)
     const selected: SearchResultItem[] = [];
     const categoryCount: Record<string, number> = {};
-    const preferenceCount: Record<string, number> = {};
     const textSet = new Set<string>();
+<<<<<<< HEAD
 
     const maxPerCategory = Math.ceil(maxCount / 4);
     const maxPerPreference = preferences?.length
@@ -1288,6 +1315,42 @@ export class AIController {
       }
     }
 
+=======
+  
+    // Single consistent threshold
+    const maxPerCategory = Math.ceil(maxCount / 4);
+  
+    // Sort ONCE with stable sort
+    const sorted = [...scoredResults].sort((a, b) => {
+      const diff = b.priorityScore - a.priorityScore;
+      if (Math.abs(diff) > 0.001) return diff; // Tighter threshold
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    // Single-pass selection with clear rules
+    for (const result of sorted) {
+      if (selected.length >= maxCount) break;
+    
+      const textKey = `${result.title} ${result.content}`.toLowerCase();
+      if (textSet.has(textKey)) continue;
+    
+      const category = this.inferCategoryFromText(
+        result.title, 
+        result.content, 
+        preferences
+      );
+    
+      const currentCount = categoryCount[category] || 0;
+    
+      // Simple, consistent rule
+      if (currentCount < maxPerCategory) {
+        selected.push(result);
+        categoryCount[category] = currentCount + 1;
+        textSet.add(textKey);
+      }
+    }
+  
+>>>>>>> 1054088a6f2c9701cdaaa7788b9dd5eb027c1ba4
     return selected;
   }
 
@@ -1298,24 +1361,18 @@ export class AIController {
     dayCount: number,
     maxPerDay: number,
   ): SearchResultItem[][] {
+
     const buckets: SearchResultItem[][] = Array.from(
       { length: dayCount },
-      () => [],
+      () => []
     );
 
-    let dayIndex = 0;
-    for (const item of activities) {
-      let tries = 0;
-      while (tries < dayCount && buckets[dayIndex].length >= maxPerDay) {
-        dayIndex = (dayIndex + 1) % dayCount;
-        tries++;
+    activities.forEach((item, index) => {
+      const dayIndex = index % dayCount;
+      if (buckets[dayIndex].length < maxPerDay) {
+        buckets[dayIndex].push(item);
       }
-
-      if (tries >= dayCount && buckets[dayIndex].length >= maxPerDay) break;
-
-      buckets[dayIndex].push(item);
-      dayIndex = (dayIndex + 1) % dayCount;
-    }
+    });
 
     return buckets;
   }

@@ -153,21 +153,28 @@ const AITripPlannerScreen = () => {
     );
   }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
 
-  // Memoize renderItinerary to prevent recreation
-  const renderItinerary = useCallback((plan: TripPlanResponse) => {
-    // Get unique day numbers from itinerary
-    const days = plan.itinerary.map(item => item.day);
-    
-    // Get activities for selected day
-    const currentDayItinerary = plan.itinerary.find(item => item.day === selectedDay);
-    const activities = currentDayItinerary ? currentDayItinerary.activities : [];
 
-    // Filter activities with coordinates
-    const mapActivities = activities.filter(a => a.coordinate);
-    const routeCoordinates = mapActivities.map(a => a.coordinate!);
-    
-    // Create GeoJSON for route line
-    const routeFeature = {
+
+  // Derived state for current day
+  const currentDayItinerary = useMemo(() => {
+    return tripPlan?.itinerary.find(item => item.day === selectedDay);
+  }, [tripPlan, selectedDay]);
+
+  const activities = useMemo(() => {
+    return currentDayItinerary ? currentDayItinerary.activities : [];
+  }, [currentDayItinerary]);
+
+  // Derived state for map
+  const mapActivities = useMemo(() => {
+    return activities.filter(a => a.coordinate);
+  }, [activities]);
+
+  const routeCoordinates = useMemo(() => {
+    return mapActivities.map(a => a.coordinate!);
+  }, [mapActivities]);
+
+  const routeFeature = useMemo(() => {
+     return {
       type: 'FeatureCollection',
       features: [
         {
@@ -180,12 +187,12 @@ const AITripPlannerScreen = () => {
         },
       ],
     };
+  }, [routeCoordinates]);
 
-    // Camera settings based on selection or day bounds
-    let cameraSettings = {};
-    
+  // Camera settings
+  const cameraSettings = useMemo(() => {
     if (selectedActivity && selectedActivity.coordinate) {
-      cameraSettings = {
+      return {
         centerCoordinate: selectedActivity.coordinate,
         zoomLevel: 14,
         animationMode: 'flyTo',
@@ -193,7 +200,7 @@ const AITripPlannerScreen = () => {
       };
     } else if (routeCoordinates.length > 0) {
       if (routeCoordinates.length > 1) {
-        cameraSettings = {
+        return {
             bounds: {
               ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
               sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
@@ -206,7 +213,7 @@ const AITripPlannerScreen = () => {
             animationDuration: 1500,
         };
       } else {
-         cameraSettings = {
+         return {
             centerCoordinate: routeCoordinates[0],
             zoomLevel: 11,
             animationMode: 'flyTo',
@@ -214,104 +221,8 @@ const AITripPlannerScreen = () => {
          };
       }
     }
-
-    return (
-      <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
-        <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Duration</Text>
-            <Text style={styles.summaryValue}>{plan.duration} Days</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Budget</Text>
-            <Text style={styles.summaryValue}>{plan.budget}</Text>
-          </View>
-        </View>
-
-        {/* Day Selector */}
-        <DaySelector 
-          days={days}
-          selectedDay={selectedDay}
-          onSelectDay={(day) => {
-            setSelectedDay(day);
-            setSelectedActivity(null); // Reset activity selection when changing day
-          }}
-        />
-
-        {/* Map View */}
-        {MapboxGL && mapActivities.length > 0 && (
-          <View style={styles.mapContainer}>
-            <MapboxGL.MapView
-              style={styles.map}
-              styleURL={MAPBOX_CONFIG.defaultStyle}
-              logoEnabled={false}
-              attributionEnabled={false}
-            >
-              <MapboxGL.Camera
-                 {...cameraSettings}
-              />
-
-              {/* Route Line */}
-              {routeCoordinates.length > 1 && (
-                <MapboxGL.ShapeSource id="routeSource" shape={routeFeature}>
-                  <MapboxGL.LineLayer
-                    id="routeFill"
-                    style={{
-                      lineColor: '#0066CC',
-                      lineWidth: 3,
-                      lineCap: 'round',
-                      lineJoin: 'round',
-                      lineOpacity: 0.8,
-                      lineDasharray: [1, 1] // Dashed line for walking/travel path vibe
-                    }}
-                  />
-                </MapboxGL.ShapeSource>
-              )}
-
-              {/* Activity Markers */}
-              {mapActivities.map((activity, index) => {
-                const isSelected = selectedActivity === activity;
-                return (
-                    <MapboxGL.PointAnnotation
-                    key={`${selectedDay}-${index}`}
-                    id={`marker-${index}`}
-                    coordinate={activity.coordinate}
-                    onSelected={() => setSelectedActivity(activity)}
-                    >
-                    <View style={styles.markerContainer}>
-                        <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
-                        <Text style={styles.markerText}>{index + 1}</Text>
-                        </View>
-                    </View>
-                    </MapboxGL.PointAnnotation>
-                );
-              })}
-            </MapboxGL.MapView>
-          </View>
-        )}
-
-        <View style={styles.dayCard}>
-          <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
-          <ItineraryList 
-            activities={activities} 
-            onActivitySelect={setSelectedActivity}
-            selectedActivity={selectedActivity}
-            onMoveUp={(index) => handleMoveActivity(index, 'up')}
-            onMoveDown={(index) => handleMoveActivity(index, 'down')}
-            onDelete={handleDeleteActivity}
-          />
-        </View>
-
-        <TouchableOpacity 
-          style={styles.resetButton}
-          onPress={() => setTripPlan(null)}
-        >
-          <Text style={styles.resetButtonText}>Plan Another Trip</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  }, [fadeAnim, selectedDay, setTripPlan, selectedActivity]);
+    return {};
+  }, [selectedActivity, routeCoordinates]);
 
   return (
     <ScrollView style={styles.container}>
@@ -415,9 +326,102 @@ const AITripPlannerScreen = () => {
               )}
             </View>
           </>
-        ) : (
-          renderItinerary(tripPlan)
-        )}
+        ) : tripPlan ? (
+          <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+            <Text style={styles.resultTitle}> Your Trip to {tripPlan.destination}</Text>
+            <View style={styles.summaryContainer}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Duration</Text>
+                <Text style={styles.summaryValue}>{tripPlan.duration} Days</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Budget</Text>
+                <Text style={styles.summaryValue}>{tripPlan.budget}</Text>
+              </View>
+            </View>
+
+            {/* Day Selector */}
+            <DaySelector 
+              days={tripPlan.itinerary.map(item => item.day)}
+              selectedDay={selectedDay}
+              onSelectDay={(day) => {
+                setSelectedDay(day);
+                setSelectedActivity(null); // Reset activity selection when changing day
+              }}
+            />
+
+            {/* Map View */}
+            {MapboxGL && mapActivities.length > 0 && (
+              <View style={styles.mapContainer}>
+                <MapboxGL.MapView
+                  style={styles.map}
+                  styleURL={MAPBOX_CONFIG.defaultStyle}
+                  logoEnabled={false}
+                  attributionEnabled={false}
+                >
+                  <MapboxGL.Camera
+                     {...cameraSettings}
+                  />
+
+                  {/* Route Line */}
+                  {routeCoordinates.length > 1 && (
+                    <MapboxGL.ShapeSource id="routeSource" shape={routeFeature}>
+                      <MapboxGL.LineLayer
+                        id="routeFill"
+                        style={{
+                          lineColor: '#0066CC',
+                          lineWidth: 3,
+                          lineCap: 'round',
+                          lineJoin: 'round',
+                          lineOpacity: 0.8,
+                          lineDasharray: [1, 1] // Dashed line for walking/travel path vibe
+                        }}
+                      />
+                    </MapboxGL.ShapeSource>
+                  )}
+
+                  {/* Activity Markers */}
+                  {mapActivities.map((activity, index) => {
+                    const isSelected = selectedActivity === activity;
+                    return (
+                        <MapboxGL.PointAnnotation
+                        key={`${selectedDay}-${index}`}
+                        id={`marker-${index}`}
+                        coordinate={activity.coordinate}
+                        onSelected={() => setSelectedActivity(activity)}
+                        >
+                        <View style={styles.markerContainer}>
+                            <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
+                            <Text style={styles.markerText}>{index + 1}</Text>
+                            </View>
+                        </View>
+                        </MapboxGL.PointAnnotation>
+                    );
+                  })}
+                </MapboxGL.MapView>
+              </View>
+            )}
+
+            <View style={styles.dayCard}>
+              <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
+              <ItineraryList 
+                activities={activities} 
+                onActivitySelect={setSelectedActivity}
+                selectedActivity={selectedActivity}
+                onMoveUp={(index) => handleMoveActivity(index, 'up')}
+                onMoveDown={(index) => handleMoveActivity(index, 'down')}
+                onDelete={handleDeleteActivity}
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={styles.resetButton}
+              onPress={() => setTripPlan(null)}
+            >
+              <Text style={styles.resetButtonText}>Plan Another Trip</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : null}
       </View>
     </ScrollView>
   );

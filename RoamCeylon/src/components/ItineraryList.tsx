@@ -12,6 +12,90 @@ interface ItineraryListProps {
   onDelete?: (index: number) => void;
 }
 
+interface ItineraryItemProps {
+  activity: TripActivity;
+  index: number;
+  isSelected: boolean;
+  isLast: boolean;
+  onSelect?: (activity: TripActivity) => void;
+  onMoveUp?: (index: number) => void;
+  onMoveDown?: (index: number) => void;
+  onDelete?: (index: number) => void;
+}
+
+const ItineraryItem = React.memo(({ 
+  activity, 
+  index, 
+  isSelected, 
+  isLast,
+  onSelect,
+  onMoveUp,
+  onMoveDown,
+  onDelete 
+}: ItineraryItemProps) => {
+  const hasCoordinate = !!activity.coordinate;
+
+  return (
+    <View style={styles.activityRow}>
+      <View style={styles.timelineContainer}>
+          <View style={[styles.dot, isSelected && styles.selectedDot]} />
+          {!isLast && <View style={styles.line} />}
+      </View>
+      <TouchableOpacity 
+          style={styles.contentContainer}
+          activeOpacity={hasCoordinate ? 0.7 : 1}
+          onPress={() => hasCoordinate && onSelect?.(activity)}
+      >
+          <Text style={[
+              styles.activityText, 
+              isSelected && styles.selectedActivityText,
+              !hasCoordinate && styles.dimmedText
+          ]}>
+              {activity.description}
+          </Text>
+
+          {isSelected && (
+            <View style={styles.controlsContainer}>
+              <View style={styles.moveControls}>
+                {index > 0 && (
+                  <TouchableOpacity 
+                    style={styles.controlButton} 
+                    onPress={() => onMoveUp?.(index)}
+                  >
+                    <Text style={styles.controlText}>⬆️</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {!isLast && (
+                  <TouchableOpacity 
+                    style={styles.controlButton} 
+                    onPress={() => onMoveDown?.(index)}
+                  >
+                    <Text style={styles.controlText}>⬇️</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <TouchableOpacity 
+                style={[styles.controlButton, styles.deleteButton]} 
+                onPress={() => onDelete?.(index)}
+              >
+                <Text style={styles.controlText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+      </TouchableOpacity>
+    </View>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isLast === nextProps.isLast &&
+    prevProps.activity.description === nextProps.activity.description &&
+    prevProps.index === nextProps.index
+  );
+});
+
 const ItineraryList: React.FC<ItineraryListProps> = ({ 
   activities, 
   onActivitySelect, 
@@ -22,63 +106,19 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      {activities.map((activity, index) => {
-        const isSelected = selectedActivity === activity;
-        const hasCoordinate = !!activity.coordinate;
-        
-        return (
-            <View key={index} style={styles.activityRow}>
-            <View style={styles.timelineContainer}>
-                <View style={[styles.dot, isSelected && styles.selectedDot]} />
-                {index !== activities.length - 1 && <View style={styles.line} />}
-            </View>
-            <TouchableOpacity 
-                style={styles.contentContainer}
-                activeOpacity={hasCoordinate ? 0.7 : 1}
-                onPress={() => hasCoordinate && onActivitySelect?.(activity)}
-            >
-                <Text style={[
-                    styles.activityText, 
-                    isSelected && styles.selectedActivityText,
-                    !hasCoordinate && styles.dimmedText
-                ]}>
-                    {activity.description}
-                </Text>
-
-                {isSelected && (
-                  <View style={styles.controlsContainer}>
-                    <View style={styles.moveControls}>
-                      {index > 0 && (
-                        <TouchableOpacity 
-                          style={styles.controlButton} 
-                          onPress={() => onMoveUp?.(index)}
-                        >
-                          <Text style={styles.controlText}>⬆️</Text>
-                        </TouchableOpacity>
-                      )}
-                      
-                      {index < activities.length - 1 && (
-                        <TouchableOpacity 
-                          style={styles.controlButton} 
-                          onPress={() => onMoveDown?.(index)}
-                        >
-                          <Text style={styles.controlText}>⬇️</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    
-                    <TouchableOpacity 
-                      style={[styles.controlButton, styles.deleteButton]} 
-                      onPress={() => onDelete?.(index)}
-                    >
-                      <Text style={styles.controlText}>🗑️</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-            </TouchableOpacity>
-            </View>
-        );
-      })}
+      {activities.map((activity, index) => (
+        <ItineraryItem
+          key={`${index}-${activity.description}`}
+          activity={activity}
+          index={index}
+          isSelected={selectedActivity === activity}
+          isLast={index === activities.length - 1}
+          onSelect={onActivitySelect}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
+          onDelete={onDelete}
+        />
+      ))}
     </View>
   );
 };
