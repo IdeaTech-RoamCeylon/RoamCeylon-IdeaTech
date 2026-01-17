@@ -275,6 +275,166 @@ export class AIController {
     return { filtered, fallbackMessage };
   }
 
+  /* ==================== DESTINATION HELPERS ==================== */
+
+  private normalizeDestination(destination?: string): string {
+    const d = (destination ?? '').toLowerCase().trim();
+    if (!d) return '';
+    const cleaned = d
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const aliasMap: Record<string, string> = {
+      'galle fort': 'galle',
+      'fort galle': 'galle',
+      'galle city': 'galle',
+      'temple of the tooth relic': 'kandy',
+      'temple of the tooth': 'kandy',
+      'tooth temple': 'kandy',
+      'nine arches bridge': 'ella',
+      'worlds end': 'nuwara eliya',
+      'horton plains': 'nuwara eliya',
+      'nilaveli beach': 'trincomalee',
+    };
+
+    if (aliasMap[cleaned]) return aliasMap[cleaned];
+
+    // Keep known 2-word towns intact
+    if (cleaned === 'nuwara eliya') return 'nuwara eliya';
+    if (cleaned === 'mount lavinia') return 'mount lavinia';
+
+    // Otherwise, take first token as base town keyword
+    const parts = cleaned.split(' ');
+    return parts[0] || cleaned;
+  }
+
+  private extractMeta(content: string): { near: string[]; region?: string } {
+    const nearMatch = content.match(/Near:\s*([^\n]+)/i);
+    const regionMatch = content.match(/Region:\s*([^\n]+)/i);
+
+    const near = nearMatch
+      ? nearMatch[1]
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+
+    const region = regionMatch
+      ? regionMatch[1].trim().toLowerCase()
+      : undefined;
+
+    return { near, region };
+  }
+
+  private getDestinationRegion(destination?: string): string | undefined {
+    const dest = this.normalizeDestination(destination);
+    if (!dest) return undefined;
+
+    const map: Record<string, string> = {
+      galle: 'south',
+      unawatuna: 'south',
+      hikkaduwa: 'south',
+      mirissa: 'south',
+      weligama: 'south',
+      bentota: 'south',
+
+      colombo: 'colombo',
+      negombo: 'colombo',
+      'mount lavinia': 'colombo',
+
+      kandy: 'kandy',
+      peradeniya: 'kandy',
+
+      sigiriya: 'cultural_triangle',
+      dambulla: 'cultural_triangle',
+      anuradhapura: 'cultural_triangle',
+      polonnaruwa: 'cultural_triangle',
+
+      trincomalee: 'east_coast',
+      nilaveli: 'east_coast',
+      uppuveli: 'east_coast',
+
+      ella: 'hill_country',
+      'nuwara eliya': 'hill_country',
+      haputale: 'hill_country',
+
+      yala: 'safari_south',
+      udawalawe: 'safari_south',
+    };
+
+    return map[dest];
+  }
+
+  private gateByNearOrRegion(
+    results: SearchResultItem[],
+    destination?: string,
+  ): SearchResultItem[] {
+    const dest = this.normalizeDestination(destination);
+    if (!dest || dest.length < 3) return results;
+
+    const destRegion = this.getDestinationRegion(dest);
+
+    const kept = results.filter((r) => {
+      const text = `${r.title} ${r.content}`.toLowerCase();
+      const { near, region } = this.extractMeta(text);
+
+      const nearHit = near.includes(dest);
+      const regionHit = !!destRegion && !!region && region === destRegion;
+      const directHit = text.includes(dest);
+
+      return nearHit || regionHit || directHit;
+    });
+
+    return kept.length > 0 ? kept : results;
+  }
+
+  /**
+   * Expand candidates locally (same region/near) to avoid fallback days.
+   */
+  private buildLocalPool(
+    all: SearchResultItem[],
+    destination?: string,
+  ): SearchResultItem[] {
+    const dest = this.normalizeDestination(destination);
+    if (!dest || dest.length < 3) return all;
+
+    const destRegion = this.getDestinationRegion(dest);
+
+    return all.filter((r) => {
+      const text = `${r.title} ${r.content}`.toLowerCase();
+      const { near, region } = this.extractMeta(text);
+
+      const nearHit = near.includes(dest);
+      const regionHit = !!destRegion && !!region && region === destRegion;
+      const directHit = text.includes(dest);
+
+      return nearHit || regionHit || directHit;
+    });
+  }
+
+  private mergeUniqueResults(
+    primary: SearchResultItem[],
+    extra: SearchResultItem[],
+    limit: number,
+  ): SearchResultItem[] {
+    const seen = new Set<string>();
+    const out: SearchResultItem[] = [];
+
+    const keyOf = (r: SearchResultItem) =>
+      `${String(r.id)}::${r.title.toLowerCase().trim()}`;
+
+    for (const r of [...primary, ...extra]) {
+      const k = keyOf(r);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(r);
+      if (out.length >= limit) break;
+    }
+
+    return out;
+  }
+
   /* ---------- In-memory cosine search ---------- */
   private async executeSearch(query: unknown): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
@@ -344,7 +504,7 @@ export class AIController {
         if (b.score !== a.score) return b.score - a.score;
         return String(a.id).localeCompare(String(b.id));
       })
-      .slice(0, 5)
+      .slice(0, 25)
       .map((item, idx) => ({
         rank: idx + 1,
         ...item,
@@ -567,7 +727,6 @@ export class AIController {
       };
     }
 
-    // WHY THIS PLACE (preferences)
     if (matched.length) {
       if (titleMatches > 0) {
         whyPlace.push(
@@ -582,7 +741,6 @@ export class AIController {
       }
     }
 
-    // less repetitive + more varied
     const pct = Math.round(score * 100);
     whyPlace.push(`${this.scoreLabel(score)} (${pct}%)`);
 
@@ -596,10 +754,9 @@ export class AIController {
       whyPlace.push('Lower-confidence option; included mainly for variety');
     }
 
-    // Update these thresholds to match your new scoring
-    if (priorityScore >= 1.3) { 
+    if (priorityScore >= 1.3) {
       whyPlace.push('Boosted because it aligns strongly with your trip style');
-    } else if (priorityScore >= 0.9) { 
+    } else if (priorityScore >= 0.9) {
       whyPlace.push('Boosted by relevance + category fit');
     }
 
@@ -615,7 +772,6 @@ export class AIController {
       );
     }
 
-    // feasibility / distance sanity note
     const destRegion = this.inferRegion(ctx.destination);
     const placeRegion = this.inferRegion(`${result.title} ${result.content}`);
 
@@ -628,7 +784,6 @@ export class AIController {
       );
     }
 
-    // WHY THIS DAY
     if (ctx.dayNumber === 1 && category === 'Arrival') {
       whyDay.push('Placed on Day 1 to keep the schedule light after travel');
     } else if (ctx.dayNumber === ctx.totalDays) {
@@ -647,7 +802,6 @@ export class AIController {
       whyDay.push('Scheduled when you have time to explore slowly');
     }
 
-    // WHY THIS TIME SLOT (based on actual slot, not index tricks)
     const slot = ctx.timeSlot;
 
     if (ctx.dayNumber === 1 && ctx.activityIndex === 0) {
@@ -664,7 +818,6 @@ export class AIController {
       );
     }
 
-    // Tips (generic safe)
     if (category === 'Beach')
       tips.push(
         'Bring sun protection and water; plan a short rest after midday',
@@ -674,7 +827,6 @@ export class AIController {
     if (category === 'Culture' || category === 'History')
       tips.push('Keep extra time—these visits often take longer than expected');
 
-    // Selection reason: build a 1-liner that varies
     const parts: string[] = [];
     if (matched.length)
       parts.push(`matches your interests (${matched.slice(0, 2).join(', ')})`);
@@ -708,24 +860,20 @@ export class AIController {
 
     let alignmentScore = 0;
     const textLower = text.toLowerCase();
-    const matchedPrefs = new Set<string>(); // Track what's already matched
+    const matchedPrefs = new Set<string>();
 
     for (const pref of preferences) {
       const prefLower = pref.toLowerCase();
-    
-      // Skip if we've already scored this preference
       if (matchedPrefs.has(prefLower)) continue;
-    
+
       const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
 
-      // Direct keyword match (strongest)
       if (textLower.includes(prefLower)) {
-        alignmentScore += 0.20;
-        matchedPrefs.add(prefLower); // Mark as matched
+        alignmentScore += 0.2;
+        matchedPrefs.add(prefLower);
         continue;
       }
 
-      // Category keyword match (moderate)
       let bestCategoryMatch = 0;
       for (const category of mappedCategories) {
         const categoryLower = category.toLowerCase();
@@ -733,14 +881,14 @@ export class AIController {
           bestCategoryMatch = Math.max(bestCategoryMatch, 0.12);
         }
       }
-    
+
       if (bestCategoryMatch > 0) {
         alignmentScore += bestCategoryMatch;
-        matchedPrefs.add(prefLower); // Mark as matched
+        matchedPrefs.add(prefLower);
       }
     }
 
-    return Math.min(alignmentScore, 0.40);
+    return Math.min(alignmentScore, 0.4);
   }
 
   /* ==================== PRIORITY / SCORING ==================== */
@@ -751,14 +899,13 @@ export class AIController {
     destination?: string,
   ): Array<SearchResultItem & { priorityScore: number }> {
     const tripType = dayCount ? this.getTripLengthType(dayCount) : undefined;
-    const dest = (destination ?? '').toLowerCase().trim();
+    const dest = this.normalizeDestination(destination);
 
     return results
       .map((result) => {
         const baseScore = result.score || 0.5;
         let priorityScore = baseScore;
 
-        // 1. Confidence weighting
         const confidenceMultiplier = {
           High: 1.15,
           Medium: 1.0,
@@ -767,52 +914,57 @@ export class AIController {
         priorityScore *= confidenceMultiplier;
 
         const text = `${result.title} ${result.content}`.toLowerCase();
-
-        // Limit boosts for very low base scores
         const boostMultiplier = baseScore < 0.55 ? 0.5 : 1.0;
 
-        // 2. Proximity boost (scaled by base score quality)
+        // STRONG Near/Region-aware proximity bias
         if (dest && dest.length >= 3) {
-          const hasDestInTitle = result.title.toLowerCase().includes(dest);
-          const hasDestInContent = result.content.toLowerCase().includes(dest);
-          const hasNearMetadata = text.includes('near:') && text.includes(dest);
+          const { near, region } = this.extractMeta(text);
+          const destRegion = this.getDestinationRegion(dest);
 
-          if (hasDestInTitle) {
-            priorityScore += 0.30 * boostMultiplier;
-          } else if (hasNearMetadata) {
-            priorityScore += 0.20 * boostMultiplier;
-          } else if (hasDestInContent) {
+          if (near.includes(dest)) priorityScore += 1.0 * boostMultiplier;
+
+          if (result.title.toLowerCase().includes(dest)) {
+            priorityScore += 0.3 * boostMultiplier;
+          } else if (result.content.toLowerCase().includes(dest)) {
             priorityScore += 0.15 * boostMultiplier;
           }
 
-          if ((hasDestInTitle || hasNearMetadata) && result.score >= 0.7) {
-            priorityScore += 0.10;
+          if (destRegion && region === destRegion) {
+            priorityScore += 0.2 * boostMultiplier;
           }
         }
 
-        // 3. Preference alignment (scaled)
-        const categoryAlignment = this.calculateCategoryAlignment(text, preferences);
+        // Preference alignment
+        const categoryAlignment = this.calculateCategoryAlignment(
+          text,
+          preferences,
+        );
         priorityScore += categoryAlignment * boostMultiplier;
 
-        // 4. Trip length optimization
+        // Trip length optimization
         if (tripType === 'short') {
           if (text.match(/fort|temple|kovil|church|museum|beach/)) {
             priorityScore += 0.08 * boostMultiplier;
           }
         }
-        
+
         if (tripType === 'long') {
           if (text.match(/nature|park|wildlife|relax|spa|garden/)) {
             priorityScore += 0.08 * boostMultiplier;
           }
         }
 
-        priorityScore = Math.min(priorityScore, 2.0);
+        // Anchor boost: make destination itself show up early (Mirissa -> Mirissa Beach)
+        if (dest) {
+          const titleLower = result.title.toLowerCase();
+          if (titleLower.includes(dest))
+            priorityScore += 0.35 * boostMultiplier;
+        }
 
-        return { ...result, priorityScore };
+        return { ...result, priorityScore: Math.min(priorityScore, 2.0) };
       })
       .sort((a, b) => b.priorityScore - a.priorityScore);
-    }
+  }
 
   private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
     if (dayCount <= 2) return 'short';
@@ -951,7 +1103,7 @@ export class AIController {
       for (const pref of preferences) {
         if (lower.includes(pref.toLowerCase())) {
           const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
-          if (mapped?.length) return mapped.includes('Sightseeing') ? mapped[0] : mapped[0];
+          if (mapped?.length) return mapped[0];
         }
       }
     }
@@ -1015,116 +1167,120 @@ export class AIController {
   }
 
   private selectDiverseActivities(
-    scoredResults: Array<SearchResultItem & { priorityScore: number; normalizedText?: string }>,
+    scoredResults: Array<
+      SearchResultItem & { priorityScore: number; normalizedText?: string }
+    >,
     maxCount: number,
     preferences?: string[],
   ): SearchResultItem[] {
+    // Keep your existing diversity logic (unchanged)
     const selected: SearchResultItem[] = [];
     const categoryCount: Record<string, number> = {};
     const preferenceCount: Record<string, number> = {};
     const textSet = new Set<string>();
-  
+
     const maxPerCategory = Math.ceil(maxCount / 4);
-    const maxPerPreference = preferences?.length 
-      ? Math.ceil(maxCount / preferences.length) 
+    const maxPerPreference = preferences?.length
+      ? Math.ceil(maxCount / preferences.length)
       : maxCount;
 
-    const sorted = [...scoredResults].sort((a, b) => b.priorityScore - a.priorityScore);
+    const sorted = [...scoredResults].sort(
+      (a, b) => b.priorityScore - a.priorityScore,
+    );
 
-    // ========== PHASE 1: Strict diversity constraints ==========
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
 
-      const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
+      const textKey =
+        result.normalizedText ||
+        `${result.title} ${result.content}`.toLowerCase();
       if (textSet.has(textKey)) continue;
 
-      const category = this.inferCategoryFromText(result.title, result.content, preferences);
-    
-      // Check which preferences this result matches
-      const matchedPrefs = preferences?.filter(p => 
-        textKey.includes(p.toLowerCase())
-      ) || [];
-    
-      // Check if any matched preference is saturated
-      const prefSaturated = matchedPrefs.some(
-        pref => (preferenceCount[pref] || 0) >= maxPerPreference
+      const category = this.inferCategoryFromText(
+        result.title,
+        result.content,
+        preferences,
       );
 
-      // Check if category is saturated
+      const matchedPrefs =
+        preferences?.filter((p) => textKey.includes(p.toLowerCase())) || [];
+
+      const prefSaturated = matchedPrefs.some(
+        (pref) => (preferenceCount[pref] || 0) >= maxPerPreference,
+      );
+
       const currentCount = categoryCount[category] || 0;
       const categorySaturated = currentCount >= maxPerCategory;
-    
-      // Only add if both category AND preference constraints are satisfied
+
       if (!categorySaturated && !prefSaturated) {
         selected.push(result);
         categoryCount[category] = currentCount + 1;
-      
-        // Track preference usage for all matched preferences
-        matchedPrefs.forEach(pref => {
+
+        matchedPrefs.forEach((pref) => {
           preferenceCount[pref] = (preferenceCount[pref] || 0) + 1;
         });
-      
+
         textSet.add(textKey);
       }
     }
 
-    // ========== PHASE 2: Relaxed fallback (if we haven't filled maxCount) ==========
-    // This ensures we don't return too few results due to strict constraints
-    if (selected.length < maxCount) {         
-      // Create backup counters with relaxed limits
+    if (selected.length < maxCount) {
       const categoryBackup = { ...categoryCount };
       const preferenceBackup = { ...preferenceCount };
-    
-      // Allow categories to go slightly over limit in fallback mode
+
       const relaxedCategoryMax = maxPerCategory + 2;
       const relaxedPreferenceMax = maxPerPreference + 1;
-    
+
       for (const result of sorted) {
         if (selected.length >= maxCount) break;
-      
-        const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
-        if (textSet.has(textKey)) continue; // Skip duplicates
-      
-        const category = this.inferCategoryFromText(result.title, result.content, preferences);
+
+        const textKey =
+          result.normalizedText ||
+          `${result.title} ${result.content}`.toLowerCase();
+        if (textSet.has(textKey)) continue;
+
+        const category = this.inferCategoryFromText(
+          result.title,
+          result.content,
+          preferences,
+        );
         const currentCategoryCount = categoryBackup[category] || 0;
-      
-        // Check matched preferences
-        const matchedPrefs = preferences?.filter(p => 
-          textKey.includes(p.toLowerCase())
-        ) || [];
-      
-        // In fallback, check if we're way over the relaxed limits
+
+        const matchedPrefs =
+          preferences?.filter((p) => textKey.includes(p.toLowerCase())) || [];
+
         const categoryOverLimit = currentCategoryCount >= relaxedCategoryMax;
         const prefOverLimit = matchedPrefs.some(
-          pref => (preferenceBackup[pref] || 0) >= relaxedPreferenceMax
+          (pref) => (preferenceBackup[pref] || 0) >= relaxedPreferenceMax,
         );
-      
-        // Add if we're within relaxed limits OR if no preferences matched (neutral item)
-        if (!categoryOverLimit && (!prefOverLimit || matchedPrefs.length === 0)) {
+
+        if (
+          !categoryOverLimit &&
+          (!prefOverLimit || matchedPrefs.length === 0)
+        ) {
           selected.push(result);
           categoryBackup[category] = currentCategoryCount + 1;
-        
-          matchedPrefs.forEach(pref => {
+
+          matchedPrefs.forEach((pref) => {
             preferenceBackup[pref] = (preferenceBackup[pref] || 0) + 1;
           });
-        
+
           textSet.add(textKey);
         }
       }
     }
 
-    // ========== PHASE 3: Emergency fallback (ignore all constraints) ==========
-    // Only if we still don't have enough results after relaxed constraints
     if (selected.length < Math.min(maxCount, Math.floor(maxCount * 0.6))) {
       this.logger.warn(
-        `Diversity constraints too strict. Selected only ${selected.length}/${maxCount}. ` +
-        `Adding best remaining results without constraints.`
+        `Diversity constraints too strict. Selected only ${selected.length}/${maxCount}. Adding best remaining results without constraints.`,
       );
-    
+
       for (const result of sorted) {
         if (selected.length >= maxCount) break;
-      
-        const textKey = result.normalizedText || `${result.title} ${result.content}`.toLowerCase();
+
+        const textKey =
+          result.normalizedText ||
+          `${result.title} ${result.content}`.toLowerCase();
         if (!textSet.has(textKey)) {
           selected.push(result);
           textSet.add(textKey);
@@ -1296,9 +1452,8 @@ export class AIController {
     for (const rule of THEME_RULES) {
       const okAll = rule.all ? hasAll(rule.all) : true;
       const okAny = rule.any ? hasAny(rule.any) : true;
-      if (okAll && okAny) {
+      if (okAll && okAny)
         return { theme: rule.title, explanation: rule.explanation };
-      }
     }
 
     const DOMINANT_FALLBACK: Record<
@@ -1353,6 +1508,54 @@ export class AIController {
     };
   }
 
+  private generateGroupingExplanation(
+    activities: EnhancedItineraryItemDto[],
+  ): string {
+    if (activities.length <= 1) {
+      if (activities.length === 1) {
+        const a = activities[0];
+        if (a.priority > 0.7) {
+          return `Single high-priority ${a.category.toLowerCase()} activity selected for focused exploration`;
+        }
+        if (a.priority < 0.4) {
+          return `Fallback activity provided to maintain trip structure`;
+        }
+        return `Single ${a.category.toLowerCase()} activity scheduled for this day`;
+      }
+      return 'No activities scheduled for this day';
+    }
+
+    const categories = activities.map((a) => a.category);
+    const uniqueCategories = Array.from(new Set(categories));
+    const explanations: string[] = [];
+
+    if (uniqueCategories.length === 1) {
+      explanations.push(
+        `All ${categories[0].toLowerCase()} activities grouped for a focused experience`,
+      );
+    } else if (uniqueCategories.length === 2) {
+      explanations.push(
+        `${uniqueCategories.join(' and ')} activities paired for complementary experiences`,
+      );
+    } else {
+      explanations.push(
+        `Diverse mix of ${uniqueCategories.length} activity types for a well-rounded day`,
+      );
+    }
+
+    const timeSlots = activities.map((a) => a.timeSlot).filter(Boolean);
+    if (timeSlots.length > 1)
+      explanations.push('scheduled across different time slots for pacing');
+
+    const highPriority = activities.filter((a) => a.priority > 0.7).length;
+    if (highPriority > 1)
+      explanations.push(
+        `includes ${highPriority} high-priority activities matching your preferences`,
+      );
+
+    return explanations.join('; ');
+  }
+
   private generateDayPlacementExplanation(
     dayNumber: number,
     activity: EnhancedItineraryItemDto,
@@ -1394,65 +1597,6 @@ export class AIController {
       : 'Placed for balanced pacing and variety.';
   }
 
-  private generateGroupingExplanation(
-    activities: EnhancedItineraryItemDto[],
-  ): string {
-    if (activities.length <= 1) {
-      if (activities.length === 1) {
-        const activity = activities[0];
-        if (activity.priority > 0.7) {
-          return `Single high-priority ${activity.category.toLowerCase()} activity selected for focused exploration`;
-        } else if (activity.priority < 0.4) {
-          return `Fallback activity provided to maintain trip structure`;
-        }
-        return `Single ${activity.category.toLowerCase()} activity scheduled for this day`;
-      }
-      return 'No activities scheduled for this day';
-    }
-
-    const categories = activities.map((a) => a.category);
-    const uniqueCategories = Array.from(new Set(categories));
-    const explanations: string[] = [];
-
-    if (uniqueCategories.length === 1) {
-      explanations.push(
-        `All ${categories[0].toLowerCase()} activities grouped for a focused experience`,
-      );
-    } else if (uniqueCategories.length === 2) {
-      explanations.push(
-        `${uniqueCategories.join(' and ')} activities paired for complementary experiences`,
-      );
-    } else {
-      explanations.push(
-        `Diverse mix of ${uniqueCategories.length} activity types for a well-rounded day`,
-      );
-    }
-
-    const timeSlots = activities.map((a) => a.timeSlot).filter(Boolean);
-    if (timeSlots.length > 1) {
-      explanations.push('scheduled across different time slots for pacing');
-    }
-
-    const highPriority = activities.filter((a) => a.priority > 0.7).length;
-    if (highPriority > 1) {
-      explanations.push(
-        `includes ${highPriority} high-priority activities matching your preferences`,
-      );
-    }
-
-    const totalEstimatedHours = activities.reduce((sum, a) => {
-      const duration = a.estimatedDuration || '';
-      const hours = parseInt(duration.split('-')[0]) || 2;
-      return sum + hours;
-    }, 0);
-
-    if (totalEstimatedHours > 8) {
-      explanations.push('balanced to avoid over-scheduling');
-    }
-
-    return explanations.join('; ');
-  }
-
   /* ==================== MAIN ITINERARY GENERATION ==================== */
 
   private generateItinerary(
@@ -1491,7 +1635,7 @@ export class AIController {
       filteredResults,
       preferences,
       dayCount,
-      destination, // pass destination for proximity bias
+      destination,
     );
 
     const MAX_PER_DAY = dayCount === 1 ? 2 : 4;
@@ -1501,11 +1645,28 @@ export class AIController {
       scored.length,
     );
 
-    const selectedResults = this.selectDiverseActivities(
+    // Anchor must be included when possible (Mirissa -> Mirissa Beach)
+    const dest = this.normalizeDestination(destination);
+    const anchor = scored.find((r) => {
+      const text = `${r.title} ${r.content}`.toLowerCase();
+      const { near } = this.extractMeta(text);
+      return (
+        dest && (near.includes(dest) || r.title.toLowerCase().includes(dest))
+      );
+    });
+
+    let selectedResults = this.selectDiverseActivities(
       scored,
       maxTotalActivities,
       preferences,
     );
+
+    if (anchor && !selectedResults.some((x) => x.id === anchor.id)) {
+      selectedResults = [anchor, ...selectedResults].slice(
+        0,
+        maxTotalActivities,
+      );
+    }
 
     const dayBuckets = this.allocateAcrossDays(
       selectedResults,
@@ -1569,7 +1730,7 @@ export class AIController {
               preferences,
               novelty,
               isFallback: false,
-              timeSlot, // ✅ FIX 1: pass actual timeSlot
+              timeSlot,
             },
           ),
         };
@@ -1584,6 +1745,7 @@ export class AIController {
         );
       }
 
+      // Fallback only if absolutely nothing exists
       if (activitiesForDay.length === 0) {
         activitiesForDay.push(this.createSingleDayFallback(day, destination));
       }
@@ -1609,102 +1771,6 @@ export class AIController {
 
     return dayPlans;
   }
-
-  private extractMeta(content: string): { near: string[]; region?: string } {
-    const nearMatch = content.match(/Near:\s*([^\n]+)/i);
-    const regionMatch = content.match(/Region:\s*([^\n]+)/i);
-
-    const near = nearMatch
-      ? nearMatch[1]
-          .split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean)
-      : [];
-
-    const region = regionMatch
-      ? regionMatch[1].trim().toLowerCase()
-      : undefined;
-
-    return { near, region };
-  }
-
-  private getDestinationRegion(destination?: string): string | undefined {
-    const dest = (destination ?? '').toLowerCase().trim();
-    if (!dest) return undefined;
-
-    // map destination -> region key (match what you store in JSON)
-    const map: Record<string, string> = {
-      galle: 'south',
-      unawatuna: 'south',
-      hikkaduwa: 'south',
-      mirissa: 'south',
-      bentota: 'south',
-      kandy: 'kandy',
-      sigiriya: 'cultural_triangle',
-      dambulla: 'cultural_triangle',
-      trincomalee: 'east_coast',
-      nilaveli: 'east_coast',
-      nuwara: 'hill_country',
-      'nuwara eliya': 'hill_country',
-      ella: 'hill_country',
-      yala: 'safari_south',
-      udawalawe: 'safari_south',
-    };
-
-    return map[dest];
-  }
-
-  /**
-   * ✅ STRONG GATE:
-   * - keep if destination appears in Near:
-   * - OR same region as destination
-   * - otherwise drop
-   */
-  private gateByNearOrRegion(
-    results: SearchResultItem[],
-    destination?: string,
-  ): SearchResultItem[] {
-    const dest = (destination ?? '').toLowerCase().trim();
-    if (!dest || dest.length < 3) return results;
-
-    const destRegion = this.getDestinationRegion(dest);
-
-    const kept = results.filter((r) => {
-      const text = `${r.title} ${r.content}`.toLowerCase();
-
-      const { near, region } = this.extractMeta(text);
-
-      const nearHit = near.includes(dest);
-      const regionHit = destRegion && region && region === destRegion;
-
-      // also allow direct text mention (as backup)
-      const directHit = text.includes(dest);
-
-      return nearHit || regionHit || directHit;
-    });
-
-    // if filtering removes everything, fallback to original (avoid empty plan)
-    return kept.length > 0 ? kept : results;
-  }
-
-  // private buildLocalPool(
-  //   all: SearchResultItem[],
-  //   destination?: string,
-  // ): SearchResultItem[] {
-  //   const dest = (destination ?? '').toLowerCase().trim();
-  //   if (!dest) return all;
-
-  //   const destRegion = this.getDestinationRegion(dest);
-
-  //   return all.filter((r) => {
-  //     const text = `${r.title} ${r.content}`.toLowerCase();
-  //     const { near, region } = this.extractMeta(text);
-
-  //     if (near.includes(dest)) return true;
-  //     if (destRegion && region === destRegion) return true;
-  //     return false;
-  //   });
-  // }
 
   /* ==================== TRIP PLAN ENDPOINT ==================== */
 
@@ -1732,6 +1798,7 @@ export class AIController {
     );
 
     const allEmbeddings = await this.aiService.getAllEmbeddings();
+    const normalizedDestination = this.normalizeDestination(body.destination);
 
     if (!isValidDestination) {
       (body.preferences ?? []).forEach((pref) => {
@@ -1777,7 +1844,7 @@ export class AIController {
                 preferences: body.preferences,
                 novelty: 'Medium',
                 isFallback: false,
-                timeSlot, // timeSlot aware
+                timeSlot,
               },
             ),
           });
@@ -1819,7 +1886,7 @@ export class AIController {
                 preferences: body.preferences,
                 novelty: 'Medium',
                 isFallback: false,
-                timeSlot, // timeSlot aware
+                timeSlot,
               },
             ),
           });
@@ -1859,8 +1926,9 @@ export class AIController {
       };
     }
 
+    // Destination-aware query with normalized destination
     const searchTerms = [
-      body.destination,
+      normalizedDestination || body.destination,
       'attractions',
       'places to visit',
       ...(body.preferences ?? []),
@@ -1869,18 +1937,32 @@ export class AIController {
 
     const searchResults = await this.executeSearch(query);
 
-    // HARD filter by Near or Region (prevents Nilaveli/Horton for Galle)
-    const gated = this.gateByNearOrRegion(
+    // Expand locally BEFORE gating to avoid starvation
+    const asSearchItems: SearchResultItem[] = allEmbeddings.map((e, idx) => ({
+      rank: idx + 1,
+      id: e.id,
+      title: e.title,
+      content: e.content,
+      score: 0.65, // neutral score; ranking comes from priorityScore later
+      confidence: 'Medium',
+    }));
+
+    const localPool = this.buildLocalPool(asSearchItems, normalizedDestination);
+
+    const expanded = this.mergeUniqueResults(
       searchResults.results,
-      body.destination,
+      localPool,
+      40,
     );
+
+    const gated = this.gateByNearOrRegion(expanded, normalizedDestination);
 
     dayByDayPlan = this.generateItinerary(
       gated,
       dayCount,
       startDateStr,
       body.preferences,
-      body.destination,
+      normalizedDestination,
     );
 
     const allCategoriesInPlan = dayByDayPlan.flatMap((d) =>
