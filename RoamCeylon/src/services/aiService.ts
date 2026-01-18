@@ -85,8 +85,6 @@ class AIService {
 
       const backendData = wrapper.data;
 
-      console.log('[AIService] Backend Data:', JSON.stringify(backendData, null, 2));
-
       // Helper to generate mock coordinates near Kandy (7.2906, 80.6337)
       // purely for demonstration until backend provides real coords
       const getMockCoordinates = (index: number): [number, number] => {
