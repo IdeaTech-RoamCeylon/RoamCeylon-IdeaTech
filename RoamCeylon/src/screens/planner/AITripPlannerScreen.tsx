@@ -144,6 +144,26 @@ const AITripPlannerScreen = () => {
                if (selectedActivity && selectedActivity.description === removed.description) {
                  setSelectedActivity(null);
                }
+
+               // Check if day is now empty
+               if (dayItinerary.activities.length === 0) {
+                 // Remove the day completely
+                 newPlan.itinerary = newPlan.itinerary.filter((d: any) => d.day !== selectedDay);
+                 
+                 // Renumber remaining days
+                 newPlan.itinerary.forEach((d: any, idx: number) => {
+                   d.day = idx + 1;
+                   d.activities.forEach((act: any) => act.dayNumber = idx + 1);
+                 });
+                 
+                 // Update duration
+                 newPlan.duration = String(newPlan.itinerary.length);
+
+                 // Adjust selected day if needed
+                 if (selectedDay > newPlan.itinerary.length) {
+                   setSelectedDay(Math.max(1, newPlan.itinerary.length));
+                 }
+               }
                
                setTripPlan(newPlan);
              }
@@ -157,7 +177,7 @@ const AITripPlannerScreen = () => {
 
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
-    return tripPlan?.itinerary.find(item => item.day === selectedDay);
+    return tripPlan?.itinerary?.find(item => item.day === selectedDay);
   }, [tripPlan, selectedDay]);
 
   const activities = useMemo(() => {
