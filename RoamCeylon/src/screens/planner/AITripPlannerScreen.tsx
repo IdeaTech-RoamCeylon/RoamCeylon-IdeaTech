@@ -157,7 +157,7 @@ const AITripPlannerScreen = () => {
 
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
-    return tripPlan?.itinerary.find(item => item.day === selectedDay);
+    return tripPlan?.itinerary?.find(item => item.day === selectedDay);
   }, [tripPlan, selectedDay]);
 
   const activities = useMemo(() => {
