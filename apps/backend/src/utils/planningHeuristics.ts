@@ -15,6 +15,7 @@ export interface TripDestination {
 
 // --- CONFIGURATION ---
 const MAX_HOURS_PER_DAY = 7; // Leave buffer for travel/lunch
+const MIN_CONFIDENCE_THRESHOLD = 0.4; // <--- NEW: Filter out "noise"
 
 // --- HELPER: Haversine Distance Formula ---
 export const getDistanceKm = (
@@ -50,12 +51,23 @@ export const distributeActivitiesAcrossDays = (
   numberOfDays: number
 ): TripDestination[][] => {
   
-  // 1. Prep: Calculate numeric duration for everyone
-  const pool = allDestinations.map(d => ({
-    ...d,
-    _hours: parseDuration(d.metadata.duration),
-    _assigned: false
-  }));
+  // 1. IMPROVED PREP: Filter & Sanitize
+  let pool = allDestinations
+    .filter(d => {
+      // RULE 1: Must have valid coordinates
+      if (!d.coordinates) return false;
+
+      // RULE 2: STRICT Quality Filter
+      // We removed the "length > 10" check to ensure we never show garbage.
+      return (d.confidenceScore || 0) >= MIN_CONFIDENCE_THRESHOLD;
+    })
+    .map(d => ({
+      ...d,
+      
+      // RULE 3: Handle missing durations smarter (Default to 2h, but cap at 3h if unknown)
+      _hours: parseDuration(d.metadata.duration),
+      _assigned: false
+    }));
 
   // Sort by confidence (Highest priority first)
   pool.sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
