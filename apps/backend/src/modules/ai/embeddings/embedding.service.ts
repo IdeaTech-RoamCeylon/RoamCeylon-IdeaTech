@@ -183,7 +183,7 @@ export class EmbeddingService {
         let embeddingArray: number[] = [];
         try {
           embeddingArray = typeof row.embedding === 'string' ? (JSON.parse(row.embedding) as number[]) : row.embedding;
-        } catch (_error) { embeddingArray = [] }
+        } catch { embeddingArray = [] }
 
         return {
           id: String(row.id),
