@@ -1,32 +1,46 @@
-import { distributeActivitiesAcrossDays, TripDestination } from './planningHeuristics';
+import {
+  distributeActivitiesAcrossDays,
+  TripDestination,
+} from './planningHeuristics';
 
 describe('Multi-Day Planning Algorithm', () => {
-  
   const MOCK_DATA: TripDestination[] = [
     {
-      id: '1', placeName: 'Main Temple', shortDescription: '', order: 0,
-      coordinates: { latitude: 7.29, longitude: 80.64 }, 
+      id: '1',
+      placeName: 'Main Temple',
+      shortDescription: '',
+      order: 0,
+      coordinates: { latitude: 7.29, longitude: 80.64 },
       confidenceScore: 0.99, // Highest Priority (Anchor Day 1)
-      metadata: { duration: '3 hours', category: 'culture' }
+      metadata: { duration: '3 hours', category: 'culture' },
     },
     {
-      id: '2', placeName: 'Nearby Lake', shortDescription: '', order: 0,
+      id: '2',
+      placeName: 'Nearby Lake',
+      shortDescription: '',
+      order: 0,
       coordinates: { latitude: 7.292, longitude: 80.642 }, // Very close to Temple
-      confidenceScore: 0.80,
-      metadata: { duration: '2 hours', category: 'relaxation' }
+      confidenceScore: 0.8,
+      metadata: { duration: '2 hours', category: 'relaxation' },
     },
     {
-      id: '3', placeName: 'Far Away Fort', shortDescription: '', order: 0,
+      id: '3',
+      placeName: 'Far Away Fort',
+      shortDescription: '',
+      order: 0,
       coordinates: { latitude: 8.0, longitude: 81.0 }, // Far away
       confidenceScore: 0.95, // High Priority (Anchor Day 2)
-      metadata: { duration: '4 hours', category: 'culture' }
+      metadata: { duration: '4 hours', category: 'culture' },
     },
     {
-      id: '4', placeName: 'Giant Hike', shortDescription: '', order: 0,
-      coordinates: { latitude: 7.29, longitude: 80.64 }, 
-      confidenceScore: 0.50,
-      metadata: { duration: 'Full Day', category: 'adventure' } // 8 hours - Should NOT fit in Day 1 if full
-    }
+      id: '4',
+      placeName: 'Giant Hike',
+      shortDescription: '',
+      order: 0,
+      coordinates: { latitude: 7.29, longitude: 80.64 },
+      confidenceScore: 0.5,
+      metadata: { duration: 'Full Day', category: 'adventure' }, // 8 hours - Should NOT fit in Day 1 if full
+    },
   ];
 
   it('balances days and respects distance', () => {
@@ -39,7 +53,7 @@ describe('Multi-Day Planning Algorithm', () => {
     // Should NOT pick 'Far Away Fort' (too far) or 'Giant Hike' (too long).
     expect(plan[0][0].placeName).toBe('Main Temple');
     expect(plan[0][1].placeName).toBe('Nearby Lake');
-    expect(plan[0].length).toBe(2); 
+    expect(plan[0].length).toBe(2);
 
     // DAY 2 CHECK:
     // Should start with the next highest priority item left: 'Far Away Fort'
