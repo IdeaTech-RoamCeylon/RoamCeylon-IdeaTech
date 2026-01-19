@@ -53,20 +53,12 @@ export const distributeActivitiesAcrossDays = (
   allDestinations: TripDestination[],
   numberOfDays: number,
 ): TripDestination[][] => {
-  const pool = allDestinations
-    .filter((d) => {
-      // RULE 1: Must have valid coordinates
-      if (!d.coordinates) return false;
-
-      // RULE 2: STRICT Quality Filter
-      // <--- THIS LINE BELOW IS CRITICAL. IT USES THE VARIABLE. --->
-      return (d.confidenceScore || 0) >= MIN_CONFIDENCE_THRESHOLD;
-    })
-    .map((d) => ({
-      ...d,
-      _hours: parseDuration(d.metadata.duration),
-      _assigned: false,
-    }));
+  // 1. Prep: Calculate numeric duration for everyone
+  const pool = allDestinations.map((d) => ({
+    ...d,
+    _hours: parseDuration(d.metadata.duration),
+    _assigned: false,
+  }));
 
   // Sort by confidence (Highest priority first)
   pool.sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
@@ -77,9 +69,10 @@ export const distributeActivitiesAcrossDays = (
     const currentDay: TripDestination[] = [];
     let currentDayHours = 0;
 
-    // 2. Pick the best "Anchor"
+    // 2. Pick the best "Anchor" (Starting point) for this day
+    // We take the highest confidence item that hasn't been assigned yet.
     const anchorIndex = pool.findIndex((p) => !p._assigned);
-    if (anchorIndex === -1) break;
+    if (anchorIndex === -1) break; // No more places left
 
     const anchor = pool[anchorIndex];
     anchor._assigned = true;
@@ -107,6 +100,7 @@ export const distributeActivitiesAcrossDays = (
           candidate.coordinates.longitude,
         );
 
+        // Heuristic: Must be close AND fit in remaining time
         if (
           dist < minDistance &&
           currentDayHours + candidate._hours <= MAX_HOURS_PER_DAY
