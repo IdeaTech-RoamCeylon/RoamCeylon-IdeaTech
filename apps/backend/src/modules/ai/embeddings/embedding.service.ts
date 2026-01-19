@@ -182,8 +182,8 @@ export class EmbeddingService {
         // Postgres returns JSON string or object depending on driver config, usually string for custom types
         let embeddingArray: number[] = [];
         try {
-          embeddingArray = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
-        } catch (_) { embeddingArray = [] }
+          embeddingArray = typeof row.embedding === 'string' ? (JSON.parse(row.embedding) as number[]) : row.embedding;
+        } catch (_error) { embeddingArray = [] }
 
         return {
           id: String(row.id),

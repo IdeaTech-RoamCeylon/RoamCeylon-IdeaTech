@@ -321,7 +321,7 @@ export class AIController {
     try {
       rawResults = await this.aiService.search(queryVector, 20);
     } catch (error) {
-      this.logger.error(`Vector search failed: ${(error as any).message}`);
+      this.logger.error(`Vector search failed: ${(error as Error).message}`);
       // FALLBACK: Return empty or static popular items? 
       // For now, return empty array to avoid 500 error, clearer message to user
       rawResults = [];

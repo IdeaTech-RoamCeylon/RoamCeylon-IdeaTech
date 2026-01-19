@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Logger, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Logger } from '@nestjs/common';
 // import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CreateOtpDto } from './dto/create-otp.dto';
