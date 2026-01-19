@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
 import { sendOtp } from '../../services/auth';
 import { showToast } from '../../utils/toast';
 import { Button, Input } from '../../components';
+import { AuthLayout } from '../../components/AuthLayout';
 
 const PhoneEntryScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
@@ -35,10 +36,10 @@ const PhoneEntryScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Enter Your Phone Number</Text>
-      <Text style={styles.subtitle}>We'll send you a verification code</Text>
-
+    <AuthLayout
+      title="Enter Your Phone Number"
+      subtitle="We'll send you a verification code"
+    >
       <Input
         placeholder="+94 XX XXX XXXX"
         keyboardType="phone-pad"
@@ -57,31 +58,14 @@ const PhoneEntryScreen = () => {
         onPress={handleSendOTP}
         loading={loading}
       />
-    </View>
+    </AuthLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 40,
-  },
   inputContainer: {
     marginBottom: 20,
+    width: '100%',
   },
 });
 

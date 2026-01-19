@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { apiService } from './api';
+import { logger } from '../utils/logger';
 
 // Types
 export interface OTPResponse {
@@ -54,7 +55,7 @@ export const sendOtp = async (phoneNumber: string): Promise<OTPResponse> => {
     });
     return response;
   } catch (error) {
-    console.error('Send OTP error:', error);
+    logger.error('Send OTP error:', error);
     throw error;
   }
 };
@@ -83,7 +84,7 @@ export const verifyOtp = async (
     const accessToken = response.data?.accessToken;
 
     if (!accessToken) {
-      console.error('Verify OTP response missing token:', response);
+      logger.error('Verify OTP response missing token:', response);
       throw new Error('No access token received from server');
     }
 
@@ -100,7 +101,7 @@ export const verifyOtp = async (
       user
     };
   } catch (error) {
-    console.error('Verify OTP error:', error);
+    logger.error('Verify OTP error:', error);
     throw error;
   }
 };
@@ -110,7 +111,7 @@ export const getMe = async (): Promise<UserProfile> => {
     const response = await apiService.get<ApiResponse<UserProfile>>('/users/me');
     return response.data;
   } catch (error) {
-    console.error('Get user profile error:', error);
+    logger.error('Get user profile error:', error);
     throw error;
   }
 };
@@ -120,7 +121,7 @@ export const logout = async (): Promise<void> => {
     await removeAuthToken();
     // Additional logout logic (clear cache, reset state, etc.)
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('Logout error:', error);
     throw error;
   }
 };

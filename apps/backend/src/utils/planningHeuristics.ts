@@ -19,8 +19,10 @@ const MIN_CONFIDENCE_THRESHOLD = 0.4; // <--- NEW: Filter out "noise"
 
 // --- HELPER: Haversine Distance Formula ---
 export const getDistanceKm = (
-  lat1: number, lon1: number, 
-  lat2: number, lon2: number
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
 ): number => {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -28,8 +30,9 @@ export const getDistanceKm = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-    Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -42,32 +45,20 @@ const parseDuration = (durationStr?: string): number => {
   if (lower.includes('half')) return 4;
   if (lower.includes('full')) return 8;
   const match = lower.match(/(\d+)/);
-  return match ? parseInt(match[0]) : 2; 
+  return match ? parseInt(match[0]) : 2;
 };
 
 // --- MAIN ALGORITHM: Multi-Day Distributor ---
 export const distributeActivitiesAcrossDays = (
   allDestinations: TripDestination[],
-  numberOfDays: number
+  numberOfDays: number,
 ): TripDestination[][] => {
-  
-  // 1. IMPROVED PREP: Filter & Sanitize
-  let pool = allDestinations
-    .filter(d => {
-      // RULE 1: Must have valid coordinates
-      if (!d.coordinates) return false;
-
-      // RULE 2: STRICT Quality Filter
-      // We removed the "length > 10" check to ensure we never show garbage.
-      return (d.confidenceScore || 0) >= MIN_CONFIDENCE_THRESHOLD;
-    })
-    .map(d => ({
-      ...d,
-      
-      // RULE 3: Handle missing durations smarter (Default to 2h, but cap at 3h if unknown)
-      _hours: parseDuration(d.metadata.duration),
-      _assigned: false
-    }));
+  // 1. Prep: Calculate numeric duration for everyone
+  const pool = allDestinations.map((d) => ({
+    ...d,
+    _hours: parseDuration(d.metadata.duration),
+    _assigned: false,
+  }));
 
   // Sort by confidence (Highest priority first)
   pool.sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
@@ -77,10 +68,10 @@ export const distributeActivitiesAcrossDays = (
   for (let day = 0; day < numberOfDays; day++) {
     const currentDay: TripDestination[] = [];
     let currentDayHours = 0;
-    
+
     // 2. Pick the best "Anchor" (Starting point) for this day
     // We take the highest confidence item that hasn't been assigned yet.
-    const anchorIndex = pool.findIndex(p => !p._assigned);
+    const anchorIndex = pool.findIndex((p) => !p._assigned);
     if (anchorIndex === -1) break; // No more places left
 
     const anchor = pool[anchorIndex];
@@ -97,15 +88,25 @@ export const distributeActivitiesAcrossDays = (
       const lastPlace = currentDay[currentDay.length - 1];
 
       pool.forEach((candidate, idx) => {
-        if (candidate._assigned || !candidate.coordinates || !lastPlace.coordinates) return;
+        if (
+          candidate._assigned ||
+          !candidate.coordinates ||
+          !lastPlace.coordinates
+        )
+          return;
 
         const dist = getDistanceKm(
-          lastPlace.coordinates.latitude, lastPlace.coordinates.longitude,
-          candidate.coordinates.latitude, candidate.coordinates.longitude
+          lastPlace.coordinates.latitude,
+          lastPlace.coordinates.longitude,
+          candidate.coordinates.latitude,
+          candidate.coordinates.longitude,
         );
 
         // Heuristic: Must be close AND fit in remaining time
-        if (dist < minDistance && (currentDayHours + candidate._hours <= MAX_HOURS_PER_DAY)) {
+        if (
+          dist < minDistance &&
+          currentDayHours + candidate._hours <= MAX_HOURS_PER_DAY
+        ) {
           minDistance = dist;
           bestCandidateIdx = idx;
         }
