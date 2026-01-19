@@ -12,6 +12,12 @@ import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
 import { STOP_WORDS } from '../../constants/stop-words';
+import {
+  ALGORITHM_VERSION,
+  LOCK_DATE,
+  LOCK_STATUS,
+  PLANNER_CONFIG,
+} from './planner.constants';
 
 /* -------------------- TYPES -------------------- */
 
@@ -125,11 +131,7 @@ interface TripPlanResponseDto {
 export class AIController {
   private readonly logger = new Logger(AIController.name);
 
-  private readonly CONFIDENCE_THRESHOLDS = {
-    HIGH: 0.8,
-    MEDIUM: 0.5,
-    MINIMUM: 0.55,
-  };
+  private readonly CONFIDENCE_THRESHOLDS = PLANNER_CONFIG.CONFIDENCE;
 
   private readonly FALLBACK_MESSAGES = {
     NO_HIGH_CONFIDENCE:
@@ -181,9 +183,16 @@ export class AIController {
 
   @Get('health')
   getHealth() {
-    return { message: 'AI Planner Module Operational' };
+    return {
+      message: 'AI Planner Module Operational',
+      algorithm: {
+        version: ALGORITHM_VERSION,
+        status: LOCK_STATUS,
+        locked_since: LOCK_DATE,
+        changes_allowed: 'Critical bug fixes only',
+      },
+    };
   }
-
   /* ---------- Validate & Preprocess ---------- */
 
   private validateAndPreprocess(
@@ -204,11 +213,11 @@ export class AIController {
       return 'Query contains no valid searchable characters.';
     }
 
-    if (cleaned.length < 3) {
+    if (cleaned.length < PLANNER_CONFIG.SEARCH.MIN_QUERY_LENGTH) {
       return 'Query too short (minimum 3 characters).';
     }
 
-    if (cleaned.length > 300) {
+    if (cleaned.length > PLANNER_CONFIG.SEARCH.MAX_QUERY_LENGTH) {
       return 'Query too long (maximum 300 characters).';
     }
 
@@ -268,7 +277,10 @@ export class AIController {
     const avgScore =
       filtered.reduce((sum, r) => sum + (r.score || 0), 0) / filtered.length;
 
-    if (!fallbackMessage && avgScore < 0.65) {
+    if (
+      !fallbackMessage &&
+      avgScore < PLANNER_CONFIG.THRESHOLDS.AVG_SCORE_LOW_QUALITY
+    ) {
       fallbackMessage = this.FALLBACK_MESSAGES.LOW_QUALITY;
     }
 
@@ -708,39 +720,46 @@ export class AIController {
 
     let alignmentScore = 0;
     const textLower = text.toLowerCase();
-    const matchedPrefs = new Set<string>(); // Track what's already matched
+    const matchedPrefs = new Set<string>();
 
     for (const pref of preferences) {
       const prefLower = pref.toLowerCase();
 
-      // Skip if we've already scored this preference
       if (matchedPrefs.has(prefLower)) continue;
 
       const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
 
-      // Direct keyword match (strongest)
+      // ✅ Direct match
       if (textLower.includes(prefLower)) {
-        alignmentScore += 0.2;
-        matchedPrefs.add(prefLower); // Mark as matched
+        alignmentScore +=
+          PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.DIRECT_MATCH;
+        matchedPrefs.add(prefLower);
         continue;
       }
 
-      // Category keyword match (moderate)
+      // ✅ Category match
       let bestCategoryMatch = 0;
       for (const category of mappedCategories) {
         const categoryLower = category.toLowerCase();
         if (textLower.includes(categoryLower)) {
-          bestCategoryMatch = Math.max(bestCategoryMatch, 0.12);
+          bestCategoryMatch = Math.max(
+            bestCategoryMatch,
+            PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.MAPPED_MATCH,
+          );
         }
       }
 
       if (bestCategoryMatch > 0) {
         alignmentScore += bestCategoryMatch;
-        matchedPrefs.add(prefLower); // Mark as matched
+        matchedPrefs.add(prefLower);
       }
     }
 
-    return Math.min(alignmentScore, 0.4);
+    // ✅ Cap at max
+    return Math.min(
+      alignmentScore,
+      PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.MAX,
+    );
   }
 
   /* ==================== PRIORITY / SCORING ==================== */
@@ -759,34 +778,43 @@ export class AIController {
         let priorityScore = baseScore;
 
         // 1. Confidence weighting
-        const confidenceMultiplier = {
-          High: 1.15,
-          Medium: 1.0,
-          Low: 0.85,
-        }[result.confidence ?? 'Low'];
+        const confidenceMultiplier =
+          PLANNER_CONFIG.SCORING.CONFIDENCE_MULTIPLIERS[
+            result.confidence ?? 'Low'
+          ];
         priorityScore *= confidenceMultiplier;
 
         const text = `${result.title} ${result.content}`.toLowerCase();
 
         // Limit boosts for very low base scores
-        const boostMultiplier = baseScore < 0.55 ? 0.5 : 1.0;
+        const boostMultiplier =
+          baseScore < PLANNER_CONFIG.SCORING.MIN_BASE_SCORE
+            ? PLANNER_CONFIG.SCORING.LOW_QUALITY_MULTIPLIER
+            : 1.0;
 
         // 2. Proximity boost (scaled by base score quality)
-        if (dest && dest.length >= 3) {
+        if (dest && dest.length >= PLANNER_CONFIG.SEARCH.MIN_QUERY_LENGTH) {
           const hasDestInTitle = result.title.toLowerCase().includes(dest);
           const hasDestInContent = result.content.toLowerCase().includes(dest);
           const hasNearMetadata = text.includes('near:') && text.includes(dest);
 
           if (hasDestInTitle) {
-            priorityScore += 0.3 * boostMultiplier;
+            priorityScore +=
+              PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.TITLE * boostMultiplier;
           } else if (hasNearMetadata) {
-            priorityScore += 0.2 * boostMultiplier;
+            priorityScore +=
+              PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.METADATA *
+              boostMultiplier;
           } else if (hasDestInContent) {
-            priorityScore += 0.15 * boostMultiplier;
+            priorityScore +=
+              PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.CONTENT * boostMultiplier;
           }
 
-          if ((hasDestInTitle || hasNearMetadata) && result.score >= 0.7) {
-            priorityScore += 0.1;
+          if (
+            (hasDestInTitle || hasNearMetadata) &&
+            result.score >= PLANNER_CONFIG.THRESHOLDS.HIGH_SCORE_COMBO
+          ) {
+            priorityScore += PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.COMBO;
           }
         }
 
@@ -800,17 +828,25 @@ export class AIController {
         // 4. Trip length optimization
         if (tripType === 'short') {
           if (text.match(/fort|temple|kovil|church|museum|beach/)) {
-            priorityScore += 0.08 * boostMultiplier;
+            priorityScore +=
+              PLANNER_CONFIG.SCORING.TRIP_OPTIMIZATION.SHORT_BOOST *
+              boostMultiplier;
           }
         }
 
         if (tripType === 'long') {
           if (text.match(/nature|park|wildlife|relax|spa|garden/)) {
-            priorityScore += 0.08 * boostMultiplier;
+            priorityScore +=
+              PLANNER_CONFIG.SCORING.TRIP_OPTIMIZATION.LONG_BOOST *
+              boostMultiplier;
           }
         }
 
-        priorityScore = Math.min(priorityScore, 2.0);
+        // ✅ Cap at locked max priority
+        priorityScore = Math.min(
+          priorityScore,
+          PLANNER_CONFIG.SCORING.MAX_PRIORITY,
+        );
 
         return { ...result, priorityScore };
       })
@@ -829,8 +865,8 @@ export class AIController {
   }
 
   private getTripLengthType(dayCount: number): 'short' | 'medium' | 'long' {
-    if (dayCount <= 2) return 'short';
-    if (dayCount <= 5) return 'medium';
+    if (dayCount <= PLANNER_CONFIG.TRIP_LENGTH.SHORT_MAX) return 'short';
+    if (dayCount <= PLANNER_CONFIG.TRIP_LENGTH.MEDIUM_MAX) return 'medium';
     return 'long';
   }
 
@@ -1046,7 +1082,9 @@ export class AIController {
     const textSet = new Set<string>();
 
     // Single consistent threshold
-    const maxPerCategory = Math.ceil(maxCount / 4);
+    const maxPerCategory = Math.ceil(
+      maxCount / PLANNER_CONFIG.DIVERSITY.CATEGORY_DIVISOR,
+    );
 
     // Sort ONCE with stable sort
     const sorted = [...scoredResults].sort((a, b) => {
@@ -1433,10 +1471,14 @@ export class AIController {
       destination, // pass destination for proximity bias
     );
 
-    const MAX_PER_DAY = dayCount === 1 ? 2 : 4;
+    const MAX_PER_DAY =
+      dayCount === 1
+        ? PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_SHORT
+        : PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_LONG;
+
     const maxTotalActivities = Math.min(
       dayCount * MAX_PER_DAY,
-      15,
+      PLANNER_CONFIG.ACTIVITIES.MAX_TOTAL,
       scored.length,
     );
 
