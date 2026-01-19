@@ -1,17 +1,15 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { showToast } from '../utils/toast';
-
-// Base API configuration
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { CONFIG } from '../config';
 
 class ApiService {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 10000,
+      baseURL: CONFIG.API_BASE_URL,
+      timeout: CONFIG.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },

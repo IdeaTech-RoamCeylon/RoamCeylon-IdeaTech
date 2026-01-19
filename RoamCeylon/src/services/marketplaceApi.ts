@@ -13,16 +13,22 @@ interface WrappedResponse<T> {
 // Marketplace API endpoints
 class MarketplaceApi {
   /**
+   * Helper to unwrap backend responses that might be { data: [...] } or [...]
+   */
+  private unwrap<T>(response: WrappedResponse<T> | T): T {
+    if (response && typeof response === 'object' && 'data' in response) {
+      return (response as WrappedResponse<T>).data;
+    }
+    return response as T;
+  }
+
+  /**
    * Fetch all marketplace categories
    */
   async getCategories(): Promise<Category[]> {
     try {
       const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
-      // Handle both wrapped and unwrapped responses
-      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
-        return response.data;
-      }
-      return response as Category[];
+      return this.unwrap(response);
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
@@ -37,11 +43,7 @@ class MarketplaceApi {
     try {
       const params = category ? { category } : {};
       const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
-      // Handle both wrapped and unwrapped responses
-      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
-        return response.data;
-      }
-      return response as Product[];
+      return this.unwrap(response);
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
