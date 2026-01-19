@@ -1,0 +1,73 @@
+
+> backend@0.0.1 start
+> nest start
+
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:00 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +204ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCacheModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTransportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMarketplaceModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAIModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mTransportGateway subscribed to the "passenger_request" message[39m[38;5;3m +6ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mTransportGateway subscribed to the "driver_accept" message[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mTransportGateway subscribed to the "ride_cancel" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/auth}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/send-otp, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/verify-otp, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTransportController {/transport}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/transport/seed, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/transport/simulate, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/transport/drivers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMarketplaceController {/marketplace}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/marketplace/categories, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/marketplace/products, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/marketplace/products/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAIController {/ai}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/ai/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/ai/search, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/ai/search/vector, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/ai/seed, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/ai/debug/embedding, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 5581  - [39m01/19/2026, 10:24:01 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/ai/trip-plan, POST} route[39m[38;5;3m +0ms[39m
+/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/apps/backend/node_modules/@prisma/client/src/runtime/core/engines/library/LibraryEngine.ts:440
+          throw new PrismaClientInitializationError(error.message, this.config.clientVersion!, error.error_code)
+                ^
+
+PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at r (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/apps/backend/node_modules/@prisma/client/src/runtime/core/engines/library/LibraryEngine.ts:440:17)
+    at async PrismaService.onModuleInit (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/apps/backend/src/prisma/prisma.service.ts:46:5)
+    at async Promise.all (index 0)
+    at async callModuleInitHook (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+    at async NestApplication.callInitHook (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/node_modules/@nestjs/core/nest-application-context.js:242:13)
+    at async NestApplication.init (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/node_modules/@nestjs/core/nest-application.js:103:9)
+    at async NestApplication.listen (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/node_modules/@nestjs/core/nest-application.js:175:13)
+    at async bootstrap (/Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/apps/backend/src/main.ts:30:3) {
+  clientVersion: '6.19.0',
+  errorCode: 'P1001',
+  retryable: undefined
+}
+
+Node.js v24.11.1
+npm error Lifecycle script `start` failed with error:
+npm error code 1
+npm error path /Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/apps/backend
+npm error workspace backend@0.0.1
+npm error location /Users/sayurathejan/IdeaProjects/RoamCeylon-IdeaTech-1/apps/backend
+npm error command failed
+npm error command sh -c nest start

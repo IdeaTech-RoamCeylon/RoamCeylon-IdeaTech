@@ -7,7 +7,7 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-// import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -131,7 +131,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('ai')
 // @UseGuards(ThrottlerGuard, JwtAuthGuard)
-@UseGuards(JwtAuthGuard)
+@UseGuards(ThrottlerGuard, JwtAuthGuard)
 // @Throttle({ default: { limit: 5, ttl: 60000 } })
 export class AIController {
   private readonly logger = new Logger(AIController.name);
