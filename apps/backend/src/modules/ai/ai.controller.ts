@@ -7,7 +7,7 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -126,8 +126,11 @@ interface TripPlanResponseDto {
 
 /* -------------------- CONTROLLER -------------------- */
 
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
 @Controller('ai')
-@UseGuards(ThrottlerGuard)
+@UseGuards(ThrottlerGuard, JwtAuthGuard)
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 export class AIController {
   private readonly logger = new Logger(AIController.name);
 
@@ -179,7 +182,7 @@ export class AIController {
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
-  ) {}
+  ) { }
 
   @Get('health')
   getHealth() {
@@ -435,8 +438,8 @@ export class AIController {
     if (Array.isArray(rawResults)) {
       const confidenceLevel =
         minConfidence === 'High' ||
-        minConfidence === 'Medium' ||
-        minConfidence === 'Low'
+          minConfidence === 'Medium' ||
+          minConfidence === 'Low'
           ? minConfidence
           : 'Medium';
 
@@ -617,12 +620,11 @@ export class AIController {
 
     if (ctx.novelty) {
       whyPlace.push(
-        `Novelty: ${
-          ctx.novelty === 'High'
-            ? 'Unique pick'
-            : ctx.novelty === 'Medium'
-              ? 'Variety pick'
-              : 'Similar to another item'
+        `Novelty: ${ctx.novelty === 'High'
+          ? 'Unique pick'
+          : ctx.novelty === 'Medium'
+            ? 'Variety pick'
+            : 'Similar to another item'
         }`,
       );
     }
@@ -780,7 +782,7 @@ export class AIController {
         // 1. Confidence weighting
         const confidenceMultiplier =
           PLANNER_CONFIG.SCORING.CONFIDENCE_MULTIPLIERS[
-            result.confidence ?? 'Low'
+          result.confidence ?? 'Low'
           ];
         priorityScore *= confidenceMultiplier;
 
@@ -1213,55 +1215,55 @@ export class AIController {
       title: string;
       explanation: string;
     }> = [
-      {
-        all: ['arrival', 'sightseeing'],
-        title: 'Arrival & City Highlights',
-        explanation:
-          'Arrival activities paired with sightseeing to ease into your trip while covering key landmarks.',
-      },
-      {
-        all: ['arrival', 'culture'],
-        title: 'Arrival & Cultural Start',
-        explanation:
-          'Arrival day combined with cultural experiences to introduce local traditions.',
-      },
-      {
-        all: ['arrival', 'beach'],
-        title: 'Arrival & Coastal Unwind',
-        explanation:
-          'Arrival activities followed by beach time to relax after travel.',
-      },
-      {
-        any: ['arrival'],
-        title: 'Arrival & Orientation',
-        explanation:
-          'First day focused on settling in and getting oriented with your destination.',
-      },
-      {
-        all: ['beach', 'relaxation'],
-        title: 'Beach & Relaxation',
-        explanation:
-          'Beach and relaxation activities are grouped for a smooth, low-stress day.',
-      },
-      {
-        all: ['culture', 'sightseeing'],
-        title: 'Cultural Exploration',
-        explanation:
-          'Cultural and sightseeing activities combined to explore heritage and landmarks.',
-      },
-      {
-        all: ['nature', 'sightseeing'],
-        title: 'Nature & Highlights',
-        explanation:
-          'Nature experiences paired with key highlights to balance scenery with must-see spots.',
-      },
-      {
-        all: ['culture', 'nature'],
-        title: 'Culture & Nature',
-        explanation:
-          'Balanced mix of culture and nature for both traditions and landscapes.',
-      },
-    ];
+        {
+          all: ['arrival', 'sightseeing'],
+          title: 'Arrival & City Highlights',
+          explanation:
+            'Arrival activities paired with sightseeing to ease into your trip while covering key landmarks.',
+        },
+        {
+          all: ['arrival', 'culture'],
+          title: 'Arrival & Cultural Start',
+          explanation:
+            'Arrival day combined with cultural experiences to introduce local traditions.',
+        },
+        {
+          all: ['arrival', 'beach'],
+          title: 'Arrival & Coastal Unwind',
+          explanation:
+            'Arrival activities followed by beach time to relax after travel.',
+        },
+        {
+          any: ['arrival'],
+          title: 'Arrival & Orientation',
+          explanation:
+            'First day focused on settling in and getting oriented with your destination.',
+        },
+        {
+          all: ['beach', 'relaxation'],
+          title: 'Beach & Relaxation',
+          explanation:
+            'Beach and relaxation activities are grouped for a smooth, low-stress day.',
+        },
+        {
+          all: ['culture', 'sightseeing'],
+          title: 'Cultural Exploration',
+          explanation:
+            'Cultural and sightseeing activities combined to explore heritage and landmarks.',
+        },
+        {
+          all: ['nature', 'sightseeing'],
+          title: 'Nature & Highlights',
+          explanation:
+            'Nature experiences paired with key highlights to balance scenery with must-see spots.',
+        },
+        {
+          all: ['culture', 'nature'],
+          title: 'Culture & Nature',
+          explanation:
+            'Balanced mix of culture and nature for both traditions and landscapes.',
+        },
+      ];
 
     if (unique.length === 1) {
       const only = unique[0];
@@ -1449,8 +1451,7 @@ export class AIController {
 
       if (!result.content || result.content.length < 20) {
         this.logger.warn(
-          `Filtered out short content: "${result.title}" (length: ${
-            result.content?.length ?? 0
+          `Filtered out short content: "${result.title}" (length: ${result.content?.length ?? 0
           })`,
         );
         return false;
@@ -1597,9 +1598,9 @@ export class AIController {
 
     const near = nearMatch
       ? nearMatch[1]
-          .split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean)
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
       : [];
 
     const region = regionMatch

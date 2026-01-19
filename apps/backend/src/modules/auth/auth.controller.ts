@@ -1,15 +1,16 @@
 import { Body, Controller, Post, Logger, UseGuards } from '@nestjs/common';
-import { ThrottlerGuard } from '../../common/guards/throttler.guard';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CreateOtpDto } from './dto/create-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('send-otp')
   // @Throttle removed (handled by guard default logic)
