@@ -18,50 +18,51 @@ describe('Safety & Fallback Logic', () => {
     });
 
     it('allows valid queries', () => {
-      const result = validateInput('Kandy');
-      expect(result).toBeNull(); // Should be null (Safe)
+      expect(validateInput('Kandy')).toBeNull();
     });
   });
 
   // --- TEST GROUP 2: RESPONSE QUALITY ---
   describe('analyzeResponseQuality', () => {
-    it('detects empty results (Fallback)', () => {
+    it('detects empty results', () => {
       const result = analyzeResponseQuality([]);
       expect(result.status).toBe('EMPTY');
+      expect(result.message).toContain('broader search');
     });
 
-    it('detects low confidence results (Safety Warning)', () => {
-      // Mock data representing a "weak" AI match
+    it('detects weak matches (Confidence < 0.5)', () => {
       const weakData: TripDestination[] = [
         {
           id: '1',
-          placeName: 'Random Place',
+          placeName: 'Weak Spot',
           order: 1,
-          shortDescription: '...',
-          confidenceScore: 0.4, // < 0.6
+          shortDescription: '',
+          confidenceScore: 0.3, // Low
           metadata: { duration: '1h', category: 'relaxation' },
         },
       ];
 
       const result = analyzeResponseQuality(weakData);
-      expect(result.status).toBe('LOW_CONFIDENCE');
-      expect(result.message).toContain("couldn't find an exact match");
+      expect(result.status).toBe('WEAK_MATCH');
+      expect(result.message).toContain('popular nearby places');
     });
 
-    it('approves high quality results', () => {
-      const strongData: TripDestination[] = [
+    it('detects partial content (Too few results)', () => {
+      // High confidence but only 1 item
+      const fewData: TripDestination[] = [
         {
           id: '1',
-          placeName: 'Sigiriya',
+          placeName: 'Good Spot',
           order: 1,
-          shortDescription: '...',
-          confidenceScore: 0.95, // High Score
-          metadata: { duration: '3h', category: 'culture' },
+          shortDescription: '',
+          confidenceScore: 0.9,
+          metadata: { duration: '1h', category: 'relaxation' },
         },
       ];
 
-      const result = analyzeResponseQuality(strongData);
-      expect(result.status).toBe('OK');
+      const result = analyzeResponseQuality(fewData);
+      expect(result.status).toBe('PARTIAL_CONTENT');
+      expect(result.message).toContain('add more');
     });
   });
 });
