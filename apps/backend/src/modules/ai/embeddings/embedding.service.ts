@@ -169,7 +169,13 @@ export class EmbeddingService {
         LIMIT $2
       `;
 
-      const result = await client.query(query, [vectorStr, limit]);
+      const result = await client.query<{
+        id: number;
+        title: string;
+        content: string;
+        embedding: string; // Postgres returns it as a string for custom types or JSON
+        score: number;
+      }>(query, [vectorStr, limit]);
 
       return result.rows.map(row => {
         // Parse embedding if needed, though for search we mostly need metadata + score
@@ -177,7 +183,7 @@ export class EmbeddingService {
         let embeddingArray: number[] = [];
         try {
           embeddingArray = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
-        } catch (e) { embeddingArray = [] }
+        } catch (_) { embeddingArray = [] }
 
         return {
           id: String(row.id),

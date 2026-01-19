@@ -7,7 +7,7 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+// import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
@@ -130,8 +130,9 @@ interface TripPlanResponseDto {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('ai')
-@UseGuards(ThrottlerGuard, JwtAuthGuard)
-@Throttle({ default: { limit: 5, ttl: 60000 } })
+// @UseGuards(ThrottlerGuard, JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
+// @Throttle({ default: { limit: 5, ttl: 60000 } })
 export class AIController {
   private readonly logger = new Logger(AIController.name);
 
@@ -320,7 +321,7 @@ export class AIController {
     try {
       rawResults = await this.aiService.search(queryVector, 20);
     } catch (error) {
-      this.logger.error(`Vector search failed: ${error.message}`);
+      this.logger.error(`Vector search failed: ${(error as any).message}`);
       // FALLBACK: Return empty or static popular items? 
       // For now, return empty array to avoid 500 error, clearer message to user
       rawResults = [];
