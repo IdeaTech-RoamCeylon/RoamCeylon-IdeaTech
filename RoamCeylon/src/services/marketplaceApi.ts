@@ -25,7 +25,7 @@ class MarketplaceApi {
   /**
    * Fetch all marketplace categories
    */
-  async getCategories(): Promise<Category[]> {
+  getCategories = async (): Promise<Category[]> => {
     try {
       const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
       return this.unwrap(response);
@@ -39,7 +39,7 @@ class MarketplaceApi {
    * Fetch products, optionally filtered by category
    * @param category - Optional category filter
    */
-  async getProducts(category?: string): Promise<Product[]> {
+  getProducts = async (category?: string): Promise<Product[]> => {
     try {
       const params = category ? { category } : {};
       const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
@@ -54,7 +54,7 @@ class MarketplaceApi {
    * Fetch a single product by ID
    * @param id - Product ID
    */
-  async getProductById(id: string): Promise<Product | undefined> {
+  getProductById = async (id: string): Promise<Product | undefined> => {
     try {
       const product = await apiService.get<Product>(`/marketplace/products/${id}`);
       return product;
