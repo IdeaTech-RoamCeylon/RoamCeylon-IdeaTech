@@ -183,7 +183,8 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     if (avgScore >= 0.5) {
       return {
         quality: 'Fair',
-        message: 'Results have moderate confidence. Consider refining your search.',
+        message:
+          'Results have moderate confidence. Consider refining your search.',
       };
     }
 
@@ -205,9 +206,9 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     }
 
     const vectorLiteral = `[${embedding.join(',')}]`;
-    
+
     this.logger.log(`📡 Running pgvector search with limit=${limit}`);
-    
+
     const start = Date.now();
 
     const result = await this.client.query<RawEmbeddingRow>(
@@ -246,7 +247,9 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     );
 
     // Apply similarity threshold
-    const strongMatches = unique.filter((item) => item.score >= similarityThreshold);
+    const strongMatches = unique.filter(
+      (item) => item.score >= similarityThreshold,
+    );
 
     // Initial ranking + attach confidence
     let ranked = strongMatches
@@ -265,19 +268,19 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
         .sort((a, b) => b.score - a.score)
         .map((item, idx) => ({
           ...item,
-        rank: idx + 1, // recompute ranks after filtering
-      }));
+          rank: idx + 1, // recompute ranks after filtering
+        }));
     }
 
     this.logger.log(
-    `📊 Final ranked vector results: ${JSON.stringify(
-      ranked.map((r) => ({
-        id: r.id,
-        score: Number(r.score.toFixed(4)),
-        confidence: r.confidence,
-      })),
-    )}`,
-  );
+      `📊 Final ranked vector results: ${JSON.stringify(
+        ranked.map((r) => ({
+          id: r.id,
+          score: Number(r.score.toFixed(4)),
+          confidence: r.confidence,
+        })),
+      )}`,
+    );
 
     if (ranked.length === 0) {
       return {

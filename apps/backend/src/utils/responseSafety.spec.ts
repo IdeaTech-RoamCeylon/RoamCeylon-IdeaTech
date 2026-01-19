@@ -31,11 +31,16 @@ describe('Safety & Fallback Logic', () => {
     });
 
     it('detects weak matches (Confidence < 0.5)', () => {
-      const weakData: TripDestination[] = [{ 
-        id: '1', placeName: 'Weak Spot', order: 1, shortDescription: '', 
-        confidenceScore: 0.3, // Low
-        metadata: { duration: '1h', category: 'relaxation' } 
-      }];
+      const weakData: TripDestination[] = [
+        {
+          id: '1',
+          placeName: 'Weak Spot',
+          order: 1,
+          shortDescription: '',
+          confidenceScore: 0.3, // Low
+          metadata: { duration: '1h', category: 'relaxation' },
+        },
+      ];
 
       const result = analyzeResponseQuality(weakData);
       expect(result.status).toBe('WEAK_MATCH');
@@ -44,11 +49,16 @@ describe('Safety & Fallback Logic', () => {
 
     it('detects partial content (Too few results)', () => {
       // High confidence but only 1 item
-      const fewData: TripDestination[] = [{ 
-        id: '1', placeName: 'Good Spot', order: 1, shortDescription: '', 
-        confidenceScore: 0.9, 
-        metadata: { duration: '1h', category: 'relaxation' } 
-      }];
+      const fewData: TripDestination[] = [
+        {
+          id: '1',
+          placeName: 'Good Spot',
+          order: 1,
+          shortDescription: '',
+          confidenceScore: 0.9,
+          metadata: { duration: '1h', category: 'relaxation' },
+        },
+      ];
 
       const result = analyzeResponseQuality(fewData);
       expect(result.status).toBe('PARTIAL_CONTENT');

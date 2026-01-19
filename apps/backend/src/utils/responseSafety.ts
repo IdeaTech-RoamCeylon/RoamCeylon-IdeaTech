@@ -28,30 +28,33 @@ export const validateInput = (query: string): string | null => {
  */
 export const analyzeResponseQuality = (destinations: TripDestination[]) => {
   if (!destinations || destinations.length === 0) {
-    return { 
-      status: 'EMPTY', 
-      message: 'No places found. Try a broader search like "Beaches" or "Kandy".' 
+    return {
+      status: 'EMPTY',
+      message:
+        'No places found. Try a broader search like "Beaches" or "Kandy".',
     };
   }
 
-// CASE 2: Low Quality / "Hallucination Risk"
-// If the BEST match is still low confidence (< 0.5), the AI is guessing.  
+  // CASE 2: Low Quality / "Hallucination Risk"
+  // If the BEST match is still low confidence (< 0.5), the AI is guessing.
   const topMatch = destinations[0];
   const isLowConfidence = (topMatch.confidenceScore || 0) < 0.5;
 
   if (isLowConfidence) {
-    return { 
+    return {
       status: 'WEAK_MATCH', // Frontend can show a yellow warning badge
-      message: "We couldn't find exact matches, but here are some popular nearby places." 
+      message:
+        "We couldn't find exact matches, but here are some popular nearby places.",
     };
   }
 
   // CASE 3: Too Few Results for a Multi-Day Trip
   if (destinations.length < 3) {
-      return {
-          status: 'PARTIAL_CONTENT',
-          message: "We found a few great spots, but you might need to add more for a full trip."
-      };
+    return {
+      status: 'PARTIAL_CONTENT',
+      message:
+        'We found a few great spots, but you might need to add more for a full trip.',
+    };
   }
 
   return { status: 'OK', message: null };

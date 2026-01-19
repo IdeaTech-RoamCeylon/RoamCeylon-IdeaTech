@@ -1,7 +1,6 @@
 import { getHumanExplanation } from './explanationTemplates';
 
 describe('Explanation Templates', () => {
-  
   it('returns a string for REORDER', () => {
     const text = getHumanExplanation('REORDER');
     expect(typeof text).toBe('string');
