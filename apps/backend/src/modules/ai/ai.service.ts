@@ -11,7 +11,7 @@ export interface SearchResultDto {
 
 @Injectable()
 export class AIService {
-  constructor(private readonly embeddingService: EmbeddingService) { }
+  constructor(private readonly embeddingService: EmbeddingService) {}
 
   async seedEmbeddingsFromAiPlanner(): Promise<void> {
     await this.embeddingService.seedEmbeddings();
