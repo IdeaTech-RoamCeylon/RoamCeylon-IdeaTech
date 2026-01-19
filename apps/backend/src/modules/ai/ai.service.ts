@@ -11,7 +11,7 @@ export interface SearchResultDto {
 
 @Injectable()
 export class AIService {
-  constructor(private readonly embeddingService: EmbeddingService) {}
+  constructor(private readonly embeddingService: EmbeddingService) { }
 
   async seedEmbeddingsFromAiPlanner(): Promise<void> {
     await this.embeddingService.seedEmbeddings();
@@ -19,6 +19,10 @@ export class AIService {
 
   async getAllEmbeddings() {
     return await this.embeddingService.getAllEmbeddings();
+  }
+
+  async search(vector: number[], limit: number) {
+    return await this.embeddingService.searchEmbeddings(vector, limit);
   }
 
   generateDummyEmbedding(text: string, dim = 1536): number[] {

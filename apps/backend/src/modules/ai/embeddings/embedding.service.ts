@@ -31,7 +31,7 @@ type TourismSample = {
 
 @Injectable()
 export class EmbeddingService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   // ------------------ POSTGRES CLIENT ------------------
   private createClient(): Client {
@@ -147,6 +147,46 @@ export class EmbeddingService {
       }
 
       return embeddings;
+    } finally {
+      await client.end();
+    }
+  }
+
+  // ------------------ VECTOR SEARCH ------------------
+  async searchEmbeddings(vector: number[], limit: number = 5): Promise<(EmbeddingItem & { score: number })[]> {
+    const client = this.createClient();
+    try {
+      await client.connect();
+      const vectorStr = `[${vector.join(',')}]`;
+
+      // Use cosine distance operator (<=>). 
+      // 1 - (a <=> b) = cosine_similarity
+      const query = `
+        SELECT id, title, content, embedding, 
+        1 - (embedding <=> $1) as score
+        FROM embeddings
+        ORDER BY embedding <=> $1
+        LIMIT $2
+      `;
+
+      const result = await client.query(query, [vectorStr, limit]);
+
+      return result.rows.map(row => {
+        // Parse embedding if needed, though for search we mostly need metadata + score
+        // Postgres returns JSON string or object depending on driver config, usually string for custom types
+        let embeddingArray: number[] = [];
+        try {
+          embeddingArray = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
+        } catch (e) { embeddingArray = [] }
+
+        return {
+          id: String(row.id),
+          title: row.title,
+          content: row.content,
+          embedding: embeddingArray,
+          score: Number(row.score)
+        };
+      });
     } finally {
       await client.end();
     }
