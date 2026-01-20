@@ -11,6 +11,7 @@ export interface TripPlanRequest {
 export interface TripActivity {
   description: string;
   coordinate?: [number, number]; // [longitude, latitude]
+  dayNumber?: number;
 }
 
 export interface TripDay {

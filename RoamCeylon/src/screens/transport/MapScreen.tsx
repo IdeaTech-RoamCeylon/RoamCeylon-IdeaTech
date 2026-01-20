@@ -7,6 +7,8 @@ import Toast from 'react-native-toast-message';
 import { useMapContext } from '../../context/MapContext';
 import { retryWithBackoff } from '../../utils/networkUtils';
 
+import { DriverMarker } from '../../components/DriverMarker';
+
 // Lazy load Mapbox to prevent build errors
 let MapboxGL: any = null;
 
@@ -31,27 +33,12 @@ const MapScreen = () => {
   type TransportStatus = 'IDLE' | 'SEARCHING' | 'FOUND' | 'NO_DRIVERS' | 'ERROR';
   const [transportStatus, setTransportStatus] = useState<TransportStatus>('IDLE');
 
+  // ... imports
+
   const driverMarkers = useMemo(() => {
     if (!drivers || !MapboxGL) return [];
     return drivers.map((driver) => (
-      <MapboxGL.PointAnnotation
-        key={driver.id}
-        id={driver.id}
-        coordinate={driver.coordinate}
-      >
-        <View style={styles.markerContainer}>
-          <View style={styles.driverMarker}>
-            <Text style={styles.driverMarkerIcon}>
-              {driver.vehicleType === 'TukTuk' ? '🛺' : 
-               driver.vehicleType === 'Van' ? '🚐' : 
-               driver.vehicleType === 'Bike' ? '🏍️' : '🚗'}
-            </Text>
-          </View>
-          <View style={styles.driverLabel}>
-            <Text style={styles.driverLabelText}>{driver.name}</Text>
-          </View>
-        </View>
-      </MapboxGL.PointAnnotation>
+      <DriverMarker key={driver.id} driver={driver} />
     ));
   }, [drivers]);
 
