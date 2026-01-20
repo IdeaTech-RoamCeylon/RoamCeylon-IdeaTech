@@ -1,5 +1,6 @@
 import apiService from './api';
 import { Category, Product } from '../types';
+import { retryWithBackoff } from '../utils/networkUtils';
 
 // Re-export types for backwards compatibility
 export type { Category, Product };
@@ -27,8 +28,10 @@ class MarketplaceApi {
    */
   getCategories = async (): Promise<Category[]> => {
     try {
-      const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
-      return this.unwrap(response);
+      return await retryWithBackoff(async () => {
+        const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
+        return this.unwrap(response);
+      });
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
@@ -41,9 +44,11 @@ class MarketplaceApi {
    */
   getProducts = async (category?: string): Promise<Product[]> => {
     try {
-      const params = category ? { category } : {};
-      const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
-      return this.unwrap(response);
+      return await retryWithBackoff(async () => {
+        const params = category ? { category } : {};
+        const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
+        return this.unwrap(response);
+      });
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -56,8 +61,10 @@ class MarketplaceApi {
    */
   getProductById = async (id: string): Promise<Product | undefined> => {
     try {
-      const product = await apiService.get<Product>(`/marketplace/products/${id}`);
-      return product;
+      return await retryWithBackoff(async () => {
+        const product = await apiService.get<Product>(`/marketplace/products/${id}`);
+        return product;
+      });
     } catch (error) {
       console.error(`Error fetching product with id ${id}:`, error);
       throw error;
