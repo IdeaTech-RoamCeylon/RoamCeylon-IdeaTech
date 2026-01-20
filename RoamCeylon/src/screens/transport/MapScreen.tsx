@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 import * as Location from 'expo-location';
@@ -42,7 +42,17 @@ const MapScreen = () => {
     ));
   }, [drivers]);
 
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const fetchDrivers = useCallback(async () => {
+    if (!isMounted.current) return;
     setTransportStatus('SEARCHING');
     
     try {
@@ -65,16 +75,20 @@ const MapScreen = () => {
         }
       );
       
-      if (result.length === 0) {
-        setDrivers([]);
-        setTransportStatus('NO_DRIVERS');
-      } else {
-        setDrivers(result);
-        setTransportStatus('FOUND');
+      if (isMounted.current) {
+        if (result.length === 0) {
+          setDrivers([]);
+          setTransportStatus('NO_DRIVERS');
+        } else {
+          setDrivers(result);
+          setTransportStatus('FOUND');
+        }
       }
     } catch (e) {
       console.error('[MapScreen] Driver fetch failed after retries:', e);
-      setTransportStatus('ERROR');
+      if (isMounted.current) {
+        setTransportStatus('ERROR');
+      }
     }
   }, [setDrivers]);
 
@@ -83,14 +97,14 @@ const MapScreen = () => {
     const checkMapboxSetup = async () => {
       try {
         if (MapboxGL && MAPBOX_CONFIG.accessToken && MAPBOX_CONFIG.accessToken.startsWith('pk.')) {
-          setIsMapboxConfigured(true);
+          if (isMounted.current) setIsMapboxConfigured(true);
         } else {
-          setIsMapboxConfigured(false);
+          if (isMounted.current) setIsMapboxConfigured(false);
         }
       } catch (error) {
-        setIsMapboxConfigured(false);
+        if (isMounted.current) setIsMapboxConfigured(false);
       } finally {
-        setIsLoading(false);
+        if (isMounted.current) setIsLoading(false);
       }
     };
 
@@ -98,7 +112,7 @@ const MapScreen = () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setErrorMsg('Permission to access location was denied');
+          if (isMounted.current) setErrorMsg('Permission to access location was denied');
           Toast.show({
             type: 'error',
             text1: 'Location Permission Denied',
@@ -108,28 +122,31 @@ const MapScreen = () => {
         }
 
         let location = await Location.getCurrentPositionAsync({});
-        setUserLocation(location);
+        if (isMounted.current) setUserLocation(location);
       } catch (error) {
+        // Handle error silently or log
       } finally {
-        setIsLoading(false);
+        if (isMounted.current) setIsLoading(false);
       }
     };
 
     const initMap = async () => {
       // If data already exists in context, skip loading
       if (userLocation && drivers.length > 0 && isMapboxConfigured) {
-        setIsLoading(false);
-        setTransportStatus('FOUND');
+        if (isMounted.current) {
+          setIsLoading(false);
+          setTransportStatus('FOUND');
+        }
         return;
       }
 
       await checkMapboxSetup();
-      await getLocationPermission();
+      if (isMounted.current) await getLocationPermission();
       
-      setIsLoading(false); // Map loaded, start searching drivers
+      if (isMounted.current) setIsLoading(false); // Map loaded, start searching drivers
       
       // Initialize mock drivers if not already set
-      if (drivers.length === 0) {
+      if (drivers.length === 0 && isMounted.current) {
         fetchDrivers();
       }
     };
