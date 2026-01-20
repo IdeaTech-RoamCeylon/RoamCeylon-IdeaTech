@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Button, Input } from '../../components';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,6 +7,7 @@ import { AuthStackParamList } from '../../types';
 import { verifyOtp } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
 import { showToast } from '../../utils/toast';
+import { AuthLayout } from '../../components/AuthLayout';
 
 type OTPScreenRouteProp = RouteProp<AuthStackParamList, 'OTP'>;
 type OTPScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'OTP'>;
@@ -47,10 +48,10 @@ const OTPScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Enter Verification Code</Text>
-      <Text style={styles.subtitle}>We sent a code to {phoneNumber}</Text>
-
+    <AuthLayout
+      title="Enter Verification Code"
+      subtitle={`We sent a code to ${phoneNumber}`}
+    >
       <Input
         style={styles.input}
         placeholder="Enter 6-digit code"
@@ -66,6 +67,7 @@ const OTPScreen = () => {
         onPress={handleVerifyOTP}
         loading={loading}
         disabled={loading}
+        style={styles.verifyButton}
       />
 
       <Button
@@ -75,29 +77,11 @@ const OTPScreen = () => {
         disabled={loading}
         style={styles.resendButton}
       />
-    </View>
+    </AuthLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 40,
-  },
   input: {
     width: '100%',
     height: 50,
@@ -110,28 +94,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 10,
   },
-  button: {
-    backgroundColor: '#0066CC',
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
+  verifyButton: {
     width: '100%',
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
   },
   resendButton: {
     marginTop: 20,
-  },
-  resendText: {
-    color: '#0066CC',
-    fontSize: 16,
+    width: '100%',
   },
 });
 

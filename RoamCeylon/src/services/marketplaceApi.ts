@@ -1,5 +1,6 @@
 import apiService from './api';
 import { Category, Product } from '../types';
+import { retryWithBackoff } from '../utils/networkUtils';
 
 // Re-export types for backwards compatibility
 export type { Category, Product };
@@ -13,16 +14,24 @@ interface WrappedResponse<T> {
 // Marketplace API endpoints
 class MarketplaceApi {
   /**
+   * Helper to unwrap backend responses that might be { data: [...] } or [...]
+   */
+  private unwrap<T>(response: WrappedResponse<T> | T): T {
+    if (response && typeof response === 'object' && 'data' in response) {
+      return (response as WrappedResponse<T>).data;
+    }
+    return response as T;
+  }
+
+  /**
    * Fetch all marketplace categories
    */
-  async getCategories(): Promise<Category[]> {
+  getCategories = async (): Promise<Category[]> => {
     try {
-      const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
-      // Handle both wrapped and unwrapped responses
-      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
-        return response.data;
-      }
-      return response as Category[];
+      return await retryWithBackoff(async () => {
+        const response = await apiService.get<WrappedResponse<Category[]> | Category[]>('/marketplace/categories');
+        return this.unwrap(response);
+      });
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
@@ -33,15 +42,13 @@ class MarketplaceApi {
    * Fetch products, optionally filtered by category
    * @param category - Optional category filter
    */
-  async getProducts(category?: string): Promise<Product[]> {
+  getProducts = async (category?: string): Promise<Product[]> => {
     try {
-      const params = category ? { category } : {};
-      const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
-      // Handle both wrapped and unwrapped responses
-      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
-        return response.data;
-      }
-      return response as Product[];
+      return await retryWithBackoff(async () => {
+        const params = category ? { category } : {};
+        const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
+        return this.unwrap(response);
+      });
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -52,10 +59,12 @@ class MarketplaceApi {
    * Fetch a single product by ID
    * @param id - Product ID
    */
-  async getProductById(id: string): Promise<Product | undefined> {
+  getProductById = async (id: string): Promise<Product | undefined> => {
     try {
-      const product = await apiService.get<Product>(`/marketplace/products/${id}`);
-      return product;
+      return await retryWithBackoff(async () => {
+        const product = await apiService.get<Product>(`/marketplace/products/${id}`);
+        return product;
+      });
     } catch (error) {
       console.error(`Error fetching product with id ${id}:`, error);
       throw error;

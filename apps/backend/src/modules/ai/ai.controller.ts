@@ -7,10 +7,11 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AIService } from './ai.service';
 import { SearchService } from './retrieval/search.service';
 import { preprocessQuery } from './embeddings/embedding.utils';
+import { EmbeddingItem } from './embeddings/embedding.service';
 import { STOP_WORDS } from '../../constants/stop-words';
 import {
   ALGORITHM_VERSION,
@@ -126,8 +127,12 @@ interface TripPlanResponseDto {
 
 /* -------------------- CONTROLLER -------------------- */
 
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
 @Controller('ai')
-@UseGuards(ThrottlerGuard)
+// @UseGuards(ThrottlerGuard, JwtAuthGuard)
+@UseGuards(ThrottlerGuard, JwtAuthGuard)
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 export class AIController {
   private readonly logger = new Logger(AIController.name);
 
@@ -309,25 +314,61 @@ export class AIController {
     const embeddingEnd = process.hrtime.bigint();
     const embeddingTimeMs = Number(embeddingEnd - embeddingStart) / 1_000_000;
 
-    const items = await this.aiService.getAllEmbeddings();
-    const rowsScanned = items.length;
-
     const searchStart = process.hrtime.bigint();
 
-    const keywordFiltered = items.filter((item) => {
-      const text = `${item.title} ${item.content}`.toLowerCase();
+    // OPTIMIZATION: Use DB-level vector search instead of loading all embeddings
+    let rawResults: (EmbeddingItem & { score: number })[] = [];
+    try {
+      rawResults = await this.aiService.search(queryVector, 20);
+    } catch (error) {
+      this.logger.error(`Vector search failed: ${(error as Error).message}`);
+      // FALLBACK: Return empty or static popular items?
+      // For now, return empty array to avoid 500 error, clearer message to user
+      rawResults = [];
+    }
 
+    const searchEnd = process.hrtime.bigint();
+    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
+
+    const mappedResults = rawResults.map((item) => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      score: item.score,
+      confidence: this.searchService.getConfidence(item.score),
+      normalizedText: `${item.title} ${item.content}`.toLowerCase().trim(),
+    }));
+
+    // Filter by keyword match (Gate) to ensure relevance beyond just vector proximity
+    // This maintains the "Keyword Gate" logic from the original implementation but on a much smaller subset
+    const keywordFiltered = mappedResults.filter((item) => {
+      const text = item.normalizedText;
       const matchedTokens = queryTokens.filter(
         (token) =>
           text.includes(token) || this.aiService.isPartialMatch(token, text),
       );
-
       return matchedTokens.length > 0;
     });
 
+    // If vector search gives good results but keyword gate is too strict, we might want to relax it
+    // For now, let's keep it to ensure quality. If 0, fallback to vector results with lower confidence?
+    // Let's stick to the original logic: if gate fails, return "No strong matches".
+
+    // Actually, if vector score is high enough (>0.85), we should trust it even if keyword fails (semantic match)
+    // But adhering to original strictness for now.
+
     const rowsAfterGate = keywordFiltered.length;
 
-    if (rowsAfterGate === 0) {
+    if (rowsAfterGate === 0 && rawResults.length > 0) {
+      // Optional: Fallback to purely semantic results if they are very strong?
+      // For this refactor, we'll return empty to be safe, or maybe just return the top vector result if score is very high.
+      // Let's return empty to match original behavior.
+      return {
+        query: cleaned,
+        results: [],
+        message: 'No strong matches found (keywords missing).',
+      };
+    } else if (rowsAfterGate === 0) {
       return {
         query: cleaned,
         results: [],
@@ -336,26 +377,8 @@ export class AIController {
     }
 
     const scored = keywordFiltered
-      .map((item) => {
-        const score = this.aiService.cosineSimilarity(
-          queryVector,
-          item.embedding,
-        );
-
-        return {
-          id: item.id,
-          title: item.title,
-          content: item.content,
-          score,
-          confidence: this.searchService.getConfidence(score),
-          normalizedText: `${item.title} ${item.content}`.toLowerCase().trim(),
-        };
-      })
       .filter((item) => item.score >= this.CONFIDENCE_THRESHOLDS.MINIMUM)
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return String(a.id).localeCompare(String(b.id));
-      })
+      .sort((a, b) => b.score - a.score)
       .slice(0, 5)
       .map((item, idx) => ({
         rank: idx + 1,
@@ -367,9 +390,6 @@ export class AIController {
       'Medium',
     );
 
-    const searchEnd = process.hrtime.bigint();
-    const searchTimeMs = Number(searchEnd - searchStart) / 1_000_000;
-
     const totalEnd = process.hrtime.bigint();
     const totalTimeMs = Number(totalEnd - totalStart) / 1_000_000;
 
@@ -378,7 +398,7 @@ export class AIController {
   Query           : "${originalQuery}"
   Tokens          : ${queryTokens.length}
   Query Complexity: ${queryComplexity}
-  Rows Scanned    : ${rowsScanned}
+  Rows Scanned    : ${rawResults.length} (Vector Top-K)
   Rows After Gate : ${rowsAfterGate}
   Vector Gen Time : ${embeddingTimeMs.toFixed(2)} ms
   Search Exec Time: ${searchTimeMs.toFixed(2)} ms

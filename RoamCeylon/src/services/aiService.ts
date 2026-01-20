@@ -11,6 +11,7 @@ export interface TripPlanRequest {
 export interface TripActivity {
   description: string;
   coordinate?: [number, number]; // [longitude, latitude]
+  dayNumber?: number;
 }
 
 export interface TripDay {
@@ -84,8 +85,6 @@ class AIService {
       );
 
       const backendData = wrapper.data;
-
-      console.log('[AIService] Backend Data:', JSON.stringify(backendData, null, 2));
 
       // Helper to generate mock coordinates near Kandy (7.2906, 80.6337)
       // purely for demonstration until backend provides real coords
