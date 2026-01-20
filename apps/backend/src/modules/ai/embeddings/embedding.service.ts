@@ -19,20 +19,27 @@ export interface EmbeddingItem {
   embedding: number[];
 }
 
+/**
+ * Optional: extend JSON item shape (works even if your JSON doesn't have near/region yet)
+ */
+type TourismSample = {
+  title: string;
+  description: string;
+  near?: string[];
+  region?: string;
+};
+
 @Injectable()
 export class EmbeddingService {
   constructor(private readonly configService: ConfigService) {}
 
   // ------------------ POSTGRES CLIENT ------------------
   private createClient(): Client {
-    // Check if we have individual vars, otherwise use DATABASE_URL
     const dbUrl = this.configService.get<string>('DATABASE_URL');
 
-    // If DATABASE_URL is present, use it for connection string
     if (dbUrl) {
       return new Client({
         connectionString: dbUrl,
-        // Nhost requires SSL
         ssl: dbUrl.includes('sslmode=')
           ? { rejectUnauthorized: false }
           : undefined,
@@ -48,6 +55,24 @@ export class EmbeddingService {
     });
   }
 
+  // Build content with metadata so search + embeddings pick near places
+  private buildContentWithMeta(item: TourismSample): string {
+    const near = Array.isArray(item.near)
+      ? item.near.map((x) => String(x).trim()).filter(Boolean)
+      : [];
+
+    const region = typeof item.region === 'string' ? item.region.trim() : '';
+
+    // Put metadata in plain text (keyword gate + embedding will see it)
+    const metaLines: string[] = [];
+    if (near.length) metaLines.push(`Near: ${near.join(', ')}`);
+    if (region) metaLines.push(`Region: ${region}`);
+
+    return metaLines.length
+      ? `${item.description}\n\n${metaLines.join('\n')}`
+      : item.description;
+  }
+
   // ------------------ SEEDING ------------------
   async seedEmbeddings(): Promise<void> {
     const client = this.createClient();
@@ -58,11 +83,18 @@ export class EmbeddingService {
       // Optional: clear old embeddings
       await client.query(`DELETE FROM embeddings`);
 
-      const dataset = tourismData.tourism_samples;
+      // Ensure we treat dataset items as TourismSample
+      const dataset = (tourismData as { tourism_samples: TourismSample[] })
+        .tourism_samples;
 
       for (const item of dataset) {
+        const contentWithMeta = this.buildContentWithMeta(item);
+
+        // Embed title + content (better separation than description only)
+        const textForEmbedding = `${item.title}. ${contentWithMeta}`;
+
         const embedding: number[] = this.generateDummyEmbedding(
-          item.description,
+          textForEmbedding,
           1536,
         );
 
@@ -71,7 +103,7 @@ export class EmbeddingService {
         await client.query(
           `INSERT INTO embeddings (title, content, embedding)
            VALUES ($1, $2, $3::vector)`,
-          [item.title, item.description, vectorLiteral],
+          [item.title, contentWithMeta, vectorLiteral],
         );
       }
     } catch (err) {
@@ -95,10 +127,8 @@ export class EmbeddingService {
       const embeddings: EmbeddingItem[] = [];
 
       for (const row of result.rows) {
-        // JSON.parse safely typed as unknown first
         const parsed: unknown = JSON.parse(row.embedding);
 
-        // Validate it is an array of numbers
         if (
           !Array.isArray(parsed) ||
           !parsed.every((x) => typeof x === 'number')
@@ -106,7 +136,6 @@ export class EmbeddingService {
           throw new Error(`Invalid embedding format for row id ${row.id}`);
         }
 
-        // Cast to number[] safely
         const embeddingArray: number[] = parsed;
 
         embeddings.push({
@@ -123,24 +152,75 @@ export class EmbeddingService {
     }
   }
 
+  // ------------------ VECTOR SEARCH ------------------
+  async searchEmbeddings(
+    vector: number[],
+    limit: number = 5,
+  ): Promise<(EmbeddingItem & { score: number })[]> {
+    const client = this.createClient();
+    try {
+      await client.connect();
+      const vectorStr = `[${vector.join(',')}]`;
+
+      // Use cosine distance operator (<=>).
+      // 1 - (a <=> b) = cosine_similarity
+      const query = `
+        SELECT id, title, content, embedding, 
+        1 - (embedding <=> $1) as score
+        FROM embeddings
+        ORDER BY embedding <=> $1
+        LIMIT $2
+      `;
+
+      const result = await client.query<{
+        id: number;
+        title: string;
+        content: string;
+        embedding: string; // Postgres returns it as a string for custom types or JSON
+        score: number;
+      }>(query, [vectorStr, limit]);
+
+      return result.rows.map((row) => {
+        // Parse embedding if needed, though for search we mostly need metadata + score
+        // Postgres returns JSON string or object depending on driver config, usually string for custom types
+        let embeddingArray: number[] = [];
+        try {
+          embeddingArray =
+            typeof row.embedding === 'string'
+              ? (JSON.parse(row.embedding) as number[])
+              : row.embedding;
+        } catch {
+          embeddingArray = [];
+        }
+
+        return {
+          id: String(row.id),
+          title: row.title,
+          content: row.content,
+          embedding: embeddingArray,
+          score: Number(row.score),
+        };
+      });
+    } finally {
+      await client.end();
+    }
+  }
+
   // ------------------ UTILS ------------------
   generateDummyEmbedding(text: string, dim = 1536): number[] {
     if (!text) return Array.from({ length: dim }, () => 0);
 
-    // Lowercase, remove non-alphanumeric except space
     const cleaned = text
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, '')
       .trim();
 
-    // Tokenize words (split on spaces)
     const tokens = cleaned.split(/\s+/);
 
     const vector: number[] = Array.from({ length: dim }, () => 0);
 
     tokens.forEach((token, index) => {
-      // Also split tokens into character-level n-grams for better matching
-      const ngrams = this.getCharNGrams(token, 3); // trigrams
+      const ngrams = this.getCharNGrams(token, 3);
       ngrams.forEach((ng) => {
         const hash = this.hashToken(ng);
         for (let i = 0; i < dim; i++) {
@@ -149,12 +229,10 @@ export class EmbeddingService {
       });
     });
 
-    // Normalize vector
     const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
     return magnitude > 0 ? vector.map((v) => v / magnitude) : vector;
   }
 
-  // Generate character n-grams
   private getCharNGrams(word: string, n: number): string[] {
     const ngrams: string[] = [];
     for (let i = 0; i <= word.length - n; i++) {
@@ -193,7 +271,6 @@ export class EmbeddingService {
   isPartialMatch(token: string, text: string): boolean {
     if (token.length < 4) return false;
 
-    // gallefort → galle fort
     for (let i = 0; i <= token.length - 4; i++) {
       const sub = token.substring(i, i + 4);
       if (text.includes(sub)) return true;

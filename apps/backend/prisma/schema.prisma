@@ -48,10 +48,10 @@ model User {
 
 model embeddings {
   id         Int                    @id @default(autoincrement())
-  title      String?
-  content    String?
   embedding  Unsupported("vector")?
   created_at DateTime               @default(now())
+  content    String?
+  title      String?
 
   @@index([title], name: "embeddings_title_idx")
 }

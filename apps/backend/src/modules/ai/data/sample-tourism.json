@@ -1,64 +1,203 @@
 {
   "tourism_samples": [
     {
-      "title": "Sigiriya Rock Fortress",
-      "description": "Sigiriya, known as Lion Rock, is an ancient fortress in central Sri Lanka with frescoes, water gardens, and terraced landscapes. Visitors can climb to the summit for panoramic views."
-    },
-    {
-      "title": "Ella",
-      "description": "Ella is a tranquil hill town with lush tea plantations, waterfalls, and scenic hiking trails like Ella Rock and Little Adam’s Peak."
-    },
-    {
       "title": "Galle Fort",
-      "description": "Galle Fort, a UNESCO World Heritage Site, is a historic coastal fortress with cobblestone streets, colonial buildings, museums, and cultural events."
+      "description": "Galle Fort, a UNESCO World Heritage Site, is a historic coastal fortress with cobblestone streets, colonial buildings, museums, and cultural events.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa",
+        "weligama",
+        "mirissa"
+      ],
+      "region": "south"
     },
     {
-      "title": "Temple of the Tooth Relic",
-      "description": "Located in Kandy, this temple houses a sacred tooth of Buddha. Visitors can experience ceremonies, ornate architecture, and traditional rituals."
+      "title": "Unawatuna Beach",
+      "description": "Unawatuna is a famous beach near Galle with calm turquoise waters, snorkeling spots, and beachside cafes.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
     },
     {
-      "title": "Yala National Park",
-      "description": "Yala National Park is a wildlife sanctuary in southeastern Sri Lanka, home to leopards, elephants, and birds. Guided safaris allow visitors to explore its landscapes."
-    },
-    {
-      "title": "Nuwara Eliya",
-      "description": "Nuwara Eliya, ‘Little England,’ is a cool highland town with tea estates, waterfalls, lakes, and colonial-era architecture."
+      "title": "Hikkaduwa Beach",
+      "description": "Hikkaduwa is a lively beach town known for surfing, coral reefs, nightlife, and seafood restaurants.",
+      "near": [
+        "galle",
+        "hikkaduwa",
+        "bentota"
+      ],
+      "region": "south"
     },
     {
       "title": "Mirissa Beach",
-      "description": "Mirissa is a southern coastal town with golden beaches, turquoise waters, whale watching, surfing, and local seafood restaurants."
-    },
-    {
-      "title": "Anuradhapura Sacred City",
-      "description": "Anuradhapura is an ancient UNESCO city with stupas, monasteries, and historical ruins. Pilgrims and tourists explore its religious and cultural heritage."
-    },
-    {
-      "title": "Horton Plains National Park",
-      "description": "Horton Plains is a highland plateau with cloud forests, grasslands, waterfalls, and the dramatic World’s End cliff offering panoramic views."
-    },
-    {
-      "title": "Trincomalee",
-      "description": "Trincomalee is a historic coastal city in northeastern Sri Lanka, known for pristine beaches, Koneswaram Temple, diving spots, and colonial-era forts."
-    },
-    {
-      "title": "Arugam Bay",
-      "description": "Arugam Bay is a world-renowned surfing destination on the east coast, known for its laid-back vibe, point breaks, and vibrant nightlife."
-    },
-    {
-      "title": "Polonnaruwa Ancient City",
-      "description": "The second ancient capital of Sri Lanka, featuring well-preserved ruins of royal palaces, temples, and the magnificent Gal Vihara rock sculptures."
-    },
-    {
-      "title": "Jaffna Fort",
-      "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon."
+      "description": "Mirissa is a southern coastal town with golden beaches, turquoise waters, whale watching, surfing, and local seafood restaurants.",
+      "near": [
+        "galle",
+        "mirissa",
+        "weligama",
+        "matara"
+      ],
+      "region": "south"
     },
     {
       "title": "Bentota Beach",
-      "description": "A popular resort town on the west coast, famous for water sports like jet skiing, windsurfing, and its beautiful golden sandy beaches."
+      "description": "Bentota is a popular beach resort town with water sports, mangrove boat rides, and luxury hotels.",
+      "near": [
+        "bentota",
+        "galle"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Sigiriya Rock Fortress",
+      "description": "Sigiriya, known as Lion Rock, is an ancient fortress with frescoes, water gardens, and terraced landscapes. Visitors can climb to the summit for panoramic views.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "habarana"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Dambulla Cave Temple",
+      "description": "Dambulla is a UNESCO-listed cave temple complex with ancient Buddha statues and murals carved into rock.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "habarana"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Anuradhapura Sacred City",
+      "description": "Anuradhapura is an ancient city with massive stupas, monasteries, and sacred Buddhist heritage sites.",
+      "near": [
+        "anuradhapura",
+        "mihintale"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Temple of the Tooth Relic",
+      "description": "Located in Kandy, this sacred temple houses the tooth relic of Buddha and hosts daily religious rituals.",
+      "near": [
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Kandy Lake",
+      "description": "Kandy Lake is a scenic man-made lake in the heart of Kandy, perfect for evening walks and views of the Temple of the Tooth.",
+      "near": [
+        "kandy"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Ella",
+      "description": "Ella is a tranquil hill town with lush tea plantations, waterfalls, and scenic hiking trails like Ella Rock and Little Adam’s Peak.",
+      "near": [
+        "ella",
+        "haputale",
+        "badulla"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Nine Arches Bridge",
+      "description": "The Nine Arches Bridge in Ella is a famous colonial-era railway bridge surrounded by jungle and tea fields.",
+      "near": [
+        "ella"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Horton Plains National Park",
+      "description": "Horton Plains is a highland plateau with cloud forests, grasslands, waterfalls, and the dramatic World’s End cliff.",
+      "near": [
+        "nuwara eliya",
+        "ella"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Nuwara Eliya",
+      "description": "Nuwara Eliya, known as Little England, is a cool hill town with tea plantations, lakes, waterfalls, and colonial architecture.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "hatton"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Yala National Park",
+      "description": "Yala National Park is a wildlife sanctuary famous for leopards, elephants, and safari jeep tours.",
+      "near": [
+        "yala",
+        "tissamaharama",
+        "kirinda"
+      ],
+      "region": "safari_south"
     },
     {
       "title": "Udawalawe National Park",
-      "description": "One of the best places in the world to see wild elephants in their natural habitat, featuring a large reservoir and extensive grasslands."
+      "description": "Udawalawe is a popular wildlife park known for elephant sightings and wide open grasslands.",
+      "near": [
+        "udawalawe",
+        "embilipitiya"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Trincomalee",
+      "description": "Trincomalee is a coastal city with pristine beaches, Koneswaram Temple, diving spots, and historic forts.",
+      "near": [
+        "trincomalee",
+        "nilaveli",
+        "uppuveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Nilaveli Beach",
+      "description": "Nilaveli is a beautiful white-sand beach near Trincomalee, ideal for snorkeling and relaxation.",
+      "near": [
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Arugam Bay",
+      "description": "Arugam Bay is a world-renowned surfing destination on the east coast, known for its laid-back vibe, point breaks, and vibrant nightlife.",
+      "near": [
+        "arugam bay",
+        "pottuvil"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Polonnaruwa Ancient City",
+      "description": "The second ancient capital of Sri Lanka, featuring well-preserved ruins of royal palaces, temples, and the magnificent Gal Vihara rock sculptures.",
+      "near": [
+        "polonnaruwa",
+        "habarana"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Jaffna Fort",
+      "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon.",
+      "near": [
+        "jaffna"
+      ],
+      "region": "north"
     }
   ]
 }
