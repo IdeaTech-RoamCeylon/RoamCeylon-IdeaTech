@@ -127,11 +127,8 @@ interface TripPlanResponseDto {
 
 /* -------------------- CONTROLLER -------------------- */
 
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-
 @Controller('ai')
-// @UseGuards(ThrottlerGuard, JwtAuthGuard)
-@UseGuards(ThrottlerGuard, JwtAuthGuard)
+@UseGuards(ThrottlerGuard)
 @Throttle({ default: { limit: 5, ttl: 60000 } })
 export class AIController {
   private readonly logger = new Logger(AIController.name);
