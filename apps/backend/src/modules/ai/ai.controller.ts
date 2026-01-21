@@ -343,6 +343,67 @@ export class AIController {
     return { filtered, fallbackMessage };
   }
 
+  /**
+   * Validates trip plan preferences for conflicts and vagueness
+   */
+  private validatePreferences(preferences?: string[]): {
+    valid: boolean;
+    warning?: string;
+  } {
+    if (!preferences || preferences.length === 0) {
+      return {
+        valid: true,
+        warning: 'No preferences specified. Showing popular attractions.',
+      };
+    }
+
+    // Check for conflicting preferences
+    const conflictPairs = [
+      {
+        a: 'adventure',
+        b: 'relaxation',
+        msg: 'Adventure and relaxation preferences may conflict',
+      },
+      {
+        a: 'nature',
+        b: 'shopping',
+        msg: 'Nature and shopping preferences may conflict',
+      },
+      {
+        a: 'culture',
+        b: 'beach',
+        msg: 'Culture and beach preferences suggest different trip styles',
+      },
+    ];
+
+    const lowerPrefs = preferences.map((p) => p.toLowerCase());
+
+    for (const pair of conflictPairs) {
+      if (lowerPrefs.includes(pair.a) && lowerPrefs.includes(pair.b)) {
+        return {
+          valid: true,
+          warning: `${pair.msg}. We'll balance both, but consider focusing on one style.`,
+        };
+      }
+    }
+
+    // Check for overly broad/vague preferences
+    const vagueTerms = ['things', 'stuff', 'places', 'anywhere', 'something'];
+    const hasVague = preferences.some((p) =>
+      vagueTerms.some((v) => p.toLowerCase().includes(v)),
+    );
+
+    if (hasVague) {
+      return {
+        valid: false,
+        warning:
+          'Please be more specific. Instead of "things to do", try "hiking", "temples", or "beaches".',
+      };
+    }
+
+    return { valid: true };
+  }
+
   /* ---------- In-memory cosine search ---------- */
 
   private async executeSearch(query: unknown): Promise<SearchResponseDto> {
@@ -350,13 +411,29 @@ export class AIController {
 
     const originalQuery = typeof query === 'string' ? query.trim() : '';
 
+    // Better empty query message
+    if (!originalQuery) {
+      return {
+        query: '',
+        results: [],
+        message:
+          'Please enter a destination or interest (e.g., "beaches in Galle", "temples", "wildlife").',
+      };
+    }
+
     const validated = this.validateAndPreprocess(query);
-    if (typeof validated === 'string')
+    if (typeof validated === 'string') {
+      // Add helpful suggestions to short queries
+      const helpfulMessage = validated.includes('too short')
+        ? `${validated} Try "Sigiriya", "Ella hiking", or "beach resorts".`
+        : validated;
+
       return {
         query: originalQuery,
         results: [],
-        message: validated,
+        message: helpfulMessage,
       };
+    }
 
     const { cleaned, tokens: queryTokens } = validated;
     const queryComplexity = queryTokens.length * cleaned.length;
@@ -1784,6 +1861,31 @@ export class AIController {
   async tripPlanEnhanced(
     @Body() body: TripPlanRequestDto,
   ): Promise<TripPlanResponseDto> {
+    // Validate preferences first
+    const prefValidation = this.validatePreferences(body.preferences);
+
+    if (!prefValidation.valid) {
+      return {
+        plan: {
+          destination: body.destination || 'Unknown',
+          dates: { start: body.startDate, end: body.endDate },
+          totalDays: 0,
+          dayByDayPlan: [],
+          summary: {
+            totalActivities: 0,
+            categoriesIncluded: [],
+            preferencesMatched: [],
+            planConfidence: 'Low' as const,
+            usedFallback: false,
+          },
+        },
+        message: prefValidation.warning || 'Invalid preferences provided.',
+      };
+    }
+
+    // Store warning for later
+    const preferenceWarning = prefValidation.warning;
+
     const destinationRaw = this.normalizeText(body.destination);
     const destination = destinationRaw; // keep user-facing capitalization/spaces cleaned
     const destinationLower = this.normalizeLower(body.destination);
@@ -1999,11 +2101,16 @@ export class AIController {
           usedFallback,
         },
       },
-      message: this.buildFinalMessage(
-        usedFallback,
-        planConfidence,
-        preferencesMatched,
-      ),
+      message: [
+        this.buildFinalMessage(
+          usedFallback,
+          planConfidence,
+          preferencesMatched,
+        ),
+        preferenceWarning,
+      ]
+        .filter(Boolean)
+        .join(' '),
     };
   }
 }
