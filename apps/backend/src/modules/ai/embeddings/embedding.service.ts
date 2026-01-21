@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
-import tourismData from '../data/sample-tourism.json';
+import rawTourismData from '../data/sample-tourism.json';
 
 interface EmbeddingRow {
   id: string;
   title: string;
   content: string;
-  embedding: any; // pgvector may come back as string like "[...]" or as array depending on config
+  embedding: unknown;
 }
 
 export interface EmbeddingItem {
@@ -24,9 +24,51 @@ type TourismSample = {
   region?: string;
 };
 
+function isStringArray(v: unknown): v is string[] {
+  return Array.isArray(v) && v.every((x) => typeof x === 'string');
+}
+
+function parseTourismSamples(input: unknown): TourismSample[] {
+  if (typeof input !== 'object' || input === null) {
+    throw new Error('Invalid tourism dataset: not an object');
+  }
+
+  const obj = input as Record<string, unknown>;
+  const samples = obj.tourism_samples;
+
+  if (!Array.isArray(samples)) {
+    throw new Error('Invalid tourism dataset: tourism_samples is not an array');
+  }
+
+  return samples.map((s, idx) => {
+    if (typeof s !== 'object' || s === null) {
+      throw new Error(`Invalid tourism sample at index ${idx}`);
+    }
+
+    const rec = s as Record<string, unknown>;
+
+    const title = typeof rec.title === 'string' ? rec.title : '';
+    const description =
+      typeof rec.description === 'string' ? rec.description : '';
+
+    if (!title.trim() || !description.trim()) {
+      throw new Error(
+        `Invalid tourism sample at index ${idx}: missing title/description`,
+      );
+    }
+
+    const near = isStringArray(rec.near) ? rec.near : undefined;
+    const region = typeof rec.region === 'string' ? rec.region : undefined;
+
+    return { title, description, near, region };
+  });
+}
+
 @Injectable()
 export class EmbeddingService {
   constructor(private readonly configService: ConfigService) {}
+
+  private readonly EMBEDDING_DIM = 1536;
 
   private createClient(): Client {
     const dbUrl = this.configService.get<string>('DATABASE_URL');
@@ -71,43 +113,32 @@ export class EmbeddingService {
   }
 
   private parseVectorToNumberArray(raw: unknown, rowId?: string): number[] {
-    // Already an array
     if (Array.isArray(raw)) {
-      if (raw.every((x) => typeof x === 'number')) return raw as number[];
-      // Sometimes it can be array of strings
+      if (raw.every((x) => typeof x === 'number')) return raw;
+
       if (raw.every((x) => typeof x === 'string')) {
-        const nums = (raw as string[]).map((s) => Number(s));
+        const nums = raw.map((s) => Number(s));
         if (nums.every((n) => Number.isFinite(n))) return nums;
       }
     }
 
-    // If it's a string, it can be:
-    // - "[1,2,3]" (json-like)
-    // - "[-0.1, 0.2, ...]" (json-like)
-    // - "{1,2,3}" (array-like)
-    // - "1,2,3" (csv)
     if (typeof raw === 'string') {
       const s = raw.trim();
 
-      // Try JSON parse first
       try {
-        const parsed = JSON.parse(s);
-        if (
-          Array.isArray(parsed) &&
-          parsed.every((x) => typeof x === 'number')
-        ) {
-          return parsed as number[];
-        }
+        const parsed: unknown = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'number'))
+          return parsed;
       } catch {
         // ignore
       }
 
-      // Try stripping braces/brackets then split
       const cleaned = s.replace(/^\[|\]$/g, '').replace(/^\{|\}$/g, '');
       const parts = cleaned
         .split(',')
         .map((p) => p.trim())
         .filter(Boolean);
+
       const nums = parts.map((p) => Number(p));
       if (nums.length && nums.every((n) => Number.isFinite(n))) return nums;
     }
@@ -122,20 +153,21 @@ export class EmbeddingService {
 
     try {
       await client.connect();
-
       await client.query(`DELETE FROM embeddings`);
 
-      const dataset = (tourismData as { tourism_samples: TourismSample[] })
-        .tourism_samples;
+      const dataset = parseTourismSamples(rawTourismData as unknown);
+
+      // Deterministic seeding order
+      dataset.sort((a, b) => a.title.localeCompare(b.title));
 
       for (const item of dataset) {
         const title = this.normalizeText(item.title);
         const contentWithMeta = this.buildContentWithMeta(item);
 
         const textForEmbedding = `${title}. ${contentWithMeta}`;
-        const embedding: number[] = this.generateDummyEmbedding(
+        const embedding = this.generateDummyEmbedding(
           textForEmbedding,
-          1536,
+          this.EMBEDDING_DIM,
         );
 
         const vectorLiteral = `[${embedding.join(',')}]`;
@@ -147,7 +179,6 @@ export class EmbeddingService {
         );
       }
     } catch (err) {
-      // Keep logs deterministic and clean
       console.error('Seeding error:', err);
       throw err;
     } finally {
@@ -164,7 +195,7 @@ export class EmbeddingService {
         `SELECT id, title, content, embedding FROM embeddings`,
       );
 
-      return result.rows.map((row) => {
+      const items = result.rows.map((row) => {
         const embeddingArray = this.parseVectorToNumberArray(
           row.embedding,
           row.id,
@@ -177,6 +208,11 @@ export class EmbeddingService {
           embedding: embeddingArray,
         };
       });
+
+      // Deterministic output ordering
+      items.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+      return items;
     } finally {
       await client.end();
     }
@@ -192,11 +228,12 @@ export class EmbeddingService {
       await client.connect();
       const vectorStr = `[${vector.join(',')}]`;
 
+      // Stable ordering: distance ASC, id ASC (tie-break)
       const query = `
         SELECT id, title, content, embedding,
                1 - (embedding <=> $1) as score
         FROM embeddings
-        ORDER BY embedding <=> $1
+        ORDER BY (embedding <=> $1) ASC, id ASC
         LIMIT $2
       `;
 
@@ -204,20 +241,15 @@ export class EmbeddingService {
         id: number | string;
         title: string;
         content: string;
-        embedding: any;
+        embedding: unknown;
         score: number;
       }>(query, [vectorStr, limit]);
 
-      return result.rows.map((row) => {
-        let embeddingArray: number[] = [];
-        try {
-          embeddingArray = this.parseVectorToNumberArray(
-            row.embedding,
-            String(row.id),
-          );
-        } catch {
-          embeddingArray = [];
-        }
+      const mapped = result.rows.map((row) => {
+        const embeddingArray = this.parseVectorToNumberArray(
+          row.embedding,
+          String(row.id),
+        );
 
         return {
           id: String(row.id),
@@ -227,6 +259,11 @@ export class EmbeddingService {
           score: Number(row.score),
         };
       });
+
+      // Deterministic JS ordering (score DESC, id ASC)
+      mapped.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+
+      return mapped;
     } finally {
       await client.end();
     }
@@ -237,32 +274,40 @@ export class EmbeddingService {
 
     const cleaned = text
       .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
 
     const tokens = cleaned.split(/\s+/).filter(Boolean);
     const vector: number[] = Array.from({ length: dim }, () => 0);
 
-    tokens.forEach((token, index) => {
+    for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+      const token = tokens[tokenIndex];
       const ngrams = this.getCharNGrams(token, 3);
-      ngrams.forEach((ng) => {
+
+      for (const ng of ngrams) {
         const hash = this.hashToken(ng);
+
         for (let i = 0; i < dim; i++) {
-          vector[i] += (((hash + i * 13) % 100) / 100) * (1 / (index + 1));
+          // Deterministic: only pure math
+          vector[i] += (((hash + i * 13) % 100) / 100) * (1 / (tokenIndex + 1));
         }
-      });
-    });
+      }
+    }
 
     const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
     return magnitude > 0 ? vector.map((v) => v / magnitude) : vector;
   }
 
   private getCharNGrams(word: string, n: number): string[] {
+    if (!word) return [''];
+    if (word.length < n) return [word];
+
     const ngrams: string[] = [];
     for (let i = 0; i <= word.length - n; i++) {
       ngrams.push(word.substring(i, i + n));
     }
-    return ngrams.length > 0 ? ngrams : [word];
+    return ngrams;
   }
 
   private hashToken(token: string): number {
@@ -293,11 +338,15 @@ export class EmbeddingService {
   }
 
   isPartialMatch(token: string, text: string): boolean {
-    if (token.length < 4) return false;
+    if (!token || token.length < 4) return false;
+    if (!text) return false;
 
-    for (let i = 0; i <= token.length - 4; i++) {
-      const sub = token.substring(i, i + 4);
-      if (text.includes(sub)) return true;
+    const t = token.toLowerCase();
+    const hay = text.toLowerCase();
+
+    for (let i = 0; i <= t.length - 4; i++) {
+      const sub = t.substring(i, i + 4);
+      if (hay.includes(sub)) return true;
     }
     return false;
   }
