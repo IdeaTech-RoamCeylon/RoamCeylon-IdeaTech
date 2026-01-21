@@ -74,4 +74,20 @@ export const PLANNER_CONFIG = Object.freeze({
     HIGH_SCORE_COMBO: 0.7,
     PARTIAL_HIGH_CONFIDENCE: 0.5,
   } as const,
+  VALIDATION: {
+    VAGUE_TERMS: [
+      'things',
+      'stuff',
+      'places',
+      'anywhere',
+      'something',
+      'random',
+    ],
+    CONFLICTING_PAIRS: [
+      ['adventure', 'relaxation'],
+      ['nature', 'shopping'],
+      ['culture', 'beach'],
+      ['nightlife', 'nature'],
+    ],
+  } as const,
 });
