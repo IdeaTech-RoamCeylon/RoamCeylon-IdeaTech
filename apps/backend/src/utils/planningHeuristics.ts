@@ -1,13 +1,12 @@
-// --- SELF-CONTAINED TYPES (To avoid import errors) ---
+// apps/backend/src/utils/planningHeuristics.ts
+
+// --- SELF-CONTAINED TYPES ---
 export interface TripDestination {
   id: string;
   order: number;
   placeName: string;
   shortDescription: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-  };
+  coordinates?: { latitude: number; longitude: number };
   metadata: {
     duration: string;
     category: 'adventure' | 'relaxation' | 'culture' | 'shopping' | 'food';
@@ -17,17 +16,17 @@ export interface TripDestination {
 }
 
 // --- CONFIGURATION ---
-const GROUP_RADIUS_KM = 10; // How close places must be to be grouped
-const MAX_SUGGESTIONS = 5; // Limit the number of resulting groups
+const MAX_HOURS_PER_DAY = 7;
+const MIN_CONFIDENCE_THRESHOLD = 0.4; // <--- Now we will actually use this
 
 // --- HELPER: Haversine Distance Formula ---
-const getDistanceKm = (
+export const getDistanceKm = (
   lat1: number,
   lon1: number,
   lat2: number,
   lon2: number,
 ): number => {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
@@ -40,45 +39,96 @@ const getDistanceKm = (
   return R * c;
 };
 
-// --- MAIN FUNCTION ---
-export const applyPlanningHeuristics = (
+// --- HELPER: Parse Duration ---
+const parseDuration = (durationStr?: string): number => {
+  if (!durationStr) return 2;
+  const lower = durationStr.toLowerCase();
+  if (lower.includes('half')) return 4;
+  if (lower.includes('full')) return 8;
+  const match = lower.match(/(\d+)/);
+  return match ? parseInt(match[0]) : 2;
+};
+
+// --- MAIN ALGORITHM: Multi-Day Distributor ---
+export const distributeActivitiesAcrossDays = (
   allDestinations: TripDestination[],
+  numberOfDays: number,
 ): TripDestination[][] => {
-  // 1. FILTER & SORT (Rule: Prioritize higher confidence)
-  const validDestinations = allDestinations
-    .filter((d) => d.coordinates)
-    .sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
+  // 1. IMPROVED PREP: Filter & Sanitize
+  const pool = allDestinations
+    .filter((d) => {
+      // RULE 1: Must have valid coordinates
+      if (!d.coordinates) return false;
 
-  const groupedResults: TripDestination[][] = [];
-  const processedIds = new Set<string>();
+      // RULE 2: STRICT Quality Filter (This uses the variable!)
+      return (d.confidenceScore || 0) >= MIN_CONFIDENCE_THRESHOLD;
+    })
+    .map((d) => ({
+      ...d,
+      _hours: parseDuration(d.metadata.duration),
+      _assigned: false,
+    }));
 
-  // 2. GROUP NEARBY LOCATIONS (Rule: Group nearby)
-  for (const anchor of validDestinations) {
-    if (processedIds.has(anchor.id)) continue;
+  // Sort by confidence (Highest priority first)
+  pool.sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
 
-    const group: TripDestination[] = [anchor];
-    processedIds.add(anchor.id);
+  const dayPlans: TripDestination[][] = [];
 
-    // Find neighbors
-    for (const candidate of validDestinations) {
-      if (processedIds.has(candidate.id)) continue;
+  for (let day = 0; day < numberOfDays; day++) {
+    const currentDay: TripDestination[] = [];
+    let currentDayHours = 0;
 
-      const dist = getDistanceKm(
-        anchor.coordinates!.latitude,
-        anchor.coordinates!.longitude,
-        candidate.coordinates!.latitude,
-        candidate.coordinates!.longitude,
-      );
+    // 2. Pick the best "Anchor"
+    const anchorIndex = pool.findIndex((p) => !p._assigned);
+    if (anchorIndex === -1) break;
 
-      if (dist <= GROUP_RADIUS_KM) {
-        group.push(candidate);
-        processedIds.add(candidate.id);
+    const anchor = pool[anchorIndex];
+    anchor._assigned = true;
+    currentDay.push(anchor);
+    currentDayHours += anchor._hours;
+
+    // 3. Greedy Scheduler (Nearest Neighbor)
+    while (currentDayHours < MAX_HOURS_PER_DAY) {
+      let bestCandidateIdx = -1;
+      let minDistance = Infinity;
+      const lastPlace = currentDay[currentDay.length - 1];
+
+      pool.forEach((candidate, idx) => {
+        if (
+          candidate._assigned ||
+          !candidate.coordinates ||
+          !lastPlace.coordinates
+        )
+          return;
+
+        const dist = getDistanceKm(
+          lastPlace.coordinates.latitude,
+          lastPlace.coordinates.longitude,
+          candidate.coordinates.latitude,
+          candidate.coordinates.longitude,
+        );
+
+        if (
+          dist < minDistance &&
+          currentDayHours + candidate._hours <= MAX_HOURS_PER_DAY
+        ) {
+          minDistance = dist;
+          bestCandidateIdx = idx;
+        }
+      });
+
+      if (bestCandidateIdx !== -1) {
+        const candidate = pool[bestCandidateIdx];
+        candidate._assigned = true;
+        currentDay.push(candidate);
+        currentDayHours += candidate._hours;
+      } else {
+        break;
       }
     }
 
-    groupedResults.push(group);
+    dayPlans.push(currentDay);
   }
 
-  // 3. LIMIT RESULTS
-  return groupedResults.slice(0, MAX_SUGGESTIONS);
+  return dayPlans;
 };

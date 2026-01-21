@@ -48,49 +48,72 @@ export function useApiFetch<T>(
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
 
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const result = await fetchFn();
-      setData(result);
       
-      if (showSuccessToast) {
-        showToast.success(successMessage, 'Success');
+      if (isMounted.current) {
+        setData(result);
+        
+        if (showSuccessToast) {
+          showToast.success(successMessage, 'Success');
+        }
       }
     } catch (err: any) {
-      const errorMsg = errorMessage || 'Failed to load data. Please try again.';
-      setError(errorMsg);
-      
-      if (showErrorToast) {
-        showToast.apiError(err, errorMsg);
+      if (isMounted.current) {
+        const errorMsg = errorMessage || 'Failed to load data. Please try again.';
+        setError(errorMsg);
+        
+        if (showErrorToast) {
+          showToast.apiError(err, errorMsg);
+        }
       }
       
       console.error('API fetch error:', err);
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   }, [showSuccessToast, successMessage, showErrorToast, errorMessage]);
 
   useEffect(() => {
     if (autoFetch && !hasFetchedRef.current) {
       hasFetchedRef.current = true;
+      setLoading(true);
+      
       fetchFn().then(result => {
-        setData(result);
-        if (showSuccessToast) {
-          showToast.success(successMessage, 'Success');
+        if (isMounted.current) {
+          setData(result);
+          if (showSuccessToast) {
+            showToast.success(successMessage, 'Success');
+          }
         }
       }).catch(err => {
-        const errorMsg = errorMessage || 'Failed to load data. Please try again.';
-        setError(errorMsg);
-        if (showErrorToast) {
-          showToast.apiError(err, errorMsg);
+        if (isMounted.current) {
+          const errorMsg = errorMessage || 'Failed to load data. Please try again.';
+          setError(errorMsg);
+          if (showErrorToast) {
+            showToast.apiError(err, errorMsg);
+          }
         }
         console.error('API fetch error:', err);
       }).finally(() => {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       });
-      setLoading(true);
     }
   }, [autoFetch]);
 
