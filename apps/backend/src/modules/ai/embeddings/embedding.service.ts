@@ -3,15 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
 import tourismData from '../data/sample-tourism.json';
 
-// Type for a raw row from the database
 interface EmbeddingRow {
   id: string;
   title: string;
   content: string;
-  embedding: string; // stored as JSON string in DB
+  embedding: any; // pgvector may come back as string like "[...]" or as array depending on config
 }
 
-// Type for embedding item returned by service
 export interface EmbeddingItem {
   id: string;
   title: string;
@@ -19,9 +17,6 @@ export interface EmbeddingItem {
   embedding: number[];
 }
 
-/**
- * Optional: extend JSON item shape (works even if your JSON doesn't have near/region yet)
- */
 type TourismSample = {
   title: string;
   description: string;
@@ -33,7 +28,6 @@ type TourismSample = {
 export class EmbeddingService {
   constructor(private readonly configService: ConfigService) {}
 
-  // ------------------ POSTGRES CLIENT ------------------
   private createClient(): Client {
     const dbUrl = this.configService.get<string>('DATABASE_URL');
 
@@ -55,7 +49,11 @@ export class EmbeddingService {
     });
   }
 
-  // Build content with metadata so search + embeddings pick near places
+  private normalizeText(v: unknown): string {
+    if (typeof v !== 'string') return '';
+    return v.trim().replace(/\s+/g, ' ');
+  }
+
   private buildContentWithMeta(item: TourismSample): string {
     const near = Array.isArray(item.near)
       ? item.near.map((x) => String(x).trim()).filter(Boolean)
@@ -63,7 +61,6 @@ export class EmbeddingService {
 
     const region = typeof item.region === 'string' ? item.region.trim() : '';
 
-    // Put metadata in plain text (keyword gate + embedding will see it)
     const metaLines: string[] = [];
     if (near.length) metaLines.push(`Near: ${near.join(', ')}`);
     if (region) metaLines.push(`Region: ${region}`);
@@ -73,26 +70,69 @@ export class EmbeddingService {
       : item.description;
   }
 
-  // ------------------ SEEDING ------------------
+  private parseVectorToNumberArray(raw: unknown, rowId?: string): number[] {
+    // Already an array
+    if (Array.isArray(raw)) {
+      if (raw.every((x) => typeof x === 'number')) return raw as number[];
+      // Sometimes it can be array of strings
+      if (raw.every((x) => typeof x === 'string')) {
+        const nums = (raw as string[]).map((s) => Number(s));
+        if (nums.every((n) => Number.isFinite(n))) return nums;
+      }
+    }
+
+    // If it's a string, it can be:
+    // - "[1,2,3]" (json-like)
+    // - "[-0.1, 0.2, ...]" (json-like)
+    // - "{1,2,3}" (array-like)
+    // - "1,2,3" (csv)
+    if (typeof raw === 'string') {
+      const s = raw.trim();
+
+      // Try JSON parse first
+      try {
+        const parsed = JSON.parse(s);
+        if (
+          Array.isArray(parsed) &&
+          parsed.every((x) => typeof x === 'number')
+        ) {
+          return parsed as number[];
+        }
+      } catch {
+        // ignore
+      }
+
+      // Try stripping braces/brackets then split
+      const cleaned = s.replace(/^\[|\]$/g, '').replace(/^\{|\}$/g, '');
+      const parts = cleaned
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean);
+      const nums = parts.map((p) => Number(p));
+      if (nums.length && nums.every((n) => Number.isFinite(n))) return nums;
+    }
+
+    throw new Error(
+      `Invalid embedding format for row id ${rowId ?? 'unknown'}`,
+    );
+  }
+
   async seedEmbeddings(): Promise<void> {
     const client = this.createClient();
 
     try {
       await client.connect();
 
-      // Optional: clear old embeddings
       await client.query(`DELETE FROM embeddings`);
 
-      // Ensure we treat dataset items as TourismSample
       const dataset = (tourismData as { tourism_samples: TourismSample[] })
         .tourism_samples;
 
       for (const item of dataset) {
+        const title = this.normalizeText(item.title);
         const contentWithMeta = this.buildContentWithMeta(item);
 
-        // Embed title + content (better separation than description only)
-        const textForEmbedding = `${item.title}. ${contentWithMeta}`;
-
+        const textForEmbedding = `${title}. ${contentWithMeta}`;
         const embedding: number[] = this.generateDummyEmbedding(
           textForEmbedding,
           1536,
@@ -103,10 +143,11 @@ export class EmbeddingService {
         await client.query(
           `INSERT INTO embeddings (title, content, embedding)
            VALUES ($1, $2, $3::vector)`,
-          [item.title, contentWithMeta, vectorLiteral],
+          [title, contentWithMeta, vectorLiteral],
         );
       }
     } catch (err) {
+      // Keep logs deterministic and clean
       console.error('Seeding error:', err);
       throw err;
     } finally {
@@ -114,7 +155,6 @@ export class EmbeddingService {
     }
   }
 
-  // ------------------ FETCH ALL EMBEDDINGS ------------------
   async getAllEmbeddings(): Promise<EmbeddingItem[]> {
     const client = this.createClient();
 
@@ -124,71 +164,57 @@ export class EmbeddingService {
         `SELECT id, title, content, embedding FROM embeddings`,
       );
 
-      const embeddings: EmbeddingItem[] = [];
+      return result.rows.map((row) => {
+        const embeddingArray = this.parseVectorToNumberArray(
+          row.embedding,
+          row.id,
+        );
 
-      for (const row of result.rows) {
-        const parsed: unknown = JSON.parse(row.embedding);
-
-        if (
-          !Array.isArray(parsed) ||
-          !parsed.every((x) => typeof x === 'number')
-        ) {
-          throw new Error(`Invalid embedding format for row id ${row.id}`);
-        }
-
-        const embeddingArray: number[] = parsed;
-
-        embeddings.push({
-          id: row.id,
+        return {
+          id: String(row.id),
           title: row.title,
           content: row.content,
           embedding: embeddingArray,
-        });
-      }
-
-      return embeddings;
+        };
+      });
     } finally {
       await client.end();
     }
   }
 
-  // ------------------ VECTOR SEARCH ------------------
   async searchEmbeddings(
     vector: number[],
     limit: number = 5,
   ): Promise<(EmbeddingItem & { score: number })[]> {
     const client = this.createClient();
+
     try {
       await client.connect();
       const vectorStr = `[${vector.join(',')}]`;
 
-      // Use cosine distance operator (<=>).
-      // 1 - (a <=> b) = cosine_similarity
       const query = `
-        SELECT id, title, content, embedding, 
-        1 - (embedding <=> $1) as score
+        SELECT id, title, content, embedding,
+               1 - (embedding <=> $1) as score
         FROM embeddings
         ORDER BY embedding <=> $1
         LIMIT $2
       `;
 
       const result = await client.query<{
-        id: number;
+        id: number | string;
         title: string;
         content: string;
-        embedding: string; // Postgres returns it as a string for custom types or JSON
+        embedding: any;
         score: number;
       }>(query, [vectorStr, limit]);
 
       return result.rows.map((row) => {
-        // Parse embedding if needed, though for search we mostly need metadata + score
-        // Postgres returns JSON string or object depending on driver config, usually string for custom types
         let embeddingArray: number[] = [];
         try {
-          embeddingArray =
-            typeof row.embedding === 'string'
-              ? (JSON.parse(row.embedding) as number[])
-              : row.embedding;
+          embeddingArray = this.parseVectorToNumberArray(
+            row.embedding,
+            String(row.id),
+          );
         } catch {
           embeddingArray = [];
         }
@@ -206,7 +232,6 @@ export class EmbeddingService {
     }
   }
 
-  // ------------------ UTILS ------------------
   generateDummyEmbedding(text: string, dim = 1536): number[] {
     if (!text) return Array.from({ length: dim }, () => 0);
 
@@ -215,8 +240,7 @@ export class EmbeddingService {
       .replace(/[^a-z0-9\s]/g, '')
       .trim();
 
-    const tokens = cleaned.split(/\s+/);
-
+    const tokens = cleaned.split(/\s+/).filter(Boolean);
     const vector: number[] = Array.from({ length: dim }, () => 0);
 
     tokens.forEach((token, index) => {
