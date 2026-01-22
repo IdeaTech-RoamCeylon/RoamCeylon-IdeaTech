@@ -84,4 +84,30 @@ describe('AI Production Behavior Review', () => {
     });
     console.log('       [Safety Check] Blocked invalid inputs successfully.');
   });
+
+  // SCENARIO 4: Consistency Check (Stability)
+  // Ensure that running the same request multiple times produces identical results.
+  it('Scenario: Repeated Requests -> Produce Consistent Output', () => {
+    const inputs = [
+      createMockPlace('Fixed Point A', 0.9),
+      createMockPlace('Fixed Point B', 0.85),
+      createMockPlace('Fixed Point C', 0.8),
+    ];
+
+    // Run 1
+    const run1 = distributeActivitiesAcrossDays(inputs, 1);
+    const order1 = run1[0].map((p) => p.placeName).join('->');
+
+    // Run 2
+    const run2 = distributeActivitiesAcrossDays(inputs, 1);
+    const order2 = run2[0].map((p) => p.placeName).join('->');
+
+    // Verify they are identical
+    expect(order1).toBe(order2);
+    console.log(`       [Stability Check] Run 1: ${order1}`);
+    console.log(`       [Stability Check] Run 2: ${order2}`);
+    console.log(
+      '       [Stability Check] Result: PASS (Outputs are identical)',
+    );
+  });
 });
