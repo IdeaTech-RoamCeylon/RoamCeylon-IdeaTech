@@ -1316,8 +1316,7 @@ export class AIController {
       .filter(Boolean);
 
     const unique = Array.from(new Set(categories));
-    const categoryCount = categories.length;
-
+    
     // Single category day
     if (unique.length === 1) {
       const category = unique[0];
