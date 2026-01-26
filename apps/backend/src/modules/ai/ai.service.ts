@@ -21,6 +21,10 @@ export class AIService {
     return await this.embeddingService.getAllEmbeddings();
   }
 
+  async search(vector: number[], limit: number) {
+    return await this.embeddingService.searchEmbeddings(vector, limit);
+  }
+
   generateDummyEmbedding(text: string, dim = 1536): number[] {
     return this.embeddingService.generateDummyEmbedding(text, dim);
   }

@@ -1,5 +1,11 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, ReactNode } from 'react';
 import { TripPlanResponse } from '../services/aiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEYS = {
+  QUERY: 'planner_query',
+  TRIP_PLAN: 'planner_trip_plan',
+};
 
 interface PlannerContextProps {
   query: {
@@ -27,9 +33,62 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
   });
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
 
-  const clearPlanner = useCallback(() => {
-    setQuery({ destination: '', duration: '', budget: 'Medium' });
-    setTripPlan(null);
+  // Load state from storage on mount
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        const storedQuery = await AsyncStorage.getItem(STORAGE_KEYS.QUERY);
+        const storedTripPlan = await AsyncStorage.getItem(STORAGE_KEYS.TRIP_PLAN);
+
+        if (storedQuery) {
+          setQuery(JSON.parse(storedQuery));
+        }
+        if (storedTripPlan) {
+          setTripPlan(JSON.parse(storedTripPlan));
+        }
+      } catch (error) {
+        console.error('Failed to load planner state:', error);
+      }
+    };
+    loadState();
+  }, []);
+
+  // Save query to storage whenever it changes
+  useEffect(() => {
+    const saveQuery = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEYS.QUERY, JSON.stringify(query));
+      } catch (error) {
+        console.error('Failed to save query:', error);
+      }
+    };
+    saveQuery();
+  }, [query]);
+
+  // Save tripPlan to storage whenever it changes
+  useEffect(() => {
+    const saveTripPlan = async () => {
+      try {
+        if (tripPlan) {
+          await AsyncStorage.setItem(STORAGE_KEYS.TRIP_PLAN, JSON.stringify(tripPlan));
+        } else {
+          await AsyncStorage.removeItem(STORAGE_KEYS.TRIP_PLAN);
+        }
+      } catch (error) {
+        console.error('Failed to save trip plan:', error);
+      }
+    };
+    saveTripPlan();
+  }, [tripPlan]);
+
+  const clearPlanner = useCallback(async () => {
+    try {
+      setQuery({ destination: '', duration: '', budget: 'Medium' });
+      setTripPlan(null);
+      await AsyncStorage.multiRemove([STORAGE_KEYS.QUERY, STORAGE_KEYS.TRIP_PLAN]);
+    } catch (error) {
+      console.error('Failed to clear planner storage:', error);
+    }
   }, []);
 
   // Memoize context value to prevent unnecessary re-renders

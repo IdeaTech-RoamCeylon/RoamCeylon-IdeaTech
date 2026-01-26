@@ -14,9 +14,28 @@ import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
-import { aiService, TripPlanResponse } from '../../services/aiService';
+import { aiService, TripPlanResponse, TripActivity } from '../../services/aiService';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import DaySelector from '../../components/DaySelector';
+import ItineraryList from '../../components/ItineraryList';
+
+
+import { MAPBOX_CONFIG } from '../../config/mapbox.config';
+
+// Lazy load Mapbox to prevent build errors
+let MapboxGL: any = null;
+
+try {
+  MapboxGL = require('@rnmapbox/maps').default;
+  if (MAPBOX_CONFIG.accessToken) {
+    MapboxGL.setAccessToken(MAPBOX_CONFIG.accessToken);
+  }
+} catch (error) {
+  console.warn('Mapbox SDK not available:', error);
+}
+
+import { TripPlannerForm } from './TripPlannerForm';
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
@@ -27,10 +46,13 @@ const AITripPlannerScreen = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (tripPlan) {
+      setSelectedDay(1); // Reset to Day 1 when new plan is loaded
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
@@ -77,42 +99,180 @@ const AITripPlannerScreen = () => {
     }
   }, [query, networkStatus.isConnected, setTripPlan]);
 
-  // Memoize renderItinerary to prevent recreation
-  const renderItinerary = useCallback((plan: TripPlanResponse) => (
-    <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
-      <Text style={styles.resultTitle}> Your Trip to {plan.destination}</Text>
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Duration</Text>
-          <Text style={styles.summaryValue}>{plan.duration} Days</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Budget</Text>
-          <Text style={styles.summaryValue}>{plan.budget}</Text>
-        </View>
-      </View>
+  const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
+    if (!tripPlan) return;
+    
+    // Optimized update without deep clone for everything
+    setTripPlan(prevPlan => {
+      if (!prevPlan) return null;
+      
+      const newItinerary = [...prevPlan.itinerary];
+      const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
+      
+      if (dayIndex === -1) return prevPlan;
+      
+      const day = { ...newItinerary[dayIndex] };
+      const newActivities = [...day.activities];
+      
+      if (direction === 'up' && index > 0) {
+        [newActivities[index], newActivities[index - 1]] = [newActivities[index - 1], newActivities[index]];
+      } else if (direction === 'down' && index < newActivities.length - 1) {
+        [newActivities[index], newActivities[index + 1]] = [newActivities[index + 1], newActivities[index]];
+      } else {
+        return prevPlan; // No change
+      }
+      
+      day.activities = newActivities;
+      newItinerary[dayIndex] = day;
+      
+      return {
+        ...prevPlan,
+        itinerary: newItinerary
+      };
+    });
+  }, [selectedDay, setTripPlan]);
 
-      <Text style={styles.sectionTitle}>Daily Itinerary</Text>
-      {plan.itinerary.map((day) => (
-        <View key={day.day} style={styles.dayCard}>
-          <Text style={styles.dayTitle}>Day {day.day}</Text>
-          {day.activities.map((activity, index) => (
-            <View key={index} style={styles.activityRow}>
-              <Text style={styles.bulletPoint}>•</Text>
-              <Text style={styles.activityText}>{activity}</Text>
-            </View>
-          ))}
-        </View>
-      ))}
+// ...
 
-      <TouchableOpacity 
-        style={styles.resetButton}
-        onPress={() => setTripPlan(null)}
-      >
-        <Text style={styles.resetButtonText}>Plan Another Trip</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  ), [fadeAnim, setTripPlan]);
+  // Handle deleting an activity
+  const handleDeleteActivity = useCallback((index: number) => {
+    if (!tripPlan) return;
+    
+    Alert.alert(
+      "Remove Place?",
+      "Are you sure you want to remove this place from your itinerary?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Remove", 
+          style: "destructive",
+          onPress: () => {
+             setTripPlan(prevPlan => {
+               if (!prevPlan) return null;
+               
+               const newItinerary = [...prevPlan.itinerary];
+               const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
+               
+               if (dayIndex === -1) return prevPlan;
+               
+               const day = { ...newItinerary[dayIndex] };
+               const newActivities = [...day.activities];
+               
+               // Remove item
+               const removed = newActivities.splice(index, 1)[0];
+               
+               if (selectedActivity && selectedActivity.description === removed.description) {
+                 setSelectedActivity(null);
+               }
+
+               day.activities = newActivities;
+               
+               if (newActivities.length === 0) {
+                 // Remove day if empty
+                 newItinerary.splice(dayIndex, 1);
+                 
+                 // Renumber
+                 newItinerary.forEach((d, idx) => {
+                   d.day = idx + 1;
+                   d.activities.forEach((act: any) => act.dayNumber = idx + 1);
+                 });
+                 
+                 // Update duration
+                 const newDuration = String(newItinerary.length);
+                 
+                 // Check if selectedDay is valid
+                 if (selectedDay > newItinerary.length) {
+                   setSelectedDay(Math.max(1, newItinerary.length));
+                 }
+                 
+                 return {
+                    ...prevPlan,
+                    itinerary: newItinerary,
+                    duration: newDuration
+                 };
+               }
+               
+               newItinerary[dayIndex] = day;
+               
+               return {
+                 ...prevPlan,
+                 itinerary: newItinerary
+               };
+             });
+          }
+        }
+      ]
+    );
+  }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
+
+  // Derived state for current day
+  const currentDayItinerary = useMemo(() => {
+    return tripPlan?.itinerary?.find(item => item.day === selectedDay);
+  }, [tripPlan, selectedDay]);
+
+  const activities = useMemo(() => {
+    return currentDayItinerary ? currentDayItinerary.activities : [];
+  }, [currentDayItinerary]);
+
+  // Derived state for map
+  const mapActivities = useMemo(() => {
+    return activities.filter(a => a.coordinate);
+  }, [activities]);
+
+  const routeCoordinates = useMemo(() => {
+    return mapActivities.map(a => a.coordinate!);
+  }, [mapActivities]);
+
+  const routeFeature = useMemo(() => {
+     return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: routeCoordinates,
+          },
+        },
+      ],
+    };
+  }, [routeCoordinates]);
+
+  // Camera settings
+  const cameraSettings = useMemo(() => {
+    if (selectedActivity && selectedActivity.coordinate) {
+      return {
+        centerCoordinate: selectedActivity.coordinate,
+        zoomLevel: 14,
+        animationMode: 'flyTo',
+        animationDuration: 1000,
+      };
+    } else if (routeCoordinates.length > 0) {
+      if (routeCoordinates.length > 1) {
+        return {
+            bounds: {
+              ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
+              sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
+              paddingBottom: 40,
+              paddingTop: 40,
+              paddingLeft: 40,
+              paddingRight: 40,
+            },
+            animationMode: 'flyTo',
+            animationDuration: 1500,
+        };
+      } else {
+         return {
+            centerCoordinate: routeCoordinates[0],
+            zoomLevel: 11,
+            animationMode: 'flyTo',
+            animationDuration: 1500,
+         };
+      }
+    }
+    return {};
+  }, [selectedActivity, routeCoordinates]);
 
   return (
     <ScrollView style={styles.container}>
@@ -127,98 +287,111 @@ const AITripPlannerScreen = () => {
 
       <View style={styles.content}>
         {!tripPlan ? (
-          <>
-            <View style={styles.iconContainer}>
-              <Text style={styles.icon}>🤖✨</Text>
+          <TripPlannerForm
+            query={query}
+            updateQuery={updateQuery}
+            isLoading={isLoading}
+            onGenerate={handleGeneratePlan}
+            isConnected={networkStatus.isConnected}
+            budgets={budgets}
+            error={error}
+          />
+        ) : tripPlan ? (
+          <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+            <Text style={styles.resultTitle}> Your Trip to {tripPlan.destination}</Text>
+            <View style={styles.summaryContainer}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Duration</Text>
+                <Text style={styles.summaryValue}>{tripPlan.duration} Days</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Budget</Text>
+                <Text style={styles.summaryValue}>{tripPlan.budget}</Text>
+              </View>
             </View>
-            <Text style={styles.title}>Plan Your Adventure</Text>
-            <Text style={styles.subtitle}>
-              Let our AI assistant create a personalized itinerary for you.
-            </Text>
 
-            {/* Form */}
-            <View style={styles.formContainer}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Where to?</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Kandy, Ella, Sigiriya"
-                  value={query.destination}
-                  onChangeText={(text) => updateQuery('destination', text)}
-                />
+            {/* Day Selector */}
+            <DaySelector 
+              days={tripPlan.itinerary.map(item => item.day)}
+              selectedDay={selectedDay}
+              onSelectDay={(day) => {
+                setSelectedDay(day);
+                setSelectedActivity(null); // Reset activity selection when changing day
+              }}
+            />
+
+            {/* Map View */}
+            {MapboxGL && mapActivities.length > 0 && (
+              <View style={styles.mapContainer}>
+                <MapboxGL.MapView
+                  style={styles.map}
+                  styleURL={MAPBOX_CONFIG.defaultStyle}
+                  logoEnabled={false}
+                  attributionEnabled={false}
+                >
+                  <MapboxGL.Camera
+                     {...cameraSettings}
+                  />
+
+                  {/* Route Line */}
+                  {routeCoordinates.length > 1 && (
+                    <MapboxGL.ShapeSource id="routeSource" shape={routeFeature}>
+                      <MapboxGL.LineLayer
+                        id="routeFill"
+                        style={{
+                          lineColor: '#0066CC',
+                          lineWidth: 3,
+                          lineCap: 'round',
+                          lineJoin: 'round',
+                          lineOpacity: 0.8,
+                          lineDasharray: [1, 1] // Dashed line for walking/travel path vibe
+                        }}
+                      />
+                    </MapboxGL.ShapeSource>
+                  )}
+
+                  {/* Activity Markers */}
+                  {mapActivities.map((activity, index) => {
+                    const isSelected = selectedActivity === activity;
+                    return (
+                        <MapboxGL.PointAnnotation
+                        key={`${selectedDay}-${index}`}
+                        id={`marker-${index}`}
+                        coordinate={activity.coordinate}
+                        onSelected={() => setSelectedActivity(activity)}
+                        >
+                        <View style={styles.markerContainer}>
+                            <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
+                            <Text style={styles.markerText}>{index + 1}</Text>
+                            </View>
+                        </View>
+                        </MapboxGL.PointAnnotation>
+                    );
+                  })}
+                </MapboxGL.MapView>
               </View>
+            )}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Duration (Days)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 3"
-                  keyboardType="numeric"
-                  value={query.duration}
-                  onChangeText={(text) => updateQuery('duration', text)}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Budget Level</Text>
-                <View style={styles.budgetSelector}>
-                  {budgets.map((b) => (
-                    <TouchableOpacity
-                      key={b}
-                      style={[
-                        styles.budgetOption,
-                        query.budget === b && styles.budgetOptionSelected,
-                      ]}
-                      onPress={() => updateQuery('budget', b)}
-                    >
-                      <Text
-                        style={[
-                          styles.budgetOptionText,
-                          query.budget === b && styles.budgetOptionTextSelected,
-                        ]}
-                      >
-                        {b}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-                <TouchableOpacity
-                style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
-                onPress={handleGeneratePlan}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.generateButtonText}>✨ Generate Plan</Text>
-                )}
-              </TouchableOpacity>
-              
-              {error && (
-                <View style={styles.errorContainer}>
-                   <Text style={styles.errorText}>{error}</Text>
-                   <TouchableOpacity 
-                     style={styles.retryButton}
-                     onPress={handleGeneratePlan}
-                     disabled={isLoading || !networkStatus.isConnected}
-                   >
-                     <Text style={styles.retryButtonText}>Retry</Text>
-                   </TouchableOpacity>
-                </View>
-              )}
-              
-              {!networkStatus.isConnected && (
-                <View style={styles.offlineContainer}>
-                  <Text style={styles.offlineText}>📡 Offline</Text>
-                </View>
-              )}
+            <View style={styles.dayCard}>
+              <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
+              <ItineraryList 
+                activities={activities} 
+                onActivitySelect={setSelectedActivity}
+                selectedActivity={selectedActivity}
+                onMoveUp={(index) => handleMoveActivity(index, 'up')}
+                onMoveDown={(index) => handleMoveActivity(index, 'down')}
+                onDelete={handleDeleteActivity}
+              />
             </View>
-          </>
-        ) : (
-          renderItinerary(tripPlan)
-        )}
+
+            <TouchableOpacity 
+              style={styles.resetButton}
+              onPress={() => setTripPlan(null)}
+            >
+              <Text style={styles.resetButtonText}>Plan Another Trip</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -228,6 +401,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  content: {
+    padding: 20,
+    alignItems: 'center',
   },
   header: {
     backgroundColor: '#fff',
@@ -248,100 +425,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#0066CC',
     fontWeight: '600',
-  },
-  content: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  iconContainer: {
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  icon: {
-    fontSize: 60,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
-  },
-  formContainer: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  budgetSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
-  budgetOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    marginBottom: 8,
-    backgroundColor: '#f9f9f9',
-  },
-  budgetOptionSelected: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#0066CC',
-  },
-  budgetOptionText: {
-    fontSize: 13,
-    color: '#666',
-  },
-  budgetOptionTextSelected: {
-    color: '#0066CC',
-    fontWeight: '600',
-  },
-  generateButton: {
-    backgroundColor: '#0066CC',
-    padding: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  generateButtonDisabled: {
-    backgroundColor: '#90CAF9',
-  },
-  generateButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   // Iterinary Results Styles
   resultsContainer: {
@@ -400,6 +483,45 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
+  mapContainer: {
+    height: 250,
+    width: '100%',
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 20,
+    backgroundColor: '#e0e0e0', // Placeholder color
+  },
+  map: {
+    flex: 1,
+  },
+  markerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerBadge: {
+    backgroundColor: '#0066CC',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  selectedMarkerBadge: {
+    backgroundColor: '#FF9800',
+    transform: [{ scale: 1.2 }],
+  },
+  markerText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   activityRow: {
     flexDirection: 'row',
     marginBottom: 6,
@@ -426,47 +548,6 @@ const styles = StyleSheet.create({
     color: '#0066CC',
     fontWeight: '600',
     fontSize: 15,
-  },
-  errorContainer: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: '#ffebee',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ffcdd2',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#d32f2f',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  retryButton: {
-    backgroundColor: '#0066CC',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 5,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  offlineContainer: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: '#fff3cd',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ffc107',
-    alignItems: 'center',
-  },
-  offlineText: {
-    color: '#856404',
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
 

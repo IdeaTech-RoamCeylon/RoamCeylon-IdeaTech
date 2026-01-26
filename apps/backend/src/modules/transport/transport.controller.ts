@@ -18,7 +18,7 @@ import { ThrottlerGuard } from '../../common/guards/throttler.guard';
 export class TransportController {
   private readonly logger = new Logger('TransportController');
 
-  constructor(private readonly transportService: TransportService) { }
+  constructor(private readonly transportService: TransportService) {}
 
   @Post('seed')
   seedData() {

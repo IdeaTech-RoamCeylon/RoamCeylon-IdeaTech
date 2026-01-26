@@ -15,7 +15,7 @@ export interface Wrapper<T> {
 export class TransportService {
   private readonly logger = new Logger('TransportService');
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private wrapResponse<T>(data: T): Wrapper<T> {
     return {

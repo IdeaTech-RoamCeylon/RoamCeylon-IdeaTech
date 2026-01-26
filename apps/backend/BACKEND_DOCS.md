@@ -5,6 +5,12 @@ This documentation outlines the backend architecture, API endpoints, database sc
 
 ## API Endpoints
 
+### Security & Authentication
+*   **Transport API**: Requires valid JWT Access Token (Header: `Authorization: Bearer <token>`).
+*   **Marketplace API**: Public access.
+*   **Auth API**: Public access.
+
+
 ### Authentication (`/auth`)
 *   **POST** `/auth/send-otp`
     *   **Description**: Sends an OTP to the provided phone number.
@@ -45,6 +51,18 @@ This documentation outlines the backend architecture, API endpoints, database sc
 *   **GET** `/users/me`
     *   **Description**: Retrieves the profile of the currently authenticated user.
     *   **Response**: User object (structure depends on `UsersService`).
+
+### Transport (`/transport`)
+*   **GET** `/transport/drivers`
+    *   **Query Params**: `lat` (number), `lng` (number), `limit` (number, optional)
+    *   **Description**: Fetches available drivers near the specified location.
+    *   **Response**: List of driver objects.
+
+*   **POST** `/transport/seed`
+    *   **Description**: Seeds the database with mock driver data. (Dev only)
+
+*   **GET** `/transport/simulate`
+    *   **Description**: Simulates driver movement updates. (Dev only)
 
 ### Marketplace (`/marketplace`)
 *   **GET** `/marketplace/categories`
@@ -131,8 +149,9 @@ The database, powered by PostgreSQL, utilizes the following key models:
 
 *   **embeddings** (for AI/Vector Search)
     *   `id`: Int
-    *   `text`: String
-    *   `embedding`: Unsupported("vector(1536)")
+    *   `content`: String?
+    *   `title`: String?
+    *   `embedding`: Unsupported("vector")
     *   `created_at`: DateTime
 
 *   **DriverLocation** (Geo-Spatial)

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-// import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -9,7 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { TransportModule } from './modules/transport/transport.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { AIModule } from './modules/ai/ai.module';
-import { ThrottlerModule } from '@nestjs/throttler';
+// import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 60,
       },
     ]),
     PrismaModule,
@@ -30,4 +30,4 @@ import { ThrottlerModule } from '@nestjs/throttler';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

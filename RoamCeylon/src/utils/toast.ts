@@ -101,7 +101,7 @@ export const showToast = {
         Toast.show({
           type: 'error',
           text1: 'Server Error',
-          text2: 'Something went wrong on our end. Please try again later.',
+          text2: __DEV__ ? message : 'Something went wrong. Please try again later.',
           position: 'top',
           visibilityTime: 4000,
         });
