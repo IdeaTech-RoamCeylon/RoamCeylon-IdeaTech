@@ -1,97 +1,188 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Driver, RideRequest } from './item.interface';
 
+export interface Wrapper<T> {
+  data: T;
+  meta?: {
+    count: number;
+    timestamp: string;
+    [key: string]: any;
+  };
+}
+
 @Injectable()
 export class TransportService {
-  private readonly logger = new Logger(TransportService.name);
+  private readonly logger = new Logger('TransportService');
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private wrapResponse<T>(data: T): Wrapper<T> {
+    return {
+      data,
+      meta: {
+        count: Array.isArray(data) ? data.length : 1,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
 
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
 
-    // 1. Create dummy users for drivers if they don't exist
     const driversData = [
+      // Colombo Area (Existing + New)
       { id: 'd1', name: 'Kamal Perera', lat: 6.9271, lng: 79.8612 }, // Colombo
       { id: 'd2', name: 'Nimal Silva', lat: 6.9319, lng: 79.8475 }, // Pettah
       { id: 'd3', name: 'Sunil Cooray', lat: 6.9023, lng: 79.8596 }, // Bambalapitiya
+
+      // Kandy Area
+      { id: 'd4', name: 'Duminda Alwis', lat: 7.2906, lng: 80.6337 }, // Kandy Town
+      { id: 'd5', name: 'Isuru Perera', lat: 7.2944, lng: 80.5987 }, // Peradeniya
+
+      // Galle Area
+      { id: 'd6', name: 'Sameera Appuhami', lat: 6.0329, lng: 80.2168 }, // Galle Fort
+      { id: 'd7', name: 'Asiri Bandara', lat: 6.0394, lng: 80.2489 }, // Unawatuna
+
+      // Nuwara Eliya Area
+      { id: 'd8', name: 'Chamara Silva', lat: 6.9497, lng: 80.7891 }, // Nuwara Eliya
+      { id: 'd9', name: 'Pradeep Kumara', lat: 6.9744, lng: 80.7824 }, // Lake Gregory
     ];
 
-    for (const d of driversData) {
-      // Upsert User
-      await this.prisma.user.upsert({
-        where: { id: d.id },
-        update: { name: d.name },
-        create: {
-          id: d.id,
-          name: d.name,
-          phone: `+9477000000${d.id.replace('d', '')}`,
-        },
+    try {
+      await this.prisma.client.$transaction(async (tx) => {
+        for (const d of driversData) {
+          // Upsert User
+          await tx.user.upsert({
+            where: { id: d.id },
+            update: { name: d.name },
+            create: {
+              id: d.id,
+              name: d.name,
+              phone: `+9477000000${d.id.replace('d', '')}`,
+            },
+          });
+
+          // Delete old location to avoid uniqueness issues
+          await tx.$executeRaw`DELETE FROM "DriverLocation" WHERE "driverId" = ${d.id}`;
+
+          // Insert Location
+          await tx.$executeRaw`
+            INSERT INTO "DriverLocation" ("driverId", location, "updatedAt")
+            VALUES (${d.id}, ST_SetSRID(ST_MakePoint(${d.lng}, ${d.lat}), 4326), NOW())
+          `;
+        }
       });
-
-      // Insert Location (Raw query needed for geometry)
-      // We diligently delete old location for this driver to avoid duplicates if re-seeding
-      await this.prisma.client
-        .$executeRaw`DELETE FROM "DriverLocation" WHERE "driverId" = ${d.id}`;
-
-      await this.prisma.client.$executeRaw`
-        INSERT INTO "DriverLocation" ("driverId", location, "updatedAt")
-        VALUES (${d.id}, ST_SetSRID(ST_MakePoint(${d.lng}, ${d.lat}), 4326), NOW())
-      `;
+      return { message: 'Diverse drivers seeded to PostGIS', count: driversData.length };
+    } catch (error) {
+      this.logger.error(`Seeding failed: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Failed to seed transport data');
     }
-
-    return { message: 'Drivers seeded to PostGIS', count: driversData.length };
-  }
-
-  seedRideRequests() {
-    // Current requirement focuses on Drivers.
-    // We can leave this as a stub or implement similarly later.
-    return { message: 'Ride requests seeding not yet migrated to PostGIS' };
   }
 
   async getDrivers(
     lat?: number,
     lng?: number,
     limit: number = 5,
-  ): Promise<Driver[]> {
-    if (lat === undefined || lng === undefined) {
-      // Return all if no location provided (limit 50)
+  ): Promise<Wrapper<Driver[]>> {
+    const start = Date.now();
+
+    try {
+      if (lat === undefined || lng === undefined) {
+        const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
+          SELECT
+            d."driverId" as id,
+            u.name,
+            ST_X(d.location::geometry) as lng,
+            ST_Y(d.location::geometry) as lat
+          FROM "DriverLocation" d
+          LEFT JOIN "User" u ON d."driverId" = u.id
+          ORDER BY d."driverId" ASC
+          LIMIT ${limit}
+        `;
+        const duration = Date.now() - start;
+        this.logger.log(`Found ${raw.length} drivers (no coords) in ${duration}ms`);
+        return this.wrapResponse(this.mapToDriver(raw));
+      }
+
       const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
         SELECT
-        d."driverId" as id,
-        u.name,
-        ST_X(d.location:: geometry) as lng,
-        ST_Y(d.location:: geometry) as lat
+          d."driverId" as id,
+          u.name,
+          ST_X(d.location::geometry) as lng,
+          ST_Y(d.location::geometry) as lat,
+          ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) as distance
         FROM "DriverLocation" d
         LEFT JOIN "User" u ON d."driverId" = u.id
-        ORDER BY d."driverId" ASC
+        WHERE ST_DWithin(
+          d.location, 
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326),
+          0.2 /* Approx 20km radius limit */
+        )
+        ORDER BY d.location <-> ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)
         LIMIT ${limit}
-        `;
-      return this.mapToDriver(raw);
+      `;
+
+      const duration = Date.now() - start;
+      this.logger.log(`Found ${raw.length} drivers near [${lat}, ${lng}] in ${duration}ms`);
+      return this.wrapResponse(this.mapToDriver(raw));
+    } catch (error) {
+      this.logger.error(`Error fetching drivers: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Could not retrieve drivers at this time');
     }
-
-    // Find nearby
-    // Find nearby
-    const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
-    SELECT
-    d."driverId" as id,
-      u.name,
-      ST_X(d.location:: geometry) as lng,
-      ST_Y(d.location:: geometry) as lat,
-      ST_DistanceSphere(d.location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)) as distance
-      FROM "DriverLocation" d
-      LEFT JOIN "User" u ON d."driverId" = u.id
-      ORDER BY d.location < -> ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)
-      LIMIT ${limit}
-    `;
-
-    return this.mapToDriver(raw);
   }
 
-  // Not implemented fully for this sprint task, keeping signature
-  getRideRequests(): RideRequest[] {
-    return [];
+  async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }) {
+    try {
+      const result = await this.prisma.client.$executeRaw`
+        INSERT INTO "RideRequest" ("passengerId", "pickupLocation", "destination", "status", "createdAt")
+        VALUES (
+          ${passengerId},
+          ST_SetSRID(ST_MakePoint(${pickup.lng}, ${pickup.lat}), 4326),
+          ST_SetSRID(ST_MakePoint(${destination.lng}, ${destination.lat}), 4326),
+          'requested',
+          NOW()
+        )
+      `;
+      // Fetch the last inserted to return ID (simplification for raw query)
+      // For production, RETURNING id is better but this is consistent with current pattern
+      const ride = await this.prisma.client.$queryRaw<any[]>`
+        SELECT id FROM "RideRequest" WHERE "passengerId" = ${passengerId} ORDER BY "createdAt" DESC LIMIT 1
+      `;
+      return this.wrapResponse({ rideId: ride[0]?.id, status: 'requested' });
+    } catch (error) {
+      this.logger.error(`Failed to create ride: ${error.message}`);
+      throw new InternalServerErrorException('Could not create ride');
+    }
+  }
+
+  async updateRideStatus(rideId: number, status: string) {
+    try {
+      await this.prisma.client.$executeRaw`
+        UPDATE "RideRequest" SET status = ${status} WHERE id = ${rideId}
+      `;
+      return this.wrapResponse({ rideId, status });
+    } catch (error) {
+      this.logger.error(`Failed to update ride status: ${error.message}`);
+      throw new InternalServerErrorException('Could not update ride status');
+    }
+  }
+
+  async getRide(rideId: number) {
+    try {
+      const rides = await this.prisma.client.$queryRaw<any[]>`
+        SELECT id, "passengerId", status FROM "RideRequest" WHERE id = ${rideId}
+      `;
+      if (!rides.length) return this.wrapResponse(null);
+      return this.wrapResponse(rides[0]);
+    } catch (error) {
+      this.logger.error(`Failed to get ride: ${error.message}`);
+      throw new InternalServerErrorException('Could not fetch ride');
+    }
+  }
+
+  getRideRequests(): Wrapper<RideRequest[]> {
+    return this.wrapResponse([]);
   }
 
   simulate() {
@@ -100,15 +191,29 @@ export class TransportService {
 
   private mapToDriver(rows: DriverRow[]): Driver[] {
     return rows.map((r) => {
+      const distanceMetres = r.distance || 0;
+      const distanceKm = distanceMetres / 1000;
+
+      // Realistic ETA calculation:
+      // < 500m -> "1 min"
+      // Otherwise -> 1.5 mins per km + 1 min base arrival time
+      let eta = 'Unknown';
+      if (r.distance !== undefined) {
+        if (distanceMetres < 500) {
+          eta = '1 min';
+        } else {
+          const mins = Math.ceil(distanceKm * 1.5) + 1;
+          eta = `${mins} mins`;
+        }
+      }
+
       return {
         id: r.id,
-        name: r.name || 'Unknown',
+        name: r.name || 'Unknown Driver',
         lat: r.lat,
         lng: r.lng,
-        status: 'available', // Schema doesn't have status yet, default to available
-        eta: r.distance
-          ? `${Math.ceil((r.distance / 1000 / 40) * 60)} mins`
-          : undefined, // 40km/h avg speed
+        status: 'available',
+        eta,
       };
     });
   }

@@ -7,19 +7,18 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { Request } from 'express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name);
+  private readonly logger = new Logger('Exceptions');
 
-  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) { }
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    // In certain situations `httpAdapter` might not be available in the
-    // constructor method, thus we should resolve it here.
     const { httpAdapter } = this.httpAdapterHost;
-
     const ctx = host.switchToHttp();
+    const request = ctx.getRequest<Request>();
 
     const httpStatus =
       exception instanceof HttpException
@@ -33,8 +32,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const message =
       typeof exceptionResponse === 'object' &&
-      exceptionResponse !== null &&
-      'message' in exceptionResponse
+        exceptionResponse !== null &&
+        'message' in exceptionResponse
         ? (exceptionResponse as Record<string, unknown>).message
         : exceptionResponse;
 
@@ -42,14 +41,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error: true,
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
-      path: httpAdapter.getRequestUrl(ctx.getRequest()) as string,
+      path: httpAdapter.getRequestUrl(request) as string,
+      method: request.method,
       message: message,
     };
 
-    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR.valueOf()) {
-      this.logger.error(`Internal Server Error: ${String(exception)}`);
-    } else {
-      this.logger.warn(`Exception: ${JSON.stringify(responseBody)}`);
+    // Enhanced logging with more context
+    const logContext = `${request.method} ${request.url}`;
+
+    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        `[${logContext}] Critical Error: ${message}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else if (httpStatus >= 400) {
+      this.logger.warn(`[${logContext}] Client Error (${httpStatus}): ${message}`);
     }
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
