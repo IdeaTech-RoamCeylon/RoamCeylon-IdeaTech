@@ -64,3 +64,40 @@ model spatial_ref_sys {
   srtext    String? @db.VarChar(2048)
   proj4text String? @db.VarChar(2048)
 }
+
+model SavedTrip {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  name        String
+  destination String
+  startDate   DateTime
+  endDate     DateTime
+  itinerary   Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model TransportSession {
+  id             String   @id @default(uuid())
+  passengerId    String
+  driverId       String?
+  status         String
+  pickupLocation Json
+  destination    Json
+  fare           Decimal?
+  startTime      DateTime @default(now())
+  endTime        DateTime?
+  
+  @@index([passengerId])
+  @@index([driverId])
+  @@index([status])
+}
+
+model PlannerMetadata {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}

@@ -9,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { TransportModule } from './modules/transport/transport.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { AIModule } from './modules/ai/ai.module';
+import { PlannerModule } from './modules/planner/planner.module';
 // import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -26,8 +27,9 @@ import { AIModule } from './modules/ai/ai.module';
     TransportModule,
     MarketplaceModule,
     AIModule,
+    PlannerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

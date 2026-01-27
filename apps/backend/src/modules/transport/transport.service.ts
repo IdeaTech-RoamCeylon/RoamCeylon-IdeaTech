@@ -15,7 +15,7 @@ export interface Wrapper<T> {
 export class TransportService {
   private readonly logger = new Logger('TransportService');
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private wrapResponse<T>(data: T): Wrapper<T> {
     return {
@@ -134,47 +134,55 @@ export class TransportService {
 
   async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }) {
     try {
-      const result = await this.prisma.client.$executeRaw`
-        INSERT INTO "RideRequest" ("passengerId", "pickupLocation", "destination", "status", "createdAt")
-        VALUES (
-          ${passengerId},
-          ST_SetSRID(ST_MakePoint(${pickup.lng}, ${pickup.lat}), 4326),
-          ST_SetSRID(ST_MakePoint(${destination.lng}, ${destination.lat}), 4326),
-          'requested',
-          NOW()
-        )
-      `;
-      // Fetch the last inserted to return ID (simplification for raw query)
-      // For production, RETURNING id is better but this is consistent with current pattern
-      const ride = await this.prisma.client.$queryRaw<any[]>`
-        SELECT id FROM "RideRequest" WHERE "passengerId" = ${passengerId} ORDER BY "createdAt" DESC LIMIT 1
-      `;
-      return this.wrapResponse({ rideId: ride[0]?.id, status: 'requested' });
+      const session = await (this.prisma as any).transportSession.create({
+        data: {
+          passengerId,
+          pickupLocation: pickup,
+          destination,
+          status: 'requested',
+        },
+      });
+      return this.wrapResponse({ rideId: session.id, status: session.status });
     } catch (error) {
       this.logger.error(`Failed to create ride: ${error.message}`);
       throw new InternalServerErrorException('Could not create ride');
     }
   }
 
-  async updateRideStatus(rideId: number, status: string) {
+  async updateRideStatus(rideId: string, status: string) {
     try {
-      await this.prisma.client.$executeRaw`
-        UPDATE "RideRequest" SET status = ${status} WHERE id = ${rideId}
-      `;
-      return this.wrapResponse({ rideId, status });
+      const data: any = { status };
+      if (status === 'completed') {
+        data.endTime = new Date();
+      }
+
+      const session = await (this.prisma as any).transportSession.update({
+        where: { id: rideId },
+        data,
+      });
+      return this.wrapResponse({ rideId: session.id, status: session.status });
     } catch (error) {
       this.logger.error(`Failed to update ride status: ${error.message}`);
       throw new InternalServerErrorException('Could not update ride status');
     }
   }
 
-  async getRide(rideId: number) {
+  async getRide(rideId: string, userId?: string) {
     try {
-      const rides = await this.prisma.client.$queryRaw<any[]>`
-        SELECT id, "passengerId", status FROM "RideRequest" WHERE id = ${rideId}
-      `;
-      if (!rides.length) return this.wrapResponse(null);
-      return this.wrapResponse(rides[0]);
+      const session = await (this.prisma as any).transportSession.findUnique({
+        where: { id: rideId },
+        select: { id: true, passengerId: true, status: true, driverId: true, fare: true }
+      });
+
+      if (!session) return this.wrapResponse(null);
+
+      // Security check: ensure the requester is the passenger or driver
+      if (userId && session.passengerId !== userId && session.driverId !== userId) {
+        throw new Error('Access denied');
+        // In a real app we'd throw ForbiddenException, but using Error to match current style
+      }
+
+      return this.wrapResponse(session);
     } catch (error) {
       this.logger.error(`Failed to get ride: ${error.message}`);
       throw new InternalServerErrorException('Could not fetch ride');

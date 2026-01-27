@@ -6,6 +6,7 @@ import {
   Logger,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { TransportService, Wrapper } from './transport.service';
 import { Driver } from './item.interface';
@@ -19,7 +20,7 @@ import { ThrottlerGuard } from '../../common/guards/throttler.guard';
 export class TransportController {
   private readonly logger = new Logger('TransportController');
 
-  constructor(private readonly transportService: TransportService) {}
+  constructor(private readonly transportService: TransportService) { }
 
   @Post('seed')
   seedData() {
@@ -39,12 +40,14 @@ export class TransportController {
   }
 
   @Post('ride')
-  async createRide(@Body() body: { passengerId: string, pickup: any, destination: any }) {
-    return this.transportService.createRide(body.passengerId, body.pickup, body.destination);
+  async createRide(@Req() req: any, @Body() body: { pickup: any, destination: any }) {
+    // Force passengerId to be the authenticated user
+    const passengerId = req.user.userId;
+    return this.transportService.createRide(passengerId, body.pickup, body.destination);
   }
 
   @Post('ride/status')
-  async updateRideStatus(@Body() body: { rideId: number, status: string }) {
+  async updateRideStatus(@Body() body: { rideId: string, status: string }) {
     return this.transportService.updateRideStatus(body.rideId, body.status);
   }
 
@@ -53,19 +56,18 @@ export class TransportController {
    * Tracks real-time ride progress from the database.
    */
   @Get('ride-status')
-  async getRideStatus(@Query('rideId') rideId: string) {
+  async getRideStatus(@Req() req: any, @Query('rideId') rideId: string) {
     this.logger.log(`[Sprint 3] Fetching ride status for ID: ${rideId}`);
 
-    // Parse ID safely
-    const parsedId = parseInt(rideId, 10);
-    if (isNaN(parsedId)) {
+    if (!rideId) {
       return {
-        data: { status: 'unknown', message: 'Invalid ID' },
+        data: { status: 'unknown', message: 'Missing ID' },
         meta: { timestamp: new Date().toISOString() }
       };
     }
 
-    const result = await this.transportService.getRide(parsedId);
+    // Pass userId for security check
+    const result = await this.transportService.getRide(rideId, req.user?.userId);
 
     return {
       data: result.data || { status: 'not_found' },
@@ -73,6 +75,17 @@ export class TransportController {
         timestamp: new Date().toISOString(),
         version: 'Sprint 3 Live',
       },
+    };
+  }
+
+  @Get('session/:id')
+  async getSession(@Query('id') id: string) {
+    // Skeleton implementation
+    return {
+      sessionId: id,
+      status: 'active',
+      driverLocation: { lat: 6.9271, lng: 79.8612 },
+      eta: '5 mins'
     };
   }
 }
