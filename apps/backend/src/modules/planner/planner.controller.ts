@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Put, Delete, Body, Req, UseGuards, Param } from '@nestjs/common';
-import { PlannerService } from './planner.service';
+import { PlannerService, TripData } from './planner.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -13,7 +13,7 @@ export class PlannerController {
     constructor(private readonly plannerService: PlannerService) { }
 
     @Post('save')
-    async saveTrip(@Req() req: RequestWithUser, @Body() body: any) {
+    async saveTrip(@Req() req: RequestWithUser, @Body() body: TripData) {
         return this.plannerService.saveTrip(req.user.userId, body);
     }
 
@@ -26,7 +26,7 @@ export class PlannerController {
     async updateTrip(
         @Req() req: RequestWithUser,
         @Param('id') id: string,
-        @Body() body: any,
+        @Body() body: TripData,
     ) {
         return this.plannerService.updateTrip(req.user.userId, parseInt(id, 10), body);
     }

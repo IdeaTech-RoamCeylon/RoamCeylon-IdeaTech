@@ -33,7 +33,7 @@ export class MarketplaceService {
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) { }
 
-  private async wrapResponse<T>(data: T, cached: boolean = false): Promise<Wrapper<T>> {
+  private wrapResponse<T>(data: T, cached: boolean = false): Wrapper<T> {
     return {
       data,
       meta: {

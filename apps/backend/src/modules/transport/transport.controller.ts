@@ -11,9 +11,14 @@ import {
 import { TransportService, Wrapper } from './transport.service';
 import { Driver } from './item.interface';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Request } from 'express';
 
 import { GetDriversDto } from './dto/get-drivers.dto';
 import { ThrottlerGuard } from '../../common/guards/throttler.guard';
+
+interface RequestWithUser extends Request {
+  user: { userId: string; username: string };
+}
 
 @Controller('transport')
 @UseGuards(JwtAuthGuard)
@@ -40,7 +45,10 @@ export class TransportController {
   }
 
   @Post('ride')
-  async createRide(@Req() req: any, @Body() body: { pickup: any, destination: any }) {
+  async createRide(
+    @Req() req: RequestWithUser,
+    @Body() body: { pickup: { lat: number; lng: number }; destination: { lat: number; lng: number } }
+  ) {
     // Force passengerId to be the authenticated user
     const passengerId = req.user.userId;
     return this.transportService.createRide(passengerId, body.pickup, body.destination);
@@ -56,7 +64,7 @@ export class TransportController {
    * Tracks real-time ride progress from the database.
    */
   @Get('ride-status')
-  async getRideStatus(@Req() req: any, @Query('rideId') rideId: string) {
+  async getRideStatus(@Req() req: RequestWithUser, @Query('rideId') rideId: string) {
     this.logger.log(`[Sprint 3] Fetching ride status for ID: ${rideId}`);
 
     if (!rideId) {

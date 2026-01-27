@@ -896,105 +896,105 @@ debugEmbedding(@Query('text') text: string) {
     tips: tips.length ? tips : undefined,
   };
 }
-  private isValidDestination(destination?: string): boolean {
-    if (!destination || typeof destination !== 'string') return false;
-    const trimmed = destination.trim().toLowerCase();
-    if (trimmed.length < 2) return false;
-    const invalidValues = ['unknown', 'n/a', 'none', 'test', 'undefined', 'null', 'somewhere'];
-    if (invalidValues.includes(trimmed)) return false;
-    if (/^\d+$/.test(trimmed)) return false;
-    return true;
-  }
+  private isValidDestination(destination ?: string): boolean {
+  if (!destination || typeof destination !== 'string') return false;
+  const trimmed = destination.trim().toLowerCase();
+  if (trimmed.length < 2) return false;
+  const invalidValues = ['unknown', 'n/a', 'none', 'test', 'undefined', 'null', 'somewhere'];
+  if (invalidValues.includes(trimmed)) return false;
+  if (/^\d+$/.test(trimmed)) return false;
+  return true;
+}
 
   private validateDates(
-    start?: string,
-    end?: string,
-  ): { startDate: string; endDate: string; dayCount: number; isValid: boolean } {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  start ?: string,
+  end ?: string,
+): { startDate: string; endDate: string; dayCount: number; isValid: boolean } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    const parseDate = (d?: string): Date | null => {
-      if (!d) return null;
-      const date = new Date(d);
-      return isNaN(date.getTime()) ? null : date;
-    };
+  const parseDate = (d?: string): Date | null => {
+    if (!d) return null;
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? null : date;
+  };
 
-    let startDate = parseDate(start);
-    let endDate = parseDate(end);
+  let startDate = parseDate(start);
+  let endDate = parseDate(end);
 
-    if (!startDate) {
-      startDate = new Date(today);
-    }
-
-    if (!endDate || endDate < startDate) {
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 2);
-    }
-
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    const finalDayCount = Math.min(Math.max(1, dayCount), 14);
-
-    if (finalDayCount !== dayCount) {
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + finalDayCount - 1);
-    }
-
-    return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      dayCount: finalDayCount,
-      isValid: !!start && !!end && !isNaN(new Date(start).getTime()) && !isNaN(new Date(end).getTime()),
-    };
+  if (!startDate) {
+    startDate = new Date(today);
   }
+
+  if (!endDate || endDate < startDate) {
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 2);
+  }
+
+  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+  const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  const finalDayCount = Math.min(Math.max(1, dayCount), 14);
+
+  if (finalDayCount !== dayCount) {
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + finalDayCount - 1);
+  }
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+    dayCount: finalDayCount,
+    isValid: !!start && !!end && !isNaN(new Date(start).getTime()) && !isNaN(new Date(end).getTime()),
+  };
+}
 
   /* ==================== PRIORITY / SCORING ==================== */
 
   private calculateCategoryAlignment(
-    text: string,
-    preferences?: string[],
-  ): number {
-    if (!preferences?.length) return 0;
+  text: string,
+  preferences ?: string[],
+): number {
+  if (!preferences?.length) return 0;
 
-    let alignmentScore = 0;
-    const textLower = text.toLowerCase();
-    const matchedPrefs = new Set<string>();
+  let alignmentScore = 0;
+  const textLower = text.toLowerCase();
+  const matchedPrefs = new Set<string>();
 
-    for (const pref of preferences) {
-      const prefLower = pref.toLowerCase();
-      if (matchedPrefs.has(prefLower)) continue;
+  for (const pref of preferences) {
+    const prefLower = pref.toLowerCase();
+    if (matchedPrefs.has(prefLower)) continue;
 
-      const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
+    const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
 
-      if (textLower.includes(prefLower)) {
-        alignmentScore += PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.DIRECT_MATCH;
-        matchedPrefs.add(prefLower);
-        continue;
-      }
+    if (textLower.includes(prefLower)) {
+      alignmentScore += PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.DIRECT_MATCH;
+      matchedPrefs.add(prefLower);
+      continue;
+    }
 
-      let bestCategoryMatch = 0;
-      for (const category of mappedCategories) {
-        const categoryLower = category.toLowerCase();
-        if (textLower.includes(categoryLower)) {
-          bestCategoryMatch = Math.max(
-            bestCategoryMatch,
-            PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.MAPPED_MATCH,
-          );
-        }
-      }
-
-      if (bestCategoryMatch > 0) {
-        alignmentScore += bestCategoryMatch;
-        matchedPrefs.add(prefLower);
+    let bestCategoryMatch = 0;
+    for (const category of mappedCategories) {
+      const categoryLower = category.toLowerCase();
+      if (textLower.includes(categoryLower)) {
+        bestCategoryMatch = Math.max(
+          bestCategoryMatch,
+          PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.MAPPED_MATCH,
+        );
       }
     }
 
-    return Math.min(
-      alignmentScore,
-      PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.MAX,
-    );
+    if (bestCategoryMatch > 0) {
+      alignmentScore += bestCategoryMatch;
+      matchedPrefs.add(prefLower);
+    }
   }
+
+  return Math.min(
+    alignmentScore,
+    PLANNER_CONFIG.SCORING.CATEGORY_ALIGNMENT.MAX,
+  );
 }
+
 
   private scoreResultsByPreferences(
   results: SearchResultItem[],
@@ -1424,368 +1424,368 @@ debugEmbedding(@Query('text') text: string) {
     Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
     'sightseeing';
 
-    // Mixed categories - create intuitive combinations
-    const hasAny = (cats: string[]) => cats.some((c) => unique.includes(c));
+  // Mixed categories - create intuitive combinations
+  const hasAny = (cats: string[]) => cats.some((c) => unique.includes(c));
 
-    // Arrival combinations
-    if (hasAny(['arrival'])) {
-        if (hasAny(['beach'])) {
-          return {
-            theme: 'Arrival & Beach',
-            explanation: 'Start with check-in, then relax by the water.',
-          };
-        }
-        if (hasAny(['culture', 'sightseeing'])) {
-          return {
-            theme: 'Arrival & Exploration',
-            explanation: 'Settle in and see some nearby highlights.',
-          };
-        }
-        return {
-          theme: 'Arrival Day',
-          explanation: 'Get oriented and ease into your trip.',
-        };
-      }
-
-      // Beach + Relaxation
-      if (hasAny(['beach']) && hasAny(['relaxation'])) {
-        return {
-          theme: 'Beach & Chill',
-          explanation: 'Coastal relaxation and downtime.',
-        };
-      }
-
-      // Culture + History
-      if (hasAny(['culture']) && hasAny(['history'])) {
-        return {
-          theme: 'Culture & History',
-          explanation: 'Explore heritage sites and local traditions.',
-        };
-      }
-
-      // Nature + Adventure
-      if (hasAny(['nature']) && hasAny(['adventure'])) {
-        return {
-          theme: 'Nature & Adventure',
-          explanation: 'Outdoor activities in beautiful settings.',
-        };
-      }
-
-      // Culture + Nature
-      if (hasAny(['culture']) && hasAny(['nature'])) {
-        return {
-          theme: 'Culture & Nature',
-          explanation: 'Balance cultural sites with natural beauty.',
-        };
-      }
-
-      // Sightseeing + anything
-      if (hasAny(['sightseeing'])) {
-        if (hasAny(['beach'])) {
-          return {
-            theme: 'Sights & Beach',
-            explanation: 'Mix of landmarks and coastal relaxation.',
-          };
-        }
-        if (hasAny(['nature'])) {
-          return {
-            theme: 'Sights & Nature',
-            explanation: 'Combine must-see spots with natural beauty.',
-          };
-        }
-      }
-
-      // Mixed variety
-      if (unique.length >= 3) {
-          return {
-            theme: 'Mixed Day',
-            explanation: `Variety of ${unique.length} different experiences today.`,
-          };
-     }
-
-     // Default for 2 categories
-     return {
-        theme: 'Discovery Day',
-        explanation: `Mix of ${unique.join(' and ')} activities.`,
+  // Arrival combinations
+  if (hasAny(['arrival'])) {
+    if (hasAny(['beach'])) {
+      return {
+        theme: 'Arrival & Beach',
+        explanation: 'Start with check-in, then relax by the water.',
+      };
+    }
+    if (hasAny(['culture', 'sightseeing'])) {
+      return {
+        theme: 'Arrival & Exploration',
+        explanation: 'Settle in and see some nearby highlights.',
+      };
+    }
+    return {
+      theme: 'Arrival Day',
+      explanation: 'Get oriented and ease into your trip.',
     };
   }
+
+  // Beach + Relaxation
+  if (hasAny(['beach']) && hasAny(['relaxation'])) {
+    return {
+      theme: 'Beach & Chill',
+      explanation: 'Coastal relaxation and downtime.',
+    };
+  }
+
+  // Culture + History
+  if (hasAny(['culture']) && hasAny(['history'])) {
+    return {
+      theme: 'Culture & History',
+      explanation: 'Explore heritage sites and local traditions.',
+    };
+  }
+
+  // Nature + Adventure
+  if (hasAny(['nature']) && hasAny(['adventure'])) {
+    return {
+      theme: 'Nature & Adventure',
+      explanation: 'Outdoor activities in beautiful settings.',
+    };
+  }
+
+  // Culture + Nature
+  if (hasAny(['culture']) && hasAny(['nature'])) {
+    return {
+      theme: 'Culture & Nature',
+      explanation: 'Balance cultural sites with natural beauty.',
+    };
+  }
+
+  // Sightseeing + anything
+  if (hasAny(['sightseeing'])) {
+    if (hasAny(['beach'])) {
+      return {
+        theme: 'Sights & Beach',
+        explanation: 'Mix of landmarks and coastal relaxation.',
+      };
+    }
+    if (hasAny(['nature'])) {
+      return {
+        theme: 'Sights & Nature',
+        explanation: 'Combine must-see spots with natural beauty.',
+      };
+    }
+  }
+
+  // Mixed variety
+  if (unique.length >= 3) {
+    return {
+      theme: 'Mixed Day',
+      explanation: `Variety of ${unique.length} different experiences today.`,
+    };
+  }
+
+  // Default for 2 categories
+  return {
+    theme: 'Discovery Day',
+    explanation: `Mix of ${unique.join(' and ')} activities.`,
+  };
+}
 
   /**
   * Generates clear day placement explanation
   */
   private generateDayPlacementExplanation(
-    dayNumber: number,
-    activity: EnhancedItineraryItemDto,
-    totalDays: number,
-    dayActivities: EnhancedItineraryItemDto[],
-  ): string {
-    // First day
-    if (dayNumber === 1) {
-      if (activity.category === 'Arrival') {
-        return 'First day activity - easy after traveling.';
-      }
-      return 'Good starter activity for day one.';
+  dayNumber: number,
+  activity: EnhancedItineraryItemDto,
+  totalDays: number,
+  dayActivities: EnhancedItineraryItemDto[],
+): string {
+  // First day
+  if (dayNumber === 1) {
+    if (activity.category === 'Arrival') {
+      return 'First day activity - easy after traveling.';
     }
-
-    // Last day
-    if (dayNumber === totalDays) {
-      return 'Final day highlight to end your trip well.';
-    }
-
-    if (dayNumber === totalDays)
-      reasons.push('Final-day highlight to end on a strong note');
-    else if (dayNumber > 1)
-      reasons.push('Placed when youâ€™re more settled into the trip');
-
-    if (activity.category === 'Adventure' || activity.category === 'Nature') {
-      return "Scheduled when you'll have good energy.";
-    }
-
-    // USE dayActivities to provide context
-    const sameCategoryCount = dayActivities.filter(
-      (a) => a.category === activity.category
-    ).length;
-  
-    if (sameCategoryCount > 1) {
-      return `Grouped with other ${activity.category.toLowerCase()} activities for better flow.`;
-    }
-
-    if (activity.priority >= 0.85) {
-       return 'Placed mid-trip as a highlight experience.';
-    }
-
-    return 'Works well with your other activities this day.';
+    return 'Good starter activity for day one.';
   }
+
+  // Last day
+  if (dayNumber === totalDays) {
+    return 'Final day highlight to end your trip well.';
+  }
+
+  if (dayNumber === totalDays)
+    reasons.push('Final-day highlight to end on a strong note');
+  else if (dayNumber > 1)
+    reasons.push('Placed when youâ€™re more settled into the trip');
+
+  if (activity.category === 'Adventure' || activity.category === 'Nature') {
+    return "Scheduled when you'll have good energy.";
+  }
+
+  // USE dayActivities to provide context
+  const sameCategoryCount = dayActivities.filter(
+    (a) => a.category === activity.category
+  ).length;
+
+  if (sameCategoryCount > 1) {
+    return `Grouped with other ${activity.category.toLowerCase()} activities for better flow.`;
+  }
+
+  if (activity.priority >= 0.85) {
+    return 'Placed mid-trip as a highlight experience.';
+  }
+
+  return 'Works well with your other activities this day.';
+}
 
   /**
   * Generates clear grouping explanation for day's activities
   */
   private generateGroupingExplanation(
-    activities: EnhancedItineraryItemDto[],
-  ): string {
-    if (activities.length === 0) {
-      return 'No activities scheduled.';
-    }
-
-    if (activities.length === 1) {
-      const activity = activities[0];
-      if (activity.priority > 0.7) {
-        return 'Single focused activity that matches your preferences well.';
-      }
-      return 'One main activity for the day.';
-    }
-
-    const categories = activities.map((a) => a.category);
-    const uniqueCategories = Array.from(new Set(categories));
-
-    if (uniqueCategories.length === 1) {
-      return `All ${categories[0].toLowerCase()} activities - keeping the day focused.`;
-    }
-
-    if (uniqueCategories.length === 2) {
-      return `${uniqueCategories[0]} and ${uniqueCategories[1]} pair well together.`;
-    }
-      return `${uniqueCategories.length} different types of activities for a well-rounded day.`;
+  activities: EnhancedItineraryItemDto[],
+): string {
+  if (activities.length === 0) {
+    return 'No activities scheduled.';
   }
+
+  if (activities.length === 1) {
+    const activity = activities[0];
+    if (activity.priority > 0.7) {
+      return 'Single focused activity that matches your preferences well.';
+    }
+    return 'One main activity for the day.';
+  }
+
+  const categories = activities.map((a) => a.category);
+  const uniqueCategories = Array.from(new Set(categories));
+
+  if (uniqueCategories.length === 1) {
+    return `All ${categories[0].toLowerCase()} activities - keeping the day focused.`;
+  }
+
+  if (uniqueCategories.length === 2) {
+    return `${uniqueCategories[0]} and ${uniqueCategories[1]} pair well together.`;
+  }
+  return `${uniqueCategories.length} different types of activities for a well-rounded day.`;
+}
 
   /* ==================== MAIN ITINERARY GENERATION ==================== */
 
   private generateItinerary(
-    searchResults: SearchResultItem[],
-    dayCount: number,
-    startDate: string,
-    preferences?: string[],
-    destination?: string,
-  ): { plans: DayPlan[]; usedFallback: boolean } {
-    const filteredResults = searchResults.filter((result) => {
-      if (!result.score || result.score < this.CONFIDENCE_THRESHOLDS.MINIMUM) {
-        return false;
-      }
-      if (!result.content || result.content.length < 20) {
-        return false;
-      }
-      return true;
-    });
-
-    if (filteredResults.length === 0) {
-      return {
-        plans: this.createFallbackItinerary(dayCount, startDate, destination),
-        usedFallback: true,
-      };
+  searchResults: SearchResultItem[],
+  dayCount: number,
+  startDate: string,
+  preferences ?: string[],
+  destination ?: string,
+): { plans: DayPlan[]; usedFallback: boolean } {
+  const filteredResults = searchResults.filter((result) => {
+    if (!result.score || result.score < this.CONFIDENCE_THRESHOLDS.MINIMUM) {
+      return false;
     }
-
-    const scored = this.scoreResultsByPreferences(
-      filteredResults,
-      preferences,
-      dayCount,
-      destination,
-    );
-
-    const MAX_PER_DAY =
-      dayCount === 1
-        ? PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_SHORT
-        : PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_LONG;
-
-    const maxTotalActivities = Math.min(
-      dayCount * MAX_PER_DAY,
-      PLANNER_CONFIG.ACTIVITIES.MAX_TOTAL,
-      scored.length,
-    );
-
-    const selectedResults = this.selectDiverseActivities(
-      scored,
-      maxTotalActivities,
-      preferences,
-    );
-
-    const dayBuckets = this.allocateAcrossDays(
-      selectedResults,
-      dayCount,
-      MAX_PER_DAY,
-    );
-
-    const dayPlans: DayPlan[] = [];
-    const baseDate = new Date(startDate);
-    const seenText = new Set<string>();
-
-    for (let day = 1; day <= dayCount; day++) {
-      const dayDate = new Date(baseDate);
-      dayDate.setDate(baseDate.getDate() + (day - 1));
-
-      const bucket = dayBuckets[day - 1] ?? [];
-      const activitiesForDay: EnhancedItineraryItemDto[] = [];
-
-      for (let i = 0; i < bucket.length; i++) {
-        const result = bucket[i];
-        const scoredResult = scored.find((s) => s.id === result.id);
-        const priorityScore = scoredResult?.priorityScore || 0;
-
-        const category = this.determineActivityCategory(
-          result.title,
-          result.content,
-          day,
-          i,
-          preferences,
-          result.id,
-        );
-
-        const normalizedText = `${result.title} ${result.content}`
-          .toLowerCase()
-          .trim();
-        const novelty = this.computeNovelty(normalizedText, seenText);
-        seenText.add(normalizedText);
-
-        const timeSlot = this.assignTimeSlot(i, bucket.length, day);
-
-        const activityItem: EnhancedItineraryItemDto = {
-          order: i + 1,
-          dayNumber: day,
-          placeName: result.title,
-          shortDescription: result.content,
-          category,
-          timeSlot,
-          estimatedDuration: this.estimateDuration(category),
-          confidenceScore: result.confidence || 'Low',
-          priority: Math.round((priorityScore || 0) * 100) / 100,
-          explanation: this.buildRichExplanation(
-            result,
-            priorityScore,
-            category,
-            {
-              destination,
-              dayNumber: day,
-              totalDays: dayCount,
-              activityIndex: i,
-              activitiesInDay: bucket.length,
-              preferences,
-              novelty,
-              isFallback: false,
-              timeSlot,
-            },
-          ),
-        };
-
-        activitiesForDay.push(activityItem);
-
-        activityItem.dayPlacementReason = this.generateDayPlacementExplanation(
-          day,
-          activityItem,
-          dayCount,
-          activitiesForDay,
-        );
-      }
-
-      if (activitiesForDay.length === 0) {
-        activitiesForDay.push(this.createSingleDayFallback(day, destination));
-      }
-
-      if (day === 1 && activitiesForDay.length > 0) {
-        activitiesForDay[0].category = 'Arrival';
-        activitiesForDay[0].timeSlot = 'Afternoon';
-        activitiesForDay[0].estimatedDuration = '2-3 hours';
-      }
-
-      const themeData = this.generateDayTheme(activitiesForDay);
-      const groupingReason = this.generateGroupingExplanation(activitiesForDay);
-
-      dayPlans.push({
-        day,
-        date: dayDate.toISOString().split('T')[0],
-        theme: themeData.theme,
-        themeExplanation: themeData.explanation,
-        groupingReason,
-        activities: activitiesForDay,
-      });
+    if (!result.content || result.content.length < 20) {
+      return false;
     }
+    return true;
+  });
 
-    return { plans: dayPlans, usedFallback: false };
+  if (filteredResults.length === 0) {
+    return {
+      plans: this.createFallbackItinerary(dayCount, startDate, destination),
+      usedFallback: true,
+    };
   }
+
+  const scored = this.scoreResultsByPreferences(
+    filteredResults,
+    preferences,
+    dayCount,
+    destination,
+  );
+
+  const MAX_PER_DAY =
+    dayCount === 1
+      ? PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_SHORT
+      : PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_LONG;
+
+  const maxTotalActivities = Math.min(
+    dayCount * MAX_PER_DAY,
+    PLANNER_CONFIG.ACTIVITIES.MAX_TOTAL,
+    scored.length,
+  );
+
+  const selectedResults = this.selectDiverseActivities(
+    scored,
+    maxTotalActivities,
+    preferences,
+  );
+
+  const dayBuckets = this.allocateAcrossDays(
+    selectedResults,
+    dayCount,
+    MAX_PER_DAY,
+  );
+
+  const dayPlans: DayPlan[] = [];
+  const baseDate = new Date(startDate);
+  const seenText = new Set<string>();
+
+  for (let day = 1; day <= dayCount; day++) {
+    const dayDate = new Date(baseDate);
+    dayDate.setDate(baseDate.getDate() + (day - 1));
+
+    const bucket = dayBuckets[day - 1] ?? [];
+    const activitiesForDay: EnhancedItineraryItemDto[] = [];
+
+    for (let i = 0; i < bucket.length; i++) {
+      const result = bucket[i];
+      const scoredResult = scored.find((s) => s.id === result.id);
+      const priorityScore = scoredResult?.priorityScore || 0;
+
+      const category = this.determineActivityCategory(
+        result.title,
+        result.content,
+        day,
+        i,
+        preferences,
+        result.id,
+      );
+
+      const normalizedText = `${result.title} ${result.content}`
+        .toLowerCase()
+        .trim();
+      const novelty = this.computeNovelty(normalizedText, seenText);
+      seenText.add(normalizedText);
+
+      const timeSlot = this.assignTimeSlot(i, bucket.length, day);
+
+      const activityItem: EnhancedItineraryItemDto = {
+        order: i + 1,
+        dayNumber: day,
+        placeName: result.title,
+        shortDescription: result.content,
+        category,
+        timeSlot,
+        estimatedDuration: this.estimateDuration(category),
+        confidenceScore: result.confidence || 'Low',
+        priority: Math.round((priorityScore || 0) * 100) / 100,
+        explanation: this.buildRichExplanation(
+          result,
+          priorityScore,
+          category,
+          {
+            destination,
+            dayNumber: day,
+            totalDays: dayCount,
+            activityIndex: i,
+            activitiesInDay: bucket.length,
+            preferences,
+            novelty,
+            isFallback: false,
+            timeSlot,
+          },
+        ),
+      };
+
+      activitiesForDay.push(activityItem);
+
+      activityItem.dayPlacementReason = this.generateDayPlacementExplanation(
+        day,
+        activityItem,
+        dayCount,
+        activitiesForDay,
+      );
+    }
+
+    if (activitiesForDay.length === 0) {
+      activitiesForDay.push(this.createSingleDayFallback(day, destination));
+    }
+
+    if (day === 1 && activitiesForDay.length > 0) {
+      activitiesForDay[0].category = 'Arrival';
+      activitiesForDay[0].timeSlot = 'Afternoon';
+      activitiesForDay[0].estimatedDuration = '2-3 hours';
+    }
+
+    const themeData = this.generateDayTheme(activitiesForDay);
+    const groupingReason = this.generateGroupingExplanation(activitiesForDay);
+
+    dayPlans.push({
+      day,
+      date: dayDate.toISOString().split('T')[0],
+      theme: themeData.theme,
+      themeExplanation: themeData.explanation,
+      groupingReason,
+      activities: activitiesForDay,
+    });
+  }
+
+  return { plans: dayPlans, usedFallback: false };
+}
 
   /* ==================== META / REGION GATE ==================== */
 
-  private extractMeta(content: string): { near: string[]; region?: string } {
-    const nearMatch = content.match(/Near:\s*([^\n]+)/i);
-    const regionMatch = content.match(/Region:\s*([^\n]+)/i);
+  private extractMeta(content: string): { near: string[]; region ?: string } {
+  const nearMatch = content.match(/Near:\s*([^\n]+)/i);
+  const regionMatch = content.match(/Region:\s*([^\n]+)/i);
 
-    const near = nearMatch
-      ? nearMatch[1]
-          .split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean)
-      : [];
+  const near = nearMatch
+    ? nearMatch[1]
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+    : [];
 
-    const region = regionMatch
-      ? regionMatch[1].trim().toLowerCase()
-      : undefined;
+  const region = regionMatch
+    ? regionMatch[1].trim().toLowerCase()
+    : undefined;
 
-    return { near, region };
-  }
+  return { near, region };
+}
 
-  private getDestinationRegion(destination?: string): string | undefined {
-    const dest = this.normalizeLower(destination);
-    if (!dest) return undefined;
+  private getDestinationRegion(destination ?: string): string | undefined {
+  const dest = this.normalizeLower(destination);
+  if (!dest) return undefined;
 
-    const map: Record<string, string> = {
-      galle: 'south',
-      'galle fort': 'south',
-      unawatuna: 'south',
-      hikkaduwa: 'south',
-      mirissa: 'south',
-      bentota: 'south',
-      kandy: 'kandy',
-      sigiriya: 'cultural_triangle',
-      dambulla: 'cultural_triangle',
-      trincomalee: 'east_coast',
-      nilaveli: 'east_coast',
-      nuwara: 'hill_country',
-      'nuwara eliya': 'hill_country',
-      ella: 'hill_country',
-      yala: 'safari_south',
-      udawalawe: 'safari_south',
-    };
+  const map: Record<string, string> = {
+    galle: 'south',
+    'galle fort': 'south',
+    unawatuna: 'south',
+    hikkaduwa: 'south',
+    mirissa: 'south',
+    bentota: 'south',
+    kandy: 'kandy',
+    sigiriya: 'cultural_triangle',
+    dambulla: 'cultural_triangle',
+    trincomalee: 'east_coast',
+    nilaveli: 'east_coast',
+    nuwara: 'hill_country',
+    'nuwara eliya': 'hill_country',
+    ella: 'hill_country',
+    yala: 'safari_south',
+    udawalawe: 'safari_south',
+  };
 
-    return map[dest];
-  }
+  return map[dest];
+}
 
   /**
    * âœ… STRONG GATE:
@@ -1794,203 +1794,203 @@ debugEmbedding(@Query('text') text: string) {
    * - otherwise drop
    */
   private gateByNearOrRegion(
-    results: SearchResultItem[],
-    destination?: string,
-  ): SearchResultItem[] {
-    const dest = this.normalizeLower(destination);
-    if (!dest || dest.length < 3) return results;
+  results: SearchResultItem[],
+  destination ?: string,
+): SearchResultItem[] {
+  const dest = this.normalizeLower(destination);
+  if (!dest || dest.length < 3) return results;
 
-    const destRegion = this.getDestinationRegion(dest);
-    const destTokens = dest.split(/\s+/).filter(Boolean);
+  const destRegion = this.getDestinationRegion(dest);
+  const destTokens = dest.split(/\s+/).filter(Boolean);
 
-    const kept = results.filter((r) => {
-      const text = `${r.title} ${r.content}`.toLowerCase();
-      const { near, region } = this.extractMeta(text);
+  const kept = results.filter((r) => {
+    const text = `${r.title} ${r.content}`.toLowerCase();
+    const { near, region } = this.extractMeta(text);
 
-      // Strongest: explicit Near: match against any destination token
-      const nearHit = destTokens.some((t) => near.includes(t));
+    // Strongest: explicit Near: match against any destination token
+    const nearHit = destTokens.some((t) => near.includes(t));
 
-      // Next: same region
-      const regionHit = destRegion && region && region === destRegion;
+    // Next: same region
+    const regionHit = destRegion && region && region === destRegion;
 
-      const directHit = text.includes(dest);
+    const directHit = text.includes(dest);
 
-      return nearHit || regionHit || directHit;
+    return nearHit || regionHit || directHit;
+  });
+
+  return kept.length > 0 ? kept : results;
+}
+
+@Post('trip-plan')
+async tripPlanEnhanced(
+  @Body() body: TripPlanRequestDto,
+): Promise < TripPlanResponseDto > {
+  try {
+    // 1. Strict Input Validation & Preprocessing
+    const destination = typeof body.destination === 'string' ? body.destination.trim() : '';
+    const preferences = Array.isArray(body.preferences)
+      ? body.preferences.filter((p) => typeof p === 'string' && p.length > 0)
+      : [];
+
+    const { startDate, endDate, dayCount, isValid: datesAreValid } = this.validateDates(
+      body.startDate,
+      body.endDate,
+    );
+
+    const isValidDestination = this.isValidDestination(destination);
+
+    const validThemes: ItineraryCategory[] = [
+      'Arrival',
+      'Sightseeing',
+      'Culture',
+      'Nature',
+      'Beach',
+      'Relaxation',
+    ];
+
+    let dayByDayPlan: DayPlan[] = [];
+    let preferencesMatched: string[] = [];
+
+    // Fetch all DB embeddings for fallback scenarios
+    const allEmbeddings = await this.aiService.getAllEmbeddings();
+
+    // ----- CASE 1: INVALID DESTINATION OR DATES -----
+    if(!isValidDestination || !datesAreValid) {
+  const suggestions: EnhancedItineraryItemDto[] = [];
+  const matchedPrefsSet = new Set<string>();
+
+  // Match preferences in database for personalized suggestions even without destination
+  preferences.forEach((pref) => {
+    const prefLower = pref.toLowerCase();
+    const matchedItems = allEmbeddings.filter((item) => {
+      const text = `${item.title} ${item.content}`.toLowerCase();
+      return text.includes(prefLower);
     });
 
-    return kept.length > 0 ? kept : results;
-  }
+    matchedItems.slice(0, 2).forEach((item) => {
+      if (!suggestions.some(s => s.placeName === item.title)) {
+        suggestions.push({
+          order: suggestions.length + 1,
+          dayNumber: 1,
+          placeName: item.title,
+          shortDescription: item.content,
+          category: validThemes.includes(pref as ItineraryCategory)
+            ? (pref as ItineraryCategory)
+            : 'Sightseeing',
+          confidenceScore: 'Medium',
+          priority: 0.7,
+          explanation: {
+            selectionReason: `Matches your preference "${pref}"`,
+            rankingFactors: {
+              relevanceScore: 0.6,
+              confidenceLevel: 'Medium',
+              categoryMatch: true,
+              preferenceMatch: [pref],
+            },
+          },
+        });
+        matchedPrefsSet.add(pref);
+      }
+    });
+  });
 
-  @Post('trip-plan')
-  async tripPlanEnhanced(
-    @Body() body: TripPlanRequestDto,
-  ): Promise < TripPlanResponseDto > {
-    try {
-      // 1. Strict Input Validation & Preprocessing
-      const destination = typeof body.destination === 'string' ? body.destination.trim() : '';
-      const preferences = Array.isArray(body.preferences)
-        ? body.preferences.filter((p) => typeof p === 'string' && p.length > 0)
-        : [];
-
-      const { startDate, endDate, dayCount, isValid: datesAreValid } = this.validateDates(
-        body.startDate,
-        body.endDate,
-      );
-
-      const isValidDestination = this.isValidDestination(destination);
-
-      const validThemes: ItineraryCategory[] = [
-        'Arrival',
-        'Sightseeing',
-        'Culture',
-        'Nature',
-        'Beach',
-        'Relaxation',
-      ];
-
-      let dayByDayPlan: DayPlan[] = [];
-      let preferencesMatched: string[] = [];
-
-      // Fetch all DB embeddings for fallback scenarios
-      const allEmbeddings = await this.aiService.getAllEmbeddings();
-
-      // ----- CASE 1: INVALID DESTINATION OR DATES -----
-      if(!isValidDestination || !datesAreValid) {
-    const suggestions: EnhancedItineraryItemDto[] = [];
-    const matchedPrefsSet = new Set<string>();
-
-    // Match preferences in database for personalized suggestions even without destination
-    preferences.forEach((pref) => {
-      const prefLower = pref.toLowerCase();
-      const matchedItems = allEmbeddings.filter((item) => {
-        const text = `${item.title} ${item.content}`.toLowerCase();
-        return text.includes(prefLower);
-      });
-
-      matchedItems.slice(0, 2).forEach((item) => {
+  // Fill with general attractions if needed
+  if (suggestions.length < 3) {
+    allEmbeddings
+      .sort((a, b) => String(a.title).localeCompare(String(b.title))) // Stable sort
+      .slice(0, 5 - suggestions.length)
+      .forEach((item) => {
         if (!suggestions.some(s => s.placeName === item.title)) {
           suggestions.push({
             order: suggestions.length + 1,
             dayNumber: 1,
             placeName: item.title,
             shortDescription: item.content,
-            category: validThemes.includes(pref as ItineraryCategory)
-              ? (pref as ItineraryCategory)
-              : 'Sightseeing',
-            confidenceScore: 'Medium',
-            priority: 0.7,
-            explanation: {
-              selectionReason: `Matches your preference "${pref}"`,
-              rankingFactors: {
-                relevanceScore: 0.6,
-                confidenceLevel: 'Medium',
-                categoryMatch: true,
-                preferenceMatch: [pref],
-              },
-            },
+            category: 'Sightseeing',
+            confidenceScore: 'High',
+            priority: 0.5,
           });
-          matchedPrefsSet.add(pref);
         }
       });
-    });
-
-    // Fill with general attractions if needed
-    if (suggestions.length < 3) {
-      allEmbeddings
-        .sort((a, b) => String(a.title).localeCompare(String(b.title))) // Stable sort
-        .slice(0, 5 - suggestions.length)
-        .forEach((item) => {
-          if (!suggestions.some(s => s.placeName === item.title)) {
-            suggestions.push({
-              order: suggestions.length + 1,
-              dayNumber: 1,
-              placeName: item.title,
-              shortDescription: item.content,
-              category: 'Sightseeing',
-              confidenceScore: 'High',
-              priority: 0.5,
-            });
-          }
-        });
-    }
-
-    preferencesMatched = Array.from(matchedPrefsSet);
-
-    return {
-      plan: {
-        destination: isValidDestination ? destination : 'Travel Discovery',
-        dates: { start: startDate, end: endDate },
-        totalDays: dayCount,
-        dayByDayPlan: [
-          {
-            day: 1,
-            date: startDate,
-            theme: 'Travel Suggestions',
-            activities: suggestions.slice(0, 4),
-          },
-        ],
-        summary: {
-          totalActivities: Math.min(suggestions.length, 4),
-          categoriesIncluded: [...new Set(suggestions.map((a) => a.category))],
-          preferencesMatched,
-        },
-      },
-      message: !isValidDestination
-        ? 'Destination not recognized. Showing top travel recommendations based on your preferences.'
-        : 'Invalid dates provided. Showing a suggested itinerary based on default travel dates.',
-    };
   }
 
-  // ----- CASE 2: VALID DESTINATION - Normal Workflow -----
-  const searchTerms = [
-    destination,
-    'attractions',
-    ...(preferences.length > 0 ? preferences : ['best places']),
-  ];
-  const query = searchTerms.join(' ');
-
-  const searchResults = await this.executeSearch(query);
-
-  dayByDayPlan = this.generateItinerary(
-    searchResults.results,
-    dayCount,
-    startDate,
-    preferences,
-    destination,
-  );
-
-  // Final metadata calculation
-  const allActivities = dayByDayPlan.flatMap((d) => d.activities);
-  const allCategoriesInPlan = [...new Set(allActivities.map((a) => a.category))];
-
-  preferencesMatched = preferences.filter((pref) =>
-    allActivities.some(
-      (a) =>
-        a.category.toLowerCase() === pref.toLowerCase() ||
-        a.placeName.toLowerCase().includes(pref.toLowerCase()) ||
-        a.shortDescription.toLowerCase().includes(pref.toLowerCase()),
-    ),
-  );
-
-  const message =
-    preferencesMatched.length > 0
-      ? `Personalized itinerary generated for ${destination} with matches for ${preferencesMatched.length} preferences.`
-      : `Itinerary generated for ${destination}. Explore the best attractions this location has to offer.`;
+  preferencesMatched = Array.from(matchedPrefsSet);
 
   return {
     plan: {
-      destination,
+      destination: isValidDestination ? destination : 'Travel Discovery',
       dates: { start: startDate, end: endDate },
       totalDays: dayCount,
-      dayByDayPlan,
+      dayByDayPlan: [
+        {
+          day: 1,
+          date: startDate,
+          theme: 'Travel Suggestions',
+          activities: suggestions.slice(0, 4),
+        },
+      ],
       summary: {
-        totalActivities: allActivities.length,
-        categoriesIncluded: allCategoriesInPlan as ItineraryCategory[],
+        totalActivities: Math.min(suggestions.length, 4),
+        categoriesIncluded: [...new Set(suggestions.map((a) => a.category))],
         preferencesMatched,
       },
     },
-    message,
+    message: !isValidDestination
+      ? 'Destination not recognized. Showing top travel recommendations based on your preferences.'
+      : 'Invalid dates provided. Showing a suggested itinerary based on default travel dates.',
   };
+}
+
+// ----- CASE 2: VALID DESTINATION - Normal Workflow -----
+const searchTerms = [
+  destination,
+  'attractions',
+  ...(preferences.length > 0 ? preferences : ['best places']),
+];
+const query = searchTerms.join(' ');
+
+const searchResults = await this.executeSearch(query);
+
+dayByDayPlan = this.generateItinerary(
+  searchResults.results,
+  dayCount,
+  startDate,
+  preferences,
+  destination,
+);
+
+// Final metadata calculation
+const allActivities = dayByDayPlan.flatMap((d) => d.activities);
+const allCategoriesInPlan = [...new Set(allActivities.map((a) => a.category))];
+
+preferencesMatched = preferences.filter((pref) =>
+  allActivities.some(
+    (a) =>
+      a.category.toLowerCase() === pref.toLowerCase() ||
+      a.placeName.toLowerCase().includes(pref.toLowerCase()) ||
+      a.shortDescription.toLowerCase().includes(pref.toLowerCase()),
+  ),
+);
+
+const message =
+  preferencesMatched.length > 0
+    ? `Personalized itinerary generated for ${destination} with matches for ${preferencesMatched.length} preferences.`
+    : `Itinerary generated for ${destination}. Explore the best attractions this location has to offer.`;
+
+return {
+  plan: {
+    destination,
+    dates: { start: startDate, end: endDate },
+    totalDays: dayCount,
+    dayByDayPlan,
+    summary: {
+      totalActivities: allActivities.length,
+      categoriesIncluded: allCategoriesInPlan as ItineraryCategory[],
+      preferencesMatched,
+    },
+  },
+  message,
+};
 } catch (error) {
   this.logger.error(`Critical error in tripPlanEnhanced: ${error.message}`, error.stack);
 
