@@ -25,6 +25,12 @@ import {
 
 import { TripStoreService, SavedTrip } from './trips/trip-store.service';
 
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+  };
+}
+
 /* -------------------- TYPES -------------------- */
 
 export interface SearchResultItem {
@@ -1779,9 +1785,9 @@ export class AIController {
     @Body() body: TripPlanRequestDto,
   ): Promise<TripPlanResponseDto> {
     // -------------------- 0) Resolve userId (auth or dev header) --------------------
-    const authUserId = (req as any)?.user?.id as string | undefined;
+    const authUserId = (req as AuthenticatedRequest).user?.id;
 
-    // ✅ Postman/dev support: send header x-user-id: test-user-1
+    // Postman/dev support: send header x-user-id: test-user-1
     const headerUserId =
       (req.headers['x-user-id'] as string | undefined) || undefined;
 
@@ -2032,7 +2038,7 @@ export class AIController {
             preferencesMatched,
             planConfidence,
             usedFallback: false,
-            usedSavedContext, // ✅ include it even here
+            usedSavedContext, // include it even here
           },
         },
         message: this.buildFinalMessage(
@@ -2127,7 +2133,7 @@ export class AIController {
           preferencesMatched,
           planConfidence,
           usedFallback,
-          usedSavedContext, // ✅ include it
+          usedSavedContext,
         },
       },
       message: [

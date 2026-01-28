@@ -25,6 +25,40 @@ export type TripVersionRow = {
   createdAt: string;
 };
 
+/* -------------------- DB Row Types -------------------- */
+
+type TripsRow = {
+  id: string;
+  user_id: string;
+  destination: string;
+  start_date: string;
+  end_date: string;
+  preferences: unknown; // jsonb can come as object/array depending on pg config
+  created_at: string;
+  updated_at: string;
+};
+
+type TripVersionsRow = {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  version_no: number;
+  plan_json: unknown;
+  ai_meta: unknown;
+  created_at: string;
+};
+
+type MaxVersionRow = {
+  max_version: number | string | null;
+};
+
+type InsertTripRow = { id: string };
+type InsertVersionRow = {
+  id: string;
+  trip_id: string;
+  version_no: number | string;
+};
+
 @Injectable()
 export class TripStoreService {
   private readonly logger = new Logger(TripStoreService.name);
@@ -41,7 +75,6 @@ export class TripStoreService {
     if (dbUrl) {
       return new Client({
         connectionString: dbUrl,
-        // Important for many hosted PG providers (Nhost, Supabase, etc.)
         ssl: dbUrl.includes('sslmode=')
           ? { rejectUnauthorized: false }
           : undefined,
@@ -54,8 +87,6 @@ export class TripStoreService {
       database: this.configService.get<string>('DB_NAME'),
       password: String(this.configService.get<string>('DB_PASSWORD') || ''),
       port: Number(this.configService.get<string>('DB_PORT')),
-      // If you connect to hosted DB via vars, you may also need:
-      // ssl: { rejectUnauthorized: false },
     });
   }
 
@@ -71,18 +102,32 @@ export class TripStoreService {
 
   /* -------------------- Helpers -------------------- */
 
-  private mapTripRow(row: any): SavedTrip {
+  private parsePreferences(value: unknown): string[] {
+    if (Array.isArray(value) && value.every((v) => typeof v === 'string'))
+      return value;
+
+    // If pg returns JSON as string (rare, but possible)
+    if (typeof value === 'string') {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string'))
+          return parsed;
+      } catch {
+        // ignore
+      }
+    }
+
+    return [];
+  }
+
+  private mapTripRow(row: TripsRow): SavedTrip {
     return {
       id: String(row.id),
       userId: String(row.user_id),
       destination: String(row.destination),
       startDate: String(row.start_date),
       endDate: String(row.end_date),
-      preferences: Array.isArray(row.preferences)
-        ? row.preferences
-        : row.preferences
-          ? row.preferences
-          : [],
+      preferences: this.parsePreferences(row.preferences),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
     };
@@ -101,7 +146,7 @@ export class TripStoreService {
       LIMIT 1;
     `;
 
-    const res = await db.query(q, [userId]);
+    const res = await db.query<TripsRow>(q, [userId]);
     if (res.rowCount === 0) return null;
     return this.mapTripRow(res.rows[0]);
   }
@@ -119,14 +164,11 @@ export class TripStoreService {
       LIMIT 1;
     `;
 
-    const res = await db.query(q, [userId, tripId]);
+    const res = await db.query<TripsRow>(q, [userId, tripId]);
     if (res.rowCount === 0) return null;
     return this.mapTripRow(res.rows[0]);
   }
 
-  /**
-   * Saves a new version (immutable) and updates the "current trip" snapshot.
-   */
   async saveTripVersion(args: {
     userId: string;
     destination: string;
@@ -146,7 +188,7 @@ export class TripStoreService {
       let tripId = args.tripId;
 
       if (tripId) {
-        const check = await db.query(
+        const check = await db.query<{ id: string }>(
           `SELECT id FROM trips WHERE id = $1 AND user_id = $2 LIMIT 1`,
           [tripId, args.userId],
         );
@@ -154,7 +196,7 @@ export class TripStoreService {
       }
 
       if (!tripId) {
-        const insertTrip = await db.query(
+        const insertTrip = await db.query<InsertTripRow>(
           `
           INSERT INTO trips (user_id, destination, start_date, end_date, preferences)
           VALUES ($1, $2, $3, $4, $5::jsonb)
@@ -191,7 +233,7 @@ export class TripStoreService {
         );
       }
 
-      const versionRes = await db.query(
+      const versionRes = await db.query<MaxVersionRow>(
         `
         SELECT COALESCE(MAX(version_no), 0) AS max_version
         FROM trip_versions
@@ -200,9 +242,10 @@ export class TripStoreService {
         [tripId],
       );
 
-      const nextVersionNo = Number(versionRes.rows[0]?.max_version ?? 0) + 1;
+      const maxVRaw = versionRes.rows[0]?.max_version ?? 0;
+      const nextVersionNo = Number(maxVRaw) + 1;
 
-      const insertVersion = await db.query(
+      const insertVersion = await db.query<InsertVersionRow>(
         `
         INSERT INTO trip_versions (trip_id, user_id, version_no, plan_json, ai_meta)
         VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)
@@ -245,17 +288,18 @@ export class TripStoreService {
       LIMIT 1;
     `;
 
-    const res = await db.query(q, [tripId, userId]);
+    const res = await db.query<TripVersionsRow>(q, [tripId, userId]);
     if (res.rowCount === 0) return null;
 
     const row = res.rows[0];
+
     return {
       id: String(row.id),
       tripId: String(row.trip_id),
       userId: String(row.user_id),
       versionNo: Number(row.version_no),
       planJson: row.plan_json,
-      aiMeta: row.ai_meta,
+      aiMeta: (row.ai_meta ?? {}) as TripVersionRow['aiMeta'],
       createdAt: String(row.created_at),
     };
   }
