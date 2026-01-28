@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,40 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import RideTimeline, { RideStatus } from '../../components/RideTimeline';
 import DriverInfoCard from '../../components/DriverInfoCard';
-
-// Mock driver data
-const MOCK_DRIVER = {
-  name: 'Rajesh Kumar',
-  photo: '👨',
-  rating: 4.8,
-  totalRides: 1247,
-  vehicle: {
-    make: 'Toyota',
-    model: 'Prius',
-    color: 'Silver',
-    plate: 'CAB-1234',
-  },
-  phone: '+94771234567',
-};
+import { transportService, ActiveRideResponse } from '../../services/transportService';
 
 const TransportStatusScreen = () => {
   const navigation = useNavigation();
-  const [rideStatus, setRideStatus] = useState<RideStatus>('enroute');
-  const [estimatedArrival, setEstimatedArrival] = useState(8);
+  const [rideData, setRideData] = useState<ActiveRideResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchStatus = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsLoading(true);
+    const data = await transportService.getActiveRide();
+    if (data) {
+      setRideData(data);
+    }
+    if (showLoading) setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchStatus(true);
+    
+    // Poll every 5 seconds for updates
+    const interval = setInterval(() => {
+      fetchStatus();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [fetchStatus]);
+
+  const rideStatus = rideData?.status || 'requested';
+  const estimatedArrival = rideData?.estimatedArrival || 0;
 
   const handleCancelRide = () => {
     Alert.alert(
@@ -68,6 +78,15 @@ const TransportStatusScreen = () => {
     }
   };
 
+  if (isLoading && !rideData) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#0066CC" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Connecting to transport service...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -93,8 +112,20 @@ const TransportStatusScreen = () => {
         </View>
 
         {/* Driver Info */}
-        {(rideStatus === 'assigned' || rideStatus === 'enroute' || rideStatus === 'arrived' || rideStatus === 'inprogress') && (
-          <DriverInfoCard driver={MOCK_DRIVER} />
+        {(rideStatus === 'assigned' || rideStatus === 'enroute' || rideStatus === 'arrived' || rideStatus === 'inprogress') && rideData && (
+          <DriverInfoCard driver={{
+            name: rideData.driver.name,
+            photo: '👨',
+            rating: rideData.driver.rating,
+            totalRides: 1247,
+            vehicle: {
+              make: rideData.driver.vehicle.split(' ')[0],
+              model: rideData.driver.vehicle.split(' ')[1],
+              color: 'Silver',
+              plate: rideData.driver.vehicle.match(/\((.*)\)/)?.[1] || '',
+            },
+            phone: rideData.driver.phone,
+          }} />
         )}
 
         {/* Timeline */}
@@ -107,21 +138,21 @@ const TransportStatusScreen = () => {
             <Text style={styles.detailIcon}>📍</Text>
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Pickup</Text>
-              <Text style={styles.detailText}>Galle Face Hotel, Colombo</Text>
+              <Text style={styles.detailText}>{rideData?.pickup || 'Loading...'}</Text>
             </View>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>🎯</Text>
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Destination</Text>
-              <Text style={styles.detailText}>Bandaranaike International Airport</Text>
+              <Text style={styles.detailText}>{rideData?.destination || 'Loading...'}</Text>
             </View>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>💰</Text>
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Fare</Text>
-              <Text style={styles.detailText}>LKR 2,500</Text>
+              <Text style={styles.detailText}>{rideData?.fare || 'Loading...'}</Text>
             </View>
           </View>
         </View>
@@ -135,49 +166,6 @@ const TransportStatusScreen = () => {
             <Text style={styles.cancelButtonText}>Cancel Ride</Text>
           </TouchableOpacity>
         )}
-
-        {/* Demo Controls */}
-        <View style={styles.demoControls}>
-          <Text style={styles.demoTitle}>Demo Controls</Text>
-          <View style={styles.demoButtons}>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => setRideStatus('requested')}
-            >
-              <Text style={styles.demoButtonText}>Requested</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => setRideStatus('assigned')}
-            >
-              <Text style={styles.demoButtonText}>Assigned</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => setRideStatus('enroute')}
-            >
-              <Text style={styles.demoButtonText}>En Route</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => setRideStatus('arrived')}
-            >
-              <Text style={styles.demoButtonText}>Arrived</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => setRideStatus('inprogress')}
-            >
-              <Text style={styles.demoButtonText}>In Progress</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => setRideStatus('completed')}
-            >
-              <Text style={styles.demoButtonText}>Completed</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </View>
     </ScrollView>
   );
