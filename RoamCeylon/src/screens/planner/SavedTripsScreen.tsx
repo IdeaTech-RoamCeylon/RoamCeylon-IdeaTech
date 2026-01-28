@@ -77,10 +77,12 @@ const SavedTripsScreen = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setIsLoading(true);
             try {
               await tripStorageService.deleteTrip(trip.id);
               await loadTrips();
             } catch (error) {
+              setIsLoading(false);
               Alert.alert('Error', 'Failed to delete trip');
             }
           },

@@ -49,6 +49,7 @@ const AITripPlannerScreen = () => {
   const networkStatus = useNetworkStatus();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
@@ -221,6 +222,7 @@ const AITripPlannerScreen = () => {
       return;
     }
 
+    setIsSaving(true);
     try {
       if (isEditing && currentTripId) {
         // Update existing trip
@@ -228,18 +230,24 @@ const AITripPlannerScreen = () => {
           name: tripName.trim(),
           tripPlan,
         });
+        setIsSaving(false);
         setShowSaveDialog(false);
         setTripName('');
         Alert.alert('Success', 'Trip updated successfully!');
       } else {
         // Save new trip
         await tripStorageService.saveTrip(tripName.trim(), tripPlan);
+        setIsSaving(false);
         setShowSaveDialog(false);
         setTripName('');
         Alert.alert('Success', 'Trip saved successfully!');
       }
     } catch (error) {
-      Alert.alert('Error', isEditing ? 'Failed to update trip' : 'Failed to save trip');
+      setIsSaving(false);
+      Alert.alert(
+        'Error', 
+        isEditing ? 'Failed to update trip. Please try again.' : 'Failed to save trip. Please try again.'
+      );
     }
   }, [tripPlan, tripName, isEditing, currentTripId]);
 
@@ -523,16 +531,22 @@ const AITripPlannerScreen = () => {
                   setShowSaveDialog(false);
                   setTripName('');
                 }}
+                disabled={isSaving}
               >
                 <Text style={styles.modalButtonTextCancel}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonSave]}
+                style={[styles.modalButton, styles.modalButtonSave, isSaving && { opacity: 0.7 }]}
                 onPress={handleSaveTrip}
+                disabled={isSaving}
               >
-                <Text style={styles.modalButtonTextSave}>
-                  {isEditing ? 'Update' : 'Save'}
-                </Text>
+                {isSaving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonTextSave}>
+                    {isEditing ? 'Update' : 'Save'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
