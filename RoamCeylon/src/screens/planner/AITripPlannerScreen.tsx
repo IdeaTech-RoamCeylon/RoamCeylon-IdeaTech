@@ -8,7 +8,8 @@ import {
   TextInput, 
   ActivityIndicator,
   Alert,
-  Animated 
+  Animated,
+  Modal 
 } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,9 @@ import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import DaySelector from '../../components/DaySelector';
 import ItineraryList from '../../components/ItineraryList';
+import BudgetBreakdown from '../../components/BudgetBreakdown';
+import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
+import { tripStorageService } from '../../services/tripStorageService';
 
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
@@ -48,6 +52,9 @@ const AITripPlannerScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [tripName, setTripName] = useState('');
+  const [useEnhancedView, setUseEnhancedView] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -205,6 +212,29 @@ const AITripPlannerScreen = () => {
     );
   }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
 
+  const handleSaveTrip = useCallback(async () => {
+    if (!tripPlan) return;
+    
+    if (!tripName.trim()) {
+      Alert.alert('Trip Name Required', 'Please enter a name for your trip');
+      return;
+    }
+
+    try {
+      await tripStorageService.saveTrip(tripName.trim(), tripPlan);
+      setShowSaveDialog(false);
+      setTripName('');
+      Alert.alert('Success', 'Trip saved successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save trip');
+    }
+  }, [tripPlan, tripName]);
+
+  const handleNavigateToSavedTrips = useCallback(() => {
+    navigation.navigate('SavedTrips' as never);
+  }, [navigation]);
+
+
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
     return tripPlan?.itinerary?.find(item => item.day === selectedDay);
@@ -310,6 +340,27 @@ const AITripPlannerScreen = () => {
               </View>
             </View>
 
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setShowSaveDialog(true)}
+              >
+                <Text style={styles.actionButtonIcon}>💾</Text>
+                <Text style={styles.actionButtonText}>Save Trip</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handleNavigateToSavedTrips}
+              >
+                <Text style={styles.actionButtonIcon}>📂</Text>
+                <Text style={styles.actionButtonText}>Saved Trips</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Budget Breakdown */}
+            <BudgetBreakdown budget={tripPlan.budget} duration={tripPlan.duration} />
+
             {/* Day Selector */}
             <DaySelector 
               days={tripPlan.itinerary.map(item => item.day)}
@@ -374,14 +425,20 @@ const AITripPlannerScreen = () => {
 
             <View style={styles.dayCard}>
               <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
-              <ItineraryList 
-                activities={activities} 
-                onActivitySelect={setSelectedActivity}
-                selectedActivity={selectedActivity}
-                onMoveUp={(index) => handleMoveActivity(index, 'up')}
-                onMoveDown={(index) => handleMoveActivity(index, 'down')}
-                onDelete={handleDeleteActivity}
-              />
+              {activities.map((activity, index) => (
+                <EnhancedItineraryCard
+                  key={`${selectedDay}-${index}-${activity.description}`}
+                  activity={activity}
+                  index={index}
+                  isSelected={selectedActivity === activity}
+                  onPress={() => setSelectedActivity(activity)}
+                  onMoveUp={() => handleMoveActivity(index, 'up')}
+                  onMoveDown={() => handleMoveActivity(index, 'down')}
+                  onDelete={() => handleDeleteActivity(index)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < activities.length - 1}
+                />
+              ))}
             </View>
 
             <TouchableOpacity 
@@ -393,6 +450,47 @@ const AITripPlannerScreen = () => {
           </Animated.View>
         ) : null}
       </View>
+
+      {/* Save Trip Dialog */}
+      <Modal
+        visible={showSaveDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSaveDialog(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Save Trip</Text>
+            <Text style={styles.modalSubtitle}>Give your trip a name</Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g., Summer Sri Lanka Adventure"
+              value={tripName}
+              onChangeText={setTripName}
+              autoFocus
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowSaveDialog(false);
+                  setTripName('');
+                }}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={handleSaveTrip}
+              >
+                <Text style={styles.modalButtonTextSave}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -548,6 +646,100 @@ const styles = StyleSheet.create({
     color: '#0066CC',
     fontWeight: '600',
     fontSize: 15,
+  },
+  // Action Buttons
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#0066CC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  actionButtonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0066CC',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 25,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#f0f0f0',
+  },
+  modalButtonSave: {
+    backgroundColor: '#0066CC',
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalButtonTextSave: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
