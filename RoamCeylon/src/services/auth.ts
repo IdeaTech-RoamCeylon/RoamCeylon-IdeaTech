@@ -126,6 +126,19 @@ export const logout = async (): Promise<void> => {
   }
 };
 
+export const updateProfile = async (name: string, email: string): Promise<UserProfile> => {
+  try {
+    const response = await apiService.patch<ApiResponse<UserProfile>>('/users/me', {
+      name,
+      email,
+    });
+    return response.data;
+  } catch (error) {
+    logger.error('Update profile error:', error);
+    throw error;
+  }
+};
+
 export const checkAuthStatus = async (): Promise<boolean> => {
   const token = await getAuthToken();
   return !!token;

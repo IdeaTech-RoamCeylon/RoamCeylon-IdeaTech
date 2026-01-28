@@ -1,6 +1,6 @@
-import { Controller, Get, Logger, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Logger, UseGuards, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
-
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('users')
@@ -11,8 +11,16 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  getMe() {
+  getMe(@Request() req: any) {
     this.logger.log('Users getMe triggered');
-    return this.usersService.getMe();
+    const userId = req.user.userId;
+    return this.usersService.getMe(userId);
+  }
+
+  @Patch('me')
+  updateProfile(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
+    this.logger.log('Users updateProfile triggered');
+    const userId = req.user.userId;
+    return this.usersService.updateProfile(userId, updateUserDto);
   }
 }

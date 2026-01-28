@@ -1,23 +1,44 @@
-import { Injectable } from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  getMe() {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     return {
-      data: {
-        id: 'mock-user-id',
-        phoneNumber: AuthService.getLastVerifiedPhone() || '+94771234567',
-        firstName: 'Sayura',
-        lastName: 'Thejan',
-        email: 'sayura.thejan@example.com',
-        profilePicture: 'https://example.com/profile.jpg',
-        preferences: {
-          language: 'en',
-          currency: 'LKR',
-          notifications: true,
-        },
-      },
+      id: user.id,
+      phoneNumber: user.phoneNumber,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  async updateProfile(userId: string, updateUserDto: UpdateUserDto) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateUserDto,
+    });
+
+    return {
+      id: user.id,
+      phoneNumber: user.phoneNumber,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 }
+
