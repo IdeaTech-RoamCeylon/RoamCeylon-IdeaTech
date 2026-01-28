@@ -16,7 +16,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: '2', emoji: '🛍️', title: 'Marketplace', description: 'Shop local goods', route: 'Marketplace' },
   { id: '3', emoji: '🚗', title: 'Transport', description: 'Book rides', route: 'Transport' },
   { id: '4', emoji: '🤖', title: 'AI Planner', description: 'Plan your trip', route: 'AITripPlanner' },
-  { id: '5', emoji: '👤', title: 'Profile', description: 'Your account', route: 'Profile' },
+  { id: '5', emoji: '💾', title: 'Saved Trips', description: 'Your saved plans', route: 'SavedTrips' },
+  { id: '6', emoji: '👤', title: 'Profile', description: 'Your account', route: 'Profile' },
 ];
 
 // Memoized navigation card component

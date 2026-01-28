@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEYS = {
   QUERY: 'planner_query',
   TRIP_PLAN: 'planner_trip_plan',
+  CURRENT_TRIP_ID: 'planner_current_trip_id',
+  IS_EDITING: 'planner_is_editing',
 };
 
 interface PlannerContextProps {
@@ -21,6 +23,11 @@ interface PlannerContextProps {
   tripPlan: TripPlanResponse | null;
   setTripPlan: React.Dispatch<React.SetStateAction<TripPlanResponse | null>>;
   clearPlanner: () => void;
+  currentTripId: string | null;
+  setCurrentTripId: React.Dispatch<React.SetStateAction<string | null>>;
+  isEditing: boolean;
+  startEditing: (tripId: string) => void;
+  stopEditing: () => void;
 }
 
 const PlannerContext = createContext<PlannerContextProps | undefined>(undefined);
@@ -32,6 +39,8 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     budget: 'Medium',
   });
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
+  const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Load state from storage on mount
   useEffect(() => {
@@ -39,12 +48,20 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
       try {
         const storedQuery = await AsyncStorage.getItem(STORAGE_KEYS.QUERY);
         const storedTripPlan = await AsyncStorage.getItem(STORAGE_KEYS.TRIP_PLAN);
+        const storedCurrentTripId = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_TRIP_ID);
+        const storedIsEditing = await AsyncStorage.getItem(STORAGE_KEYS.IS_EDITING);
 
         if (storedQuery) {
           setQuery(JSON.parse(storedQuery));
         }
         if (storedTripPlan) {
           setTripPlan(JSON.parse(storedTripPlan));
+        }
+        if (storedCurrentTripId) {
+          setCurrentTripId(storedCurrentTripId);
+        }
+        if (storedIsEditing) {
+          setIsEditing(JSON.parse(storedIsEditing));
         }
       } catch (error) {
         console.error('Failed to load planner state:', error);
@@ -81,20 +98,65 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     saveTripPlan();
   }, [tripPlan]);
 
+  // Save currentTripId and isEditing to storage whenever they change
+  useEffect(() => {
+    const saveEditingState = async () => {
+      try {
+        if (currentTripId) {
+          await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_TRIP_ID, currentTripId);
+        } else {
+          await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_TRIP_ID);
+        }
+        await AsyncStorage.setItem(STORAGE_KEYS.IS_EDITING, JSON.stringify(isEditing));
+      } catch (error) {
+        console.error('Failed to save editing state:', error);
+      }
+    };
+    saveEditingState();
+  }, [currentTripId, isEditing]);
+
   const clearPlanner = useCallback(async () => {
     try {
       setQuery({ destination: '', duration: '', budget: 'Medium' });
       setTripPlan(null);
-      await AsyncStorage.multiRemove([STORAGE_KEYS.QUERY, STORAGE_KEYS.TRIP_PLAN]);
+      setCurrentTripId(null);
+      setIsEditing(false);
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.QUERY, 
+        STORAGE_KEYS.TRIP_PLAN,
+        STORAGE_KEYS.CURRENT_TRIP_ID,
+        STORAGE_KEYS.IS_EDITING
+      ]);
     } catch (error) {
       console.error('Failed to clear planner storage:', error);
     }
   }, []);
 
+  const startEditing = useCallback((tripId: string) => {
+    setCurrentTripId(tripId);
+    setIsEditing(true);
+  }, []);
+
+  const stopEditing = useCallback(() => {
+    setCurrentTripId(null);
+    setIsEditing(false);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
-    () => ({ query, setQuery, tripPlan, setTripPlan, clearPlanner }),
-    [query, tripPlan, clearPlanner]
+    () => ({ 
+      query, 
+      setQuery, 
+      tripPlan, 
+      setTripPlan, 
+      clearPlanner,
+      currentTripId,
+      setCurrentTripId,
+      isEditing,
+      startEditing,
+      stopEditing,
+    }),
+    [query, tripPlan, clearPlanner, currentTripId, isEditing, startEditing, stopEditing]
   );
 
   return (
