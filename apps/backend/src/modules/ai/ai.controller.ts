@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -29,6 +29,13 @@ interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
   };
+}
+
+interface LogActivityDto {
+  placeId: string;
+  placeName: string;
+  category: string;
+  action: 'selected' | 'removed';
 }
 
 /* -------------------- TYPES -------------------- */
@@ -852,6 +859,56 @@ export class AIController {
     };
   }
 
+  private async buildRichExplanationPersonalized(
+    result: SearchResultItem,
+    priorityScore: number,
+    category: ItineraryCategory,
+    ctx: ExplanationContext,
+    userId?: string,
+  ): Promise<RichExplanation> {
+    const baseExplanation = this.buildRichExplanation(
+      result,
+      priorityScore,
+      category,
+      ctx,
+    );
+
+    if (userId) {
+      try {
+        const frequentPlaces =
+          await this.tripStore.getUserFrequentPlaces(userId);
+        const isFrequent = frequentPlaces.some(
+          (p) => p.placeId === String(result.id),
+        );
+
+        if (isFrequent) {
+          baseExplanation.whyThisPlace = [
+            '⭐ You have shown interest in this before',
+            ...(baseExplanation.whyThisPlace || []),
+          ];
+        }
+
+        const categoryPrefs =
+          await this.tripStore.getUserCategoryPreferences(userId);
+        const matchingPref = categoryPrefs.find((p) =>
+          category.toLowerCase().includes(p.category.toLowerCase()),
+        );
+
+        if (matchingPref && matchingPref.count >= 3) {
+          baseExplanation.whyThisPlace?.push(
+            `Based on your ${matchingPref.count} previous ${matchingPref.category} selections`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Personalization explanation failed: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    return baseExplanation;
+  }
+
   /* ==================== PRIORITY / SCORING ==================== */
 
   private calculateCategoryAlignment(
@@ -1005,6 +1062,94 @@ export class AIController {
 
         return String(a.id).localeCompare(String(b.id));
       });
+  }
+
+  /**
+   * Calculate personalization boost based on user history
+   */
+  private async calculatePersonalizationBoost(
+    result: SearchResultItem,
+    userId?: string,
+  ): Promise<number> {
+    if (!userId) return 0;
+
+    let boost = 0;
+
+    try {
+      // 1. Category preference boost
+      const categoryPrefs =
+        await this.tripStore.getUserCategoryPreferences(userId);
+      const resultText = `${result.title} ${result.content}`.toLowerCase();
+
+      for (const pref of categoryPrefs) {
+        if (resultText.includes(pref.category.toLowerCase())) {
+          const normalizedCount = Math.min(pref.count / 10, 1);
+          boost += 0.15 * normalizedCount;
+          break;
+        }
+      }
+
+      // 2. Similar place boost
+      const frequentPlaces = await this.tripStore.getUserFrequentPlaces(userId);
+      const isFrequentPlace = frequentPlaces.some(
+        (p) => p.placeId === String(result.id),
+      );
+
+      if (isFrequentPlace) {
+        boost += 0.2;
+      } else {
+        const hasRelatedPlace = frequentPlaces.some((p) =>
+          resultText.includes(p.placeName.toLowerCase().split(' ')[0]),
+        );
+        if (hasRelatedPlace) {
+          boost += 0.1;
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Personalization boost failed: ${(error as Error).message}`,
+      );
+    }
+
+    return Math.min(boost, 0.3);
+  }
+
+  /**
+   * Enhanced scoring with personalization
+   */
+  private async scoreResultsByPreferencesPersonalized(
+    results: SearchResultItem[],
+    preferences?: string[],
+    dayCount?: number,
+    destination?: string,
+    userId?: string,
+  ): Promise<Array<SearchResultItem & { priorityScore: number }>> {
+    const baseScored = this.scoreResultsByPreferences(
+      results,
+      preferences,
+      dayCount,
+      destination,
+    );
+
+    const personalizedScored = await Promise.all(
+      baseScored.map(async (item) => {
+        const personalizationBoost = await this.calculatePersonalizationBoost(
+          item,
+          userId,
+        );
+
+        return {
+          ...item,
+          priorityScore: item.priorityScore + personalizationBoost,
+        };
+      }),
+    );
+
+    return personalizedScored.sort((a, b) => {
+      const diff = b.priorityScore - a.priorityScore;
+      if (Math.abs(diff) > 0.001) return diff;
+      return String(a.id).localeCompare(String(b.id));
+    });
   }
 
   /* ==================== FALLBACK BUILDERS ==================== */
@@ -1480,13 +1625,14 @@ export class AIController {
 
   /* ==================== MAIN ITINERARY GENERATION ==================== */
 
-  private generateItinerary(
+  private async generateItinerary(
     searchResults: SearchResultItem[],
     dayCount: number,
     startDate: string,
     preferences?: string[],
     destination?: string,
-  ): { plans: DayPlan[]; usedFallback: boolean } {
+    userId?: string,
+  ): Promise<{ plans: DayPlan[]; usedFallback: boolean }> {
     const filteredResults = searchResults.filter((result) => {
       if (!result.score || result.score < this.CONFIDENCE_THRESHOLDS.MINIMUM)
         return false;
@@ -1501,11 +1647,12 @@ export class AIController {
       };
     }
 
-    const scored = this.scoreResultsByPreferences(
+    const scored = await this.scoreResultsByPreferencesPersonalized(
       filteredResults,
       preferences,
       dayCount,
       destination,
+      userId,
     );
 
     const MAX_PER_DAY =
@@ -1574,7 +1721,7 @@ export class AIController {
           estimatedDuration: this.estimateDuration(category),
           confidenceScore: result.confidence || 'Low',
           priority: Math.round((priorityScore || 0) * 100) / 100,
-          explanation: this.buildRichExplanation(
+          explanation: await this.buildRichExplanationPersonalized(
             result,
             priorityScore,
             category,
@@ -1589,6 +1736,7 @@ export class AIController {
               isFallback: false,
               timeSlot,
             },
+            userId,
           ),
         };
 
@@ -2100,12 +2248,13 @@ export class AIController {
       destinationLower,
     );
 
-    const { plans: dayByDayPlan, usedFallback } = this.generateItinerary(
+    const { plans: dayByDayPlan, usedFallback } = await this.generateItinerary(
       gated,
       dayCount,
       startDateStr,
       preferences,
       destinationLower,
+      userId,
     );
 
     const allCategoriesInPlan = dayByDayPlan.flatMap((d) =>
@@ -2182,5 +2331,39 @@ export class AIController {
     }
 
     return attachSavedMeta(response, savedMeta);
+  }
+
+  @Post('log-activity')
+  async logActivity(
+    @Req() req: Request,
+    @Body() body: LogActivityDto,
+  ): Promise<{ success: boolean }> {
+    const userId =
+      (req as AuthenticatedRequest).user?.id ||
+      (req.headers['x-user-id'] as string | undefined);
+
+    if (!userId) {
+      this.logger.warn('[log-activity] No userId provided');
+      return { success: false };
+    }
+
+    try {
+      await this.tripStore.logActivityInteraction({
+        userId,
+        placeId: body.placeId,
+        placeName: body.placeName,
+        category: body.category,
+        action: body.action,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(
+        `[log-activity] userId=${userId} place=${body.placeName} action=${body.action}`,
+      );
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`[log-activity] Failed: ${(error as Error).message}`);
+      return { success: false };
+    }
   }
 }
