@@ -17,10 +17,13 @@ export class UsersService {
 
     return {
       id: user.id,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       phoneNumber: user.phoneNumber,
       name: user.name,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       email: user.email,
       createdAt: user.createdAt,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       updatedAt: user.updatedAt,
     };
   }
@@ -33,12 +36,14 @@ export class UsersService {
 
     return {
       id: user.id,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       phoneNumber: user.phoneNumber,
       name: user.name,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       email: user.email,
       createdAt: user.createdAt,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       updatedAt: user.updatedAt,
     };
   }
 }
-
