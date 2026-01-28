@@ -45,7 +45,7 @@ type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITr
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
-  const { query, setQuery, tripPlan, setTripPlan } = usePlannerContext();
+  const { query, setQuery, tripPlan, setTripPlan, currentTripId, isEditing, stopEditing } = usePlannerContext();
   const networkStatus = useNetworkStatus();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -93,6 +93,7 @@ const AITripPlannerScreen = () => {
     setIsLoading(true);
     setError(null);
     setTripPlan(null); 
+    stopEditing(); // Clear editing state when generating a new plan
 
     try {
       const plan = await aiService.generateTripPlan(query);
@@ -221,14 +222,43 @@ const AITripPlannerScreen = () => {
     }
 
     try {
-      await tripStorageService.saveTrip(tripName.trim(), tripPlan);
-      setShowSaveDialog(false);
-      setTripName('');
-      Alert.alert('Success', 'Trip saved successfully!');
+      if (isEditing && currentTripId) {
+        // Update existing trip
+        await tripStorageService.updateTrip(currentTripId, {
+          name: tripName.trim(),
+          tripPlan,
+        });
+        setShowSaveDialog(false);
+        setTripName('');
+        Alert.alert('Success', 'Trip updated successfully!');
+      } else {
+        // Save new trip
+        await tripStorageService.saveTrip(tripName.trim(), tripPlan);
+        setShowSaveDialog(false);
+        setTripName('');
+        Alert.alert('Success', 'Trip saved successfully!');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save trip');
+      Alert.alert('Error', isEditing ? 'Failed to update trip' : 'Failed to save trip');
     }
-  }, [tripPlan, tripName]);
+  }, [tripPlan, tripName, isEditing, currentTripId]);
+
+  // Load trip name when entering editing mode
+  useEffect(() => {
+    const loadTripName = async () => {
+      if (isEditing && currentTripId) {
+        try {
+          const trip = await tripStorageService.getTripById(currentTripId);
+          if (trip) {
+            setTripName(trip.name);
+          }
+        } catch (error) {
+          console.error('Failed to load trip name:', error);
+        }
+      }
+    };
+    loadTripName();
+  }, [isEditing, currentTripId]);
 
   const handleNavigateToSavedTrips = useCallback(() => {
     navigation.navigate('SavedTrips' as never);
@@ -328,6 +358,14 @@ const AITripPlannerScreen = () => {
           />
         ) : tripPlan ? (
           <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+            {/* Editing Mode Indicator */}
+            {isEditing && (
+              <View style={styles.editingBadge}>
+                <Text style={styles.editingBadgeIcon}>✏️</Text>
+                <Text style={styles.editingBadgeText}>Editing Mode</Text>
+              </View>
+            )}
+            
             <Text style={styles.resultTitle}> Your Trip to {tripPlan.destination}</Text>
             <View style={styles.summaryContainer}>
               <View style={styles.summaryItem}>
@@ -343,11 +381,13 @@ const AITripPlannerScreen = () => {
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
               <TouchableOpacity 
-                style={styles.actionButton}
+                style={[styles.actionButton, isEditing && styles.actionButtonPrimary]}
                 onPress={() => setShowSaveDialog(true)}
               >
-                <Text style={styles.actionButtonIcon}>💾</Text>
-                <Text style={styles.actionButtonText}>Save Trip</Text>
+                <Text style={styles.actionButtonIcon}>{isEditing ? '💾' : '💾'}</Text>
+                <Text style={[styles.actionButtonText, isEditing && styles.actionButtonTextPrimary]}>
+                  {isEditing ? 'Update Trip' : 'Save Trip'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.actionButton}
@@ -443,7 +483,10 @@ const AITripPlannerScreen = () => {
 
             <TouchableOpacity 
               style={styles.resetButton}
-              onPress={() => setTripPlan(null)}
+              onPress={() => {
+                setTripPlan(null);
+                stopEditing();
+              }}
             >
               <Text style={styles.resetButtonText}>Plan Another Trip</Text>
             </TouchableOpacity>
@@ -460,8 +503,10 @@ const AITripPlannerScreen = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Save Trip</Text>
-            <Text style={styles.modalSubtitle}>Give your trip a name</Text>
+            <Text style={styles.modalTitle}>{isEditing ? 'Update Trip' : 'Save Trip'}</Text>
+            <Text style={styles.modalSubtitle}>
+              {isEditing ? 'Update your trip name' : 'Give your trip a name'}
+            </Text>
             
             <TextInput
               style={styles.modalInput}
@@ -485,7 +530,9 @@ const AITripPlannerScreen = () => {
                 style={[styles.modalButton, styles.modalButtonSave]}
                 onPress={handleSaveTrip}
               >
-                <Text style={styles.modalButtonTextSave}>Save</Text>
+                <Text style={styles.modalButtonTextSave}>
+                  {isEditing ? 'Update' : 'Save'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -678,6 +725,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#0066CC',
+  },
+  actionButtonPrimary: {
+    backgroundColor: '#0066CC',
+  },
+  actionButtonTextPrimary: {
+    color: '#fff',
+  },
+  // Editing Mode Badge
+  editingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+    alignSelf: 'center',
+  },
+  editingBadgeIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  editingBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F57C00',
   },
   // Modal Styles
   modalOverlay: {

@@ -21,6 +21,11 @@ interface PlannerContextProps {
   tripPlan: TripPlanResponse | null;
   setTripPlan: React.Dispatch<React.SetStateAction<TripPlanResponse | null>>;
   clearPlanner: () => void;
+  currentTripId: string | null;
+  setCurrentTripId: React.Dispatch<React.SetStateAction<string | null>>;
+  isEditing: boolean;
+  startEditing: (tripId: string) => void;
+  stopEditing: () => void;
 }
 
 const PlannerContext = createContext<PlannerContextProps | undefined>(undefined);
@@ -32,6 +37,8 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     budget: 'Medium',
   });
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
+  const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Load state from storage on mount
   useEffect(() => {
@@ -85,16 +92,39 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     try {
       setQuery({ destination: '', duration: '', budget: 'Medium' });
       setTripPlan(null);
+      setCurrentTripId(null);
+      setIsEditing(false);
       await AsyncStorage.multiRemove([STORAGE_KEYS.QUERY, STORAGE_KEYS.TRIP_PLAN]);
     } catch (error) {
       console.error('Failed to clear planner storage:', error);
     }
   }, []);
 
+  const startEditing = useCallback((tripId: string) => {
+    setCurrentTripId(tripId);
+    setIsEditing(true);
+  }, []);
+
+  const stopEditing = useCallback(() => {
+    setCurrentTripId(null);
+    setIsEditing(false);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
-    () => ({ query, setQuery, tripPlan, setTripPlan, clearPlanner }),
-    [query, tripPlan, clearPlanner]
+    () => ({ 
+      query, 
+      setQuery, 
+      tripPlan, 
+      setTripPlan, 
+      clearPlanner,
+      currentTripId,
+      setCurrentTripId,
+      isEditing,
+      startEditing,
+      stopEditing,
+    }),
+    [query, tripPlan, clearPlanner, currentTripId, isEditing, startEditing, stopEditing]
   );
 
   return (

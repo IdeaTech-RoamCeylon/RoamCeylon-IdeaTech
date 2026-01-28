@@ -9,7 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
 import { tripStorageService, SavedTrip } from '../../services/tripStorageService';
@@ -20,14 +20,16 @@ type SavedTripsNavigationProp = StackNavigationProp<MainStackParamList, 'AITripP
 
 const SavedTripsScreen = () => {
   const navigation = useNavigation<SavedTripsNavigationProp>();
-  const { setTripPlan, setQuery } = usePlannerContext();
+  const { setTripPlan, setQuery, startEditing } = usePlannerContext();
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    loadTrips();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadTrips();
+    }, [])
+  );
 
   const loadTrips = async () => {
     setIsLoading(true);
@@ -57,12 +59,13 @@ const SavedTripsScreen = () => {
               duration: trip.tripPlan.duration,
               budget: trip.tripPlan.budget,
             });
+            startEditing(trip.id);
             navigation.navigate('AITripPlanner');
           },
         },
       ]
     );
-  }, [navigation, setTripPlan, setQuery]);
+  }, [navigation, setTripPlan, setQuery, startEditing]);
 
   const handleDeleteTrip = useCallback((trip: SavedTrip) => {
     Alert.alert(
