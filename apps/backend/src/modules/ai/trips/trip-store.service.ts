@@ -2,6 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
 
+export type ActivityInteraction = {
+  userId: string;
+  placeId: string;
+  placeName: string;
+  category: string;
+  timestamp: string;
+  action: 'selected' | 'removed';
+};
+
 export type SavedTrip = {
   id: string;
   userId: string;
@@ -183,6 +192,20 @@ export class TripStoreService {
   }): Promise<{ id: string; tripId: string; versionNo: number }> {
     const db = await this.ensureConnected();
 
+    // Normalize dates to YYYY-MM-DD format (strip any timezone info)
+    const normalizeDate = (dateStr: string): string => {
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toISOString().split('T')[0];
+      } catch {
+        return dateStr;
+      }
+    };
+
+    const startDate = normalizeDate(args.startDate);
+    const endDate = normalizeDate(args.endDate);
+
     await db.query('BEGIN');
     try {
       let tripId = args.tripId;
@@ -205,8 +228,8 @@ export class TripStoreService {
           [
             args.userId,
             args.destination,
-            args.startDate,
-            args.endDate,
+            startDate,
+            endDate,
             JSON.stringify(args.preferences ?? []),
           ],
         );
@@ -225,8 +248,8 @@ export class TripStoreService {
           [
             tripId,
             args.destination,
-            args.startDate,
-            args.endDate,
+            startDate,
+            endDate,
             JSON.stringify(args.preferences ?? []),
             args.userId,
           ],
@@ -302,5 +325,141 @@ export class TripStoreService {
       aiMeta: (row.ai_meta ?? {}) as TripVersionRow['aiMeta'],
       createdAt: String(row.created_at),
     };
+  }
+
+  /**
+   * Log user activity interaction for personalization
+   */
+  async logActivityInteraction(
+    interaction: ActivityInteraction,
+  ): Promise<void> {
+    const db = await this.ensureConnected();
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_activity_log (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        place_id TEXT NOT NULL,
+        place_name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        action TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity_log(user_id);
+    `);
+
+    await db.query(
+      `INSERT INTO user_activity_log (user_id, place_id, place_name, category, action)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        interaction.userId,
+        interaction.placeId,
+        interaction.placeName,
+        interaction.category,
+        interaction.action,
+      ],
+    );
+  }
+
+  /**
+   * Get user's frequently selected categories
+   */
+  async getUserCategoryPreferences(userId: string): Promise<
+    {
+      category: string;
+      count: number;
+    }[]
+  > {
+    const db = await this.ensureConnected();
+
+    try {
+      // Ensure table exists
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          place_id TEXT NOT NULL,
+          place_name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          action TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity_log(user_id);
+      `);
+
+      const result = await db.query<{ category: string; count: string }>(
+        `SELECT category, COUNT(*) as count
+         FROM user_activity_log
+         WHERE user_id = $1 AND action = 'selected'
+         GROUP BY category
+         ORDER BY count DESC
+         LIMIT 5`,
+        [userId],
+      );
+
+      return result.rows.map((row) => ({
+        category: String(row.category),
+        count: parseInt(String(row.count), 10),
+      }));
+    } catch (error) {
+      this.logger.warn(
+        `getUserCategoryPreferences failed: ${(error as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Get user's frequently visited places
+   */
+  async getUserFrequentPlaces(userId: string): Promise<
+    {
+      placeId: string;
+      placeName: string;
+      count: number;
+    }[]
+  > {
+    const db = await this.ensureConnected();
+
+    try {
+      // Ensure table exists
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          place_id TEXT NOT NULL,
+          place_name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          action TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity_log(user_id);
+      `);
+
+      const result = await db.query<{
+        place_id: string;
+        place_name: string;
+        count: string;
+      }>(
+        `SELECT place_id, place_name, COUNT(*) as count
+         FROM user_activity_log
+         WHERE user_id = $1 AND action = 'selected'
+         GROUP BY place_id, place_name
+         ORDER BY count DESC
+         LIMIT 10`,
+        [userId],
+      );
+
+      return result.rows.map((row) => ({
+        placeId: String(row.place_id),
+        placeName: String(row.place_name),
+        count: parseInt(String(row.count), 10),
+      }));
+    } catch (error) {
+      this.logger.warn(
+        `getUserFrequentPlaces failed: ${(error as Error).message}`,
+      );
+      return [];
+    }
   }
 }

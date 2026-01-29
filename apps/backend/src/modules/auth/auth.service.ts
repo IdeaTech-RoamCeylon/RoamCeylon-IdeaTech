@@ -41,7 +41,7 @@ export class AuthService {
       accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
         phoneNumber: user.phoneNumber,
       },
     };
