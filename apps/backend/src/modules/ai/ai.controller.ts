@@ -68,6 +68,20 @@ export interface TripPlanRequestDto {
   tripId?: string; // optional specific trip refinement
 }
 
+interface RankingDetails {
+  baseScore: number;
+  personalizationBoost: number;
+  confidenceMultiplier: number;
+  finalScore: number;
+  adjustments: string[];
+}
+
+interface ScoredResult extends SearchResultItem {
+  priorityScore: number;
+  rankingDetails: RankingDetails;
+  matchedPreferences: string[];
+}
+
 type ItineraryCategory =
   | 'Arrival'
   | 'Sightseeing'
@@ -987,7 +1001,7 @@ export class AIController {
       boost += multiMatchBonus;
     
       rankingDetails.adjustments.push(
-        `Multi-preference bonus: ${matchedPrefs.length} matches (+${multiMatchBonus.toFixed(2)})`
+        `Multi-preference bonus: ${matchedPrefs.length} matches (+${Number(multiMatchBonus).toFixed(2)})`
       );
     }
 
@@ -1010,7 +1024,7 @@ export class AIController {
     preferences?: string[],
     dayCount?: number,
     destination?: string,
-  ): Array<SearchResultItem & { priorityScore: number; rankingDetails?: any; matchedPreferences?: string[] }> {
+  ): ScoredResult[] {
     const tripType = dayCount ? this.getTripLengthType(dayCount) : undefined;
     const dest = this.normalizeLower(destination);
 
@@ -1020,8 +1034,11 @@ export class AIController {
         let priorityScore = baseScore;
 
         // Initialize ranking details for transparency
-        const rankingDetails: any = {
+        const rankingDetails: RankingDetails = {
           baseScore,
+          personalizationBoost: 0,
+          confidenceMultiplier: 1,
+          finalScore: baseScore,
           adjustments: [],
         };
 
@@ -1111,7 +1128,7 @@ export class AIController {
           ...result, 
           priorityScore, 
           rankingDetails,
-          matchedPreferences: matchedPreferences.length > 0 ? matchedPreferences : undefined
+          matchedPreferences,
         };
       })
       .sort((a, b) => {
