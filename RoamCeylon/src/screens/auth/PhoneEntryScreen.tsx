@@ -41,7 +41,7 @@ const PhoneEntryScreen = () => {
       subtitle="We'll send you a verification code"
     >
       <Input
-        placeholder="+94 XX XXX XXXX"
+        placeholder="0771234567"
         keyboardType="phone-pad"
         value={phoneNumber}
         onChangeText={(text) => {

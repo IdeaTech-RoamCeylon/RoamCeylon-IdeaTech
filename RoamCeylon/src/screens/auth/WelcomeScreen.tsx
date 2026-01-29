@@ -17,6 +17,12 @@ const WelcomeScreen = () => {
       >
         <Text style={styles.buttonText}>Continue with Phone</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('GoogleSignIn' as never)}
+      >
+        <Text style={styles.buttonText}>Continue with google</Text>
+      </TouchableOpacity>
     </View>
   );
 };
