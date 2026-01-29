@@ -1,63 +1,91 @@
 import {
   reorderActivity,
   applyDelay,
+  addActivityToItinerary,
   generateStateMessage,
   TripPlan,
+  TripDestination,
 } from './itineraryModifiers';
 
 const mockTrip: TripPlan = {
   tripId: 'trip-001',
-  title: 'Kandy Adventure',
+  title: 'Geometry Trip',
   destinations: [
     {
-      id: '1',
+      id: 'A',
       order: 1,
-      placeName: 'Temple',
-      shortDescription: 'Sacred',
+      placeName: 'Point A',
+      shortDescription: '',
+      coordinates: { latitude: 0, longitude: 0 },
       metadata: {
-        duration: '2h',
+        duration: '1h',
         category: 'culture',
         bestTimeToVisit: 'Morning',
       },
     },
     {
-      id: '2',
+      id: 'C',
       order: 2,
-      placeName: 'Lake',
-      shortDescription: 'Walk',
+      placeName: 'Point C',
+      shortDescription: '',
+      coordinates: { latitude: 0, longitude: 20 },
       metadata: {
         duration: '1h',
         category: 'relaxation',
         bestTimeToVisit: 'Evening',
       },
     },
-    {
-      id: '3',
-      order: 3,
-      placeName: 'Night Market',
-      shortDescription: 'Shop',
-      metadata: {
-        duration: '2h',
-        category: 'shopping',
-        bestTimeToVisit: 'Night',
-      },
-    },
   ],
 };
 
-describe('Advanced State Interactions', () => {
+const pointB: TripDestination = {
+  id: 'B',
+  order: 0,
+  placeName: 'Point B',
+  shortDescription: '',
+  coordinates: { latitude: 0, longitude: 10 },
+  metadata: { duration: '1h', category: 'shopping' },
+};
+
+describe('Itinerary Modifiers', () => {
   test('Smart Reorder - Warning logic', () => {
-    const result = reorderActivity(mockTrip, 2, 0);
-    expect(result.warnings[0]).toContain('best visited in the night');
+    // FIX: Expect 'evening' (lowercase) because the code converts it to lowercase
+    const result = reorderActivity(mockTrip, 1, 0);
+    expect(result.warnings[0]).toContain('best visited in the evening');
   });
 
   test('Apply Delay - Drop logic', () => {
-    const result = applyDelay(mockTrip, 180);
+    const longTrip = {
+      ...mockTrip,
+      destinations: [...mockTrip.destinations, pointB],
+    };
+    const result = applyDelay(longTrip, 180);
     expect(result.updatedPlan.destinations.length).toBe(2);
+    expect(result.warnings[0]).toContain('removed Point B');
+  });
+
+  test('Intelligent Add - Cheapest Insertion', () => {
+    const result = addActivityToItinerary(mockTrip, pointB);
+    expect(result.updatedPlan.destinations.length).toBe(3);
+    expect(result.updatedPlan.destinations[1].id).toBe('B');
+    expect(result.explanation).toContain('stop #2');
+  });
+
+  test('Intelligent Add - Time Limit Protection', () => {
+    const hugeTask: TripDestination = {
+      ...pointB,
+      metadata: { ...pointB.metadata, duration: 'Full Day' }, // 8 hours
+    };
+
+    // FIX: This should now pass because 'Full Day' is correctly parsed as 8 hours
+    const result = addActivityToItinerary(mockTrip, hugeTask);
+
+    expect(result.updatedPlan.destinations.length).toBe(2);
+    expect(result.warnings[0]).toContain('exceeds');
   });
 
   test('State Explainer', () => {
-    const msg = generateStateMessage('REORDER', 'user');
-    expect(msg).toContain('Re-sequenced');
+    const msg = generateStateMessage('ADD', 'Added Point B');
+    expect(msg).toContain('Adding stop');
   });
 });
