@@ -1,40 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  // In-memory storage for mock auth (in real app, this would be in database)
-  private static lastVerifiedPhone: string = '+94771234567';
-
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   sendOtp(_phoneNumber: string): { message: string } {
     return { message: 'OTP sent successfully' };
   }
 
-  verifyOtp(
-    _phoneNumber: string,
+  async verifyOtp(
+    phoneNumber: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _otp: string,
-  ): { accessToken: string; user: { id: string; phoneNumber: string } } {
-    // Store the verified phone number
-    AuthService.lastVerifiedPhone = _phoneNumber;
+  ): Promise<{
+    accessToken: string;
+    user: { id: string; phoneNumber: string };
+  }> {
+    // Create or update user in database
+    const user = await this.prisma.user.upsert({
+      where: { phoneNumber },
+      update: {
+        // Update timestamp will be automatically set by Prisma
+      },
+      create: {
+        phoneNumber,
+        // name and email will be added later in profile setup
+      },
+    });
 
     // Payload for JWT
-    const payload = { username: _phoneNumber, sub: 'mock-user-id' };
+    const payload = { username: phoneNumber, sub: user.id };
 
     return {
       accessToken: this.jwtService.sign(payload),
       user: {
-        id: 'mock-user-id',
-        phoneNumber: _phoneNumber,
+        id: user.id,
+
+        phoneNumber: user.phoneNumber,
       },
     };
-  }
-
-  // Method to get the last verified phone number
-  static getLastVerifiedPhone(): string {
-    return this.lastVerifiedPhone;
   }
 }

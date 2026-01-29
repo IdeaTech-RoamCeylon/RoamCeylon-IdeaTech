@@ -26,7 +26,7 @@ export class TransportService {
         create: {
           id: d.id,
           name: d.name,
-          phone: `+9477000000${d.id.replace('d', '')}`,
+          phoneNumber: `+9477000000${d.id.replace('d', '')}`,
         },
       });
 

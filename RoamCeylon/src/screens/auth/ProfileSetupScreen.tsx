@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { Button, Input } from '../../components';
 import { useAuth } from '../../context/AuthContext';
+import { updateProfile } from '../../services/auth';
+import { showToast } from '../../utils/toast';
 
 const ProfileSetupScreen = () => {
-  const { updateUserProfile, user } = useAuth();
+  const { refreshUser } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,25 +19,18 @@ const ProfileSetupScreen = () => {
 
     setLoading(true);
     try {
-      // For now, update local state which will trigger isProfileComplete
-      const updatedUser = {
-        ...user,
-        id: user?.id || 'user-123',
-        // Only include phoneNumber if it exists, don't overwrite with empty string
-        ...(user?.phoneNumber && { phoneNumber: user.phoneNumber }),
-        name: name.trim(),
-        email: email.trim(),
-      };
+      // Call backend API to update profile
+      await updateProfile(name.trim(), email.trim());
       
-      // This will update user and immediately set isProfileComplete to true
-      updateUserProfile(updatedUser);
+      // Refresh user data from backend
+      await refreshUser();
+      
+      showToast.success('Profile updated successfully!', 'Success');
       
       // Navigation will happen automatically via RootNavigator when isProfileComplete becomes true
-      // Note: We don't call refreshUser() here as it causes navigation flickering
-      // The backend will be synced on next app load
     } catch (error) {
       console.error('Profile setup error:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      showToast.apiError(error, 'Failed to save profile. Please try again.');
     } finally {
       setLoading(false);
     }

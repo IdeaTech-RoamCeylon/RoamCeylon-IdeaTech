@@ -5,6 +5,7 @@ import { AIController } from './ai.controller';
 import { AIService } from './ai.service';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { SearchService } from './retrieval/search.service';
+import { TripStoreService } from './trips/trip-store.service';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { SearchService } from './retrieval/search.service';
     ]),
   ],
   controllers: [AIController],
-  providers: [AIService, EmbeddingService, SearchService],
+  providers: [AIService, EmbeddingService, SearchService, TripStoreService],
 })
 export class AIModule {}

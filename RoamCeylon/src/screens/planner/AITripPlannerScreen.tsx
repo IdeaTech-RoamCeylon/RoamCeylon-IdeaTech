@@ -8,7 +8,8 @@ import {
   TextInput, 
   ActivityIndicator,
   Alert,
-  Animated 
+  Animated,
+  Modal 
 } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,9 @@ import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import DaySelector from '../../components/DaySelector';
 import ItineraryList from '../../components/ItineraryList';
+import BudgetBreakdown from '../../components/BudgetBreakdown';
+import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
+import { tripStorageService } from '../../services/tripStorageService';
 
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
@@ -41,13 +45,17 @@ type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITr
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
-  const { query, setQuery, tripPlan, setTripPlan } = usePlannerContext();
+  const { query, setQuery, tripPlan, setTripPlan, currentTripId, isEditing, stopEditing } = usePlannerContext();
   const networkStatus = useNetworkStatus();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [tripName, setTripName] = useState('');
+  const [useEnhancedView, setUseEnhancedView] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -86,6 +94,7 @@ const AITripPlannerScreen = () => {
     setIsLoading(true);
     setError(null);
     setTripPlan(null); 
+    stopEditing(); // Clear editing state when generating a new plan
 
     try {
       const plan = await aiService.generateTripPlan(query);
@@ -205,6 +214,65 @@ const AITripPlannerScreen = () => {
     );
   }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
 
+  const handleSaveTrip = useCallback(async () => {
+    if (!tripPlan) return;
+    
+    if (!tripName.trim()) {
+      Alert.alert('Trip Name Required', 'Please enter a name for your trip');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (isEditing && currentTripId) {
+        // Update existing trip
+        await tripStorageService.updateTrip(currentTripId, {
+          name: tripName.trim(),
+          tripPlan,
+        });
+        setIsSaving(false);
+        setShowSaveDialog(false);
+        setTripName('');
+        Alert.alert('Success', 'Trip updated successfully!');
+      } else {
+        // Save new trip
+        await tripStorageService.saveTrip(tripName.trim(), tripPlan);
+        setIsSaving(false);
+        setShowSaveDialog(false);
+        setTripName('');
+        Alert.alert('Success', 'Trip saved successfully!');
+      }
+    } catch (error) {
+      setIsSaving(false);
+      Alert.alert(
+        'Error', 
+        isEditing ? 'Failed to update trip. Please try again.' : 'Failed to save trip. Please try again.'
+      );
+    }
+  }, [tripPlan, tripName, isEditing, currentTripId]);
+
+  // Load trip name when entering editing mode
+  useEffect(() => {
+    const loadTripName = async () => {
+      if (isEditing && currentTripId) {
+        try {
+          const trip = await tripStorageService.getTripById(currentTripId);
+          if (trip) {
+            setTripName(trip.name);
+          }
+        } catch (error) {
+          console.error('Failed to load trip name:', error);
+        }
+      }
+    };
+    loadTripName();
+  }, [isEditing, currentTripId]);
+
+  const handleNavigateToSavedTrips = useCallback(() => {
+    navigation.navigate('SavedTrips' as never);
+  }, [navigation]);
+
+
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
     return tripPlan?.itinerary?.find(item => item.day === selectedDay);
@@ -298,6 +366,14 @@ const AITripPlannerScreen = () => {
           />
         ) : tripPlan ? (
           <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+            {/* Editing Mode Indicator */}
+            {isEditing && (
+              <View style={styles.editingBadge}>
+                <Text style={styles.editingBadgeIcon}>✏️</Text>
+                <Text style={styles.editingBadgeText}>Editing Mode</Text>
+              </View>
+            )}
+            
             <Text style={styles.resultTitle}> Your Trip to {tripPlan.destination}</Text>
             <View style={styles.summaryContainer}>
               <View style={styles.summaryItem}>
@@ -309,6 +385,29 @@ const AITripPlannerScreen = () => {
                 <Text style={styles.summaryValue}>{tripPlan.budget}</Text>
               </View>
             </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={[styles.actionButton, isEditing && styles.actionButtonPrimary]}
+                onPress={() => setShowSaveDialog(true)}
+              >
+                <Text style={styles.actionButtonIcon}>{isEditing ? '💾' : '💾'}</Text>
+                <Text style={[styles.actionButtonText, isEditing && styles.actionButtonTextPrimary]}>
+                  {isEditing ? 'Update Trip' : 'Save Trip'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handleNavigateToSavedTrips}
+              >
+                <Text style={styles.actionButtonIcon}>📂</Text>
+                <Text style={styles.actionButtonText}>Saved Trips</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Budget Breakdown */}
+            <BudgetBreakdown budget={tripPlan.budget} duration={tripPlan.duration} />
 
             {/* Day Selector */}
             <DaySelector 
@@ -374,25 +473,85 @@ const AITripPlannerScreen = () => {
 
             <View style={styles.dayCard}>
               <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
-              <ItineraryList 
-                activities={activities} 
-                onActivitySelect={setSelectedActivity}
-                selectedActivity={selectedActivity}
-                onMoveUp={(index) => handleMoveActivity(index, 'up')}
-                onMoveDown={(index) => handleMoveActivity(index, 'down')}
-                onDelete={handleDeleteActivity}
-              />
+              {activities.map((activity, index) => (
+                <EnhancedItineraryCard
+                  key={`${selectedDay}-${index}-${activity.description}`}
+                  activity={activity}
+                  index={index}
+                  isSelected={selectedActivity === activity}
+                  onPress={() => setSelectedActivity(activity)}
+                  onMoveUp={() => handleMoveActivity(index, 'up')}
+                  onMoveDown={() => handleMoveActivity(index, 'down')}
+                  onDelete={() => handleDeleteActivity(index)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < activities.length - 1}
+                />
+              ))}
             </View>
 
             <TouchableOpacity 
               style={styles.resetButton}
-              onPress={() => setTripPlan(null)}
+              onPress={() => {
+                setTripPlan(null);
+                stopEditing();
+              }}
             >
               <Text style={styles.resetButtonText}>Plan Another Trip</Text>
             </TouchableOpacity>
           </Animated.View>
         ) : null}
       </View>
+
+      {/* Save Trip Dialog */}
+      <Modal
+        visible={showSaveDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSaveDialog(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{isEditing ? 'Update Trip' : 'Save Trip'}</Text>
+            <Text style={styles.modalSubtitle}>
+              {isEditing ? 'Update your trip name' : 'Give your trip a name'}
+            </Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g., Summer Sri Lanka Adventure"
+              value={tripName}
+              onChangeText={setTripName}
+              autoFocus
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowSaveDialog(false);
+                  setTripName('');
+                }}
+                disabled={isSaving}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave, isSaving && { opacity: 0.7 }]}
+                onPress={handleSaveTrip}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonTextSave}>
+                    {isEditing ? 'Update' : 'Save'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -548,6 +707,129 @@ const styles = StyleSheet.create({
     color: '#0066CC',
     fontWeight: '600',
     fontSize: 15,
+  },
+  // Action Buttons
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#0066CC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  actionButtonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0066CC',
+  },
+  actionButtonPrimary: {
+    backgroundColor: '#0066CC',
+  },
+  actionButtonTextPrimary: {
+    color: '#fff',
+  },
+  // Editing Mode Badge
+  editingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+    alignSelf: 'center',
+  },
+  editingBadgeIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  editingBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F57C00',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 25,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#f0f0f0',
+  },
+  modalButtonSave: {
+    backgroundColor: '#0066CC',
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalButtonTextSave: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

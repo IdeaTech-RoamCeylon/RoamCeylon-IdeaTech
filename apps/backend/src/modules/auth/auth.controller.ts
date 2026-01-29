@@ -23,10 +23,10 @@ export class AuthController {
 
   @Post('verify-otp')
   // @Throttle removed
-  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): {
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): Promise<{
     accessToken: string;
     user: { id: string; phoneNumber: string };
-  } {
+  }> {
     this.logger.log(
       `Auth verify-otp triggered for phone: ${verifyOtpDto.phoneNumber}`,
     );
