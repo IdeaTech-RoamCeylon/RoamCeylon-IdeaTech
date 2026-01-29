@@ -179,10 +179,10 @@ export class AIController {
   private readonly CONFIDENCE_THRESHOLDS = PLANNER_CONFIG.CONFIDENCE;
 
   private readonly PREFERENCE_WEIGHTS = {
-    TITLE_DIRECT_MATCH: 0.4,      // Preference word in title (strongest)
-    CONTENT_DIRECT_MATCH: 0.25,   // Preference word in content
-    CATEGORY_MAPPED_MATCH: 0.15,  // Matches via category mapping
-    MULTIPLE_MATCH_BONUS: 0.2,    // Bonus per additional preference matched
+    TITLE_DIRECT_MATCH: 0.4, // Preference word in title (strongest)
+    CONTENT_DIRECT_MATCH: 0.25, // Preference word in content
+    CATEGORY_MAPPED_MATCH: 0.15, // Matches via category mapping
+    MULTIPLE_MATCH_BONUS: 0.2, // Bonus per additional preference matched
   };
 
   private readonly FALLBACK_MESSAGES = {
@@ -948,24 +948,28 @@ export class AIController {
   private calculatePreferenceBoost(
     result: SearchResultItem,
     preferences: string[],
-    rankingDetails: any,
+    rankingDetails: RankingDetails,
   ): number {
     let boost = 0;
     const titleLower = result.title.toLowerCase();
     const contentLower = result.content.toLowerCase();
-    const matchedPrefs: Array<{pref: string, location: string, boost: number}> = [];
+    const matchedPrefs: Array<{
+      pref: string;
+      location: string;
+      boost: number;
+    }> = [];
 
     // Check each preference (all equally important)
     preferences.forEach((pref) => {
       const prefLower = pref.toLowerCase();
-    
+
       // Priority 1: Direct match in TITLE (strongest signal)
       if (titleLower.includes(prefLower)) {
         boost += this.PREFERENCE_WEIGHTS.TITLE_DIRECT_MATCH;
         matchedPrefs.push({
           pref,
           location: 'title',
-          boost: this.PREFERENCE_WEIGHTS.TITLE_DIRECT_MATCH
+          boost: this.PREFERENCE_WEIGHTS.TITLE_DIRECT_MATCH,
         });
       }
       // Priority 2: Direct match in CONTENT
@@ -974,7 +978,7 @@ export class AIController {
         matchedPrefs.push({
           pref,
           location: 'content',
-          boost: this.PREFERENCE_WEIGHTS.CONTENT_DIRECT_MATCH
+          boost: this.PREFERENCE_WEIGHTS.CONTENT_DIRECT_MATCH,
         });
       }
       // Priority 3: Category mapping match
@@ -982,12 +986,15 @@ export class AIController {
         const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
         for (const category of mappedCategories) {
           const categoryLower = category.toLowerCase();
-          if (titleLower.includes(categoryLower) || contentLower.includes(categoryLower)) {
+          if (
+            titleLower.includes(categoryLower) ||
+            contentLower.includes(categoryLower)
+          ) {
             boost += this.PREFERENCE_WEIGHTS.CATEGORY_MAPPED_MATCH;
             matchedPrefs.push({
               pref,
               location: `mapped to ${category}`,
-              boost: this.PREFERENCE_WEIGHTS.CATEGORY_MAPPED_MATCH
+              boost: this.PREFERENCE_WEIGHTS.CATEGORY_MAPPED_MATCH,
             });
             break;
           }
@@ -997,28 +1004,30 @@ export class AIController {
 
     // Bonus for matching multiple preferences (coverage reward)
     if (matchedPrefs.length > 1) {
-      const multiMatchBonus = (matchedPrefs.length - 1) * this.PREFERENCE_WEIGHTS.MULTIPLE_MATCH_BONUS;
+      const multiMatchBonus =
+        (matchedPrefs.length - 1) *
+        this.PREFERENCE_WEIGHTS.MULTIPLE_MATCH_BONUS;
       boost += multiMatchBonus;
-    
+
       rankingDetails.adjustments.push(
-        `Multi-preference bonus: ${matchedPrefs.length} matches (+${Number(multiMatchBonus).toFixed(2)})`
+        `Multi-preference bonus: ${matchedPrefs.length} matches (+${Number(multiMatchBonus).toFixed(2)})`,
       );
     }
 
     if (matchedPrefs.length > 0) {
-      const details = matchedPrefs.map(m => 
-        `${m.pref} (${m.location}: +${m.boost})`
-      ).join(', ');
+      const details = matchedPrefs
+        .map((m) => `${m.pref} (${m.location}: +${m.boost})`)
+        .join(', ');
       rankingDetails.adjustments.push(`Preferences: ${details}`);
     }
 
     return boost;
   }
 
- /**
- * Base scoring for ALL users (logged in or not)
- * Uses: preferences, proximity, trip type, but NO personalization
- */
+  /**
+   * Base scoring for ALL users (logged in or not)
+   * Uses: preferences, proximity, trip type, but NO personalization
+   */
   private scoreResultsByPreferences(
     results: SearchResultItem[],
     preferences?: string[],
@@ -1064,17 +1073,27 @@ export class AIController {
           const hasNearMetadata = text.includes('near:') && text.includes(dest);
 
           if (hasDestInTitle) {
-            const boost = PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.TITLE * boostMultiplier;
+            const boost =
+              PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.TITLE * boostMultiplier;
             priorityScore += boost;
-            rankingDetails.adjustments.push(`Proximity (title): +${boost.toFixed(2)}`);
+            rankingDetails.adjustments.push(
+              `Proximity (title): +${boost.toFixed(2)}`,
+            );
           } else if (hasNearMetadata) {
-            const boost = PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.METADATA * boostMultiplier;
+            const boost =
+              PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.METADATA *
+              boostMultiplier;
             priorityScore += boost;
-            rankingDetails.adjustments.push(`Proximity (metadata): +${boost.toFixed(2)}`);
+            rankingDetails.adjustments.push(
+              `Proximity (metadata): +${boost.toFixed(2)}`,
+            );
           } else if (hasDestInContent) {
-            const boost = PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.CONTENT * boostMultiplier;
+            const boost =
+              PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.CONTENT * boostMultiplier;
             priorityScore += boost;
-            rankingDetails.adjustments.push(`Proximity (content): +${boost.toFixed(2)}`);
+            rankingDetails.adjustments.push(
+              `Proximity (content): +${boost.toFixed(2)}`,
+            );
           }
 
           if (
@@ -1083,7 +1102,9 @@ export class AIController {
           ) {
             const comboBoost = PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.COMBO;
             priorityScore += comboBoost;
-            rankingDetails.adjustments.push(`High score combo: +${comboBoost.toFixed(2)}`);
+            rankingDetails.adjustments.push(
+              `High score combo: +${comboBoost.toFixed(2)}`,
+            );
           }
         }
 
@@ -1100,17 +1121,25 @@ export class AIController {
         // Trip type optimization
         if (tripType === 'short') {
           if (text.match(/fort|temple|kovil|church|museum|beach/)) {
-            const boost = PLANNER_CONFIG.SCORING.TRIP_OPTIMIZATION.SHORT_BOOST * boostMultiplier;
+            const boost =
+              PLANNER_CONFIG.SCORING.TRIP_OPTIMIZATION.SHORT_BOOST *
+              boostMultiplier;
             priorityScore += boost;
-            rankingDetails.adjustments.push(`Short trip boost: +${boost.toFixed(2)}`);
+            rankingDetails.adjustments.push(
+              `Short trip boost: +${boost.toFixed(2)}`,
+            );
           }
         }
 
         if (tripType === 'long') {
           if (text.match(/nature|park|wildlife|relax|spa|garden/)) {
-            const boost = PLANNER_CONFIG.SCORING.TRIP_OPTIMIZATION.LONG_BOOST * boostMultiplier;
+            const boost =
+              PLANNER_CONFIG.SCORING.TRIP_OPTIMIZATION.LONG_BOOST *
+              boostMultiplier;
             priorityScore += boost;
-            rankingDetails.adjustments.push(`Long trip boost: +${boost.toFixed(2)}`);
+            rankingDetails.adjustments.push(
+              `Long trip boost: +${boost.toFixed(2)}`,
+            );
           }
         }
 
@@ -1122,11 +1151,14 @@ export class AIController {
         rankingDetails.finalScore = priorityScore;
 
         // Extract matched preferences for easy access
-        const { matched: matchedPreferences } = this.extractMatchedPreferences(result, preferences);
+        const { matched: matchedPreferences } = this.extractMatchedPreferences(
+          result,
+          preferences,
+        );
 
         return {
-          ...result, 
-          priorityScore, 
+          ...result,
+          priorityScore,
           rankingDetails,
           matchedPreferences,
         };
@@ -1146,30 +1178,40 @@ export class AIController {
     // DEBUG LOG FOR ANONYMOUS USERS (NO PERSONALIZATION)
     if (scored.length > 0) {
       this.logger.debug(`\n${'='.repeat(80)}`);
-      this.logger.debug(`[RANKING DEBUG - ANONYMOUS USER] Top ${Math.min(5, scored.length)} Results`);
+      this.logger.debug(
+        `[RANKING DEBUG - ANONYMOUS USER] Top ${Math.min(5, scored.length)} Results`,
+      );
       this.logger.debug(`${'='.repeat(80)}`);
       this.logger.debug(`Destination: ${destination || 'N/A'}`);
       this.logger.debug(`Preferences: ${preferences?.join(', ') || 'None'}`);
       this.logger.debug(`Trip Type: ${tripType || 'N/A'}`);
       this.logger.debug(`User Type: Anonymous (no personalization applied)`);
       this.logger.debug(`─`.repeat(80));
-    
+
       scored.slice(0, 5).forEach((item, idx) => {
         this.logger.debug(`\n${idx + 1}. ${item.title}`);
-        this.logger.debug(`   Base Score (Cosine Similarity): ${item.rankingDetails.baseScore.toFixed(3)}`);
-        this.logger.debug(`   Confidence: ${item.confidence || 'N/A'} (×${item.rankingDetails.confidenceMultiplier?.toFixed(2) || 'N/A'})`);
-        this.logger.debug(`   Matched Preferences: ${item.matchedPreferences?.join(', ') || 'None'}`);
-      
+        this.logger.debug(
+          `   Base Score (Cosine Similarity): ${item.rankingDetails.baseScore.toFixed(3)}`,
+        );
+        this.logger.debug(
+          `   Confidence: ${item.confidence || 'N/A'} (×${item.rankingDetails.confidenceMultiplier?.toFixed(2) || 'N/A'})`,
+        );
+        this.logger.debug(
+          `   Matched Preferences: ${item.matchedPreferences?.join(', ') || 'None'}`,
+        );
+
         if (item.rankingDetails.adjustments.length > 0) {
           this.logger.debug(`   Scoring Adjustments:`);
           item.rankingDetails.adjustments.forEach((adj: string) => {
             this.logger.debug(`     • ${adj}`);
           });
         }
-      
-        this.logger.debug(`   ➜ Final Priority Score: ${item.priorityScore.toFixed(3)}`);
+
+        this.logger.debug(
+          `   ➜ Final Priority Score: ${item.priorityScore.toFixed(3)}`,
+        );
       });
-    
+
       this.logger.debug(`\n${'='.repeat(80)}\n`);
     }
 
@@ -1190,7 +1232,8 @@ export class AIController {
 
     try {
       // 1. Category preference boost
-      const categoryPrefs = await this.tripStore.getUserCategoryPreferences(userId);
+      const categoryPrefs =
+        await this.tripStore.getUserCategoryPreferences(userId);
       const resultText = `${result.title} ${result.content}`.toLowerCase();
 
       for (const pref of categoryPrefs) {
@@ -1198,7 +1241,9 @@ export class AIController {
           const normalizedCount = Math.min(pref.count / 10, 1);
           const categoryBoost = 0.15 * normalizedCount;
           boost += categoryBoost;
-          boostDetails.push(`Category "${pref.category}" (${pref.count}x): +${categoryBoost.toFixed(3)}`);
+          boostDetails.push(
+            `Category "${pref.category}" (${pref.count}x): +${categoryBoost.toFixed(3)}`,
+          );
           break; // Only one category match
         }
       }
@@ -1228,11 +1273,10 @@ export class AIController {
       // Log individual boost breakdown if significant
       if (boost > 0.05) {
         this.logger.debug(`   [Personalization] ${result.title}:`);
-        boostDetails.forEach(detail => {
+        boostDetails.forEach((detail) => {
           this.logger.debug(`      ${detail}`);
         });
       }
-
     } catch (error) {
       this.logger.error(
         `Personalization boost failed for user ${userId}: ${(error as Error).message}`,
@@ -1241,9 +1285,11 @@ export class AIController {
 
     // Cap the boost
     const cappedBoost = Math.min(boost, 0.3);
-  
+
     if (cappedBoost !== boost) {
-      this.logger.debug(`   [Personalization] ${result.title}: Boost capped from ${boost.toFixed(3)} to ${cappedBoost.toFixed(3)}`);
+      this.logger.debug(
+        `   [Personalization] ${result.title}: Boost capped from ${boost.toFixed(3)} to ${cappedBoost.toFixed(3)}`,
+      );
     }
 
     return cappedBoost;
@@ -1259,7 +1305,15 @@ export class AIController {
     dayCount?: number,
     destination?: string,
     userId?: string,
-  ): Promise<Array<SearchResultItem & { priorityScore: number; rankingDetails?: any; matchedPreferences?: string[] }>> {
+  ): Promise<
+    Array<
+      SearchResultItem & {
+        priorityScore: number;
+        rankingDetails?: any;
+        matchedPreferences?: string[];
+      }
+    >
+  > {
     // Step 1: Get base scores (same as anonymous users)
     const baseScored = this.scoreResultsByPreferences(
       results,
@@ -1270,7 +1324,9 @@ export class AIController {
 
     // If no userId, return base scores (shouldn't happen, but safety check)
     if (!userId) {
-      this.logger.warn('[RANKING] scoreResultsByPreferencesPersonalized called without userId - using base scoring');
+      this.logger.warn(
+        '[RANKING] scoreResultsByPreferencesPersonalized called without userId - using base scoring',
+      );
       return baseScored;
     }
 
@@ -1290,7 +1346,7 @@ export class AIController {
             personalizationBoost, // Track the boost
           },
         };
-      })
+      }),
     );
 
     // Step 3: Re-sort with personalization
@@ -1303,52 +1359,75 @@ export class AIController {
     // DEBUG LOG FOR AUTHENTICATED USERS (WITH PERSONALIZATION)
     if (sorted.length > 0) {
       this.logger.debug(`\n${'='.repeat(80)}`);
-      this.logger.debug(`[RANKING DEBUG - AUTHENTICATED USER] Top ${Math.min(5, sorted.length)} Results`);
+      this.logger.debug(
+        `[RANKING DEBUG - AUTHENTICATED USER] Top ${Math.min(5, sorted.length)} Results`,
+      );
       this.logger.debug(`${'='.repeat(80)}`);
       this.logger.debug(`User ID: ${userId}`);
       this.logger.debug(`Destination: ${destination || 'N/A'}`);
       this.logger.debug(`Preferences: ${preferences?.join(', ') || 'None'}`);
-      this.logger.debug(`Trip Type: ${dayCount ? this.getTripLengthType(dayCount) : 'N/A'}`);
+      this.logger.debug(
+        `Trip Type: ${dayCount ? this.getTripLengthType(dayCount) : 'N/A'}`,
+      );
       this.logger.debug(`User Type: Authenticated (personalization applied)`);
       this.logger.debug(`─`.repeat(80));
-    
+
       sorted.slice(0, 5).forEach((item, idx) => {
         const baseScore = item.rankingDetails.baseScore;
         const personalBoost = item.rankingDetails.personalizationBoost || 0;
         const confidenceMult = item.rankingDetails.confidenceMultiplier || 1;
-      
+
         this.logger.debug(`\n${idx + 1}. ${item.title}`);
         this.logger.debug(`   📊 Scoring Breakdown:`);
         this.logger.debug(`      Base Score (Cosine): ${baseScore.toFixed(3)}`);
-        this.logger.debug(`      Confidence Multiplier: ×${confidenceMult.toFixed(2)}`);
-        this.logger.debug(`      After Confidence: ${(baseScore * confidenceMult).toFixed(3)}`);
-      
+        this.logger.debug(
+          `      Confidence Multiplier: ×${confidenceMult.toFixed(2)}`,
+        );
+        this.logger.debug(
+          `      After Confidence: ${(baseScore * confidenceMult).toFixed(3)}`,
+        );
+
         if (item.rankingDetails.adjustments.length > 0) {
           this.logger.debug(`      Adjustments:`);
           item.rankingDetails.adjustments.forEach((adj: string) => {
             this.logger.debug(`        • ${adj}`);
           });
         }
-      
-        this.logger.debug(`      ⭐ Personalization Boost: +${personalBoost.toFixed(3)}`);
-        this.logger.debug(`      ➜ Final Priority Score: ${item.priorityScore.toFixed(3)}`);
-        this.logger.debug(`   Matched Preferences: ${item.matchedPreferences?.join(', ') || 'None'}`);
+
+        this.logger.debug(
+          `      ⭐ Personalization Boost: +${personalBoost.toFixed(3)}`,
+        );
+        this.logger.debug(
+          `      ➜ Final Priority Score: ${item.priorityScore.toFixed(3)}`,
+        );
+        this.logger.debug(
+          `   Matched Preferences: ${item.matchedPreferences?.join(', ') || 'None'}`,
+        );
         this.logger.debug(`   Confidence: ${item.confidence || 'N/A'}`);
       });
-    
+
       // Show personalization impact summary
-      const avgPersonalizationBoost = sorted
-        .slice(0, 5)
-        .reduce((sum, item) => sum + (item.rankingDetails.personalizationBoost || 0), 0) / Math.min(5, sorted.length);
-    
+      const avgPersonalizationBoost =
+        sorted
+          .slice(0, 5)
+          .reduce(
+            (sum, item) =>
+              sum + (item.rankingDetails.personalizationBoost || 0),
+            0,
+          ) / Math.min(5, sorted.length);
+
       const topItemsWithBoost = sorted
         .slice(0, 5)
-        .filter(item => (item.rankingDetails.personalizationBoost || 0) > 0.05).length;
-    
+        .filter(
+          (item) => (item.rankingDetails.personalizationBoost || 0) > 0.05,
+        ).length;
+
       this.logger.debug(`\n   📈 Personalization Impact:`);
-      this.logger.debug(`      Avg Boost (Top 5): +${avgPersonalizationBoost.toFixed(3)}`);
+      this.logger.debug(
+        `      Avg Boost (Top 5): +${avgPersonalizationBoost.toFixed(3)}`,
+      );
       this.logger.debug(`      Items Affected: ${topItemsWithBoost}/5`);
-    
+
       this.logger.debug(`\n${'='.repeat(80)}\n`);
     }
 
