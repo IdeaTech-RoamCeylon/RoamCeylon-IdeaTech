@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
 import { sendOtp } from '../../services/auth';
 import { showToast } from '../../utils/toast';
 import { Button, Input } from '../../components';
 import { AuthLayout } from '../../components/AuthLayout';
+import * as NavigationBar from 'expo-navigation-bar';
 
 const PhoneEntryScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('inset-swipe');
+    }
+  }, []);
 
   const handleSendOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {

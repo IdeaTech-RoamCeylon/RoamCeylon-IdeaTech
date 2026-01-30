@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, TextInput } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, TextInput, Platform } from 'react-native';
 import { Button } from '../../components';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,6 +8,7 @@ import { verifyOtp } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
 import { showToast } from '../../utils/toast';
 import { AuthLayout } from '../../components/AuthLayout';
+import * as NavigationBar from 'expo-navigation-bar';
 
 type OTPScreenRouteProp = RouteProp<AuthStackParamList, 'OTP'>;
 type OTPScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'OTP'>;
@@ -19,6 +20,13 @@ const OTPScreen = () => {
   const { login } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('inset-swipe');
+    }
+  }, []);
   
   // Create refs for each input box
   const inputRefs = useRef<(TextInput | null)[]>([]);

@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text,Image,StyleSheet, TouchableOpacity, Dimensions, } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text,Image,StyleSheet, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import * as NavigationBar from 'expo-navigation-bar';
 
 // Add AuthButton component
 interface AuthButtonProps {
@@ -30,6 +31,13 @@ const { width } = Dimensions.get('window');
 
 const WelcomeScreen = () => {
   const navigation = useNavigation();
+  
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('inset-swipe');
+    }
+  }, []);
 
   return (
     <LinearGradient

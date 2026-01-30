@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Image, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, Image, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import { Button, Input } from '../../components';
 import { useAuth } from '../../context/AuthContext';
 import { updateProfile } from '../../services/auth';
 import { showToast } from '../../utils/toast';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {LinearGradient } from 'expo-linear-gradient';  
+import {LinearGradient } from 'expo-linear-gradient';
+import * as NavigationBar from 'expo-navigation-bar';  
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +19,13 @@ const ProfileSetupScreen = () => {
   const [gender, setGender] = useState<string | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('inset-swipe');
+    }
+  }, []);
 
   const handleComplete = async () => {
     if (!name.trim() || !email.trim()) {

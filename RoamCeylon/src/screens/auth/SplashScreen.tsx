@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, Platform} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import * as NavigationBar from 'expo-navigation-bar';
 
 
 
@@ -11,6 +12,13 @@ const { width } = Dimensions.get('window');
 const SplashScreen = () => {
   // No navigation needed as there is no button
   const navigation = useNavigation();
+  
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('inset-swipe');
+    }
+  }, []);
   return (
     <LinearGradient
       // Approximate colors from the image's gradient
