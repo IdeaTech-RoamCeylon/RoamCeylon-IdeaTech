@@ -126,11 +126,18 @@ export const logout = async (): Promise<void> => {
   }
 };
 
-export const updateProfile = async (name: string, email: string): Promise<UserProfile> => {
+export const updateProfile = async (
+  name: string,
+  email: string,
+  birthday?: Date,
+  gender?: string
+): Promise<UserProfile> => {
   try {
     const response = await apiService.patch<ApiResponse<UserProfile>>('/users/me', {
       name,
       email,
+      birthday: birthday?.toISOString(),
+      gender,
     });
     return response.data;
   } catch (error) {

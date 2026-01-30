@@ -22,6 +22,8 @@ export class UsersService {
       name: user.name,
 
       email: user.email,
+      birthday: user.birthday,
+      gender: user.gender,
       createdAt: user.createdAt,
 
       updatedAt: user.updatedAt,
@@ -41,6 +43,8 @@ export class UsersService {
       name: user.name,
 
       email: user.email,
+      birthday: user.birthday,
+      gender: user.gender,
       createdAt: user.createdAt,
 
       updatedAt: user.updatedAt,

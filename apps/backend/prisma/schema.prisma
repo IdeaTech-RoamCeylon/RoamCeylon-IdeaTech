@@ -32,12 +32,14 @@ model SystemMetadata {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  phoneNumber String   @unique @map("phone")
+  id          String    @id @default(uuid())
+  phoneNumber String    @unique @map("phone")
   name        String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   email       String?
-  updatedAt   DateTime @default(now()) @updatedAt
+  birthday    DateTime?
+  gender      String?
+  updatedAt   DateTime  @default(now()) @updatedAt
 }
 
 model embeddings {
