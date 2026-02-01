@@ -77,19 +77,23 @@ const SavedTripsScreen = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            setIsLoading(true);
+            // Optimistic update: Remove from UI immediately
+            const previousTrips = [...savedTrips];
+            setSavedTrips(prev => prev.filter(t => t.id !== trip.id));
+            
             try {
               await tripStorageService.deleteTrip(trip.id);
-              await loadTrips();
+              // Success - trip is already removed from UI
             } catch (error) {
-              setIsLoading(false);
-              Alert.alert('Error', 'Failed to delete trip');
+              // Rollback on error
+              setSavedTrips(previousTrips);
+              Alert.alert('Error', 'Failed to delete trip. Please try again.');
             }
           },
         },
       ]
     );
-  }, []);
+  }, [savedTrips]);
 
   const filteredTrips = savedTrips.filter(trip =>
     trip.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -223,23 +223,25 @@ const AITripPlannerScreen = () => {
     }
 
     setIsSaving(true);
+    
+    // Close modal immediately for better UX
+    const tripNameToSave = tripName.trim();
+    setShowSaveDialog(false);
+    setTripName('');
+    
     try {
       if (isEditing && currentTripId) {
         // Update existing trip
         await tripStorageService.updateTrip(currentTripId, {
-          name: tripName.trim(),
+          name: tripNameToSave,
           tripPlan,
         });
         setIsSaving(false);
-        setShowSaveDialog(false);
-        setTripName('');
         Alert.alert('Success', 'Trip updated successfully!');
       } else {
         // Save new trip
-        await tripStorageService.saveTrip(tripName.trim(), tripPlan);
+        await tripStorageService.saveTrip(tripNameToSave, tripPlan);
         setIsSaving(false);
-        setShowSaveDialog(false);
-        setTripName('');
         Alert.alert('Success', 'Trip saved successfully!');
       }
     } catch (error) {
