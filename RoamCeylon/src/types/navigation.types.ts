@@ -21,8 +21,10 @@ export type MainStackParamList = {
     productId: string;
   };
   Transport: undefined;
+  TransportStatus: undefined;
   Map: undefined;
   Profile: undefined;
   ComponentShowcase: undefined;
   AITripPlanner: undefined;
+  SavedTrips: undefined;
 };
