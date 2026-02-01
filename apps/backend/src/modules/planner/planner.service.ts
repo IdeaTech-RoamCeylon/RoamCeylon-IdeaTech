@@ -41,7 +41,7 @@ export class PlannerService {
         destination: tripData.destination || 'Sri Lanka',
         startDate: new Date(tripData.startDate),
         endDate: new Date(tripData.endDate),
-        itinerary: tripData.itinerary,
+        itinerary: tripData.itinerary as object,
       },
     }) as Promise<SavedTrip>;
   }
@@ -75,7 +75,7 @@ export class PlannerService {
         destination: data.destination,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
-        itinerary: data.itinerary,
+        itinerary: data.itinerary as object,
       },
     }) as Promise<SavedTrip>;
   }

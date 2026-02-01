@@ -166,7 +166,7 @@ export class TransportService {
 
     updates.push({ status, timestamp: new Date().toISOString() });
 
-    const data: any = {
+    const data: Record<string, any> = {
       status,
       statusUpdates: updates,
     };

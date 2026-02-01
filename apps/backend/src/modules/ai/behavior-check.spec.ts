@@ -2,6 +2,7 @@ import {
   distributeActivitiesAcrossDays,
   TripDestination,
 } from '../../utils/planningHeuristics';
+import { EmbeddingService } from './embeddings/embedding.service';
 import {
   analyzeResponseQuality,
   validateInput,
@@ -37,7 +38,7 @@ describe('AI Production Behavior Review', () => {
   let aiService: AIService;
 
   beforeEach(() => {
-    aiService = new AIService(null as unknown as any); // Mock embedding service
+    aiService = new AIService(null as unknown as EmbeddingService); // Mock embedding service
   });
 
   // SCENARIO 1: Predictability & Clarity (Happy Path)
