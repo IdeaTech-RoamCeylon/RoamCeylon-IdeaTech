@@ -31,9 +31,9 @@ const Card: React.FC<CardProps> = ({ children, style, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 16,
+    padding: 10,
     marginVertical: 8,
     ...Platform.select({
       ios: {
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 5,
       },
       default: {
         shadowColor: '#000',
