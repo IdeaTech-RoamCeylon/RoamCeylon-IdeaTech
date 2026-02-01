@@ -12,6 +12,12 @@ export interface TransportSession {
   [key: string]: any;
 }
 
+interface TransportDelegate {
+  create(args: { data: any }): Promise<TransportSession>;
+  update(args: { where: any; data: any }): Promise<TransportSession>;
+  findUnique(args: { where: any }): Promise<TransportSession | null>;
+}
+
 @Injectable()
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
@@ -19,8 +25,8 @@ export class TransportService {
   constructor(private readonly prisma: PrismaService) { }
 
   // Helper to safely access transportSession preventing any-leaks
-  private get transportModel() {
-    return (this.prisma as unknown as { transportSession: any }).transportSession;
+  private get transportModel(): TransportDelegate {
+    return (this.prisma as unknown as { transportSession: any }).transportSession as TransportDelegate;
   }
 
   async seedDrivers() {
