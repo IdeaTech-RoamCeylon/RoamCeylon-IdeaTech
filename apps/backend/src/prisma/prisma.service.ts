@@ -42,6 +42,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.rideRequest;
   }
 
+  get savedTrip() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.prisma.savedTrip;
+  }
+
   async onModuleInit() {
     await this.prisma.$connect();
   }
