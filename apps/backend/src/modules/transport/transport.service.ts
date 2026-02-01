@@ -140,14 +140,14 @@ export class TransportService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const currentSession = await (this.prisma as any).transportSession.findUnique({
       where: { id: rideId },
-    });
+    }) as TransportSession | null;
 
     if (!currentSession) {
       throw new Error('Ride not found');
     }
 
-    const updates = ((currentSession as any).statusUpdates as any[]) || [];
-    const currentStatus = (currentSession as any).status as string;
+    const updates = (currentSession.statusUpdates as any[]) || [];
+    const currentStatus = currentSession.status as string;
 
     // Allowed transitions
     const validTransitions: Record<string, string[]> = {
@@ -186,7 +186,7 @@ export class TransportService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const session = await (this.prisma as any).transportSession.findUnique({
       where: { id: rideId },
-    });
+    }) as TransportSession | null;
 
     if (!session) {
       return { data: null };
@@ -204,18 +204,17 @@ export class TransportService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const session = await (this.prisma as any).transportSession.findUnique({
       where: { id: sessionId },
-    });
+    }) as TransportSession | null;
 
     if (!session) {
       throw new Error('Session not found');
     }
 
     return {
-      sessionId: session.id,
-      status: session.status,
-      driverLocation: null, // We would fetch this from DriverLocation if assigned
-      eta: null, // Calculate if needed
-      ...session
+      ...session,
+      sessionId: session.id, // Keeping alias if needed by frontend, otherwise redundant
+      driverLocation: null,
+      eta: null,
     };
   }
 }

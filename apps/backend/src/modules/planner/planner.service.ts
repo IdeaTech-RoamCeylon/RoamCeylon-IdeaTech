@@ -60,7 +60,7 @@ export class PlannerService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const trip = await (this.prisma as any).savedTrip.findUnique({ where: { id: tripId } });
+    const trip = await (this.prisma as any).savedTrip.findUnique({ where: { id: tripId } }) as SavedTrip | null;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!trip || trip.userId !== userId) {
@@ -82,7 +82,7 @@ export class PlannerService {
 
   async deleteTrip(userId: string, tripId: number): Promise<SavedTrip> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const trip = await (this.prisma as any).savedTrip.findUnique({ where: { id: tripId } });
+    const trip = await (this.prisma as any).savedTrip.findUnique({ where: { id: tripId } }) as SavedTrip | null;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!trip || trip.userId !== userId) {

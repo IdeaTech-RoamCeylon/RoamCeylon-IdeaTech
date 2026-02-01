@@ -41,7 +41,7 @@ export class LoggingInterceptor implements NestInterceptor {
         },
         error: (err: unknown) => {
           const duration = Date.now() - now;
-          const statusCode = err instanceof Error && 'status' in err ? (err as any).status || 500 : 500;
+          const statusCode = err instanceof Error && 'status' in err ? (err as { status: number }).status || 500 : 500;
           const message = err instanceof Error ? err.message : String(err);
           const stack = err instanceof Error ? err.stack : '';
 

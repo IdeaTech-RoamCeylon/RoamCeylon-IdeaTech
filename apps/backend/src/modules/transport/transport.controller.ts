@@ -88,7 +88,7 @@ export class TransportController {
   }
 
   @Get('session/:id')
-  async getSession(@Param('id') id: string): Promise<any> {
+  async getSession(@Param('id') id: string): Promise<TransportSession> {
     return this.transportService.getSession(id);
   }
 }

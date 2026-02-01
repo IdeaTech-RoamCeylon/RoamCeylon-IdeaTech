@@ -49,7 +49,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Enhanced logging with more context
     const logContext = `${request.method} ${request.url}`;
 
-    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (httpStatus === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
       this.logger.error(
         `[${logContext}] Critical Error: ${String(message)}`,
         exception instanceof Error ? exception.stack : String(exception),
