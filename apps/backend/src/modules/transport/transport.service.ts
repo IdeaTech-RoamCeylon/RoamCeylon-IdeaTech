@@ -44,6 +44,7 @@ export class TransportService {
       await this.prisma.user.upsert({
         where: { id: d.id },
         update: { name: d.name },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         create: {
           id: d.id,
           name: d.name,
