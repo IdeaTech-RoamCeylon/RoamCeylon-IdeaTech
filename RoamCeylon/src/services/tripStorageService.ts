@@ -120,9 +120,29 @@ class TripStorageService {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEY);
       if (!data) return [];
-      return JSON.parse(data);
+      
+      const parsed = JSON.parse(data);
+      
+      // Validate that parsed data is an array
+      if (!Array.isArray(parsed)) {
+        console.error('Stored trips data is not an array, clearing corrupted data');
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        return [];
+      }
+      
+      // Filter out any corrupted trip objects
+      return parsed.filter(trip => 
+        trip && 
+        trip.id && 
+        trip.name && 
+        trip.tripPlan && 
+        trip.tripPlan.itinerary && 
+        Array.isArray(trip.tripPlan.itinerary)
+      );
     } catch (error) {
       console.error('Error loading local trips:', error);
+      // Clear corrupted data
+      await AsyncStorage.removeItem(STORAGE_KEY);
       return [];
     }
   }

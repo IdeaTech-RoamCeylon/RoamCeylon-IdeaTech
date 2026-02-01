@@ -277,11 +277,17 @@ const AITripPlannerScreen = () => {
 
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
-    return tripPlan?.itinerary?.find(item => item.day === selectedDay);
+    if (!tripPlan || !tripPlan.itinerary || !Array.isArray(tripPlan.itinerary)) {
+      return null;
+    }
+    return tripPlan.itinerary.find(item => item && item.day === selectedDay) || null;
   }, [tripPlan, selectedDay]);
 
   const activities = useMemo(() => {
-    return currentDayItinerary ? currentDayItinerary.activities : [];
+    if (!currentDayItinerary || !currentDayItinerary.activities || !Array.isArray(currentDayItinerary.activities)) {
+      return [];
+    }
+    return currentDayItinerary.activities.filter(activity => activity != null);
   }, [currentDayItinerary]);
 
   // Derived state for map

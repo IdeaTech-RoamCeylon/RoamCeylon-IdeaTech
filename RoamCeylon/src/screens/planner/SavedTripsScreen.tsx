@@ -45,6 +45,12 @@ const SavedTripsScreen = () => {
   };
 
   const handleLoadTrip = useCallback((trip: SavedTrip) => {
+    // Validate trip data before loading
+    if (!trip || !trip.tripPlan || !trip.tripPlan.itinerary) {
+      Alert.alert('Error', 'This trip data is corrupted and cannot be loaded.');
+      return;
+    }
+
     Alert.alert(
       'Load Trip',
       `Load "${trip.name}"?`,
@@ -53,14 +59,19 @@ const SavedTripsScreen = () => {
         {
           text: 'Load',
           onPress: () => {
-            setTripPlan(trip.tripPlan);
-            setQuery({
-              destination: trip.tripPlan.destination,
-              duration: trip.tripPlan.duration,
-              budget: trip.tripPlan.budget,
-            });
-            startEditing(trip.id);
-            navigation.navigate('AITripPlanner');
+            try {
+              setTripPlan(trip.tripPlan);
+              setQuery({
+                destination: trip.tripPlan.destination || '',
+                duration: trip.tripPlan.duration || '1',
+                budget: trip.tripPlan.budget || 'Medium',
+              });
+              startEditing(trip.id);
+              navigation.navigate('AITripPlanner');
+            } catch (error) {
+              console.error('Error loading trip:', error);
+              Alert.alert('Error', 'Failed to load trip. Please try again.');
+            }
           },
         },
       ]

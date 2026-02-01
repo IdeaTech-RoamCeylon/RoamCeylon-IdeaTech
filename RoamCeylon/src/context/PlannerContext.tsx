@@ -52,19 +52,49 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
         const storedIsEditing = await AsyncStorage.getItem(STORAGE_KEYS.IS_EDITING);
 
         if (storedQuery) {
-          setQuery(JSON.parse(storedQuery));
+          try {
+            const parsedQuery = JSON.parse(storedQuery);
+            // Validate query structure
+            if (parsedQuery && typeof parsedQuery === 'object') {
+              setQuery(parsedQuery);
+            }
+          } catch (e) {
+            console.error('Failed to parse stored query:', e);
+            await AsyncStorage.removeItem(STORAGE_KEYS.QUERY);
+          }
         }
         if (storedTripPlan) {
-          setTripPlan(JSON.parse(storedTripPlan));
+          try {
+            const parsedPlan = JSON.parse(storedTripPlan);
+            // Validate trip plan structure
+            if (parsedPlan && parsedPlan.itinerary && Array.isArray(parsedPlan.itinerary)) {
+              setTripPlan(parsedPlan);
+            }
+          } catch (e) {
+            console.error('Failed to parse stored trip plan:', e);
+            await AsyncStorage.removeItem(STORAGE_KEYS.TRIP_PLAN);
+          }
         }
         if (storedCurrentTripId) {
           setCurrentTripId(storedCurrentTripId);
         }
         if (storedIsEditing) {
-          setIsEditing(JSON.parse(storedIsEditing));
+          try {
+            setIsEditing(JSON.parse(storedIsEditing));
+          } catch (e) {
+            console.error('Failed to parse isEditing flag:', e);
+            await AsyncStorage.removeItem(STORAGE_KEYS.IS_EDITING);
+          }
         }
       } catch (error) {
         console.error('Failed to load planner state:', error);
+        // Clear corrupted data
+        await AsyncStorage.multiRemove([
+          STORAGE_KEYS.QUERY,
+          STORAGE_KEYS.TRIP_PLAN,
+          STORAGE_KEYS.CURRENT_TRIP_ID,
+          STORAGE_KEYS.IS_EDITING
+        ]);
       }
     };
     loadState();
