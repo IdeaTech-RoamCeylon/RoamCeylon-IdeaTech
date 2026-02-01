@@ -51,11 +51,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `[${logContext}] Critical Error: ${message}`,
+        `[${logContext}] Critical Error: ${String(message)}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     } else if (httpStatus >= 400) {
-      this.logger.warn(`[${logContext}] Client Error (${httpStatus}): ${message}`);
+      this.logger.warn(`[${logContext}] Client Error (${httpStatus}): ${String(message)}`);
     }
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);

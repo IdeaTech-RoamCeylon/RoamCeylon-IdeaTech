@@ -2,6 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Driver, RideRequest } from './item.interface';
 
+export interface TransportSession {
+  id: string;
+  passengerId: string;
+  status: string;
+  statusUpdates: any[];
+  startTime: Date;
+  endTime?: Date;
+  [key: string]: any;
+}
+
 @Injectable()
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
@@ -26,7 +36,7 @@ export class TransportService {
         create: {
           id: d.id,
           name: d.name,
-          // @ts-ignore: Stale client generation
+          // @ts-expect-error: Stale client generation
           phoneNumber: `+9477000000${d.id.replace('d', '')}`,
         },
       });
@@ -113,7 +123,7 @@ export class TransportService {
       };
     });
   }
-  async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }) {
+  async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }): Promise<TransportSession> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     return (this.prisma as any).transportSession.create({
       data: {
@@ -122,7 +132,7 @@ export class TransportService {
         pickupLocation: pickup,
         destination: destination,
       },
-    });
+    }) as Promise<TransportSession>;
   }
 
   async updateRideStatus(rideId: string, status: string) {
@@ -136,8 +146,8 @@ export class TransportService {
       throw new Error('Ride not found');
     }
 
-    const updates = (currentSession.statusUpdates as any[]) || [];
-    const currentStatus = currentSession.status;
+    const updates = ((currentSession as any).statusUpdates as any[]) || [];
+    const currentStatus = (currentSession as any).status as string;
 
     // Allowed transitions
     const validTransitions: Record<string, string[]> = {
@@ -169,7 +179,7 @@ export class TransportService {
     return (this.prisma as any).transportSession.update({
       where: { id: rideId },
       data,
-    });
+    }) as Promise<TransportSession>;
   }
 
   async getRide(rideId: string, userId?: string) {

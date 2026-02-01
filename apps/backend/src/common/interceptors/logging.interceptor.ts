@@ -16,7 +16,7 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const request = ctx.getRequest<Request>();
-    const { method, url, ip, body } = request;
+    const { method, url, ip } = request;
     const userAgent = request.get('user-agent') || 'Unknown';
     const className = context.getClass().name;
     const handlerName = context.getHandler().name;
@@ -39,13 +39,15 @@ export class LoggingInterceptor implements NestInterceptor {
             this.logger.warn(`🚲 Slow Request: ${method} ${url} took ${duration}ms`);
           }
         },
-        error: (err: any) => {
+        error: (err: unknown) => {
           const duration = Date.now() - now;
-          const statusCode = err instanceof Error ? (err as any).status || 500 : 500;
+          const statusCode = err instanceof Error && 'status' in err ? (err as any).status || 500 : 500;
+          const message = err instanceof Error ? err.message : String(err);
+          const stack = err instanceof Error ? err.stack : '';
 
           this.logger.error(
-            `[${className}#${handlerName}] ${method} ${url} ${statusCode} - ${duration}ms | Error: ${err.message}`,
-            err.stack,
+            `[${className}#${handlerName}] ${method} ${url} ${statusCode} - ${duration}ms | Error: ${message}`,
+            stack,
           );
         },
       }),

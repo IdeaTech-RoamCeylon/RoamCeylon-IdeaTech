@@ -9,11 +9,23 @@ export interface TripData {
   itinerary: any;
 }
 
+export interface SavedTrip {
+  id: number;
+  userId: string;
+  name: string;
+  destination: string;
+  startDate: Date;
+  endDate: Date;
+  itinerary: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class PlannerService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async saveTrip(userId: string, tripData: TripData) {
+  async saveTrip(userId: string, tripData: TripData): Promise<SavedTrip> {
     if (new Date(tripData.startDate) > new Date(tripData.endDate)) {
       throw new Error('Start date cannot be after end date');
     }
@@ -31,18 +43,18 @@ export class PlannerService {
         endDate: new Date(tripData.endDate),
         itinerary: tripData.itinerary,
       },
-    });
+    }) as Promise<SavedTrip>;
   }
 
-  async getHistory(userId: string) {
+  async getHistory(userId: string): Promise<SavedTrip[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     return (this.prisma as any).savedTrip.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-    });
+    }) as Promise<SavedTrip[]>;
   }
 
-  async updateTrip(userId: string, tripId: number, data: TripData) {
+  async updateTrip(userId: string, tripId: number, data: TripData): Promise<SavedTrip> {
     if (data.startDate && data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
       throw new Error('Start date cannot be after end date');
     }
@@ -65,10 +77,10 @@ export class PlannerService {
         endDate: data.endDate ? new Date(data.endDate) : undefined,
         itinerary: data.itinerary,
       },
-    });
+    }) as Promise<SavedTrip>;
   }
 
-  async deleteTrip(userId: string, tripId: number) {
+  async deleteTrip(userId: string, tripId: number): Promise<SavedTrip> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const trip = await (this.prisma as any).savedTrip.findUnique({ where: { id: tripId } });
 
@@ -78,6 +90,6 @@ export class PlannerService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    return (this.prisma as any).savedTrip.delete({ where: { id: tripId } });
+    return (this.prisma as any).savedTrip.delete({ where: { id: tripId } }) as Promise<SavedTrip>;
   }
 }

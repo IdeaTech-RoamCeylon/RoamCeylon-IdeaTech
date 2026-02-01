@@ -9,7 +9,7 @@ import {
   Req,
   Param,
 } from '@nestjs/common';
-import { TransportService } from './transport.service';
+import { TransportService, TransportSession } from './transport.service';
 import { Driver } from './item.interface';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
@@ -56,7 +56,7 @@ export class TransportController {
   }
 
   @Post('ride/status')
-  async updateRideStatus(@Body() body: { rideId: string, status: string }) {
+  async updateRideStatus(@Body() body: { rideId: string, status: string }): Promise<TransportSession> {
     return this.transportService.updateRideStatus(body.rideId, body.status);
   }
 
@@ -88,7 +88,7 @@ export class TransportController {
   }
 
   @Get('session/:id')
-  async getSession(@Param('id') id: string) {
+  async getSession(@Param('id') id: string): Promise<any> {
     return this.transportService.getSession(id);
   }
 }
