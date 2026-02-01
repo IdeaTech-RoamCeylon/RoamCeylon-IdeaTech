@@ -7,8 +7,9 @@ import {
   Query,
   UseGuards,
   Req,
+  Param,
 } from '@nestjs/common';
-import { TransportService, Wrapper } from './transport.service';
+import { TransportService } from './transport.service';
 import { Driver } from './item.interface';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
@@ -39,7 +40,7 @@ export class TransportController {
 
   @Get('drivers')
   @UseGuards(ThrottlerGuard)
-  getDrivers(@Query() query: GetDriversDto): Promise<Wrapper<Driver[]>> {
+  getDrivers(@Query() query: GetDriversDto): Promise<Driver[]> {
     const { lat, lng, limit } = query;
     return this.transportService.getDrivers(lat, lng, limit);
   }
@@ -87,13 +88,7 @@ export class TransportController {
   }
 
   @Get('session/:id')
-  async getSession(@Query('id') id: string) {
-    // Skeleton implementation
-    return {
-      sessionId: id,
-      status: 'active',
-      driverLocation: { lat: 6.9271, lng: 79.8612 },
-      eta: '5 mins'
-    };
+  async getSession(@Param('id') id: string) {
+    return this.transportService.getSession(id);
   }
 }

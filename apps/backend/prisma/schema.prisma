@@ -94,6 +94,7 @@ model TransportSession {
   startTime      DateTime @default(now())
   endTime        DateTime?
   
+  statusUpdates  Json[]   @default([])
   @@index([passengerId])
   @@index([driverId])
   @@index([status])
