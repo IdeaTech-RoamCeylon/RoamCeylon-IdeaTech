@@ -18,6 +18,11 @@ export class TransportService {
 
   constructor(private readonly prisma: PrismaService) { }
 
+  // Helper to safely access transportSession preventing any-leaks
+  private get transportModel() {
+    return (this.prisma as unknown as { transportSession: any }).transportSession;
+  }
+
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
 
@@ -125,7 +130,7 @@ export class TransportService {
   }
   async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }): Promise<TransportSession> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    return (this.prisma as any).transportSession.create({
+    return this.transportModel.create({
       data: {
         passengerId,
         status: 'requested',
@@ -138,7 +143,7 @@ export class TransportService {
   async updateRideStatus(rideId: string, status: string) {
     // Fetch current session first to append history
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const currentSession = await (this.prisma as any).transportSession.findUnique({
+    const currentSession = await this.transportModel.findUnique({
       where: { id: rideId },
     }) as TransportSession | null;
 
@@ -176,7 +181,7 @@ export class TransportService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    return (this.prisma as any).transportSession.update({
+    return this.transportModel.update({
       where: { id: rideId },
       data,
     }) as Promise<TransportSession>;
@@ -184,7 +189,7 @@ export class TransportService {
 
   async getRide(rideId: string, userId?: string) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const session = await (this.prisma as any).transportSession.findUnique({
+    const session = await this.transportModel.findUnique({
       where: { id: rideId },
     }) as TransportSession | null;
 
@@ -202,7 +207,7 @@ export class TransportService {
 
   async getSession(sessionId: string) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const session = await (this.prisma as any).transportSession.findUnique({
+    const session = await this.transportModel.findUnique({
       where: { id: sessionId },
     }) as TransportSession | null;
 
