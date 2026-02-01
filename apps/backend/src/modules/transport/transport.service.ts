@@ -47,9 +47,9 @@ export class TransportService {
         create: {
           id: d.id,
           name: d.name,
-          // @ts-ignore: Stale client generation allows this to pass build and IDE checks
+
           phoneNumber: `+9477000000${d.id.replace('d', '')}`,
-        },
+        } as any,
       });
 
       // Insert Location (Raw query needed for geometry)
