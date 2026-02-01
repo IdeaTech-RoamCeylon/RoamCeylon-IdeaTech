@@ -35,6 +35,12 @@ export interface SavedTrip {
  * Planner API Service
  * Connects to backend endpoints for saving and retrieving trip plans
  */
+
+// Simple cache implementation
+let tripsCache: SavedTrip[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 60000; // 1 minute
+
 export const plannerApiService = {
   /**
    * Save a new trip to the backend
@@ -57,6 +63,9 @@ export const plannerApiService = {
 
       const response = await apiService.post<{ data: BackendSavedTrip }>('/planner/save', request);
       
+      // Invalidate cache on mutation
+      tripsCache = null;
+      
       // Transform backend response to frontend format
       return this.transformBackendTrip(response.data);
     } catch (error) {
@@ -66,14 +75,23 @@ export const plannerApiService = {
   },
 
   /**
-   * Get all saved trips from the backend
+   * Get all saved trips from the backend (with caching)
    */
   async getSavedTrips(): Promise<SavedTrip[]> {
     try {
+      // Return cached data if still valid
+      const now = Date.now();
+      if (tripsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+        return tripsCache;
+      }
+
       const response = await apiService.get<{ data: BackendSavedTrip[] }>('/planner/history');
       
-      // Transform backend response to frontend format
-      return response.data.map(trip => this.transformBackendTrip(trip));
+      // Transform and cache the response
+      tripsCache = response.data.map(trip => this.transformBackendTrip(trip));
+      cacheTimestamp = now;
+      
+      return tripsCache;
     } catch (error) {
       console.error('Error loading trips from backend:', error);
       throw error;
@@ -100,6 +118,9 @@ export const plannerApiService = {
 
       const response = await apiService.put<{ data: BackendSavedTrip }>(`/planner/${id}`, request);
       
+      // Invalidate cache on mutation
+      tripsCache = null;
+      
       return this.transformBackendTrip(response.data);
     } catch (error) {
       console.error('Error updating trip on backend:', error);
@@ -113,6 +134,9 @@ export const plannerApiService = {
   async deleteTrip(id: string): Promise<void> {
     try {
       await apiService.delete(`/planner/${id}`);
+      
+      // Invalidate cache on mutation
+      tripsCache = null;
     } catch (error) {
       console.error('Error deleting trip from backend:', error);
       throw error;
@@ -130,6 +154,14 @@ export const plannerApiService = {
       console.error('Error getting trip by ID:', error);
       return null;
     }
+  },
+
+  /**
+   * Manually invalidate cache (useful for force refresh)
+   */
+  invalidateCache() {
+    tripsCache = null;
+    cacheTimestamp = 0;
   },
 
   /**

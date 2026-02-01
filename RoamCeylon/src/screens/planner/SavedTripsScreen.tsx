@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -95,18 +95,25 @@ const SavedTripsScreen = () => {
     );
   }, [savedTrips]);
 
-  const filteredTrips = savedTrips.filter(trip =>
-    trip.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    trip.tripPlan.destination.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Memoize filtered trips to avoid recalculating on every render
+  const filteredTrips = useMemo(() => {
+    if (!searchQuery.trim()) return savedTrips;
+    const query = searchQuery.toLowerCase();
+    return savedTrips.filter(trip =>
+      trip.name.toLowerCase().includes(query) ||
+      trip.tripPlan.destination.toLowerCase().includes(query)
+    );
+  }, [savedTrips, searchQuery]);
 
-  const renderTripCard = ({ item }: { item: SavedTrip }) => {
+  // Memoized trip card rendering
+  const renderTripCard = useCallback(({ item }: { item: SavedTrip }) => {
     const savedDate = new Date(item.savedAt);
     const formattedDate = savedDate.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
+    const activitiesCount = item.tripPlan.itinerary.reduce((sum, day) => sum + day.activities.length, 0);
 
     return (
       <TouchableOpacity
@@ -147,13 +154,16 @@ const SavedTripsScreen = () => {
 
         <View style={styles.tripFooter}>
           <Text style={styles.activitiesCount}>
-            {item.tripPlan.itinerary.reduce((sum, day) => sum + day.activities.length, 0)} Activities
+            {activitiesCount} Activities
           </Text>
           <Text style={styles.loadText}>Tap to Load →</Text>
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [handleLoadTrip, handleDeleteTrip]);
+
+  // Optimize FlatList performance
+  const keyExtractor = useCallback((item: SavedTrip) => item.id, []);
 
   if (isLoading) {
     return (
@@ -210,9 +220,15 @@ const SavedTripsScreen = () => {
           <FlatList
             data={filteredTrips}
             renderItem={renderTripCard}
-            keyExtractor={item => item.id}
+            keyExtractor={keyExtractor}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            // Performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            updateCellsBatchingPeriod={50}
           />
         )}
       </View>
