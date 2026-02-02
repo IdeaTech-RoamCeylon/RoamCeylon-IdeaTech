@@ -36,12 +36,17 @@ export class LoggingInterceptor implements NestInterceptor {
 
           // Log heavy requests or large payloads in debug mode or if they take too long
           if (duration > 500) {
-            this.logger.warn(`🚲 Slow Request: ${method} ${url} took ${duration}ms`);
+            this.logger.warn(
+              `🚲 Slow Request: ${method} ${url} took ${duration}ms`,
+            );
           }
         },
         error: (err: unknown) => {
           const duration = Date.now() - now;
-          const statusCode = err instanceof Error && 'status' in err ? (err as { status: number }).status || 500 : 500;
+          const statusCode =
+            err instanceof Error && 'status' in err
+              ? (err as { status: number }).status || 500
+              : 500;
           const message = err instanceof Error ? err.message : String(err);
           const stack = err instanceof Error ? err.stack : '';
 

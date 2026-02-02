@@ -32,4 +32,4 @@ import { PlannerModule } from './modules/planner/planner.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

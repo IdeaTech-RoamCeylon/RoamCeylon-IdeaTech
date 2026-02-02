@@ -31,7 +31,7 @@ export interface Wrapper<T> {
 export class MarketplaceService {
   private readonly logger = new Logger('MarketplaceService');
 
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) { }
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   private wrapResponse<T>(data: T, cached: boolean = false): Wrapper<T> {
     return {
@@ -56,19 +56,27 @@ export class MarketplaceService {
       {
         id: '1',
         name: 'Electronics',
-        image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500',
+        image:
+          'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500',
       },
       {
         id: '2',
         name: 'Souvenirs',
-        image: 'https://images.unsplash.com/photo-1512411516053-125028080a2b?w=500',
+        image:
+          'https://images.unsplash.com/photo-1512411516053-125028080a2b?w=500',
       },
       {
         id: '3',
         name: 'Food & Spices',
-        image: 'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=500',
+        image:
+          'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=500',
       },
-      { id: '4', name: 'Clothing', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500' },
+      {
+        id: '4',
+        name: 'Clothing',
+        image:
+          'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500',
+      },
     ];
 
     await this.cacheManager.set(cacheKey, categories, 3600000); // 1 hour
@@ -95,7 +103,8 @@ export class MarketplaceService {
         category: 'Souvenirs',
         price: 4500.0,
         description: 'Traditional Sri Lankan wooden elephant carving.',
-        image: 'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+        image:
+          'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
       },
       {
         id: '102',
@@ -103,7 +112,8 @@ export class MarketplaceService {
         category: 'Food & Spices',
         price: 1200.0,
         description: 'Premium Ceylon black tea, 500g pack.',
-        image: 'https://images.unsplash.com/photo-1576091160550-2173bdd99825?w=500',
+        image:
+          'https://images.unsplash.com/photo-1576091160550-2173bdd99825?w=500',
       },
       {
         id: '103',
@@ -111,7 +121,8 @@ export class MarketplaceService {
         category: 'Food & Spices',
         price: 850.0,
         description: 'High-quality Ceylon Cinnamon sticks.',
-        image: 'https://images.unsplash.com/photo-1599940859674-a7fef6342ee0?w=500',
+        image:
+          'https://images.unsplash.com/photo-1599940859674-a7fef6342ee0?w=500',
       },
       {
         id: '104',
@@ -119,13 +130,16 @@ export class MarketplaceService {
         category: 'Clothing',
         price: 2500.0,
         description: 'Traditional handmade Batik sarong.',
-        image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500',
+        image:
+          'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500',
       },
     ];
 
     let result = [...allProducts];
     if (category) {
-      result = allProducts.filter((p) => p.category.toLowerCase() === category.toLowerCase());
+      result = allProducts.filter(
+        (p) => p.category.toLowerCase() === category.toLowerCase(),
+      );
     }
 
     if (sortBy === 'price') {

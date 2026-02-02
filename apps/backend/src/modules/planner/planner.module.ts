@@ -4,8 +4,8 @@ import { PlannerController } from './planner.controller';
 import { PlannerService } from './planner.service';
 
 @Module({
-    imports: [CacheModule.register()],
-    controllers: [PlannerController],
-    providers: [PlannerService],
+  imports: [CacheModule.register()],
+  controllers: [PlannerController],
+  providers: [PlannerService],
 })
-export class PlannerModule { }
+export class PlannerModule {}

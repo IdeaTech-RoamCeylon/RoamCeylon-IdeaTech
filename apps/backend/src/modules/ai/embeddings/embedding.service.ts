@@ -203,7 +203,6 @@ export class EmbeddingService {
         );
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error('Seeding error:', err);
       throw err;
     } finally {

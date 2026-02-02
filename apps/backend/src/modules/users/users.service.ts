@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private readonly logger = new Logger(UsersService.name);
 
@@ -64,7 +64,9 @@ export class UsersService {
       };
     } catch (error) {
       if (error.code === 'P2025') {
-        this.logger.warn(`Failed to update profile. User not found for ID: ${userId}`);
+        this.logger.warn(
+          `Failed to update profile. User not found for ID: ${userId}`,
+        );
         throw new NotFoundException('User not found');
       }
       throw error;

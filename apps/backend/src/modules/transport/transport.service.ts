@@ -22,11 +22,12 @@ interface TransportDelegate {
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   // Helper to safely access transportSession preventing any-leaks
   private get transportModel(): TransportDelegate {
-    return (this.prisma as unknown as { transportSession: any }).transportSession as TransportDelegate;
+    return (this.prisma as unknown as { transportSession: any })
+      .transportSession as TransportDelegate;
   }
 
   async seedDrivers() {
@@ -135,8 +136,11 @@ export class TransportService {
       };
     });
   }
-  async createRide(passengerId: string, pickup: { lat: number; lng: number }, destination: { lat: number; lng: number }): Promise<TransportSession> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+  async createRide(
+    passengerId: string,
+    pickup: { lat: number; lng: number },
+    destination: { lat: number; lng: number },
+  ): Promise<TransportSession> {
     return this.transportModel.create({
       data: {
         passengerId,
@@ -144,39 +148,45 @@ export class TransportService {
         pickupLocation: pickup,
         destination: destination,
       },
-    }) as Promise<TransportSession>;
+    });
   }
 
   async updateRideStatus(rideId: string, status: string) {
     // Fetch current session first to append history
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+
     const currentSession = await this.transportModel.findUnique({
       where: { id: rideId },
-    }) as TransportSession | null;
+    });
 
     if (!currentSession) {
       throw new Error('Ride not found');
     }
 
-    const updates = (currentSession.statusUpdates as any[]) || [];
-    const currentStatus = currentSession.status as string;
+    const updates = currentSession.statusUpdates || [];
+    const currentStatus = currentSession.status;
 
     // Allowed transitions
     const validTransitions: Record<string, string[]> = {
-      'requested': ['accepted', 'cancelled'],
-      'accepted': ['en_route', 'cancelled'],
-      'en_route': ['completed'],
-      'completed': [],
-      'cancelled': []
+      requested: ['accepted', 'cancelled'],
+      accepted: ['en_route', 'cancelled'],
+      en_route: ['completed'],
+      completed: [],
+      cancelled: [],
     };
 
     const allowed = validTransitions[currentStatus] || [];
     if (!allowed.includes(status) && currentStatus !== status) {
-      this.logger.warn(`Invalid state transition attempted for ride ${rideId}: ${currentStatus} -> ${status}`);
-      throw new Error(`Invalid status transition from ${currentStatus} to ${status}`);
+      this.logger.warn(
+        `Invalid state transition attempted for ride ${rideId}: ${currentStatus} -> ${status}`,
+      );
+      throw new Error(
+        `Invalid status transition from ${currentStatus} to ${status}`,
+      );
     }
 
-    this.logger.log(`Ride ${rideId} status update: ${currentStatus} -> ${status}`);
+    this.logger.log(
+      `Ride ${rideId} status update: ${currentStatus} -> ${status}`,
+    );
 
     updates.push({ status, timestamp: new Date().toISOString() });
 
@@ -189,18 +199,16 @@ export class TransportService {
       data.endTime = new Date();
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     return this.transportModel.update({
       where: { id: rideId },
       data,
-    }) as Promise<TransportSession>;
+    });
   }
 
   async getRide(rideId: string, userId?: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const session = await this.transportModel.findUnique({
       where: { id: rideId },
-    }) as TransportSession | null;
+    });
 
     if (!session) {
       return { data: null };
@@ -215,10 +223,9 @@ export class TransportService {
   }
 
   async getSession(sessionId: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const session = await this.transportModel.findUnique({
       where: { id: sessionId },
-    }) as TransportSession | null;
+    });
 
     if (!session) {
       throw new Error('Session not found');
