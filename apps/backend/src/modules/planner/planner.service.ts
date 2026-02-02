@@ -1,5 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-import { Injectable } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface TripData {
@@ -24,7 +26,10 @@ export interface SavedTrip {
 
 @Injectable()
 export class PlannerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) { }
 
   async saveTrip(userId: string, tripData: TripData): Promise<SavedTrip> {
     if (new Date(tripData.startDate) > new Date(tripData.endDate)) {
@@ -45,14 +50,26 @@ export class PlannerService {
       },
     });
 
+    await this.cacheManager.del(`planner_history_${userId}`);
+
     return result as SavedTrip;
   }
 
   async getHistory(userId: string): Promise<SavedTrip[]> {
-    return (this.prisma as any).savedTrip.findMany({
+    const cacheKey = `planner_history_${userId}`;
+    const cachedData = await this.cacheManager.get<SavedTrip[]>(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const history = await (this.prisma as any).savedTrip.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-    }) as Promise<SavedTrip[]>;
+    }) as SavedTrip[];
+
+    await this.cacheManager.set(cacheKey, history, 300000); // 5 minutes TTL
+    return history;
   }
 
   async updateTrip(
@@ -76,6 +93,8 @@ export class PlannerService {
       throw new Error('Trip not found or access denied');
     }
 
+    await this.cacheManager.del(`planner_history_${userId}`);
+
     return (this.prisma as any).savedTrip.update({
       where: { id: tripId },
       data: {
@@ -96,6 +115,8 @@ export class PlannerService {
     if (!trip || trip.userId !== userId) {
       throw new Error('Trip not found or access denied');
     }
+
+    await this.cacheManager.del(`planner_history_${userId}`);
 
     return (this.prisma as any).savedTrip.delete({
       where: { id: tripId },
