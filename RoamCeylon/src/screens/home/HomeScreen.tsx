@@ -85,7 +85,12 @@ const HomeScreen = () => {
     () => (
       <View>
         <View>
-          <View style={styles.header}>
+          <LinearGradient
+            colors={['#1B7F6B', '#6f9f93','#7aaea1']}
+            style={styles.header}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             <Text style={styles.title}>RoamCeylon</Text>
             <Text style={styles.subtitle}>Hi {userName}</Text>
             <Text style={styles.subtitle}>Sri Lanka Welcomes You</Text>
@@ -95,7 +100,7 @@ const HomeScreen = () => {
             >
               <Ionicons name="person" size={24} color="black" />
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
           <View style={styles.searchSection}>
             <View style={styles.searchRow}>
               <TouchableOpacity style={styles.searchIconBubble}>
