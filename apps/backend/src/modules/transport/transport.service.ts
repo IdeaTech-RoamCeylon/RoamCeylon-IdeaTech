@@ -171,10 +171,12 @@ export class TransportService {
     };
 
     const allowed = validTransitions[currentStatus] || [];
-    if (!allowed.includes(status) && currentStatus !== status) { // Allow re-emitting same status or strict check? Assuming strict.
-      // For dev simplicity if we want to force jump:
-      // throw new Error(`Invalid status transition from ${currentStatus} to ${status}`);
+    if (!allowed.includes(status) && currentStatus !== status) {
+      this.logger.warn(`Invalid state transition attempted for ride ${rideId}: ${currentStatus} -> ${status}`);
+      throw new Error(`Invalid status transition from ${currentStatus} to ${status}`);
     }
+
+    this.logger.log(`Ride ${rideId} status update: ${currentStatus} -> ${status}`);
 
     updates.push({ status, timestamp: new Date().toISOString() });
 
