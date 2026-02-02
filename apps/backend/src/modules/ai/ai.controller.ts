@@ -248,7 +248,11 @@ export class AIController {
   private readonly EPS = 1e-6;
 
   private stableId(a: unknown): string {
-    return String(a ?? '');
+    if (typeof a === 'string') return a;
+    if (typeof a === 'number') return Number.isFinite(a) ? String(a) : '';
+    if (typeof a === 'bigint') return a.toString();
+    if (typeof a === 'boolean') return a ? 'true' : 'false';
+    return '';
   }
 
   // quantize to reduce micro score flips
@@ -1699,7 +1703,7 @@ export class AIController {
     const sorted = [...scoredResults].sort((a, b) => {
       const diff = b.priorityScore - a.priorityScore;
       if (Math.abs(diff) > 0.001) return diff;
-      return String(a.id).localeCompare(String(b.id));
+      return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
     });
 
     for (const result of sorted) {
