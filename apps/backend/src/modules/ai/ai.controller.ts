@@ -240,6 +240,28 @@ export class AIController {
     trincomalee: ['trincomalee', 'nilaveli', 'uppuveli'],
   };
 
+  private readonly collator = new Intl.Collator('en', {
+    numeric: true,
+    sensitivity: 'base',
+  });
+
+  private readonly EPS = 1e-6;
+
+  private stableId(a: unknown): string {
+    if (typeof a === 'string') return a;
+    if (typeof a === 'number') return Number.isFinite(a) ? String(a) : '';
+    if (typeof a === 'bigint') return a.toString();
+    if (typeof a === 'boolean') return a ? 'true' : 'false';
+    return '';
+  }
+
+  // quantize to reduce micro score flips
+  private q(n: number, decimals = 6): number {
+    if (!Number.isFinite(n)) return 0;
+    const p = Math.pow(10, decimals);
+    return Math.round(n * p) / p;
+  }
+
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
@@ -554,7 +576,11 @@ export class AIController {
 
     const scored = keywordFiltered
       .filter((item) => item.score >= this.CONFIDENCE_THRESHOLDS.MINIMUM)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        const diff = this.q(b.score) - this.q(a.score);
+        if (Math.abs(diff) > this.EPS) return diff;
+        return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
+      })
       .slice(0, 5)
       .map((item, idx) => ({
         rank: idx + 1,
@@ -1164,15 +1190,15 @@ export class AIController {
         };
       })
       .sort((a, b) => {
-        const scoreDiff = b.priorityScore - a.priorityScore;
-        if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
+        const scoreDiff = this.q(b.priorityScore) - this.q(a.priorityScore);
+        if (Math.abs(scoreDiff) > this.EPS) return scoreDiff;
 
         if (a.confidence !== b.confidence) {
           const order = { High: 3, Medium: 2, Low: 1 };
-          return order[b.confidence!] - order[a.confidence!];
+          return (order[b.confidence!] ?? 0) - (order[a.confidence!] ?? 0);
         }
 
-        return String(a.id).localeCompare(String(b.id));
+        return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
       });
 
     // DEBUG LOG FOR ANONYMOUS USERS (NO PERSONALIZATION)
@@ -1351,9 +1377,9 @@ export class AIController {
 
     // Step 3: Re-sort with personalization
     const sorted = personalizedScored.sort((a, b) => {
-      const diff = b.priorityScore - a.priorityScore;
-      if (Math.abs(diff) > 0.001) return diff;
-      return String(a.id).localeCompare(String(b.id));
+      const diff = this.q(b.priorityScore) - this.q(a.priorityScore);
+      if (Math.abs(diff) > this.EPS) return diff;
+      return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
     });
 
     // DEBUG LOG FOR AUTHENTICATED USERS (WITH PERSONALIZATION)
@@ -1677,7 +1703,7 @@ export class AIController {
     const sorted = [...scoredResults].sort((a, b) => {
       const diff = b.priorityScore - a.priorityScore;
       if (Math.abs(diff) > 0.001) return diff;
-      return String(a.id).localeCompare(String(b.id));
+      return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
     });
 
     for (const result of sorted) {

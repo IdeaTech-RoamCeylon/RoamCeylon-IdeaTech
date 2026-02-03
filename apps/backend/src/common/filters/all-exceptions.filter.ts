@@ -13,7 +13,7 @@ import { Request } from 'express';
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exceptions');
 
-  constructor(private readonly httpAdapterHost: HttpAdapterHost) { }
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
@@ -32,8 +32,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const message =
       typeof exceptionResponse === 'object' &&
-        exceptionResponse !== null &&
-        'message' in exceptionResponse
+      exceptionResponse !== null &&
+      'message' in exceptionResponse
         ? (exceptionResponse as Record<string, unknown>).message
         : exceptionResponse;
 
@@ -55,7 +55,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         exception instanceof Error ? exception.stack : String(exception),
       );
     } else if (httpStatus >= 400) {
-      this.logger.warn(`[${logContext}] Client Error (${httpStatus}): ${String(message)}`);
+      this.logger.warn(
+        `[${logContext}] Client Error (${httpStatus}): ${String(message)}`,
+      );
     }
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);

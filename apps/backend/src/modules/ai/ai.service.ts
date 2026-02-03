@@ -3,14 +3,6 @@ import { EmbeddingService } from './embeddings/embedding.service';
 import { EXPLANATION_VALIDATION_RULES } from './prompts/planner.prompt';
 import { DayDto } from './dto/update-trip.dto';
 
-export interface SearchResultDto {
-  rank: number;
-  text: string;
-  score: number;
-  source: string | number;
-  createdAt?: string;
-}
-
 @Injectable()
 export class AIService {
   constructor(private readonly embeddingService: EmbeddingService) {}
@@ -20,11 +12,11 @@ export class AIService {
   }
 
   async getAllEmbeddings() {
-    return await this.embeddingService.getAllEmbeddings();
+    return this.embeddingService.getAllEmbeddings();
   }
 
   async search(vector: number[], limit: number) {
-    return await this.embeddingService.searchEmbeddings(vector, limit);
+    return this.embeddingService.searchEmbeddings(vector, limit);
   }
 
   generateDummyEmbedding(text: string, dim = 1536): number[] {
@@ -39,7 +31,6 @@ export class AIService {
     return this.embeddingService.isPartialMatch(token, text);
   }
 
-  // ADD THIS NEW METHOD FOR EXPLANATION VALIDATION
   validateExplanations(days: DayDto[]): void {
     days.forEach((day, dayIndex) => {
       const { explanation, activities } = day;
@@ -87,6 +78,7 @@ export class AIService {
         explanation.sequence,
         activityNames,
       );
+
       if (
         sequenceOrder.length > 0 &&
         !this.isOrderCorrect(sequenceOrder, activityNames)
@@ -98,7 +90,6 @@ export class AIService {
     });
   }
 
-  // ADD HELPER METHOD
   private extractActivityOrderFromSequence(
     sequence: string,
     activityNames: string[],
@@ -112,7 +103,6 @@ export class AIService {
     return foundActivities;
   }
 
-  // ADD HELPER METHOD
   private isOrderCorrect(
     sequenceOrder: string[],
     actualOrder: string[],
@@ -120,9 +110,7 @@ export class AIService {
     let lastIndex = -1;
     for (const activity of sequenceOrder) {
       const currentIndex = actualOrder.indexOf(activity);
-      if (currentIndex <= lastIndex) {
-        return false;
-      }
+      if (currentIndex <= lastIndex) return false;
       lastIndex = currentIndex;
     }
     return true;
