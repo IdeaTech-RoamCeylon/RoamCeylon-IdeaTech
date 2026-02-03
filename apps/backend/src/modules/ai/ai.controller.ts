@@ -94,6 +94,8 @@ type ItineraryCategory =
 
 type ConfidenceLevel = 'High' | 'Medium' | 'Low';
 
+type ServiceError = { message: string };
+
 interface ExplanationContext {
   destination?: string;
   dayNumber: number;
@@ -305,6 +307,25 @@ export class AIController {
     if (!Number.isFinite(n)) return 0;
     const p = Math.pow(10, decimals);
     return Math.round(n * p) / p;
+  }
+
+  private isServiceError(v: unknown): v is ServiceError {
+    return (
+      typeof v === 'object' &&
+      v !== null &&
+      'message' in v &&
+      typeof (v as { message: unknown }).message === 'string'
+    );
+  }
+
+  private normalizeConfidence(
+    minConfidence?: string,
+  ): 'High' | 'Medium' | 'Low' {
+    return minConfidence === 'High' ||
+      minConfidence === 'Medium' ||
+      minConfidence === 'Low'
+      ? minConfidence
+      : 'Medium';
   }
 
   constructor(
@@ -668,32 +689,39 @@ export class AIController {
 
     const embedding = this.aiService.generateDummyEmbedding(cleaned, 1536);
 
-    const rawResults =
+    const raw: unknown =
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
       );
 
-    if (Array.isArray(rawResults)) {
-      const confidenceLevel =
-        minConfidence === 'High' ||
-        minConfidence === 'Medium' ||
-        minConfidence === 'Low'
-          ? (minConfidence as 'High' | 'Medium' | 'Low')
-          : 'Medium';
+    if (Array.isArray(raw)) {
+      const confidenceLevel = this.normalizeConfidence(minConfidence);
 
       const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
-        rawResults,
+        raw as SearchResultItem[],
         confidenceLevel,
       );
 
-      return { query: cleaned, results: filtered, message: fallbackMessage };
+      return {
+        query: cleaned,
+        results: filtered,
+        message: fallbackMessage,
+      };
+    }
+
+    if (this.isServiceError(raw)) {
+      return {
+        query: cleaned,
+        results: [],
+        message: raw.message,
+      };
     }
 
     return {
       query: cleaned,
       results: [],
-      message: (rawResults as any).message,
+      message: 'Search failed due to an unexpected response format.',
     };
   }
 
@@ -2094,7 +2122,7 @@ export class AIController {
         savedTrip = body.tripId
           ? await this.tripStore.getByIdForUser(userId, body.tripId)
           : await this.tripStore.getLatestForUser(userId);
-      } catch (e) {
+      } catch {
         savedTrip = null;
       }
     }
