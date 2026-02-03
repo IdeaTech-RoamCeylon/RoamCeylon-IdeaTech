@@ -21,6 +21,17 @@ Reasoning: Early Sigiriya start avoids 35°C afternoon heat. Minneriya timed for
 EXAMPLE - BAD:
 "Day 1: Visit amazing places and enjoy Sri Lankan culture"
 
+   Add/modify explanation guidelines:
+   
+- Keep explanations under 100 characters
+- Focus on key ranking factors: timing, location proximity, activity type balance
+- Use format: "[Why chosen]: [Main benefit]"
+- Examples:
+  * "Morning energy suits hiking; near previous location"
+  * "Sunset timing perfect; cultural balance after beach"
+  * "Rest day needed; museum less physically demanding"
+
+
 OUTPUT FORMAT:
 Return JSON with days array, each day having:
 - activities: array of {name, time, location, reason}
