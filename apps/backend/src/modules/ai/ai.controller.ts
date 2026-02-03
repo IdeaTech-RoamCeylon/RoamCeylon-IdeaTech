@@ -770,8 +770,9 @@ export class AIController {
 
     if (ctx.isFallback) {
       return {
-        selectionReason:
-          "We included this to give you a complete itinerary, though we don't have strong matches for your search.",
+        selectionReason: this.aiService.cleanExplanation(
+          'Limited matches - added for complete itinerary',
+        ),
         rankingFactors: {
           relevanceScore: 0,
           confidenceLevel: 'Low',
@@ -779,76 +780,139 @@ export class AIController {
           novelty: 'Low',
         },
         whyThisPlace: [
-          'Added because we found limited options matching your preferences',
-          'Try adding specific interests (like "beach" or "temples") for better suggestions',
+          this.aiService.cleanExplanation('Few options matched preferences'),
+          this.aiService.cleanExplanation(
+            'Add specific interests (beach, temples) for better matches',
+          ),
         ],
         tips: [
-          'Consider refining your destination or adding nearby town names',
+          this.aiService.cleanExplanation(
+            'Refine destination or add nearby town names',
+          ),
         ],
       };
     }
 
     if (matched.length > 0) {
       whyPlace.push(
-        `Matches what you're looking for: ${matched.slice(0, 2).join(', ')}`,
+        this.aiService.cleanExplanation(
+          `Matches: ${matched.slice(0, 2).join(', ')}`,
+        ),
       );
     }
 
     if (score >= 0.85) {
-      whyPlace.push('Strong match for your trip');
+      whyPlace.push(
+        this.aiService.cleanExplanation(
+          'High relevance score (0.85+) for your trip',
+        ),
+      );
     } else if (score >= 0.72) {
-      whyPlace.push('Good fit based on your preferences');
+      whyPlace.push(
+        this.aiService.cleanExplanation('Good fit - relevance score 0.72+'),
+      );
     } else if (score >= 0.62) {
-      whyPlace.push('Decent option that fits your style');
+      whyPlace.push(
+        this.aiService.cleanExplanation('Moderate fit - adds variety'),
+      );
     } else {
-      whyPlace.push('Added for variety');
+      whyPlace.push(this.aiService.cleanExplanation('Variety option'));
     }
 
     if (priorityScore >= 1.3) {
-      whyPlace.push('Highly recommended based on your trip style');
+      whyPlace.push(
+        this.aiService.cleanExplanation(
+          `Priority score ${priorityScore.toFixed(1)} - top recommendation`,
+        ),
+      );
     }
 
     const destRegion = this.inferRegion(ctx.destination);
     const placeRegion = this.inferRegion(`${result.title} ${result.content}`);
     if (destRegion && placeRegion && destRegion !== placeRegion) {
-      whyPlace.push('Note: This is farther from your main destination');
+      whyPlace.push(
+        this.aiService.cleanExplanation(
+          'Further from main destination - plan extra travel time',
+        ),
+      );
       tips.push(
-        'If you prefer staying local, add nearby town names to your preferences',
+        this.aiService.cleanExplanation(
+          'Add nearby town names if you prefer staying local',
+        ),
       );
     }
 
     if (ctx.dayNumber === 1) {
       if (category === 'Arrival')
-        whyDay.push('Perfect for your first day - easy after traveling');
-      else whyDay.push('Scheduled for day one to start your trip smoothly');
+        whyDay.push(
+          this.aiService.cleanExplanation(
+            'Day 1 - low energy after arrival, easy start',
+          ),
+        );
+      else
+        whyDay.push(
+          this.aiService.cleanExplanation('Day 1 starter - sets trip momentum'),
+        );
     } else if (ctx.dayNumber === ctx.totalDays) {
-      whyDay.push('Great way to end your trip on a high note');
+      whyDay.push(
+        this.aiService.cleanExplanation(
+          `Day ${ctx.totalDays} finale - memorable ending`,
+        ),
+      );
     } else {
       if (category === 'Beach' || category === 'Relaxation')
-        whyDay.push('Placed here to give you a break mid-trip');
+        whyDay.push(
+          this.aiService.cleanExplanation(
+            `Day ${ctx.dayNumber} - mid-trip rest needed`,
+          ),
+        );
       else if (category === 'Adventure' || category === 'Nature')
-        whyDay.push("Scheduled when you'll have good energy levels");
-      else whyDay.push('Fits well with your other activities this day');
+        whyDay.push(
+          this.aiService.cleanExplanation(
+            `Day ${ctx.dayNumber} - energy level optimal for ${category.toLowerCase()}`,
+          ),
+        );
+      else
+        whyDay.push(
+          this.aiService.cleanExplanation(
+            `Day ${ctx.dayNumber} - balances other activities`,
+          ),
+        );
     }
 
     const slot = ctx.timeSlot;
     if (ctx.dayNumber === 1 && ctx.activityIndex === 0) {
-      whyTime.push('Afternoon works best after check-in');
+      whyTime.push(
+        this.aiService.cleanExplanation('Afternoon - allows morning check-in'),
+      );
     } else if (slot === 'Morning') {
-      whyTime.push('Morning is ideal for this type of activity');
+      whyTime.push(
+        this.aiService.cleanExplanation(
+          `Morning - best for ${category.toLowerCase()}, cooler temps`,
+        ),
+      );
     } else if (slot === 'Afternoon') {
-      whyTime.push('Afternoon timing keeps your day balanced');
+      whyTime.push(
+        this.aiService.cleanExplanation('Afternoon - balances daily schedule'),
+      );
     } else if (slot === 'Evening') {
-      whyTime.push('Evening slot for a relaxed end to the day');
+      whyTime.push(
+        this.aiService.cleanExplanation('Evening - relaxed day close'),
+      );
     }
 
     const titleLower = result.title.toLowerCase();
     const contentLower = result.content.toLowerCase();
 
-    if (category === 'Beach') tips.push('Bring sunscreen and stay hydrated');
+    if (category === 'Beach')
+      tips.push(
+        this.aiService.cleanExplanation('Bring sunscreen, stay hydrated'),
+      );
     else if (category === 'Nature' || category === 'Adventure')
       tips.push(
-        'Wear comfortable sturdy shoes - paths can be uneven and allow extra travel time',
+        this.aiService.cleanExplanation(
+          'Sturdy shoes needed - uneven paths, allow extra travel time',
+        ),
       );
     else if (category === 'Culture' || category === 'History') {
       if (
@@ -857,10 +921,16 @@ export class AIController {
         titleLower.includes('church') ||
         titleLower.includes('mosque')
       ) {
-        tips.push('Dress modestly - cover shoulders and knees');
+        tips.push(
+          this.aiService.cleanExplanation(
+            'Dress modestly - cover shoulders, knees',
+          ),
+        );
       } else {
         tips.push(
-          'Allow extra time - these sites are often larger than expected',
+          this.aiService.cleanExplanation(
+            'Sites larger than expected - allow extra time',
+          ),
         );
       }
     }
@@ -869,26 +939,32 @@ export class AIController {
       contentLower.includes('entrance fee') ||
       contentLower.includes('ticket')
     )
-      tips.push('Cash may be needed for entrance fees');
+      tips.push(
+        this.aiService.cleanExplanation('Cash needed for entrance fees'),
+      );
 
     if (
       category === 'Adventure' &&
       (contentLower.includes('rain') || contentLower.includes('weather'))
     ) {
-      tips.push('Check weather - some activities close during heavy rain');
+      tips.push(
+        this.aiService.cleanExplanation(
+          'Check weather - may close in heavy rain',
+        ),
+      );
     }
 
     const parts: string[] = [];
     if (matched.length)
-      parts.push(
-        `it matches your interest in ${matched.slice(0, 2).join(' and ')}`,
-      );
-    if (score >= 0.72) parts.push("it's a strong fit for your trip");
-    else parts.push('it adds variety to your itinerary');
+      parts.push(`matches ${matched.slice(0, 2).join(', ')} interests`);
+    if (score >= 0.72) parts.push(`high relevance (${score.toFixed(2)})`);
+    else parts.push('adds variety');
 
-    const selectionReason = parts.length
-      ? `We picked this because ${parts.join(' and ')}.`
-      : 'We included this to round out your itinerary.';
+    const selectionReason = this.aiService.cleanExplanation(
+      parts.length
+        ? `Selected: ${parts.join('; ')}`
+        : 'Included for itinerary variety',
+    );
 
     return {
       selectionReason,
@@ -930,7 +1006,7 @@ export class AIController {
 
         if (isFrequent) {
           baseExplanation.whyThisPlace = [
-            '⭐ You have shown interest in this before',
+            this.aiService.cleanExplanation('⭐ Previously shown interest'),
             ...(baseExplanation.whyThisPlace || []),
           ];
         }
@@ -943,7 +1019,9 @@ export class AIController {
 
         if (matchingPref && matchingPref.count >= 3) {
           baseExplanation.whyThisPlace?.push(
-            `Based on your ${matchingPref.count} previous ${matchingPref.category} selections`,
+            this.aiService.cleanExplanation(
+              `${matchingPref.count}x previous ${matchingPref.category} picks - matches your pattern`,
+            ),
           );
         }
       } catch (error) {
@@ -2376,10 +2454,12 @@ export class AIController {
 
         for (const item of matchedItems) {
           const category = mappedCategories[0] || 'Sightseeing';
-          const timeSlot: 'Morning' | 'Afternoon' = 'Morning';
+          const currentIndex = suggestions.length;
+          const timeSlot: 'Morning' | 'Afternoon' =
+            currentIndex === 0 ? 'Afternoon' : 'Morning';
 
           suggestions.push({
-            order: suggestions.length + 1,
+            order: currentIndex + 1,
             dayNumber: 1,
             placeName: item.title,
             shortDescription: item.content,
@@ -2388,9 +2468,9 @@ export class AIController {
             priority: 0.7,
             timeSlot,
             estimatedDuration: this.estimateDuration(category),
-            explanation: this.buildRichExplanation(
+            explanation: await this.buildRichExplanationPersonalized(
               {
-                rank: suggestions.length + 1,
+                rank: currentIndex + 1,
                 id: item.id,
                 title: item.title,
                 content: item.content,
@@ -2403,62 +2483,66 @@ export class AIController {
                 destination: destinationRaw,
                 dayNumber: 1,
                 totalDays: 1,
-                activityIndex: Math.max(0, suggestions.length - 1),
-                activitiesInDay: Math.max(1, suggestions.length),
+                activityIndex: currentIndex,
+                activitiesInDay: preferences.length * 2 || 3,
                 preferences,
                 novelty: 'Medium',
                 isFallback: false,
                 timeSlot,
               },
+              userId,
             ),
           });
         }
       }
 
       if (suggestions.length === 0) {
-        allEmbeddings
+        const fallbackItems = allEmbeddings
           .slice()
           .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-          .slice(0, 3)
-          .forEach((item, idx) => {
-            const timeSlot: 'Morning' | 'Afternoon' =
-              idx === 0 ? 'Morning' : 'Afternoon';
+          .slice(0, 3);
 
-            suggestions.push({
-              order: idx + 1,
-              dayNumber: 1,
-              placeName: item.title,
-              shortDescription: item.content,
-              category: 'Sightseeing',
-              confidenceScore: 'Medium',
-              priority: 0.5,
-              timeSlot,
-              estimatedDuration: this.estimateDuration('Sightseeing'),
-              explanation: this.buildRichExplanation(
-                {
-                  rank: idx + 1,
-                  id: item.id,
-                  title: item.title,
-                  content: item.content,
-                  score: 0.6,
-                  confidence: 'Medium',
-                },
-                0.5,
-                'Sightseeing',
-                {
-                  destination: destinationRaw,
-                  dayNumber: 1,
-                  totalDays: 1,
-                  activityIndex: idx,
-                  activitiesInDay: 3,
-                  preferences,
-                  novelty: 'Medium',
-                  isFallback: false,
-                  timeSlot,
-                },
-              ),
-            });
+        for (let idx = 0; idx < fallbackItems.length; idx++) {
+          const item = fallbackItems[idx];
+          const timeSlot: 'Morning' | 'Afternoon' =
+            idx === 0 ? 'Afternoon' : 'Morning';
+
+          suggestions.push({
+            order: idx + 1,
+            dayNumber: 1,
+            placeName: item.title,
+            shortDescription: item.content,
+            category: 'Sightseeing',
+            confidenceScore: 'Medium',
+            priority: 0.5,
+            timeSlot,
+            estimatedDuration: this.estimateDuration('Sightseeing'),
+            explanation: await this.buildRichExplanationPersonalized(
+              {
+                rank: idx + 1,
+                id: item.id,
+                title: item.title,
+                content: item.content,
+                score: 0.6,
+                confidence: 'Medium',
+              },
+              0.5,
+              'Sightseeing',
+              {
+                destination: destinationRaw,
+                dayNumber: 1,
+                totalDays: 1,
+                activityIndex: idx,
+                activitiesInDay: 3,
+                preferences,
+                novelty: 'Medium',
+                isFallback: false,
+                timeSlot,
+              },
+              userId,
+            ),
           });
+        }
       }
 
       const dayByDayPlan: DayPlan[] = [

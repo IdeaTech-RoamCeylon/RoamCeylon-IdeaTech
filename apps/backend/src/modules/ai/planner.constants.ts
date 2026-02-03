@@ -10,6 +10,13 @@ export const ALGORITHM_VERSION = '1.0.0';
 export const LOCK_DATE = '2026-01-16';
 export const LOCK_STATUS = 'FROZEN';
 
+export const EXPLANATION_TEMPLATES = {
+  TIMING: 'Optimal {timeOfDay} for {activityType}',
+  PROXIMITY: 'Only {distance}km from previous stop',
+  BALANCE: '{activityType} balances previous {previousType}',
+  ENERGY: '{energyLevel} energy level suits this activity',
+};
+
 // Algorithm constants - DO NOT MODIFY
 export const PLANNER_CONFIG = Object.freeze({
   CONFIDENCE: {

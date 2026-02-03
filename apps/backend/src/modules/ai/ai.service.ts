@@ -115,4 +115,15 @@ export class AIService {
     }
     return true;
   }
+
+  cleanExplanation(explanation: string): string {
+    // Remove filler words
+    const cleaned = explanation
+      .replace(/\b(basically|essentially|actually|really)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Limit length
+    return cleaned.length > 120 ? cleaned.substring(0, 117) + '...' : cleaned;
+  }
 }
