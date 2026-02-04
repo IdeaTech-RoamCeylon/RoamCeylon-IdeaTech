@@ -70,6 +70,12 @@ export class EmbeddingService {
 
   private readonly EMBEDDING_DIM = 1536;
 
+  // locale-stable sorting (prevents env differences)
+  private readonly collator = new Intl.Collator('en', {
+    numeric: true,
+    sensitivity: 'base',
+  });
+
   private createClient(): Client {
     const dbUrl = this.configService.get<string>('DATABASE_URL');
 
@@ -127,8 +133,12 @@ export class EmbeddingService {
 
       try {
         const parsed: unknown = JSON.parse(s);
-        if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'number'))
+        if (
+          Array.isArray(parsed) &&
+          parsed.every((x) => typeof x === 'number')
+        ) {
           return parsed;
+        }
       } catch {
         // ignore
       }
@@ -148,17 +158,30 @@ export class EmbeddingService {
     );
   }
 
+  // fixed precision to prevent float string drift
+  private vectorToLiteral(vec: number[], decimals = 8): string {
+    // Ensure stable string formatting across runs/env
+    const parts = vec.map((n) => {
+      if (!Number.isFinite(n)) return '0';
+      // keep consistent decimals
+      return Number(n).toFixed(decimals);
+    });
+    return `[${parts.join(',')}]`;
+  }
+
   async seedEmbeddings(): Promise<void> {
     const client = this.createClient();
 
     try {
       await client.connect();
-      await client.query(`DELETE FROM embeddings`);
+
+      // Deterministic seeding: stable IDs every time
+      await client.query(`TRUNCATE TABLE embeddings RESTART IDENTITY`);
 
       const dataset = parseTourismSamples(rawTourismData as unknown);
 
-      // Deterministic seeding order
-      dataset.sort((a, b) => a.title.localeCompare(b.title));
+      // Deterministic order
+      dataset.sort((a, b) => this.collator.compare(a.title, b.title));
 
       for (const item of dataset) {
         const title = this.normalizeText(item.title);
@@ -170,7 +193,8 @@ export class EmbeddingService {
           this.EMBEDDING_DIM,
         );
 
-        const vectorLiteral = `[${embedding.join(',')}]`;
+        // Deterministic float serialization
+        const vectorLiteral = this.vectorToLiteral(embedding);
 
         await client.query(
           `INSERT INTO embeddings (title, content, embedding)
@@ -192,10 +216,13 @@ export class EmbeddingService {
     try {
       await client.connect();
       const result = await client.query<EmbeddingRow>(
-        `SELECT id, title, content, embedding FROM embeddings`,
+        `SELECT id, title, content, embedding
+         FROM embeddings
+         ORDER BY id ASC`,
       );
 
-      const items = result.rows.map((row) => {
+      // SQL already ordered deterministically by id ASC
+      return result.rows.map((row) => {
         const embeddingArray = this.parseVectorToNumberArray(
           row.embedding,
           row.id,
@@ -208,11 +235,6 @@ export class EmbeddingService {
           embedding: embeddingArray,
         };
       });
-
-      // Deterministic output ordering
-      items.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-
-      return items;
     } finally {
       await client.end();
     }
@@ -226,9 +248,12 @@ export class EmbeddingService {
 
     try {
       await client.connect();
-      const vectorStr = `[${vector.join(',')}]`;
 
-      // Stable ordering: distance ASC, id ASC (tie-break)
+      // stable vector literal
+      const vectorStr = this.vectorToLiteral(vector);
+
+      // Stable ordering: distance ASC, id ASC
+      // Score is derived deterministically from distance
       const query = `
         SELECT id, title, content, embedding,
                1 - (embedding <=> $1) as score
@@ -245,12 +270,12 @@ export class EmbeddingService {
         score: number;
       }>(query, [vectorStr, limit]);
 
-      const mapped = result.rows.map((row) => {
+      // SQL already stable; keep JS mapping only
+      return result.rows.map((row) => {
         const embeddingArray = this.parseVectorToNumberArray(
           row.embedding,
           String(row.id),
         );
-
         return {
           id: String(row.id),
           title: row.title,
@@ -259,11 +284,6 @@ export class EmbeddingService {
           score: Number(row.score),
         };
       });
-
-      // Deterministic JS ordering (score DESC, id ASC)
-      mapped.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
-
-      return mapped;
     } finally {
       await client.end();
     }
@@ -289,7 +309,7 @@ export class EmbeddingService {
         const hash = this.hashToken(ng);
 
         for (let i = 0; i < dim; i++) {
-          // Deterministic: only pure math
+          // Pure deterministic math
           vector[i] += (((hash + i * 13) % 100) / 100) * (1 / (tokenIndex + 1));
         }
       }

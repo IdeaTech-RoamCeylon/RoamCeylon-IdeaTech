@@ -26,7 +26,7 @@ interface RequestWithUser extends Request {
 export class TransportController {
   private readonly logger = new Logger('TransportController');
 
-  constructor(private readonly transportService: TransportService) { }
+  constructor(private readonly transportService: TransportService) {}
 
   @Post('seed')
   seedData() {
@@ -48,15 +48,25 @@ export class TransportController {
   @Post('ride')
   async createRide(
     @Req() req: RequestWithUser,
-    @Body() body: { pickup: { lat: number; lng: number }; destination: { lat: number; lng: number } }
+    @Body()
+    body: {
+      pickup: { lat: number; lng: number };
+      destination: { lat: number; lng: number };
+    },
   ) {
     // Force passengerId to be the authenticated user
     const passengerId = req.user.userId;
-    return this.transportService.createRide(passengerId, body.pickup, body.destination);
+    return this.transportService.createRide(
+      passengerId,
+      body.pickup,
+      body.destination,
+    );
   }
 
   @Post('ride/status')
-  async updateRideStatus(@Body() body: { rideId: string, status: string }): Promise<TransportSession> {
+  async updateRideStatus(
+    @Body() body: { rideId: string; status: string },
+  ): Promise<TransportSession> {
     return this.transportService.updateRideStatus(body.rideId, body.status);
   }
 
@@ -65,18 +75,24 @@ export class TransportController {
    * Tracks real-time ride progress from the database.
    */
   @Get('ride-status')
-  async getRideStatus(@Req() req: RequestWithUser, @Query('rideId') rideId: string) {
+  async getRideStatus(
+    @Req() req: RequestWithUser,
+    @Query('rideId') rideId: string,
+  ) {
     this.logger.log(`[Sprint 3] Fetching ride status for ID: ${rideId}`);
 
     if (!rideId) {
       return {
         data: { status: 'unknown', message: 'Missing ID' },
-        meta: { timestamp: new Date().toISOString() }
+        meta: { timestamp: new Date().toISOString() },
       };
     }
 
     // Pass userId for security check
-    const result = await this.transportService.getRide(rideId, req.user?.userId);
+    const result = await this.transportService.getRide(
+      rideId,
+      req.user?.userId,
+    );
 
     return {
       data: result.data || { status: 'not_found' },
