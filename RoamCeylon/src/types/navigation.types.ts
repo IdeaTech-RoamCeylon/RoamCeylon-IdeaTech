@@ -20,11 +20,20 @@ export type MainStackParamList = {
   ProductDetails: {
     productId: string;
   };
-  Transport: undefined;
+  Transport: { pickup?: LocationSelection; destination?: LocationSelection } | undefined;
+  TransportLocationPicker: { pickup?: LocationSelection; destination?: LocationSelection } | undefined;
   TransportStatus: undefined;
   Map: undefined;
   Profile: undefined;
   ComponentShowcase: undefined;
   AITripPlanner: undefined;
   SavedTrips: undefined;
+};
+
+export type LocationSelection = {
+  name: string;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+  };
 };

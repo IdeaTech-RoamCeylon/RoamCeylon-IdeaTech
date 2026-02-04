@@ -1,25 +1,75 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import MapScreen from './MapScreen';
+import { LocationSelection, MainStackParamList } from '../../types';
+
+type TransportNavProp = StackNavigationProp<MainStackParamList, 'Transport'>;
+type TransportRouteProp = RouteProp<MainStackParamList, 'Transport'>;
 
 const TransportScreen = () => {
-  const navigation = useNavigation();
-  const [pickup, setPickup] = useState('Current location');
-  const [destination, setDestination] = useState('');
+  const navigation = useNavigation<TransportNavProp>();
+  const route = useRoute<TransportRouteProp>();
+  const [pickup, setPickup] = useState<LocationSelection | undefined>(undefined);
+  const [destination, setDestination] = useState<LocationSelection | undefined>(undefined);
   const [selectedRide, setSelectedRide] = useState<'Standard' | 'Comfort' | 'Van'>('Standard');
 
+  useEffect(() => {
+    if (route.params?.pickup) {
+      setPickup(route.params.pickup);
+    }
+    if (route.params?.destination) {
+      setDestination(route.params.destination);
+    }
+  }, [route.params]);
+
+  const distanceKm = useMemo(() => {
+    if (!pickup?.coordinates || !destination?.coordinates) return null;
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(destination.coordinates.latitude - pickup.coordinates.latitude);
+    const dLon = toRad(destination.coordinates.longitude - pickup.coordinates.longitude);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(pickup.coordinates.latitude)) *
+        Math.cos(toRad(destination.coordinates.latitude)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.max(1, Math.round(R * c));
+  }, [pickup, destination]);
+
+  const priceForType = useMemo(() => {
+    const km = distanceKm ?? 5;
+    return {
+      Standard: Math.round(220 + km * 140),
+      Comfort: Math.round(300 + km * 180),
+      Van: Math.round(400 + km * 220),
+    } as const;
+  }, [distanceKm]);
+
   const fareEstimate = useMemo(() => {
-    if (!destination.trim()) return '—';
-    const base = selectedRide === 'Van' ? 1800 : selectedRide === 'Comfort' ? 1400 : 1000;
-    return `LKR ${base.toLocaleString()}`;
-  }, [destination, selectedRide]);
+    if (!pickup || !destination) return '—';
+    return `LKR ${priceForType[selectedRide].toLocaleString()}`;
+  }, [pickup, destination, priceForType, selectedRide]);
 
   return (
     <View style={styles.container}>
       {/* Map View */}
       <View style={styles.mapContainer}>
-        <MapScreen />
+        <MapScreen
+          pickupCoordinate={
+            pickup?.coordinates
+              ? [pickup.coordinates.longitude, pickup.coordinates.latitude]
+              : undefined
+          }
+          destinationCoordinate={
+            destination?.coordinates
+              ? [destination.coordinates.longitude, destination.coordinates.latitude]
+              : undefined
+          }
+        />
       </View>
 
       {/* Ride Sheet */}
@@ -40,20 +90,25 @@ const TransportScreen = () => {
           </View>
         </View>
 
-        <View style={styles.inputCard}>
+        <TouchableOpacity
+          style={styles.inputCard}
+          activeOpacity={0.8}
+          onPress={() =>
+            navigation.navigate('TransportLocationPicker', {
+              pickup,
+              destination,
+            })
+          }
+        >
           <View style={styles.inputRow}>
             <View style={styles.bullet}>
               <View style={styles.bulletInnerPickup} />
             </View>
             <View style={styles.inputColumn}>
               <Text style={styles.inputLabel}>Pickup</Text>
-              <TextInput
-                style={styles.input}
-                value={pickup}
-                onChangeText={setPickup}
-                placeholder="Enter pickup"
-                placeholderTextColor="#9aa0a6"
-              />
+              <Text style={styles.inputValue} numberOfLines={1}>
+                {pickup?.name || 'Choose pickup'}
+              </Text>
             </View>
           </View>
 
@@ -65,16 +120,12 @@ const TransportScreen = () => {
             </View>
             <View style={styles.inputColumn}>
               <Text style={styles.inputLabel}>Destination</Text>
-              <TextInput
-                style={styles.input}
-                value={destination}
-                onChangeText={setDestination}
-                placeholder="Where are you going?"
-                placeholderTextColor="#9aa0a6"
-              />
+              <Text style={styles.inputValue} numberOfLines={1}>
+                {destination?.name || 'Choose destination'}
+              </Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.fareCard}>
           <View>
@@ -111,7 +162,11 @@ const TransportScreen = () => {
                   selectedRide === type && styles.rideSubSelected,
                 ]}
               >
-                {type === 'Van' ? '6 seats' : type === 'Comfort' ? 'Extra legroom' : 'Everyday rides'}
+                {type === 'Van'
+                  ? `6 seats · LKR ${priceForType.Van.toLocaleString()}`
+                  : type === 'Comfort'
+                  ? `Extra legroom · LKR ${priceForType.Comfort.toLocaleString()}`
+                  : `Everyday rides · LKR ${priceForType.Standard.toLocaleString()}`}
               </Text>
             </TouchableOpacity>
           ))}
@@ -211,7 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontWeight: '600',
   },
-  input: {
+  inputValue: {
     backgroundColor: '#fff',
     borderRadius: 10,
     paddingHorizontal: 12,

@@ -1,13 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 import * as Location from 'expo-location';
-import { MOCK_DRIVERS } from '../../data/mockDrivers';
 import Toast from 'react-native-toast-message';
 import { useMapContext } from '../../context/MapContext';
-import { retryWithBackoff } from '../../utils/networkUtils';
-
-import { DriverMarker } from '../../components/DriverMarker';
 
 // Lazy load Mapbox to prevent build errors
 let MapboxGL: any = null;
@@ -21,26 +17,56 @@ try {
   // Mapbox SDK not available
 }
 
-const MapScreen = () => {
+type MapScreenProps = {
+  pickupCoordinate?: [number, number];
+  destinationCoordinate?: [number, number];
+};
+
+const MapScreen = ({ pickupCoordinate, destinationCoordinate }: MapScreenProps) => {
   const { 
     userLocation, setUserLocation, 
-    drivers, setDrivers,
     isMapboxConfigured, setIsMapboxConfigured 
   } = useMapContext();
   const [isLoading, setIsLoading] = useState(true); // Initial Map Load
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
-  type TransportStatus = 'IDLE' | 'SEARCHING' | 'FOUND' | 'NO_DRIVERS' | 'ERROR';
-  const [transportStatus, setTransportStatus] = useState<TransportStatus>('IDLE');
 
-  // ... imports
+  const userCoordinate = userLocation?.coords
+    ? [userLocation.coords.longitude, userLocation.coords.latitude]
+    : null;
 
-  const driverMarkers = useMemo(() => {
-    if (!drivers || !MapboxGL) return [];
-    return drivers.map((driver) => (
-      <DriverMarker key={driver.id} driver={driver} />
-    ));
-  }, [drivers]);
+  const hasPickup = Boolean(pickupCoordinate);
+  const hasDestination = Boolean(destinationCoordinate);
+  const hasBoth = hasPickup && hasDestination;
+
+  const routeFeature = useMemo(() => {
+    if (!pickupCoordinate || !destinationCoordinate) return null;
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [pickupCoordinate, destinationCoordinate],
+          },
+        },
+      ],
+    };
+  }, [pickupCoordinate, destinationCoordinate]);
+
+  const mapCenterCoordinate =
+    pickupCoordinate ?? destinationCoordinate ?? userCoordinate ?? [
+      MAPBOX_CONFIG.defaultCenter.longitude,
+      MAPBOX_CONFIG.defaultCenter.latitude,
+    ];
+
+  const cameraPadding = {
+    paddingTop: 0,
+    paddingBottom: 260,
+    paddingLeft: 40,
+    paddingRight: 40,
+  };
 
   const isMounted = useRef(true);
 
@@ -50,47 +76,6 @@ const MapScreen = () => {
       isMounted.current = false;
     };
   }, []);
-
-  const fetchDrivers = useCallback(async () => {
-    if (!isMounted.current) return;
-    setTransportStatus('SEARCHING');
-    
-    try {
-      const result = await retryWithBackoff(
-        async () => {
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Randomly simulate "No Drivers" for demonstration (10% chance)
-          const randomChance = Math.random();
-          if (randomChance > 0.9) {
-            return [];
-          }
-          
-          return MOCK_DRIVERS;
-        },
-        {
-          maxAttempts: 3,
-          initialDelay: 1000,
-        }
-      );
-      
-      if (isMounted.current) {
-        if (result.length === 0) {
-          setDrivers([]);
-          setTransportStatus('NO_DRIVERS');
-        } else {
-          setDrivers(result);
-          setTransportStatus('FOUND');
-        }
-      }
-    } catch (e) {
-      console.error('[MapScreen] Driver fetch failed after retries:', e);
-      if (isMounted.current) {
-        setTransportStatus('ERROR');
-      }
-    }
-  }, [setDrivers]);
 
   useEffect(() => {
     // Check if Mapbox is properly configured
@@ -131,24 +116,10 @@ const MapScreen = () => {
     };
 
     const initMap = async () => {
-      // If data already exists in context, skip loading
-      if (userLocation && drivers.length > 0 && isMapboxConfigured) {
-        if (isMounted.current) {
-          setIsLoading(false);
-          setTransportStatus('FOUND');
-        }
-        return;
-      }
-
       await checkMapboxSetup();
       if (isMounted.current) await getLocationPermission();
       
       if (isMounted.current) setIsLoading(false); // Map loaded, start searching drivers
-      
-      // Initialize mock drivers if not already set
-      if (drivers.length === 0 && isMounted.current) {
-        fetchDrivers();
-      }
     };
 
     initMap();
@@ -199,11 +170,25 @@ const MapScreen = () => {
         attributionPosition={MAPBOX_CONFIG.settings.attributionButtonPosition}
       >
         <MapboxGL.Camera
-          zoomLevel={MAPBOX_CONFIG.defaultZoom}
-          centerCoordinate={[
-            MAPBOX_CONFIG.defaultCenter.longitude,
-            MAPBOX_CONFIG.defaultCenter.latitude,
-          ]}
+          {...(hasBoth
+            ? {
+                bounds: {
+                  ne: [
+                    Math.max(pickupCoordinate![0], destinationCoordinate![0]),
+                    Math.max(pickupCoordinate![1], destinationCoordinate![1]),
+                  ],
+                  sw: [
+                    Math.min(pickupCoordinate![0], destinationCoordinate![0]),
+                    Math.min(pickupCoordinate![1], destinationCoordinate![1]),
+                  ],
+                  ...cameraPadding,
+                },
+              }
+            : {
+                zoomLevel: hasPickup || hasDestination ? 14 : userCoordinate ? 14 : MAPBOX_CONFIG.defaultZoom,
+                centerCoordinate: mapCenterCoordinate,
+                padding: cameraPadding,
+              })}
           animationMode="flyTo"
           animationDuration={2000}
         />
@@ -211,8 +196,42 @@ const MapScreen = () => {
         {/* User Location */}
         <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
 
-        {/* Mock Drivers */}
-        {driverMarkers}
+        {pickupCoordinate && (
+          <MapboxGL.PointAnnotation id="pickup-location" coordinate={pickupCoordinate}>
+            <View style={styles.markerWrapper}>
+              <View style={styles.pickupMarker} />
+              <View style={styles.markerLabel}>
+                <Text style={styles.markerLabelText}>Pickup</Text>
+              </View>
+            </View>
+          </MapboxGL.PointAnnotation>
+        )}
+
+        {destinationCoordinate && (
+          <MapboxGL.PointAnnotation id="destination-location" coordinate={destinationCoordinate}>
+            <View style={styles.markerWrapper}>
+              <View style={styles.destinationMarker} />
+              <View style={styles.markerLabel}>
+                <Text style={styles.markerLabelText}>Destination</Text>
+              </View>
+            </View>
+          </MapboxGL.PointAnnotation>
+        )}
+
+        {routeFeature && (
+          <MapboxGL.ShapeSource id="routeSource" shape={routeFeature}>
+            <MapboxGL.LineLayer
+              id="routeLine"
+              style={{
+                lineColor: '#111',
+                lineWidth: 4,
+                lineCap: 'round',
+                lineJoin: 'round',
+                lineOpacity: 0.8,
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
 
         {/* Default marker at Sri Lanka center (Optional, removed for cleaner map) */}
         {/* <MapboxGL.PointAnnotation
@@ -228,40 +247,6 @@ const MapScreen = () => {
         </MapboxGL.PointAnnotation> */}
       </MapboxGL.MapView>
 
-      {/* Map overlay info */}
-      <View style={styles.overlay}>
-        {transportStatus === 'SEARCHING' && (
-          <View style={styles.statusRow}>
-            <ActivityIndicator size="small" color="#0066CC" />
-            <Text style={styles.statusText}> Looking for nearby drivers...</Text>
-          </View>
-        )}
-
-        {transportStatus === 'FOUND' && (
-           <View>
-            <Text style={styles.overlayTitle}>Sri Lanka</Text>
-            <Text style={styles.overlaySubtitle}>{drivers.length} Drivers Active</Text>
-           </View>
-        )}
-
-        {transportStatus === 'NO_DRIVERS' && (
-           <View style={styles.statusCenter}>
-            <Text style={styles.errorText}>No drivers found nearby.</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchDrivers}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-           </View>
-        )}
-
-        {transportStatus === 'ERROR' && (
-           <View style={styles.statusCenter}>
-            <Text style={styles.errorText}>Connection Error.</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchDrivers}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-           </View>
-        )}
-      </View>
     </View>
   );
 };
@@ -334,101 +319,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  // Map overlay styles
-  overlay: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: 15,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+  pickupMarker: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#1a73e8',
+    borderWidth: 3,
+    borderColor: '#000000',
   },
-  overlayTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#0066CC',
+  destinationMarker: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#ef6c00',
+    borderWidth: 3,
+    borderColor: '#070000',
   },
-  overlaySubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  // Marker styles
-  markerContainer: {
+  markerWrapper: {
     alignItems: 'center',
-    justifyContent: 'center',
-    width: 100, // Explicit width for container
-    height: 80, // Explicit height for container
   },
-  markerText: {
-    fontSize: 30,
-  },
-  driverMarker: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 2,
-    borderWidth: 2,
-    borderColor: '#0066CC',
-    // Removed elevation/shadows to debug visibility
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 40,
-  },
-  driverMarkerIcon: {
-    fontSize: 24,
-    textAlign: 'center',
-    textAlignVertical: 'center', // Android specific
-    includeFontPadding: false, // Android specific
-    height: 40,
-    width: 40,
-    marginTop: 2, // Slight adjustment for emoji centering
-  },
-  driverLabel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  markerLabel: {
+    marginTop: 6,
+    backgroundColor: '#111',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
-    marginTop: 4,
   },
-  driverLabelText: {
+  markerLabelText: {
     fontSize: 10,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  // Status Card Styles
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    marginLeft: 10,
-    color: '#0066CC',
+    color: '#111',
     fontWeight: '600',
-  },
-  statusCenter: {
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#d32f2f',
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  retryButton: {
-    backgroundColor: '#0066CC',
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  retryText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
   },
 });
 
