@@ -47,54 +47,69 @@ const TransportLocationPickerScreen = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (!MAPBOX_CONFIG.accessToken || query.trim().length < 3) return [] as Suggestion[];
+    if (query.trim().length < 3) return [] as Suggestion[];
     try {
       setIsSearching(true);
       const encoded = encodeURIComponent(query.trim());
-      const baseParams = `autocomplete=true&fuzzyMatch=true&limit=10&types=poi,poi.landmark,address,place,locality,neighborhood&language=en&proximity=${MAPBOX_CONFIG.defaultCenter.longitude},${MAPBOX_CONFIG.defaultCenter.latitude}`;
-      const sriLankaParams = `${baseParams}&country=lk`;
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?${sriLankaParams}&access_token=${MAPBOX_CONFIG.accessToken}`;
-      const res = await fetch(url);
+      
+      // Nominatim (OpenStreetMap) - FREE with excellent Sri Lanka coverage
+      const url = `https://nominatim.openstreetmap.org/search?` +
+        `q=${encoded}` +
+        `&countrycodes=lk` + // Restrict to Sri Lanka
+        `&format=json` +
+        `&limit=10` +
+        `&addressdetails=1` +
+        `&accept-language=en`;
+
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'RoamCeylon/1.0' // Nominatim requires User-Agent
+        }
+      });
+
       if (!res.ok) return [];
       const data = await res.json();
-      const primary = Array.isArray(data?.features)
-        ? data.features
-            .map((f: { place_name?: string; center?: [number, number] }) =>
-              f.place_name && f.center
+
+      return Array.isArray(data)
+        ? data
+            .map((item: any) => {
+              // Build a readable display name prioritizing the place name
+              let displayName = item.display_name;
+              
+              // If there's a specific name, use it with context
+              if (item.name) {
+                const context = [];
+                // Add location context (road, suburb, city)
+                if (item.address?.road && item.address.road !== item.name) {
+                  context.push(item.address.road);
+                }
+                if (item.address?.suburb && item.address.suburb !== item.name) {
+                  context.push(item.address.suburb);
+                }
+                if (item.address?.city && item.address.city !== item.name) {
+                  context.push(item.address.city);
+                }
+                
+                displayName = context.length > 0 
+                  ? `${item.name}, ${context.join(', ')}`
+                  : item.name;
+              }
+
+              return item.lat && item.lon
                 ? {
-                    name: f.place_name,
+                    name: displayName,
                     coordinates: {
-                      longitude: f.center[0],
-                      latitude: f.center[1],
+                      longitude: parseFloat(item.lon),
+                      latitude: parseFloat(item.lat),
                     },
                   }
-                : null
-            )
-            .filter(Boolean)
+                : null;
+            })
+            .filter(Boolean) as Suggestion[]
         : [];
-
-      if (primary.length > 0) return primary as Suggestion[];
-
-      const bbox = '79.5213,5.9166,81.8790,9.8357';
-      const fallbackUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?${baseParams}&bbox=${bbox}&access_token=${MAPBOX_CONFIG.accessToken}`;
-      const fallbackRes = await fetch(fallbackUrl);
-      if (!fallbackRes.ok) return [];
-      const fallbackData = await fallbackRes.json();
-      return Array.isArray(fallbackData?.features)
-        ? fallbackData.features
-            .map((f: { place_name?: string; center?: [number, number] }) =>
-              f.place_name && f.center
-                ? {
-                    name: f.place_name,
-                    coordinates: {
-                      longitude: f.center[0],
-                      latitude: f.center[1],
-                    },
-                  }
-                : null
-            )
-            .filter(Boolean)
-        : [];
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return [];
     } finally {
       setIsSearching(false);
     }
