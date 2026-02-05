@@ -71,6 +71,19 @@ export const PLANNER_CONFIG = Object.freeze({
     MEDIUM_MAX: 5,
   } as const,
 
+  PERSONALIZATION: {
+    MAX_BOOST: 0.3, // Cap total personalization boost at 30%
+    CATEGORY_WEIGHT: 0.15, // Weight for liked categories
+    PAST_INTERACTION_WEIGHT: 0.25, // Weight for past places
+    MIN_BASE_SCORE: 0.5, // Don't personalize items below this score
+  } as const,
+
+  CONSISTENCY: {
+    SCORE_PRECISION: 6, // Decimal places for score rounding
+    ENABLE_SEED_SORTING: true, // Use deterministic sorting
+    MAX_PERSONALIZATION_INFLUENCE: 0.25, // Max % change from personalization
+  } as const,
+
   SEARCH: {
     MIN_QUERY_LENGTH: 3,
     MAX_QUERY_LENGTH: 300,

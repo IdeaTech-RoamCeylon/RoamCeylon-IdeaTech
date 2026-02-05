@@ -1217,6 +1217,12 @@ export class AIController {
   ): Promise<number> {
     if (!userId) return 0;
 
+    // **CONSISTENCY LOCK**: Don't personalize low-quality items
+    const baseScore = result.score || 0;
+    if (baseScore < PLANNER_CONFIG.PERSONALIZATION.MIN_BASE_SCORE) {
+      return 0;
+    }
+
     let boost = 0;
 
     try {
@@ -1227,7 +1233,8 @@ export class AIController {
       for (const pref of categoryPrefs) {
         if (resultText.includes(pref.category.toLowerCase())) {
           const normalizedCount = Math.min(pref.count / 10, 1);
-          boost += 0.15 * normalizedCount;
+          boost +=
+            PLANNER_CONFIG.PERSONALIZATION.CATEGORY_WEIGHT * normalizedCount;
           break;
         }
       }
@@ -1237,7 +1244,7 @@ export class AIController {
         (p) => p.placeId === String(result.id),
       );
       if (isFrequentPlace) {
-        boost += 0.2;
+        boost += PLANNER_CONFIG.PERSONALIZATION.PAST_INTERACTION_WEIGHT;
       } else {
         const hasRelatedPlace = frequentPlaces.some((p) =>
           resultText.includes(p.placeName.toLowerCase().split(' ')[0]),
@@ -1250,9 +1257,18 @@ export class AIController {
       );
     }
 
-    return Math.min(boost, 0.3);
-  }
+    // **CONSISTENCY LOCK**: Cap at configured max
+    const cappedBoost = Math.min(
+      boost,
+      PLANNER_CONFIG.PERSONALIZATION.MAX_BOOST,
+    );
 
+    // **CONSISTENCY LOCK**: Ensure boost doesn't override base quality
+    const maxAllowedBoost =
+      baseScore * PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE;
+
+    return Math.min(cappedBoost, maxAllowedBoost);
+  }
   private async scoreResultsByPreferencesPersonalized(
     results: SearchResultItem[],
     preferences?: string[],
@@ -1276,19 +1292,28 @@ export class AIController {
     );
 
     if (!userId) return baseScored;
-
     const personalizedScored = await Promise.all(
       baseScored.map(async (item) => {
         const personalizationBoost = await this.calculatePersonalizationBoost(
           item,
           userId,
         );
+
+        // **CONSISTENCY LOCK**: Round to fixed precision
+        const finalScore = this.q(
+          item.priorityScore + personalizationBoost,
+          PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
+        );
+
         return {
           ...item,
-          priorityScore: item.priorityScore + personalizationBoost,
+          priorityScore: finalScore,
           rankingDetails: {
             ...item.rankingDetails,
-            personalizationBoost,
+            personalizationBoost: this.q(
+              personalizationBoost,
+              PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
+            ),
           },
         };
       }),
@@ -1542,8 +1567,23 @@ export class AIController {
     );
 
     const sorted = [...scoredResults].sort((a, b) => {
-      const diff = b.priorityScore - a.priorityScore;
-      if (Math.abs(diff) > 0.001) return diff;
+      // **CONSISTENCY LOCK**: Use configured precision
+      const aScore = this.q(
+        a.priorityScore,
+        PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
+      );
+      const bScore = this.q(
+        b.priorityScore,
+        PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
+      );
+
+      const diff = bScore - aScore;
+
+      // **CONSISTENCY LOCK**: Use smaller epsilon for better precision
+      const epsilon = Math.pow(10, -PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION);
+      if (Math.abs(diff) > epsilon) return diff;
+
+      // **CONSISTENCY LOCK**: Deterministic tiebreaker
       return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
     });
 
@@ -2081,6 +2121,12 @@ export class AIController {
       (req.headers['x-user-id'] as string | undefined) || undefined;
     const userId: string | undefined = authUserId || headerUserId;
 
+    if (userId) {
+      this.logger.log(
+        `[consistency] userId=${userId} personalization=enabled maxBoost=${PLANNER_CONFIG.PERSONALIZATION.MAX_BOOST}`,
+      );
+    }
+
     this.logger.log(
       `[trip-plan] userId=${userId ?? 'NONE'} useSavedContext=${body.useSavedContext ?? true} mode=${body.mode ?? 'refine'} tripId=${body.tripId ?? 'NONE'}`,
     );
@@ -2304,6 +2350,17 @@ export class AIController {
       const preferencesMatched = this.computePreferencesMatched(
         preferences,
         dayByDayPlan,
+      );
+
+      const allScores = dayByDayPlan.flatMap((d) =>
+        d.activities.map((a) => a.priority),
+      );
+      const minScore = Math.min(...allScores);
+      const maxScore = Math.max(...allScores);
+
+      this.logger.log(
+        `[consistency] scoreRange=[${this.q(minScore)}, ${this.q(maxScore)}] ` +
+          `activities=${allScores.length} personalized=${!!userId}`,
       );
 
       const response: TripPlanResponseDto = {
