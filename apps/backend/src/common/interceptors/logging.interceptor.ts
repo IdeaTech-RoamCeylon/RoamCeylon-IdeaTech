@@ -11,29 +11,48 @@ import { tap } from 'rxjs/operators';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(LoggingInterceptor.name);
+  private readonly logger = new Logger('HTTP');
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const userAgent = request.get('user-agent') || '';
-    const { ip, method, path: url } = request;
+    const ctx = context.switchToHttp();
+    const request = ctx.getRequest<Request>();
+    const { method, url, ip } = request;
+    const userAgent = request.get('user-agent') || 'Unknown';
+    const className = context.getClass().name;
+    const handlerName = context.getHandler().name;
+
     const now = Date.now();
 
     return next.handle().pipe(
       tap({
         next: () => {
-          const response = context.switchToHttp().getResponse<Response>();
-          const delay = Date.now() - now;
-          const className = context.getClass().name;
+          const response = ctx.getResponse<Response>();
+          const statusCode = response.statusCode;
+          const duration = Date.now() - now;
+
           this.logger.log(
-            `[${className}] ${method} ${url} ${response.statusCode} - ${userAgent} ${ip}: ${delay}ms`,
+            `[${className}#${handlerName}] ${method} ${url} ${statusCode} - ${duration}ms | IP: ${ip} | UA: ${userAgent}`,
           );
+
+          // Log heavy requests or large payloads in debug mode or if they take too long
+          if (duration > 500) {
+            this.logger.warn(
+              `🚲 Slow Request: ${method} ${url} took ${duration}ms`,
+            );
+          }
         },
-        error: (err: Error) => {
-          const delay = Date.now() - now;
-          const className = context.getClass().name;
+        error: (err: unknown) => {
+          const duration = Date.now() - now;
+          const statusCode =
+            err instanceof Error && 'status' in err
+              ? (err as { status: number }).status || 500
+              : 500;
+          const message = err instanceof Error ? err.message : String(err);
+          const stack = err instanceof Error ? err.stack : '';
+
           this.logger.error(
-            `[${className}] ${method} ${url} - ${userAgent} ${ip}: ${delay}ms - Error: ${err.message}`,
+            `[${className}#${handlerName}] ${method} ${url} ${statusCode} - ${duration}ms | Error: ${message}`,
+            stack,
           );
         },
       }),

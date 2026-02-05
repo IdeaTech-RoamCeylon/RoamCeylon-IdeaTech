@@ -6,6 +6,10 @@ export interface TripPlanRequest {
   duration: string; // e.g., '3 days'
   budget: string; // e.g., 'Medium', 'Low', 'High'
   interests?: string[];
+  // Saved Trip Context integration
+  useSavedContext?: boolean; // default true
+  mode?: 'new' | 'refine'; // default 'refine'
+  tripId?: string; // optional specific trip refinement
 }
 
 export interface TripActivity {
@@ -24,6 +28,10 @@ export interface TripPlanResponse {
   duration: string;
   budget: string;
   itinerary: TripDay[];
+  // Version tracking (from backend)
+  tripId?: string;
+  versionNo?: number;
+  usedSavedContext?: boolean;
 }
 
   // Backend response interfaces
@@ -70,9 +78,14 @@ class AIService {
       endDate.setDate(startDate.getDate() + dayCount - 1); // -1 because start==end is 1 day
 
       const payload = {
-        ...request,
+        destination: request.destination,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
+        preferences: request.interests || [],
+        // Include saved context parameters
+        useSavedContext: request.useSavedContext,
+        mode: request.mode,
+        tripId: request.tripId,
       };
 
       // Fetch data matching the BACKEND structure
@@ -102,6 +115,10 @@ class AIService {
         destination: backendData.plan.destination,
         duration: String(backendData.plan.totalDays),
         budget: request.budget || 'Medium', // Backend doesn't echo budget, preserve from request
+        // Version tracking
+        tripId: backendData.plan.summary?.tripId,
+        versionNo: backendData.plan.summary?.versionNo,
+        usedSavedContext: backendData.plan.summary?.usedSavedContext,
         itinerary: backendData.plan.dayByDayPlan.map((day) => ({
           day: day.day,
           activities: day.activities.map((act, idx) => {

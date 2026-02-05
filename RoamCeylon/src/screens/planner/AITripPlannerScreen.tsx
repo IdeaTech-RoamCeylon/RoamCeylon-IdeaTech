@@ -56,6 +56,8 @@ const AITripPlannerScreen = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [tripName, setTripName] = useState('');
   const [useEnhancedView, setUseEnhancedView] = useState(true);
+  const [useSavedContext, setUseSavedContext] = useState(true);
+  const [showContextInfo, setShowContextInfo] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -97,8 +99,20 @@ const AITripPlannerScreen = () => {
     stopEditing(); // Clear editing state when generating a new plan
 
     try {
-      const plan = await aiService.generateTripPlan(query);
+      // Include saved context parameters
+      const requestWithContext = {
+        ...query,
+        useSavedContext: useSavedContext,
+        mode: useSavedContext ? ('refine' as const) : ('new' as const),
+      };
+      const plan = await aiService.generateTripPlan(requestWithContext);
       setTripPlan(plan);
+      
+      // Show context info if used saved context
+      if (plan.usedSavedContext) {
+        setShowContextInfo(true);
+        setTimeout(() => setShowContextInfo(false), 5000);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to generate trip plan: ${errorMessage}`);
@@ -223,23 +237,25 @@ const AITripPlannerScreen = () => {
     }
 
     setIsSaving(true);
+    
+    // Close modal immediately for better UX
+    const tripNameToSave = tripName.trim();
+    setShowSaveDialog(false);
+    setTripName('');
+    
     try {
       if (isEditing && currentTripId) {
         // Update existing trip
         await tripStorageService.updateTrip(currentTripId, {
-          name: tripName.trim(),
+          name: tripNameToSave,
           tripPlan,
         });
         setIsSaving(false);
-        setShowSaveDialog(false);
-        setTripName('');
         Alert.alert('Success', 'Trip updated successfully!');
       } else {
         // Save new trip
-        await tripStorageService.saveTrip(tripName.trim(), tripPlan);
+        await tripStorageService.saveTrip(tripNameToSave, tripPlan);
         setIsSaving(false);
-        setShowSaveDialog(false);
-        setTripName('');
         Alert.alert('Success', 'Trip saved successfully!');
       }
     } catch (error) {
@@ -275,11 +291,17 @@ const AITripPlannerScreen = () => {
 
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
-    return tripPlan?.itinerary?.find(item => item.day === selectedDay);
+    if (!tripPlan || !tripPlan.itinerary || !Array.isArray(tripPlan.itinerary)) {
+      return null;
+    }
+    return tripPlan.itinerary.find(item => item && item.day === selectedDay) || null;
   }, [tripPlan, selectedDay]);
 
   const activities = useMemo(() => {
-    return currentDayItinerary ? currentDayItinerary.activities : [];
+    if (!currentDayItinerary || !currentDayItinerary.activities || !Array.isArray(currentDayItinerary.activities)) {
+      return [];
+    }
+    return currentDayItinerary.activities.filter(activity => activity != null);
   }, [currentDayItinerary]);
 
   // Derived state for map
@@ -355,17 +377,54 @@ const AITripPlannerScreen = () => {
 
       <View style={styles.content}>
         {!tripPlan ? (
-          <TripPlannerForm
-            query={query}
-            updateQuery={updateQuery}
-            isLoading={isLoading}
-            onGenerate={handleGeneratePlan}
-            isConnected={networkStatus.isConnected}
-            budgets={budgets}
-            error={error}
-          />
+          <>
+            {/* Saved Context Toggle */}
+            <View style={styles.contextToggleCard}>
+              <View style={styles.contextToggleHeader}>
+                <Text style={styles.contextToggleIcon}>🔄</Text>
+                <View style={styles.contextToggleTextContainer}>
+                  <Text style={styles.contextToggleTitle}>Use Previous Trip Context</Text>
+                  <Text style={styles.contextToggleSubtitle}>
+                    {useSavedContext 
+                      ? 'Building on your last trip preferences' 
+                      : 'Starting fresh with a new trip'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.contextToggleButton, useSavedContext && styles.contextToggleButtonActive]}
+                onPress={() => setUseSavedContext(!useSavedContext)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.contextToggleButtonText, useSavedContext && styles.contextToggleButtonTextActive]}>
+                  {useSavedContext ? 'ON' : 'OFF'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TripPlannerForm
+              query={query}
+              updateQuery={updateQuery}
+              isLoading={isLoading}
+              onGenerate={handleGeneratePlan}
+              isConnected={networkStatus.isConnected}
+              budgets={budgets}
+              error={error}
+            />
+          </>
         ) : tripPlan ? (
           <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
+            {/* Context Info Banner */}
+            {showContextInfo && tripPlan.usedSavedContext && (
+              <View style={styles.contextInfoBanner}>
+                <Text style={styles.contextInfoIcon}>✨</Text>
+                <Text style={styles.contextInfoText}>
+                  Refined from your previous trip preferences
+                  {tripPlan.versionNo && ` (Version ${tripPlan.versionNo})`}
+                </Text>
+              </View>
+            )}
+            
             {/* Editing Mode Indicator */}
             {isEditing && (
               <View style={styles.editingBadge}>
@@ -489,15 +548,29 @@ const AITripPlannerScreen = () => {
               ))}
             </View>
 
-            <TouchableOpacity 
-              style={styles.resetButton}
-              onPress={() => {
-                setTripPlan(null);
-                stopEditing();
-              }}
-            >
-              <Text style={styles.resetButtonText}>Plan Another Trip</Text>
-            </TouchableOpacity>
+            <View style={styles.bottomActions}>
+              <TouchableOpacity 
+                style={styles.resetButton}
+                onPress={() => {
+                  setTripPlan(null);
+                  stopEditing();
+                  setUseSavedContext(true); // Keep context on by default
+                }}
+              >
+                <Text style={styles.resetButtonText}>Refine This Trip</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.startFreshButton}
+                onPress={() => {
+                  setTripPlan(null);
+                  stopEditing();
+                  setUseSavedContext(false); // Start completely fresh
+                }}
+              >
+                <Text style={styles.startFreshButtonText}>Start Fresh Trip</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         ) : null}
       </View>
@@ -698,15 +771,111 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  resetButton: {
+  bottomActions: {
     marginTop: 20,
+    gap: 10,
+  },
+  resetButton: {
+    backgroundColor: '#0066CC',
     padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
   },
   resetButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  startFreshButton: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#0066CC',
+  },
+  startFreshButtonText: {
     color: '#0066CC',
     fontWeight: '600',
     fontSize: 15,
+  },
+  // Context Toggle Styles
+  contextToggleCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  contextToggleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  contextToggleIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  contextToggleTextContainer: {
+    flex: 1,
+  },
+  contextToggleTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  contextToggleSubtitle: {
+    fontSize: 12,
+    color: '#666',
+  },
+  contextToggleButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  contextToggleButtonActive: {
+    backgroundColor: '#0066CC',
+  },
+  contextToggleButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  contextToggleButtonTextActive: {
+    color: '#fff',
+  },
+  // Context Info Banner
+  contextInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+  },
+  contextInfoIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  contextInfoText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    fontWeight: '500',
+    flex: 1,
   },
   // Action Buttons
   actionButtons: {

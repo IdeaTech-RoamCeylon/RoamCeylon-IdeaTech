@@ -10,6 +10,13 @@ export const ALGORITHM_VERSION = '1.0.0';
 export const LOCK_DATE = '2026-01-16';
 export const LOCK_STATUS = 'FROZEN';
 
+export const EXPLANATION_TEMPLATES = {
+  TIMING: 'Optimal {timeOfDay} for {activityType}',
+  PROXIMITY: 'Only {distance}km from previous stop',
+  BALANCE: '{activityType} balances previous {previousType}',
+  ENERGY: '{energyLevel} energy level suits this activity',
+};
+
 // Algorithm constants - DO NOT MODIFY
 export const PLANNER_CONFIG = Object.freeze({
   CONFIDENCE: {
@@ -62,6 +69,19 @@ export const PLANNER_CONFIG = Object.freeze({
   TRIP_LENGTH: {
     SHORT_MAX: 2,
     MEDIUM_MAX: 5,
+  } as const,
+
+  PERSONALIZATION: {
+    MAX_BOOST: 0.3, // Cap total personalization boost at 30%
+    CATEGORY_WEIGHT: 0.15, // Weight for liked categories
+    PAST_INTERACTION_WEIGHT: 0.25, // Weight for past places
+    MIN_BASE_SCORE: 0.5, // Don't personalize items below this score
+  } as const,
+
+  CONSISTENCY: {
+    SCORE_PRECISION: 6, // Decimal places for score rounding
+    ENABLE_SEED_SORTING: true, // Use deterministic sorting
+    MAX_PERSONALIZATION_INFLUENCE: 0.25, // Max % change from personalization
   } as const,
 
   SEARCH: {

@@ -2,11 +2,33 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Driver, RideRequest } from './item.interface';
 
+export interface TransportSession {
+  id: string;
+  passengerId: string;
+  status: string;
+  statusUpdates: any[];
+  startTime: Date;
+  endTime?: Date;
+  [key: string]: any;
+}
+
+interface TransportDelegate {
+  create(args: { data: any }): Promise<TransportSession>;
+  update(args: { where: any; data: any }): Promise<TransportSession>;
+  findUnique(args: { where: any }): Promise<TransportSession | null>;
+}
+
 @Injectable()
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  // Helper to safely access transportSession preventing any-leaks
+  private get transportModel(): TransportDelegate {
+    return (this.prisma as unknown as { transportSession: any })
+      .transportSession as TransportDelegate;
+  }
 
   async seedDrivers() {
     this.logger.log('Seeding drivers into PostGIS...');
@@ -23,11 +45,13 @@ export class TransportService {
       await this.prisma.user.upsert({
         where: { id: d.id },
         update: { name: d.name },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         create: {
           id: d.id,
           name: d.name,
+
           phoneNumber: `+9477000000${d.id.replace('d', '')}`,
-        },
+        } as any,
       });
 
       // Insert Location (Raw query needed for geometry)
@@ -111,6 +135,108 @@ export class TransportService {
           : undefined, // 40km/h avg speed
       };
     });
+  }
+  async createRide(
+    passengerId: string,
+    pickup: { lat: number; lng: number },
+    destination: { lat: number; lng: number },
+  ): Promise<TransportSession> {
+    return this.transportModel.create({
+      data: {
+        passengerId,
+        status: 'requested',
+        pickupLocation: pickup,
+        destination: destination,
+      },
+    });
+  }
+
+  async updateRideStatus(rideId: string, status: string) {
+    // Fetch current session first to append history
+
+    const currentSession = await this.transportModel.findUnique({
+      where: { id: rideId },
+    });
+
+    if (!currentSession) {
+      throw new Error('Ride not found');
+    }
+
+    const updates = currentSession.statusUpdates || [];
+    const currentStatus = currentSession.status;
+
+    // Allowed transitions
+    const validTransitions: Record<string, string[]> = {
+      requested: ['accepted', 'cancelled'],
+      accepted: ['en_route', 'cancelled'],
+      en_route: ['completed'],
+      completed: [],
+      cancelled: [],
+    };
+
+    const allowed = validTransitions[currentStatus] || [];
+    if (!allowed.includes(status) && currentStatus !== status) {
+      this.logger.warn(
+        `Invalid state transition attempted for ride ${rideId}: ${currentStatus} -> ${status}`,
+      );
+      throw new Error(
+        `Invalid status transition from ${currentStatus} to ${status}`,
+      );
+    }
+
+    this.logger.log(
+      `Ride ${rideId} status update: ${currentStatus} -> ${status}`,
+    );
+
+    updates.push({ status, timestamp: new Date().toISOString() });
+
+    const data: Record<string, any> = {
+      status,
+      statusUpdates: updates,
+    };
+
+    if (status === 'completed') {
+      data.endTime = new Date();
+    }
+
+    return this.transportModel.update({
+      where: { id: rideId },
+      data,
+    });
+  }
+
+  async getRide(rideId: string, userId?: string) {
+    const session = await this.transportModel.findUnique({
+      where: { id: rideId },
+    });
+
+    if (!session) {
+      return { data: null };
+    }
+
+    if (userId && session.passengerId !== userId) {
+      // Return null to hide data from unauthorized users (Strict Ownership)
+      return { data: null };
+    }
+
+    return { data: session };
+  }
+
+  async getSession(sessionId: string) {
+    const session = await this.transportModel.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    return {
+      ...session,
+      sessionId: session.id, // Keeping alias if needed by frontend, otherwise redundant
+      driverLocation: null,
+      eta: null,
+    };
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -45,6 +45,12 @@ const SavedTripsScreen = () => {
   };
 
   const handleLoadTrip = useCallback((trip: SavedTrip) => {
+    // Validate trip data before loading
+    if (!trip || !trip.tripPlan || !trip.tripPlan.itinerary) {
+      Alert.alert('Error', 'This trip data is corrupted and cannot be loaded.');
+      return;
+    }
+
     Alert.alert(
       'Load Trip',
       `Load "${trip.name}"?`,
@@ -53,14 +59,19 @@ const SavedTripsScreen = () => {
         {
           text: 'Load',
           onPress: () => {
-            setTripPlan(trip.tripPlan);
-            setQuery({
-              destination: trip.tripPlan.destination,
-              duration: trip.tripPlan.duration,
-              budget: trip.tripPlan.budget,
-            });
-            startEditing(trip.id);
-            navigation.navigate('AITripPlanner');
+            try {
+              setTripPlan(trip.tripPlan);
+              setQuery({
+                destination: trip.tripPlan.destination || '',
+                duration: trip.tripPlan.duration || '1',
+                budget: trip.tripPlan.budget || 'Medium',
+              });
+              startEditing(trip.id);
+              navigation.navigate('AITripPlanner');
+            } catch (error) {
+              console.error('Error loading trip:', error);
+              Alert.alert('Error', 'Failed to load trip. Please try again.');
+            }
           },
         },
       ]
@@ -77,32 +88,43 @@ const SavedTripsScreen = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            setIsLoading(true);
+            // Optimistic update: Remove from UI immediately
+            const previousTrips = [...savedTrips];
+            setSavedTrips(prev => prev.filter(t => t.id !== trip.id));
+            
             try {
               await tripStorageService.deleteTrip(trip.id);
-              await loadTrips();
+              // Success - trip is already removed from UI
             } catch (error) {
-              setIsLoading(false);
-              Alert.alert('Error', 'Failed to delete trip');
+              // Rollback on error
+              setSavedTrips(previousTrips);
+              Alert.alert('Error', 'Failed to delete trip. Please try again.');
             }
           },
         },
       ]
     );
-  }, []);
+  }, [savedTrips]);
 
-  const filteredTrips = savedTrips.filter(trip =>
-    trip.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    trip.tripPlan.destination.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Memoize filtered trips to avoid recalculating on every render
+  const filteredTrips = useMemo(() => {
+    if (!searchQuery.trim()) return savedTrips;
+    const query = searchQuery.toLowerCase();
+    return savedTrips.filter(trip =>
+      trip.name.toLowerCase().includes(query) ||
+      trip.tripPlan.destination.toLowerCase().includes(query)
+    );
+  }, [savedTrips, searchQuery]);
 
-  const renderTripCard = ({ item }: { item: SavedTrip }) => {
+  // Memoized trip card rendering
+  const renderTripCard = useCallback(({ item }: { item: SavedTrip }) => {
     const savedDate = new Date(item.savedAt);
     const formattedDate = savedDate.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
+    const activitiesCount = item.tripPlan.itinerary.reduce((sum, day) => sum + day.activities.length, 0);
 
     return (
       <TouchableOpacity
@@ -143,13 +165,16 @@ const SavedTripsScreen = () => {
 
         <View style={styles.tripFooter}>
           <Text style={styles.activitiesCount}>
-            {item.tripPlan.itinerary.reduce((sum, day) => sum + day.activities.length, 0)} Activities
+            {activitiesCount} Activities
           </Text>
           <Text style={styles.loadText}>Tap to Load →</Text>
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [handleLoadTrip, handleDeleteTrip]);
+
+  // Optimize FlatList performance
+  const keyExtractor = useCallback((item: SavedTrip) => item.id, []);
 
   if (isLoading) {
     return (
@@ -206,9 +231,15 @@ const SavedTripsScreen = () => {
           <FlatList
             data={filteredTrips}
             renderItem={renderTripCard}
-            keyExtractor={item => item.id}
+            keyExtractor={keyExtractor}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            // Performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            updateCellsBatchingPeriod={50}
           />
         )}
       </View>

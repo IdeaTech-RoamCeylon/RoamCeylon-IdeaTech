@@ -17,14 +17,27 @@ const TransportStatusScreen = () => {
   const navigation = useNavigation();
   const [rideData, setRideData] = useState<ActiveRideResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async (showLoading = false) => {
     if (showLoading) setIsLoading(true);
-    const data = await transportService.getActiveRide();
-    if (data) {
-      setRideData(data);
+    
+    try {
+      const data = await transportService.getActiveRide();
+      if (data) {
+        setRideData(data);
+        setError(null); // Clear any previous errors
+      } else {
+        // No active ride found
+        setError('No active ride found. Please request a ride first.');
+      }
+    } catch (err) {
+      console.error('Error fetching ride status:', err);
+      setError('Unable to connect to transport service. Please check your connection.');
+      // Don't clear ride data on error - show last known state
+    } finally {
+      if (showLoading) setIsLoading(false);
     }
-    if (showLoading) setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -98,6 +111,17 @@ const TransportStatusScreen = () => {
       </View>
 
       <View style={styles.content}>
+        {/* Error Banner */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <View style={styles.errorTextContainer}>
+              <Text style={styles.errorTitle}>Connection Issue</Text>
+              <Text style={styles.errorMessage}>{error}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Status Banner */}
         <View style={styles.statusBanner}>
           <Text style={styles.statusEmoji}>🚗</Text>
@@ -312,6 +336,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontWeight: '600',
+  },
+  errorBanner: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  errorIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  errorTextContainer: {
+    flex: 1,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#F57C00',
+    marginBottom: 4,
+  },
+  errorMessage: {
+    fontSize: 13,
+    color: '#E65100',
   },
 });
 

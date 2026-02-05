@@ -1,6 +1,4 @@
-// apps/backend/src/utils/planningHeuristics.ts
-
-// --- SELF-CONTAINED TYPES ---
+// --- TYPES ---
 export interface TripDestination {
   id: string;
   order: number;
@@ -15,9 +13,19 @@ export interface TripDestination {
   confidenceScore?: number;
 }
 
+// NEW: Personalization Profile Interface
+export interface UserPersonalizationProfile {
+  likedCategories: string[]; // e.g. ['culture', 'food'] derived from history
+  previouslyVisitedIds: string[]; // IDs of places they have been to or added before
+}
+
 // --- CONFIGURATION ---
 const MAX_HOURS_PER_DAY = 7;
-const MIN_CONFIDENCE_THRESHOLD = 0.4; // <--- Now we will actually use this
+const MIN_CONFIDENCE_THRESHOLD = 0.4;
+
+// NEW: Weighting Constants
+const WEIGHT_LIKED_CATEGORY = 0.15; // +15% boost for preferred categories
+const WEIGHT_PAST_INTERACTION = 0.25; // +25% boost for places they know
 
 // --- HELPER: Haversine Distance Formula ---
 export const getDistanceKm = (
@@ -49,27 +57,53 @@ const parseDuration = (durationStr?: string): number => {
   return match ? parseInt(match[0]) : 2;
 };
 
+// --- HELPER: Apply Personalization Signals ---
+const calculatePersonalizedScore = (
+  place: TripDestination,
+  profile?: UserPersonalizationProfile,
+): number => {
+  let score = place.confidenceScore || 0;
+
+  if (!profile) return score;
+
+  // Signal 1: Category Affinity (Saved Trip History)
+  if (profile.likedCategories.includes(place.metadata.category)) {
+    score += WEIGHT_LIKED_CATEGORY;
+  }
+
+  // Signal 2: Explicit Interest (Edited Places / Past Visits)
+  if (profile.previouslyVisitedIds.includes(place.id)) {
+    score += WEIGHT_PAST_INTERACTION;
+  }
+
+  // Cap at 1.0 (Optional, but keeps math clean)
+  return Math.min(score, 1.0);
+};
+
 // --- MAIN ALGORITHM: Multi-Day Distributor ---
 export const distributeActivitiesAcrossDays = (
   allDestinations: TripDestination[],
   numberOfDays: number,
+  userProfile?: UserPersonalizationProfile, // NEW PARAMETER
 ): TripDestination[][] => {
-  // 1. IMPROVED PREP: Filter & Sanitize
+  // 1. IMPROVED PREP: Score, Filter & Sanitize
   const pool = allDestinations
+    .map((d) => ({
+      ...d,
+      // Apply Personalization BEFORE filtering
+      confidenceScore: calculatePersonalizedScore(d, userProfile),
+      _hours: parseDuration(d.metadata.duration),
+      _assigned: false,
+    }))
     .filter((d) => {
       // RULE 1: Must have valid coordinates
       if (!d.coordinates) return false;
 
-      // RULE 2: STRICT Quality Filter (This uses the variable!)
+      // RULE 2: STRICT Quality Filter (Now uses the PERSONALIZED score)
       return (d.confidenceScore || 0) >= MIN_CONFIDENCE_THRESHOLD;
-    })
-    .map((d) => ({
-      ...d,
-      _hours: parseDuration(d.metadata.duration),
-      _assigned: false,
-    }));
+    });
 
-  // Sort by confidence (Highest priority first)
+  // Sort by PERSONALIZED Score (Highest priority first)
   pool.sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0));
 
   const dayPlans: TripDestination[][] = [];

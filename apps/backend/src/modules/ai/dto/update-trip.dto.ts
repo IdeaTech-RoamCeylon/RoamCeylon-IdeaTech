@@ -5,6 +5,7 @@ import {
   IsOptional,
   ValidateNested,
   IsIn,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -33,6 +34,54 @@ class CurrentDestinationDto {
 
   @IsString()
   timeSlot: 'Morning' | 'Afternoon' | 'Evening';
+}
+
+// ADD THIS NEW CLASS FOR STRUCTURED EXPLANATIONS
+export class DayExplanationDto {
+  @IsString()
+  sequence: string; // "Sigiriya (6 AM) → Minneriya (10 AM) → Dambulla (3 PM)"
+
+  @IsString()
+  reasoning: string; // "Early start for cool weather, safari at peak time"
+
+  @IsString()
+  @IsOptional()
+  logistics?: string; // "Total driving: 45km, 1.5 hours"
+}
+
+// ADD THIS NEW CLASS FOR ACTIVITY DETAILS
+export class ActivityDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  time: string;
+
+  @IsString()
+  location: string;
+
+  @IsString()
+  @IsOptional()
+  reason?: string; // "Best visited 6-9 AM for wildlife viewing"
+}
+
+// ADD THIS NEW CLASS FOR DAY STRUCTURE
+export class DayDto {
+  @IsNumber()
+  dayNumber: number;
+
+  @IsString()
+  date: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ActivityDto)
+  activities: ActivityDto[];
+
+  @ValidateNested()
+  @Type(() => DayExplanationDto)
+  @IsObject()
+  explanation: DayExplanationDto;
 }
 
 // 3. The Main DTO for the API Request

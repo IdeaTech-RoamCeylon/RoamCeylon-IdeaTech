@@ -42,6 +42,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.rideRequest;
   }
 
+  get savedTrip() {
+    return this.prisma.savedTrip;
+  }
+
   async onModuleInit() {
     await this.prisma.$connect();
   }

@@ -2,11 +2,14 @@ import {
   distributeActivitiesAcrossDays,
   TripDestination,
 } from '../../utils/planningHeuristics';
+import { EmbeddingService } from './embeddings/embedding.service';
 import {
   analyzeResponseQuality,
   validateInput,
 } from '../../utils/responseSafety';
 import { getHumanExplanation } from '../../utils/explanationTemplates';
+import { AIService } from './ai.service';
+import { DayDto, DayExplanationDto, ActivityDto } from './dto/update-trip.dto';
 
 // --- MOCK DATA FACTORY ---
 const createMockPlace = (name: string, score: number): TripDestination => ({
@@ -19,7 +22,25 @@ const createMockPlace = (name: string, score: number): TripDestination => ({
   confidenceScore: score,
 });
 
+// ADD HELPER TO CREATE MOCK DAYS
+const createMockDay = (
+  dayNumber: number,
+  activities: ActivityDto[],
+  explanation: DayExplanationDto,
+): DayDto => ({
+  dayNumber,
+  date: '2026-02-01',
+  activities,
+  explanation,
+});
+
 describe('AI Production Behavior Review', () => {
+  let aiService: AIService;
+
+  beforeEach(() => {
+    aiService = new AIService(null as unknown as EmbeddingService); // Mock embedding service
+  });
+
   // SCENARIO 1: Predictability & Clarity (Happy Path)
   // Ensure a standard request produces a valid, explained plan.
   it('Scenario: Standard Request -> Produces Valid Plan + Explanations', () => {
@@ -109,5 +130,92 @@ describe('AI Production Behavior Review', () => {
     console.log(
       '       [Stability Check] Result: PASS (Outputs are identical)',
     );
+  });
+
+  // ADD NEW SCENARIO 5: Explanation Quality Tests
+  describe('Explanation Quality Validation', () => {
+    it('should reject generic explanations', () => {
+      const badDay = createMockDay(
+        1,
+        [
+          { name: 'Sigiriya Rock', time: '6:00 AM', location: 'Sigiriya' },
+          { name: 'Minneriya Safari', time: '10:00 AM', location: 'Minneriya' },
+        ],
+        {
+          sequence: 'Some places',
+          reasoning: 'You will have a great experience and enjoy amazing views',
+        },
+      );
+
+      expect(() => aiService.validateExplanations([badDay])).toThrow(
+        'contains generic phrases',
+      );
+    });
+
+    it('should accept specific explanations', () => {
+      const goodDay = createMockDay(
+        1,
+        [
+          { name: 'Sigiriya Rock', time: '6:00 AM', location: 'Sigiriya' },
+          { name: 'Minneriya Safari', time: '10:00 AM', location: 'Minneriya' },
+        ],
+        {
+          sequence: 'Sigiriya Rock (6:00 AM) → Minneriya Safari (10:00 AM)',
+          reasoning:
+            'Early Sigiriya start avoids 35°C afternoon heat. Minneriya timed for elephant gathering period.',
+          logistics: 'Total driving: 45km, 1.5 hours',
+        },
+      );
+
+      expect(() => aiService.validateExplanations([goodDay])).not.toThrow();
+    });
+
+    it('should require activity names in explanation', () => {
+      const badDay = createMockDay(
+        1,
+        [{ name: 'Sigiriya Rock', time: '6:00 AM', location: 'Sigiriya' }],
+        {
+          sequence: 'Visit some temples',
+          reasoning: 'Morning is better for this activity',
+        },
+      );
+
+      expect(() => aiService.validateExplanations([badDay])).toThrow(
+        "doesn't reference actual activities",
+      );
+    });
+
+    it('should require timing information', () => {
+      const badDay = createMockDay(
+        1,
+        [{ name: 'Sigiriya Rock', time: '6:00 AM', location: 'Sigiriya' }],
+        {
+          sequence: 'Sigiriya Rock',
+          reasoning: 'This is a popular destination',
+        },
+      );
+
+      expect(() => aiService.validateExplanations([badDay])).toThrow(
+        'missing timing/sequence information',
+      );
+    });
+
+    it('should validate activity order in sequence', () => {
+      const badDay = createMockDay(
+        1,
+        [
+          { name: 'Sigiriya Rock', time: '6:00 AM', location: 'Sigiriya' },
+          { name: 'Minneriya Safari', time: '10:00 AM', location: 'Minneriya' },
+        ],
+        {
+          sequence: 'Minneriya Safari (10:00 AM) → Sigiriya Rock (6:00 AM)', // Wrong order
+          reasoning: 'Planned for optimal timing',
+        },
+      );
+
+      expect(() => aiService.validateExplanations([badDay])).toThrow(
+        "sequence doesn't match activity order",
+      );
+    });
   });
 });
