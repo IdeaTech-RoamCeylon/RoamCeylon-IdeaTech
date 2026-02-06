@@ -1214,6 +1214,8 @@ export class AIController {
   private async calculatePersonalizationBoost(
     result: SearchResultItem,
     userId?: string,
+    preferences?: string[],
+    userPace?: 'relaxed' | 'moderate' | 'active',
   ): Promise<number> {
     if (!userId) return 0;
 
@@ -1224,21 +1226,84 @@ export class AIController {
     }
 
     let boost = 0;
+    const resultText = `${result.title} ${result.content}`.toLowerCase();
+
+    // **1. INTEREST-BASED BOOST**
+    if (preferences?.length) {
+      for (const pref of preferences) {
+        const prefLower = pref.toLowerCase();
+
+        if (resultText.includes(prefLower)) {
+          boost += PLANNER_CONFIG.RANKING.INTEREST_MATCH.EXACT;
+          break; // Only apply once
+        }
+
+        // Check mapped categories
+        const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
+        const hasRelatedCategory = mappedCategories.some((cat) =>
+          resultText.includes(cat.toLowerCase()),
+        );
+
+        if (hasRelatedCategory) {
+          boost += PLANNER_CONFIG.RANKING.INTEREST_MATCH.RELATED;
+        }
+      }
+    }
 
     try {
-      const categoryPrefs =
-        await this.tripStore.getUserCategoryPreferences(userId);
-      const resultText = `${result.title} ${result.content}`.toLowerCase();
+      // **2. PACE-BASED BOOST**
+      const category = this.inferCategoryFromText(
+        result.title,
+        result.content,
+        preferences,
+      );
 
-      for (const pref of categoryPrefs) {
-        if (resultText.includes(pref.category.toLowerCase())) {
-          const normalizedCount = Math.min(pref.count / 10, 1);
-          boost +=
-            PLANNER_CONFIG.PERSONALIZATION.CATEGORY_WEIGHT * normalizedCount;
-          break;
+      if (userPace) {
+        const paceKey = userPace.toUpperCase() as
+          | 'RELAXED'
+          | 'MODERATE'
+          | 'ACTIVE';
+        const paceConfig = PLANNER_CONFIG.RANKING.PACE_MODIFIERS[paceKey];
+        if (paceConfig?.PREFER_CATEGORIES.includes(category)) {
+          boost += paceConfig.BOOST;
         }
       }
 
+      // **3. BEHAVIORAL SIGNALS - FREQUENT CATEGORY**
+      const categoryPrefs =
+        await this.tripStore.getUserCategoryPreferences(userId);
+      const matchingPref = categoryPrefs.find((p) =>
+        category.toLowerCase().includes(p.category.toLowerCase()),
+      );
+
+      if (matchingPref) {
+        const normalizedCount = Math.min(matchingPref.count / 10, 1);
+        boost +=
+          PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.FREQUENT_CATEGORY *
+          normalizedCount;
+      }
+
+      // **4. RECENT ENGAGEMENT**
+      const recentSelections =
+        await this.tripStore.getRecentUserSelections(userId);
+      const hasRecentEngagement = recentSelections.some(
+        (s) =>
+          s.placeId === String(result.id) ||
+          s.category.toLowerCase() === category.toLowerCase(),
+      );
+
+      if (hasRecentEngagement) {
+        boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.RECENT_SELECTION;
+      }
+
+      // **5. AVOIDED CATEGORIES (NEGATIVE SIGNAL)**
+      const avoidedCategories =
+        await this.tripStore.getUserAvoidedCategories(userId);
+      if (avoidedCategories.includes(category.toLowerCase())) {
+        boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.AVOIDED_CATEGORY;
+      }
+
+      // Legacy: Frequent places boost
       const frequentPlaces = await this.tripStore.getUserFrequentPlaces(userId);
       const isFrequentPlace = frequentPlaces.some(
         (p) => p.placeId === String(result.id),
@@ -1253,7 +1318,7 @@ export class AIController {
       }
     } catch (error) {
       this.logger.error(
-        `Personalization boost failed for user ${userId}: ${(error as Error).message}`,
+        `Preference-aware ranking failed for user ${userId}: ${(error as Error).message}`,
       );
     }
 
@@ -1292,11 +1357,23 @@ export class AIController {
     );
 
     if (!userId) return baseScored;
+
+    // **GET USER PACE**
+    let userPace: 'relaxed' | 'moderate' | 'active' | undefined;
+    try {
+      userPace = await this.tripStore.getUserTravelPace(userId);
+      this.logger.log(`[ranking] userId=${userId} pace=${userPace}`);
+    } catch (error) {
+      this.logger.warn(`Failed to get user pace: ${(error as Error).message}`);
+    }
+
     const personalizedScored = await Promise.all(
       baseScored.map(async (item) => {
         const personalizationBoost = await this.calculatePersonalizationBoost(
           item,
           userId,
+          preferences,
+          userPace,
         );
 
         // **CONSISTENCY LOCK**: Round to fixed precision
@@ -1314,6 +1391,7 @@ export class AIController {
               personalizationBoost,
               PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
             ),
+            userPace,
           },
         };
       }),
@@ -1842,10 +1920,30 @@ export class AIController {
       userId,
     );
 
-    const MAX_PER_DAY =
+    // **DETERMINE USER PACE**
+    let MAX_PER_DAY: number =
       dayCount === 1
         ? PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_SHORT
         : PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_LONG;
+
+    if (userId) {
+      try {
+        const pace = await this.tripStore.getUserTravelPace(userId);
+        const paceKey = pace.toUpperCase() as 'RELAXED' | 'MODERATE' | 'ACTIVE';
+        const paceConfig = PLANNER_CONFIG.RANKING.PACE_MODIFIERS[paceKey];
+        if (paceConfig) {
+          MAX_PER_DAY = paceConfig.MAX_ACTIVITIES_PER_DAY;
+        }
+
+        this.logger.log(
+          `[itinerary] userId=${userId} pace=${pace} maxPerDay=${MAX_PER_DAY}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to apply user pace: ${(error as Error).message}`,
+        );
+      }
+    }
 
     const maxTotalActivities = Math.min(
       dayCount * MAX_PER_DAY,
