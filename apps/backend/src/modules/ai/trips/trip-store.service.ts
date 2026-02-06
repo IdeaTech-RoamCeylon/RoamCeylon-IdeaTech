@@ -328,6 +328,164 @@ export class TripStoreService {
   }
 
   /**
+   * Get all trips for a user
+   */
+  async getUserTrips(
+    userId: string,
+  ): Promise<Array<SavedTrip & { planJson?: unknown }>> {
+    const db = await this.ensureConnected();
+
+    const q = `
+      SELECT 
+        t.id, t.user_id, t.destination, t.start_date, t.end_date, 
+        t.preferences, t.created_at, t.updated_at,
+        tv.plan_json
+      FROM trips t
+      LEFT JOIN LATERAL (
+        SELECT plan_json 
+        FROM trip_versions 
+        WHERE trip_id = t.id 
+        ORDER BY version_no DESC 
+        LIMIT 1
+      ) tv ON true
+      WHERE t.user_id = $1
+      ORDER BY t.updated_at DESC;
+    `;
+
+    const res = await db.query<TripsRow & { plan_json?: unknown }>(q, [userId]);
+
+    return res.rows.map((row) => ({
+      ...this.mapTripRow(row),
+      planJson: row.plan_json,
+    }));
+  }
+
+  /**
+   * Get user activity log
+   */
+  async getUserActivityLog(userId: string): Promise<ActivityInteraction[]> {
+    const db = await this.ensureConnected();
+
+    try {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          place_id TEXT NOT NULL,
+          place_name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          action TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity_log(user_id);
+      `);
+
+      const result = await db.query<{
+        user_id: string;
+        place_id: string;
+        place_name: string;
+        category: string;
+        action: string;
+        created_at: string;
+      }>(
+        `SELECT user_id, place_id, place_name, category, action, created_at
+         FROM user_activity_log
+         WHERE user_id = $1
+         ORDER BY created_at DESC`,
+        [userId],
+      );
+
+      return result.rows.map((row) => ({
+        userId: String(row.user_id),
+        placeId: String(row.place_id),
+        placeName: String(row.place_name),
+        category: String(row.category),
+        action: row.action as 'selected' | 'removed',
+        timestamp: String(row.created_at),
+      }));
+    } catch (error) {
+      this.logger.warn(
+        `getUserActivityLog failed: ${(error as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Get user's preferred travel pace based on past trips
+   */
+  async getUserTravelPace(
+    userId: string,
+  ): Promise<'relaxed' | 'moderate' | 'active'> {
+    const trips = await this.getUserTrips(userId);
+    if (trips.length === 0) return 'moderate';
+
+    const avgActivitiesPerDay =
+      trips.reduce((sum, trip) => {
+        const planJson = trip.planJson as
+          | {
+              dayByDayPlan?: Array<{ activities?: unknown[] }>;
+              totalDays?: number;
+            }
+          | undefined;
+        const activities =
+          planJson?.dayByDayPlan?.flatMap((d) => d.activities || []) || [];
+        const days = planJson?.totalDays || 1;
+        return sum + activities.length / days;
+      }, 0) / trips.length;
+
+    if (avgActivitiesPerDay <= 2) return 'relaxed';
+    if (avgActivitiesPerDay <= 3) return 'moderate';
+    return 'active';
+  }
+
+  /**
+   * Get categories the user has explicitly removed (negative signal)
+   */
+  async getUserAvoidedCategories(userId: string): Promise<string[]> {
+    const activities = await this.getUserActivityLog(userId);
+
+    const removed = activities
+      .filter((a) => a.action === 'removed')
+      .map((a) => a.category.toLowerCase());
+
+    const removedCounts = removed.reduce(
+      (acc, cat) => {
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    // Return categories removed 2+ times
+    return Object.entries(removedCounts)
+      .filter(([, count]) => count >= 2)
+      .map(([cat]) => cat);
+  }
+
+  /**
+   * Get recent selections (last 30 days)
+   */
+  async getRecentUserSelections(
+    userId: string,
+  ): Promise<Array<{ placeId: string; category: string; timestamp: string }>> {
+    const activities = await this.getUserActivityLog(userId);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    return activities
+      .filter(
+        (a) =>
+          a.action === 'selected' && new Date(a.timestamp) >= thirtyDaysAgo,
+      )
+      .map((a) => ({
+        placeId: a.placeId,
+        category: a.category,
+        timestamp: a.timestamp,
+      }));
+  }
+
+  /**
    * Log user activity interaction for personalization
    */
   async logActivityInteraction(

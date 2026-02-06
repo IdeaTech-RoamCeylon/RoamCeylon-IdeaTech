@@ -6,6 +6,16 @@
  * Only critical bug fixes allowed after this point
  */
 
+type ItineraryCategory =
+  | 'Arrival'
+  | 'Sightseeing'
+  | 'Culture'
+  | 'History'
+  | 'Nature'
+  | 'Beach'
+  | 'Adventure'
+  | 'Relaxation';
+
 export const ALGORITHM_VERSION = '1.0.0';
 export const LOCK_DATE = '2026-01-16';
 export const LOCK_STATUS = 'FROZEN';
@@ -82,6 +92,54 @@ export const PLANNER_CONFIG = Object.freeze({
     SCORE_PRECISION: 6, // Decimal places for score rounding
     ENABLE_SEED_SORTING: true, // Use deterministic sorting
     MAX_PERSONALIZATION_INFLUENCE: 0.25, // Max % change from personalization
+  } as const,
+
+  RANKING: {
+    // Interest-based weights
+    INTEREST_MATCH: {
+      EXACT: 0.35, // Direct interest match (e.g., "beach" in beach activity)
+      RELATED: 0.2, // Related category match
+      PARTIAL: 0.1, // Partial keyword overlap
+    } as const,
+
+    // Pace preferences
+    PACE_MODIFIERS: {
+      RELAXED: {
+        MAX_ACTIVITIES_PER_DAY: 2,
+        PREFER_CATEGORIES: [
+          'Beach',
+          'Relaxation',
+          'Nature',
+        ] as readonly ItineraryCategory[],
+        BOOST: 0.15,
+      },
+      MODERATE: {
+        MAX_ACTIVITIES_PER_DAY: 3,
+        PREFER_CATEGORIES: [
+          'Sightseeing',
+          'Culture',
+          'History',
+        ] as readonly ItineraryCategory[],
+        BOOST: 0.1,
+      },
+      ACTIVE: {
+        MAX_ACTIVITIES_PER_DAY: 4,
+        PREFER_CATEGORIES: [
+          'Adventure',
+          'Nature',
+          'Sightseeing',
+        ] as readonly ItineraryCategory[],
+        BOOST: 0.12,
+      },
+    } as const,
+
+    // Behavioral signals
+    BEHAVIOR_WEIGHTS: {
+      FREQUENT_CATEGORY: 0.25, // User often selects this category
+      RECENT_SELECTION: 0.15, // Selected in last 30 days
+      HIGH_ENGAGEMENT: 0.2, // Spent significant time on this type
+      AVOIDED_CATEGORY: -0.3, // User removed this type before
+    } as const,
   } as const,
 
   SEARCH: {
