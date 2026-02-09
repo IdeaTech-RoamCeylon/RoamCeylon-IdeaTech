@@ -22,6 +22,7 @@ import DaySelector from '../../components/DaySelector';
 import ItineraryList from '../../components/ItineraryList';
 import BudgetBreakdown from '../../components/BudgetBreakdown';
 import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
+import { PreferenceSummaryBanner } from '../../components/PreferenceSummaryBanner';
 import { tripStorageService } from '../../services/tripStorageService';
 
 
@@ -444,6 +445,14 @@ const AITripPlannerScreen = () => {
                 <Text style={styles.summaryValue}>{tripPlan.budget}</Text>
               </View>
             </View>
+
+            {/* Preference Summary Banner */}
+            {query.interests && query.interests.length > 0 && (
+              <PreferenceSummaryBanner
+                selectedPreferences={query.interests}
+                itinerary={tripPlan.itinerary}
+              />
+            )}
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>

@@ -16,6 +16,12 @@ export interface TripActivity {
   description: string;
   coordinate?: [number, number]; // [longitude, latitude]
   dayNumber?: number;
+  
+  // Preference-aware data from backend
+  category?: string; // 'Culture', 'Nature', 'Beach', etc.
+  matchedPreferences?: string[]; // User preferences that matched this activity
+  confidenceScore?: 'High' | 'Medium' | 'Low';
+  tips?: string[]; // Helpful tips from backend
 }
 
 export interface TripDay {
@@ -38,7 +44,14 @@ export interface TripPlanResponse {
 interface BackendActivity {
   placeName: string;
   shortDescription: string;
-  // coordinate is missing in backend
+  category?: string;
+  confidenceScore?: 'High' | 'Medium' | 'Low';
+  explanation?: {
+    rankingFactors?: {
+      preferenceMatch?: string[];
+    };
+    tips?: string[];
+  };
 }
 
 interface BackendDayPlan {
@@ -140,6 +153,11 @@ class AIService {
              return {
                 description: finalDescription,
                 coordinate: getMockCoordinates(idx), // Inject mock coordinate
+                // Map preference-aware data from backend
+                category: act.category,
+                matchedPreferences: act.explanation?.rankingFactors?.preferenceMatch || [],
+                confidenceScore: act.confidenceScore,
+                tips: act.explanation?.tips,
              };
           }),
         })),
