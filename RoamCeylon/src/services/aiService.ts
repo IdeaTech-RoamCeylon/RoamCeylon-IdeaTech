@@ -139,6 +139,15 @@ class AIService {
         itinerary: backendData.plan.dayByDayPlan.map((day) => ({
           day: day.day,
           activities: day.activities.map((act, idx) => {
+             // Log raw activity data to debug preference matching
+             if (idx === 0) {
+               console.log('[AIService] Raw backend activity:', {
+                 placeName: act.placeName,
+                 category: act.category,
+                 preferenceMatch: act.explanation?.rankingFactors?.preferenceMatch
+               });
+             }
+
              // Logic to avoid generic names like "Kandy"
              const destLower = backendData.plan.destination.toLowerCase().trim();
              const placeLower = act.placeName.toLowerCase().trim();
