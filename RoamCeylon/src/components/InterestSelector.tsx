@@ -26,12 +26,13 @@ export const InterestSelector = React.memo(({
   onInterestsChange,
 }: InterestSelectorProps) => {
   const handleToggleInterest = (interestId: string) => {
-    if (selectedInterests.includes(interestId)) {
+    const currentInterests = selectedInterests || [];
+    if (currentInterests.includes(interestId)) {
       // Remove interest
-      onInterestsChange(selectedInterests.filter(id => id !== interestId));
+      onInterestsChange(currentInterests.filter(id => id !== interestId));
     } else {
       // Add interest
-      onInterestsChange([...selectedInterests, interestId]);
+      onInterestsChange([...currentInterests, interestId]);
     }
   };
 
@@ -39,7 +40,7 @@ export const InterestSelector = React.memo(({
     <View style={styles.container}>
       <View style={styles.interestsGrid}>
         {INTERESTS.map((interest) => {
-          const isSelected = selectedInterests.includes(interest.id);
+          const isSelected = selectedInterests?.includes(interest.id) ?? false;
           return (
             <TouchableOpacity
               key={interest.id}
