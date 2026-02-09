@@ -12,6 +12,8 @@ export { default as RideTimeline } from './RideTimeline';
 export { default as DriverInfoCard } from './DriverInfoCard';
 export { InterestSelector } from './InterestSelector';
 export { PaceSelector } from './PaceSelector';
+export { LoadingFooter } from './LoadingFooter';
+export { EndOfListIndicator } from './EndOfListIndicator';
 
 export type { ButtonProps } from './Button';
 export type { InputProps } from './Input';
