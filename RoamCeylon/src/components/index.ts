@@ -10,6 +10,8 @@ export { default as BudgetBreakdown } from './BudgetBreakdown';
 export { default as EnhancedItineraryCard } from './EnhancedItineraryCard';
 export { default as RideTimeline } from './RideTimeline';
 export { default as DriverInfoCard } from './DriverInfoCard';
+export { InterestSelector } from './InterestSelector';
+export { PaceSelector } from './PaceSelector';
 
 export type { ButtonProps } from './Button';
 export type { InputProps } from './Input';

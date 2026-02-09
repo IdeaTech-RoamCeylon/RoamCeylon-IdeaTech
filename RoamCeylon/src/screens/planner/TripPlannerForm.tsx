@@ -1,13 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { InterestSelector } from '../../components/InterestSelector';
+import { PaceSelector } from '../../components/PaceSelector';
 
 interface TripPlannerFormProps {
   query: {
     destination: string;
     duration: string;
     budget: string;
+    interests: string[];
+    pace: string;
   };
-  updateQuery: (key: 'destination' | 'duration' | 'budget', value: string) => void;
+  updateQuery: (key: 'destination' | 'duration' | 'budget' | 'interests' | 'pace', value: string | string[]) => void;
   isLoading: boolean;
   onGenerate: () => void;
   isConnected: boolean;
@@ -79,6 +83,22 @@ export const TripPlannerForm = React.memo(({
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Travel Interests</Text>
+          <InterestSelector
+            selectedInterests={query.interests}
+            onInterestsChange={(interests) => updateQuery('interests', interests)}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Travel Pace</Text>
+          <PaceSelector
+            selectedPace={query.pace}
+            onPaceChange={(pace) => updateQuery('pace', pace)}
+          />
         </View>
 
         <TouchableOpacity

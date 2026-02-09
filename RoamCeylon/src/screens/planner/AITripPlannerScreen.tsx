@@ -77,7 +77,7 @@ const AITripPlannerScreen = () => {
   const budgets = useMemo(() => ['Low', 'Medium', 'High', 'Luxury'], []);
 
   // Memoize updateQuery to prevent recreation
-  const updateQuery = useCallback((key: keyof typeof query, value: string) => {
+  const updateQuery = useCallback((key: keyof typeof query, value: string | string[]) => {
     setQuery(prev => ({ ...prev, [key]: value }));
   }, [setQuery]);
 

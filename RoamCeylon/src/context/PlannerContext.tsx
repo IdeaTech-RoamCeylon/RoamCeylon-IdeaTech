@@ -14,11 +14,15 @@ interface PlannerContextProps {
     destination: string;
     duration: string;
     budget: string;
+    interests: string[];
+    pace: string;
   };
   setQuery: React.Dispatch<React.SetStateAction<{
     destination: string;
     duration: string;
     budget: string;
+    interests: string[];
+    pace: string;
   }>>;
   tripPlan: TripPlanResponse | null;
   setTripPlan: React.Dispatch<React.SetStateAction<TripPlanResponse | null>>;
@@ -37,6 +41,8 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     destination: '',
     duration: '',
     budget: 'Medium',
+    interests: [] as string[],
+    pace: 'Moderate',
   });
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
@@ -147,7 +153,7 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
 
   const clearPlanner = useCallback(async () => {
     try {
-      setQuery({ destination: '', duration: '', budget: 'Medium' });
+      setQuery({ destination: '', duration: '', budget: 'Medium', interests: [], pace: 'Moderate' });
       setTripPlan(null);
       setCurrentTripId(null);
       setIsEditing(false);
