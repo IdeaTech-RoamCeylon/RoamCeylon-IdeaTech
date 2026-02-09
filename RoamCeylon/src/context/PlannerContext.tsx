@@ -106,16 +106,19 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     loadState();
   }, []);
 
-  // Save query to storage whenever it changes
+  // Debounce query saves to prevent excessive AsyncStorage writes
+  // Wait 500ms after last change before saving
   useEffect(() => {
-    const saveQuery = async () => {
+    const saveTimer = setTimeout(async () => {
       try {
         await AsyncStorage.setItem(STORAGE_KEYS.QUERY, JSON.stringify(query));
+        console.log('[PlannerContext] Query saved to storage (debounced)');
       } catch (error) {
         console.error('Failed to save query:', error);
       }
-    };
-    saveQuery();
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(saveTimer);
   }, [query]);
 
   // Save tripPlan to storage whenever it changes

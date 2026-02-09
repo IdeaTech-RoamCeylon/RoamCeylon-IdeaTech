@@ -94,34 +94,62 @@ const AITripPlannerScreen = () => {
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-    setTripPlan(null); 
-    stopEditing(); // Clear editing state when generating a new plan
-
-    try {
-      // Include saved context parameters
-      const requestWithContext = {
-        ...query,
-        useSavedContext: useSavedContext,
-        mode: useSavedContext ? ('refine' as const) : ('new' as const),
-      };
-      const plan = await aiService.generateTripPlan(requestWithContext);
-      setTripPlan(plan);
-      
-      // Show context info if used saved context
-      if (plan.usedSavedContext) {
-        setShowContextInfo(true);
-        setTimeout(() => setShowContextInfo(false), 5000);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Failed to generate trip plan: ${errorMessage}`);
-      console.error('[AITripPlannerScreen] Error generating plan:', error);
-    } finally {
-      setIsLoading(false);
+    // Prevent double-clicks by checking if already loading
+    if (isLoading) {
+      return;
     }
-  }, [query, networkStatus.isConnected, setTripPlan]);
+
+    // Helper function to proceed with generation
+    const proceedWithGeneration = async () => {
+      setIsLoading(true);
+      setError(null);
+      setTripPlan(null); 
+      stopEditing(); // Clear editing state when generating a new plan
+
+      try {
+        // Include saved context parameters
+        const requestWithContext = {
+          ...query,
+          useSavedContext: useSavedContext,
+          mode: useSavedContext ? ('refine' as const) : ('new' as const),
+        };
+        const plan = await aiService.generateTripPlan(requestWithContext);
+        setTripPlan(plan);
+        
+        // Show context info if used saved context
+        if (plan.usedSavedContext) {
+          setShowContextInfo(true);
+          setTimeout(() => setShowContextInfo(false), 5000);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        setError(`Failed to generate trip plan: ${errorMessage}`);
+        console.error('[AITripPlannerScreen] Error generating plan:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Warn if overwriting existing plan (not in editing mode)
+    if (tripPlan && !isEditing) {
+      Alert.alert(
+        'Generate New Plan?',
+        'This will replace your current trip plan. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Generate', 
+            onPress: proceedWithGeneration,
+            style: 'destructive' 
+          }
+        ]
+      );
+      return;
+    }
+
+    // Proceed directly if no existing plan or in editing mode
+    await proceedWithGeneration();
+  }, [query, networkStatus.isConnected, setTripPlan, tripPlan, isEditing, useSavedContext, stopEditing, isLoading]);
 
   const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
     if (!tripPlan) return;
