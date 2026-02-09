@@ -20,7 +20,7 @@ interface RequestWithUser extends Request {
 @Controller('planner')
 @UseGuards(JwtAuthGuard)
 export class PlannerController {
-  constructor(private readonly plannerService: PlannerService) {}
+  constructor(private readonly plannerService: PlannerService) { }
 
   @Post('save')
   async saveTrip(
@@ -33,6 +33,14 @@ export class PlannerController {
   @Get('history')
   async getHistory(@Req() req: RequestWithUser): Promise<SavedTrip[]> {
     return this.plannerService.getHistory(req.user.userId);
+  }
+
+  @Get(':id')
+  async getTrip(
+    @Req() req: RequestWithUser,
+    @Param('id') id: string,
+  ): Promise<SavedTrip | null> {
+    return this.plannerService.getTrip(req.user.userId, parseInt(id, 10));
   }
 
   @Put(':id')

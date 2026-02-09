@@ -22,7 +22,7 @@ interface TransportDelegate {
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // Helper to safely access transportSession preventing any-leaks
   private get transportModel(): TransportDelegate {
@@ -153,7 +153,6 @@ export class TransportService {
 
   async updateRideStatus(rideId: string, status: string) {
     // Fetch current session first to append history
-
     const currentSession = await this.transportModel.findUnique({
       where: { id: rideId },
     });
@@ -175,10 +174,18 @@ export class TransportService {
     };
 
     const allowed = validTransitions[currentStatus] || [];
-    if (!allowed.includes(status) && currentStatus !== status) {
+
+    // Idempotency check: if status is already set, just return current session
+    if (currentStatus === status) {
+      return currentSession;
+    }
+
+    if (!allowed.includes(status)) {
       this.logger.warn(
         `Invalid state transition attempted for ride ${rideId}: ${currentStatus} -> ${status}`,
       );
+      // Use a more descriptive error that can be caught by filters if needed, 
+      // though for now simple Error string is consistent with existing code.
       throw new Error(
         `Invalid status transition from ${currentStatus} to ${status}`,
       );
