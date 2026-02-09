@@ -88,6 +88,10 @@ class AIService {
         tripId: request.tripId,
       };
 
+      // Log preferences being sent to backend
+      console.log('[AIService] Generating trip plan with preferences:', payload.preferences);
+      console.log('[AIService] Full request payload:', JSON.stringify(payload, null, 2));
+
       // Fetch data matching the BACKEND structure
       const wrapper = await retryWithBackoff(
         () => apiService.post<BackendResponseWrapper>('/ai/trip-plan', payload),
