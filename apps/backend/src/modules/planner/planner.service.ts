@@ -31,9 +31,11 @@ export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) { }
+  ) {}
 
-  private normalizePreferences(prefs?: Record<string, any>): Record<string, any> {
+  private normalizePreferences(
+    prefs?: Record<string, any>,
+  ): Record<string, any> {
     if (!prefs) return {};
     return {
       budget: prefs.budget || 'medium', // Default to medium

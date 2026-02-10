@@ -171,6 +171,10 @@ interface TripPlanResponseDto {
   message: string;
 }
 
+type FrequentPlace = { placeId: string; placeName: string };
+type RecentSelection = { placeId: string; category: string };
+type CategoryPref = { category: string; count: number };
+
 /* -------------------- CONTROLLER -------------------- */
 
 @Controller('ai')
@@ -327,6 +331,72 @@ export class AIController {
       minConfidence === 'Low'
       ? minConfidence
       : 'Medium';
+  }
+
+  private safeString(v: unknown): string | null {
+    return typeof v === 'string' && v.trim().length ? v : null;
+  }
+
+  private asFrequentPlaces(raw: unknown): FrequentPlace[] {
+    if (!Array.isArray(raw)) return [];
+    const out: FrequentPlace[] = [];
+
+    for (const item of raw) {
+      if (!item || typeof item !== 'object') continue;
+      const placeId = this.safeString((item as { placeId?: unknown }).placeId);
+      const placeName = this.safeString(
+        (item as { placeName?: unknown }).placeName,
+      );
+      if (placeId && placeName) out.push({ placeId, placeName });
+    }
+
+    // deterministic ordering
+    return out.sort((a, b) => this.collator.compare(a.placeId, b.placeId));
+  }
+
+  private asRecentSelections(raw: unknown): RecentSelection[] {
+    if (!Array.isArray(raw)) return [];
+    const out: RecentSelection[] = [];
+
+    for (const item of raw) {
+      if (!item || typeof item !== 'object') continue;
+      const placeId = this.safeString((item as { placeId?: unknown }).placeId);
+      const category = this.safeString(
+        (item as { category?: unknown }).category,
+      );
+      if (placeId && category) out.push({ placeId, category });
+    }
+
+    // deterministic ordering
+    return out.sort(
+      (a, b) =>
+        this.collator.compare(a.placeId, b.placeId) ||
+        this.collator.compare(a.category, b.category),
+    );
+  }
+
+  private asCategoryPrefs(raw: unknown): CategoryPref[] {
+    if (!Array.isArray(raw)) return [];
+    const out: CategoryPref[] = [];
+
+    for (const item of raw) {
+      if (!item || typeof item !== 'object') continue;
+      const category = this.safeString(
+        (item as { category?: unknown }).category,
+      );
+      const countRaw = (item as { count?: unknown }).count;
+      const count =
+        typeof countRaw === 'number' && Number.isFinite(countRaw)
+          ? countRaw
+          : 0;
+      if (category) out.push({ category, count });
+    }
+
+    // deterministic ordering
+    return out.sort(
+      (a, b) =>
+        this.collator.compare(a.category, b.category) || b.count - a.count,
+    );
   }
 
   constructor(
@@ -936,8 +1006,10 @@ export class AIController {
 
     if (userId) {
       try {
-        const frequentPlaces =
+        const frequentPlacesRaw =
           await this.tripStore.getUserFrequentPlaces(userId);
+        const frequentPlaces = this.asFrequentPlaces(frequentPlacesRaw);
+
         const isFrequent = frequentPlaces.some(
           (p) => p.placeId === String(result.id),
         );
@@ -1266,14 +1338,34 @@ export class AIController {
 
       // 4) RECENT ENGAGEMENT (if implemented in TripStoreService)
       // Safe-guard: if method doesn't exist at runtime, catch below.
-      const recentSelections =
+      const recentSelectionsRaw =
         await this.tripStore.getRecentUserSelections?.(userId);
-      if (Array.isArray(recentSelections)) {
-        const hasRecent = recentSelections.some(
-          (s: any) =>
-            s?.placeId === String(result.id) ||
-            String(s?.category || '').toLowerCase() === category.toLowerCase(),
+
+      if (Array.isArray(recentSelectionsRaw)) {
+        const recentSelections = recentSelectionsRaw.filter(
+          (
+            s,
+          ): s is { placeId: string; category: string; timestamp: string } => {
+            if (!s || typeof s !== 'object') return false;
+
+            const o = s as Record<string, unknown>;
+            return (
+              typeof o.placeId === 'string' &&
+              typeof o.category === 'string' &&
+              typeof o.timestamp === 'string'
+            );
+          },
         );
+
+        const categoryLower = category.toLowerCase();
+        const resultIdStr = String(result.id);
+
+        const hasRecent = recentSelections.some(
+          (s) =>
+            s.placeId === resultIdStr ||
+            s.category.toLowerCase() === categoryLower,
+        );
+
         if (hasRecent) {
           boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.RECENT_SELECTION;
         }
