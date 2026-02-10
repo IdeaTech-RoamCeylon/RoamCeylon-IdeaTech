@@ -332,7 +332,7 @@ export class AIController {
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
     private readonly tripStore: TripStoreService,
-  ) { }
+  ) {}
 
   @Get('health')
   getHealth() {
@@ -1107,7 +1107,7 @@ export class AIController {
 
         const confidenceMultiplier =
           PLANNER_CONFIG.SCORING.CONFIDENCE_MULTIPLIERS[
-          result.confidence ?? 'Low'
+            result.confidence ?? 'Low'
           ];
         priorityScore *= confidenceMultiplier;
         rankingDetails.confidenceMultiplier = confidenceMultiplier;
@@ -2070,7 +2070,9 @@ export class AIController {
 
     const endItin = process.hrtime.bigint();
     const totalItinTime = Number(endItin - startItin) / 1_000_000;
-    this.logger.log(`[PERF] generateItinerary took ${totalItinTime.toFixed(2)}ms`);
+    this.logger.log(
+      `[PERF] generateItinerary took ${totalItinTime.toFixed(2)}ms`,
+    );
 
     return { plans: dayPlans, usedFallback: false };
   }
@@ -2083,9 +2085,9 @@ export class AIController {
 
     const near = nearMatch
       ? nearMatch[1]
-        .split(',')
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean)
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
       : [];
 
     const region = regionMatch
@@ -2317,9 +2319,9 @@ export class AIController {
 
     const preferences = savedTrip
       ? this.mergePreferencesDeterministic(
-        preferencesFromSaved,
-        preferencesFromBody,
-      )
+          preferencesFromSaved,
+          preferencesFromBody,
+        )
       : preferencesFromBody;
 
     const dayCount = this.clampDayCount(startDateStr, endDateStr);
@@ -2476,7 +2478,7 @@ export class AIController {
 
       this.logger.log(
         `[consistency] scoreRange=[${this.q(minScore)}, ${this.q(maxScore)}] ` +
-        `activities=${allScores.length} personalized=${!!userId}`,
+          `activities=${allScores.length} personalized=${!!userId}`,
       );
 
       const response: TripPlanResponseDto = {

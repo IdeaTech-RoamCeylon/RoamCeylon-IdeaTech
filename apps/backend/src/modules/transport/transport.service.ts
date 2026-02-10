@@ -22,7 +22,7 @@ interface TransportDelegate {
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   // Helper to safely access transportSession preventing any-leaks
   private get transportModel(): TransportDelegate {
@@ -184,7 +184,7 @@ export class TransportService {
       this.logger.warn(
         `Invalid state transition attempted for ride ${rideId}: ${currentStatus} -> ${status}`,
       );
-      // Use a more descriptive error that can be caught by filters if needed, 
+      // Use a more descriptive error that can be caught by filters if needed,
       // though for now simple Error string is consistent with existing code.
       throw new Error(
         `Invalid status transition from ${currentStatus} to ${status}`,
