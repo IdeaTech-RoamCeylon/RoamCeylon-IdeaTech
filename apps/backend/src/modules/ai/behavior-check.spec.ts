@@ -142,7 +142,7 @@ describe('AI Production Behavior Review', () => {
           { name: 'Minneriya Safari', time: '10:00 AM', location: 'Minneriya' },
         ],
         {
-          sequence: 'Some places',
+          sequence: 'Sigiriya Rock -> Minneriya Safari',
           reasoning: 'You will have a great experience and enjoy amazing views',
         },
       );

@@ -5,7 +5,7 @@ import { DayDto } from './dto/update-trip.dto';
 
 @Injectable()
 export class AIService {
-  constructor(private readonly embeddingService: EmbeddingService) {}
+  constructor(private readonly embeddingService: EmbeddingService) { }
 
   async seedEmbeddingsFromAiPlanner(): Promise<void> {
     await this.embeddingService.seedEmbeddings();
@@ -45,7 +45,7 @@ export class AIService {
       if (!mentionsActivities) {
         throw new BadRequestException(
           `Day ${dayIndex + 1} explanation doesn't reference actual activities. ` +
-            `Expected mention of: ${activityNames.join(', ')}`,
+          `Expected mention of: ${activityNames.join(', ')}`,
         );
       }
 
@@ -57,7 +57,7 @@ export class AIService {
       if (hasGeneric) {
         throw new BadRequestException(
           `Day ${dayIndex + 1} explanation contains generic phrases. ` +
-            `Be specific about timing, logistics, or experiences.`,
+          `Be specific about timing, logistics, or experiences.`,
         );
       }
 
@@ -94,13 +94,16 @@ export class AIService {
     sequence: string,
     activityNames: string[],
   ): string[] {
-    const foundActivities: string[] = [];
+    const foundActivities: { name: string; index: number }[] = [];
+
     activityNames.forEach((name) => {
-      if (sequence.toLowerCase().includes(name.toLowerCase())) {
-        foundActivities.push(name);
+      const idx = sequence.toLowerCase().indexOf(name.toLowerCase());
+      if (idx !== -1) {
+        foundActivities.push({ name, index: idx });
       }
     });
-    return foundActivities;
+
+    return foundActivities.sort((a, b) => a.index - b.index).map(f => f.name);
   }
 
   private isOrderCorrect(

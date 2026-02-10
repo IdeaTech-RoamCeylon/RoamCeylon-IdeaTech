@@ -332,7 +332,7 @@ export class AIController {
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
     private readonly tripStore: TripStoreService,
-  ) {}
+  ) { }
 
   @Get('health')
   getHealth() {
@@ -787,12 +787,22 @@ export class AIController {
 
     for (const pref of preferences) {
       const p = pref.toLowerCase();
-      if (titleLower.includes(p)) {
+      if (titleLower.includes(p) || contentLower.includes(p)) {
         matched.push(pref);
-        titleMatches++;
-      } else if (contentLower.includes(p)) {
-        matched.push(pref);
-        contentMatches++;
+        if (titleLower.includes(p)) titleMatches++;
+        if (contentLower.includes(p)) contentMatches++;
+        continue;
+      }
+
+      const mappedCategories = this.INTEREST_CATEGORY_MAP[p] || [];
+      for (const category of mappedCategories) {
+        const catLower = category.toLowerCase();
+        if (titleLower.includes(catLower) || contentLower.includes(catLower)) {
+          matched.push(pref);
+          if (titleLower.includes(catLower)) titleMatches++;
+          if (contentLower.includes(catLower)) contentMatches++;
+          break;
+        }
       }
     }
 
@@ -1097,7 +1107,7 @@ export class AIController {
 
         const confidenceMultiplier =
           PLANNER_CONFIG.SCORING.CONFIDENCE_MULTIPLIERS[
-            result.confidence ?? 'Low'
+          result.confidence ?? 'Low'
           ];
         priorityScore *= confidenceMultiplier;
         rankingDetails.confidenceMultiplier = confidenceMultiplier;
@@ -1898,6 +1908,8 @@ export class AIController {
     destination?: string,
     userId?: string,
   ): Promise<{ plans: DayPlan[]; usedFallback: boolean }> {
+    const startItin = process.hrtime.bigint();
+
     const filteredResults = searchResults.filter((result) => {
       if (!result.score || result.score < this.CONFIDENCE_THRESHOLDS.MINIMUM)
         return false;
@@ -2056,6 +2068,10 @@ export class AIController {
       });
     }
 
+    const endItin = process.hrtime.bigint();
+    const totalItinTime = Number(endItin - startItin) / 1_000_000;
+    this.logger.log(`[PERF] generateItinerary took ${totalItinTime.toFixed(2)}ms`);
+
     return { plans: dayPlans, usedFallback: false };
   }
 
@@ -2067,9 +2083,9 @@ export class AIController {
 
     const near = nearMatch
       ? nearMatch[1]
-          .split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean)
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
       : [];
 
     const region = regionMatch
@@ -2229,6 +2245,8 @@ export class AIController {
       `[trip-plan] userId=${userId ?? 'NONE'} useSavedContext=${body.useSavedContext ?? true} mode=${body.mode ?? 'refine'} tripId=${body.tripId ?? 'NONE'}`,
     );
 
+    const startTotal = process.hrtime.bigint();
+
     const prefValidation = this.validatePreferences(body.preferences);
     if (!prefValidation.valid) {
       const destination = this.normalizeText(body.destination) || 'Unknown';
@@ -2299,9 +2317,9 @@ export class AIController {
 
     const preferences = savedTrip
       ? this.mergePreferencesDeterministic(
-          preferencesFromSaved,
-          preferencesFromBody,
-        )
+        preferencesFromSaved,
+        preferencesFromBody,
+      )
       : preferencesFromBody;
 
     const dayCount = this.clampDayCount(startDateStr, endDateStr);
@@ -2458,7 +2476,7 @@ export class AIController {
 
       this.logger.log(
         `[consistency] scoreRange=[${this.q(minScore)}, ${this.q(maxScore)}] ` +
-          `activities=${allScores.length} personalized=${!!userId}`,
+        `activities=${allScores.length} personalized=${!!userId}`,
       );
 
       const response: TripPlanResponseDto = {
@@ -2616,6 +2634,10 @@ export class AIController {
     } else {
       this.logger.warn(`[trip-plan] skip save: userId is missing`);
     }
+
+    const endTotal = process.hrtime.bigint();
+    const totalTime = Number(endTotal - startTotal) / 1_000_000;
+    this.logger.log(`[PERF] tripPlanEnhanced took ${totalTime.toFixed(2)}ms`);
 
     return attachSavedMeta(response, savedMeta);
   }
