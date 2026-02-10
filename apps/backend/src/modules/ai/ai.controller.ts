@@ -257,7 +257,6 @@ export class AIController {
     const s = input.trim();
     if (!s) return '';
 
-    // Already date-only
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
     const d = new Date(s);
@@ -269,11 +268,10 @@ export class AIController {
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // Parse date-only (or any date string) into LOCAL Date at noon to avoid TZ edge shifts.
+  // Parse date-only into LOCAL Date at noon to avoid TZ edge shifts.
   private parseLocalDate(input: unknown): Date {
     const dateOnly = this.toDateOnly(input);
     if (!dateOnly) return new Date();
-
     const [y, m, d] = dateOnly.split('-').map(Number);
     return new Date(y, m - 1, d, 12, 0, 0, 0);
   }
@@ -303,7 +301,10 @@ export class AIController {
     return '';
   }
 
-  private q(n: number, decimals = 6): number {
+  private q(
+    n: number,
+    decimals: number = PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
+  ): number {
     if (!Number.isFinite(n)) return 0;
     const p = Math.pow(10, decimals);
     return Math.round(n * p) / p;
@@ -395,7 +396,6 @@ export class AIController {
   private clampDayCount(startDateStr: string, endDateStr: string): number {
     const start = this.parseLocalDate(startDateStr);
     const end = this.parseLocalDate(endDateStr);
-
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
 
     const diffDays =
@@ -495,37 +495,20 @@ export class AIController {
       };
     }
 
-    const conflictPairs = [
-      {
-        a: 'adventure',
-        b: 'relaxation',
-        msg: 'Adventure and relaxation preferences may conflict',
-      },
-      {
-        a: 'nature',
-        b: 'shopping',
-        msg: 'Nature and shopping preferences may conflict',
-      },
-      {
-        a: 'culture',
-        b: 'beach',
-        msg: 'Culture and beach preferences suggest different trip styles',
-      },
-    ];
-
     const lowerPrefs = preferences.map((p) => p.toLowerCase());
-    for (const pair of conflictPairs) {
-      if (lowerPrefs.includes(pair.a) && lowerPrefs.includes(pair.b)) {
+    for (const [a, b] of PLANNER_CONFIG.VALIDATION.CONFLICTING_PAIRS) {
+      if (lowerPrefs.includes(a) && lowerPrefs.includes(b)) {
         return {
           valid: true,
-          warning: `${pair.msg}. We'll balance both, but consider focusing on one style.`,
+          warning: `Preferences "${a}" and "${b}" may conflict. We'll balance both, but consider focusing on one style.`,
         };
       }
     }
 
-    const vagueTerms = ['things', 'stuff', 'places', 'anywhere', 'something'];
     const hasVague = preferences.some((p) =>
-      vagueTerms.some((v) => p.toLowerCase().includes(v)),
+      PLANNER_CONFIG.VALIDATION.VAGUE_TERMS.some((v) =>
+        p.toLowerCase().includes(v),
+      ),
     );
 
     if (hasVague) {
@@ -1211,6 +1194,8 @@ export class AIController {
     return scored;
   }
 
+  /* ==================== PERSONALIZATION (Interest + Pace + Deterministic) ==================== */
+
   private async calculatePersonalizationBoost(
     result: SearchResultItem,
     userId?: string,
@@ -1219,45 +1204,42 @@ export class AIController {
   ): Promise<number> {
     if (!userId) return 0;
 
-    // **CONSISTENCY LOCK**: Don't personalize low-quality items
+    // CONSISTENCY LOCK: don't personalize low-quality items
     const baseScore = result.score || 0;
-    if (baseScore < PLANNER_CONFIG.PERSONALIZATION.MIN_BASE_SCORE) {
-      return 0;
-    }
+    if (baseScore < PLANNER_CONFIG.PERSONALIZATION.MIN_BASE_SCORE) return 0;
 
     let boost = 0;
     const resultText = `${result.title} ${result.content}`.toLowerCase();
 
-    // **1. INTEREST-BASED BOOST**
+    // 1) INTEREST ALIGNMENT (exact / related)
     if (preferences?.length) {
       for (const pref of preferences) {
         const prefLower = pref.toLowerCase();
 
         if (resultText.includes(prefLower)) {
           boost += PLANNER_CONFIG.RANKING.INTEREST_MATCH.EXACT;
-          break; // Only apply once
+          break; // apply once
         }
 
-        // Check mapped categories
         const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
-        const hasRelatedCategory = mappedCategories.some((cat) =>
+        const hasRelated = mappedCategories.some((cat) =>
           resultText.includes(cat.toLowerCase()),
         );
-
-        if (hasRelatedCategory) {
+        if (hasRelated) {
           boost += PLANNER_CONFIG.RANKING.INTEREST_MATCH.RELATED;
         }
       }
     }
 
     try {
-      // **2. PACE-BASED BOOST**
+      // infer category for pace + behavior signals
       const category = this.inferCategoryFromText(
         result.title,
         result.content,
         preferences,
       );
 
+      // 2) PACE COMPATIBILITY
       if (userPace) {
         const paceKey = userPace.toUpperCase() as
           | 'RELAXED'
@@ -1269,13 +1251,12 @@ export class AIController {
         }
       }
 
-      // **3. BEHAVIORAL SIGNALS - FREQUENT CATEGORY**
+      // 3) BEHAVIORAL SIGNALS: frequent category
       const categoryPrefs =
         await this.tripStore.getUserCategoryPreferences(userId);
       const matchingPref = categoryPrefs.find((p) =>
         category.toLowerCase().includes(p.category.toLowerCase()),
       );
-
       if (matchingPref) {
         const normalizedCount = Math.min(matchingPref.count / 10, 1);
         boost +=
@@ -1283,27 +1264,34 @@ export class AIController {
           normalizedCount;
       }
 
-      // **4. RECENT ENGAGEMENT**
+      // 4) RECENT ENGAGEMENT (if implemented in TripStoreService)
+      // Safe-guard: if method doesn't exist at runtime, catch below.
       const recentSelections =
-        await this.tripStore.getRecentUserSelections(userId);
-      const hasRecentEngagement = recentSelections.some(
-        (s) =>
-          s.placeId === String(result.id) ||
-          s.category.toLowerCase() === category.toLowerCase(),
-      );
-
-      if (hasRecentEngagement) {
-        boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.RECENT_SELECTION;
+        await this.tripStore.getRecentUserSelections?.(userId);
+      if (Array.isArray(recentSelections)) {
+        const hasRecent = recentSelections.some(
+          (s: any) =>
+            s?.placeId === String(result.id) ||
+            String(s?.category || '').toLowerCase() === category.toLowerCase(),
+        );
+        if (hasRecent) {
+          boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.RECENT_SELECTION;
+        }
       }
 
-      // **5. AVOIDED CATEGORIES (NEGATIVE SIGNAL)**
-      const avoidedCategories =
-        await this.tripStore.getUserAvoidedCategories(userId);
-      if (avoidedCategories.includes(category.toLowerCase())) {
-        boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.AVOIDED_CATEGORY;
+      // 5) AVOIDED CATEGORY (negative)
+      const avoided = await this.tripStore.getUserAvoidedCategories?.(userId);
+      if (Array.isArray(avoided)) {
+        if (
+          avoided
+            .map((x: string) => x.toLowerCase())
+            .includes(category.toLowerCase())
+        ) {
+          boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.AVOIDED_CATEGORY;
+        }
       }
 
-      // Legacy: Frequent places boost
+      // Legacy: frequent places boost
       const frequentPlaces = await this.tripStore.getUserFrequentPlaces(userId);
       const isFrequentPlace = frequentPlaces.some(
         (p) => p.placeId === String(result.id),
@@ -1322,18 +1310,19 @@ export class AIController {
       );
     }
 
-    // **CONSISTENCY LOCK**: Cap at configured max
+    // CONSISTENCY LOCK: hard cap
     const cappedBoost = Math.min(
       boost,
       PLANNER_CONFIG.PERSONALIZATION.MAX_BOOST,
     );
 
-    // **CONSISTENCY LOCK**: Ensure boost doesn't override base quality
+    // CONSISTENCY LOCK: boost cannot dominate base quality
     const maxAllowedBoost =
       baseScore * PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE;
 
     return Math.min(cappedBoost, maxAllowedBoost);
   }
+
   private async scoreResultsByPreferencesPersonalized(
     results: SearchResultItem[],
     preferences?: string[],
@@ -1358,7 +1347,7 @@ export class AIController {
 
     if (!userId) return baseScored;
 
-    // **GET USER PACE**
+    // Get pace deterministically (single fetch)
     let userPace: 'relaxed' | 'moderate' | 'active' | undefined;
     try {
       userPace = await this.tripStore.getUserTravelPace(userId);
@@ -1376,21 +1365,15 @@ export class AIController {
           userPace,
         );
 
-        // **CONSISTENCY LOCK**: Round to fixed precision
-        const finalScore = this.q(
-          item.priorityScore + personalizationBoost,
-          PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
-        );
+        // CONSISTENCY LOCK: fixed precision rounding
+        const finalScore = this.q(item.priorityScore + personalizationBoost);
 
         return {
           ...item,
           priorityScore: finalScore,
           rankingDetails: {
             ...item.rankingDetails,
-            personalizationBoost: this.q(
-              personalizationBoost,
-              PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
-            ),
+            personalizationBoost: this.q(personalizationBoost),
             userPace,
           },
         };
@@ -1439,7 +1422,6 @@ export class AIController {
     return 'Evening';
   }
 
-  // No toISOString, uses local-safe date math
   private createFallbackItinerary(
     dayCount: number,
     startDate: string,
@@ -1645,23 +1627,13 @@ export class AIController {
     );
 
     const sorted = [...scoredResults].sort((a, b) => {
-      // **CONSISTENCY LOCK**: Use configured precision
-      const aScore = this.q(
-        a.priorityScore,
-        PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
-      );
-      const bScore = this.q(
-        b.priorityScore,
-        PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION,
-      );
-
+      const aScore = this.q(a.priorityScore);
+      const bScore = this.q(b.priorityScore);
       const diff = bScore - aScore;
 
-      // **CONSISTENCY LOCK**: Use smaller epsilon for better precision
       const epsilon = Math.pow(10, -PLANNER_CONFIG.CONSISTENCY.SCORE_PRECISION);
       if (Math.abs(diff) > epsilon) return diff;
 
-      // **CONSISTENCY LOCK**: Deterministic tiebreaker
       return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
     });
 
@@ -1920,7 +1892,7 @@ export class AIController {
       userId,
     );
 
-    // **DETERMINE USER PACE**
+    // Pace-based max activities/day (deterministic)
     let MAX_PER_DAY: number =
       dayCount === 1
         ? PLANNER_CONFIG.ACTIVITIES.MAX_PER_DAY_SHORT
@@ -1931,9 +1903,7 @@ export class AIController {
         const pace = await this.tripStore.getUserTravelPace(userId);
         const paceKey = pace.toUpperCase() as 'RELAXED' | 'MODERATE' | 'ACTIVE';
         const paceConfig = PLANNER_CONFIG.RANKING.PACE_MODIFIERS[paceKey];
-        if (paceConfig) {
-          MAX_PER_DAY = paceConfig.MAX_ACTIVITIES_PER_DAY;
-        }
+        if (paceConfig) MAX_PER_DAY = paceConfig.MAX_ACTIVITIES_PER_DAY;
 
         this.logger.log(
           `[itinerary] userId=${userId} pace=${pace} maxPerDay=${MAX_PER_DAY}`,
@@ -2003,7 +1973,7 @@ export class AIController {
           timeSlot,
           estimatedDuration: this.estimateDuration(category),
           confidenceScore: result.confidence || 'Low',
-          priority: Math.round((priorityScore || 0) * 100) / 100,
+          priority: this.q(priorityScore, 2),
           explanation: await this.buildRichExplanationPersonalized(
             result,
             priorityScore,
@@ -2233,7 +2203,6 @@ export class AIController {
     if (!prefValidation.valid) {
       const destination = this.normalizeText(body.destination) || 'Unknown';
 
-      // Ensure date-only strings always
       const start =
         this.toDateOnly(body.startDate) || this.formatLocalDate(new Date());
       const end = this.toDateOnly(body.endDate) || start;
@@ -2281,7 +2250,6 @@ export class AIController {
     const destination = destinationRaw || 'Unknown';
     const destinationLower = this.normalizeLower(destinationRaw);
 
-    // Normalize date-only
     const startDateStr =
       this.toDateOnly(body.startDate) ||
       (savedTrip ? this.toDateOnly(savedTrip.startDate) : '') ||
@@ -2322,7 +2290,7 @@ export class AIController {
 
     const isValidDestination = this.isValidDestination(destinationLower);
 
-    // INVALID DESTINATION FLOW (unchanged except date-only is already fixed)
+    // INVALID DESTINATION FLOW
     if (!isValidDestination) {
       const allEmbeddings = await this.aiService.getAllEmbeddings();
       const suggestions: EnhancedItineraryItemDto[] = [];
@@ -2448,17 +2416,6 @@ export class AIController {
       const preferencesMatched = this.computePreferencesMatched(
         preferences,
         dayByDayPlan,
-      );
-
-      const allScores = dayByDayPlan.flatMap((d) =>
-        d.activities.map((a) => a.priority),
-      );
-      const minScore = Math.min(...allScores);
-      const maxScore = Math.max(...allScores);
-
-      this.logger.log(
-        `[consistency] scoreRange=[${this.q(minScore)}, ${this.q(maxScore)}] ` +
-          `activities=${allScores.length} personalized=${!!userId}`,
       );
 
       const response: TripPlanResponseDto = {
