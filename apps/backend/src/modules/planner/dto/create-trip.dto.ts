@@ -31,6 +31,7 @@ function IsBeforeEndDate(validationOptions?: ValidationOptions) {
                 validate(value: any, args: ValidationArguments) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                     const obj = args.object as any;
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     if (!value || !obj.endDate) return true; // Skip if either is missing
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                     return new Date(value) < new Date(obj.endDate);

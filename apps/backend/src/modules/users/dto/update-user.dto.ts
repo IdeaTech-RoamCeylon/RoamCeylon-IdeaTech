@@ -7,7 +7,6 @@ import {
   MaxLength,
   registerDecorator,
   ValidationOptions,
-  ValidationArguments,
 } from 'class-validator';
 
 // Custom validator to ensure birthday is in the past and reasonable

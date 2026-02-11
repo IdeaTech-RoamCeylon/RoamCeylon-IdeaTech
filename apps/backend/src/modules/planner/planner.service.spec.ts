@@ -50,7 +50,6 @@ describe('PlannerService - Validation Tests', () => {
 
         service = module.get<PlannerService>(PlannerService);
         prismaService = module.get(PrismaService) as jest.Mocked<PrismaService>;
-        cacheManager = module.get(CACHE_MANAGER);
     });
 
     describe('saveTrip - Preference Validation', () => {
@@ -72,7 +71,7 @@ describe('PlannerService - Validation Tests', () => {
                 updatedAt: new Date(),
             });
 
-            const result = await service.saveTrip('user1', tripData);
+            await service.saveTrip('user1', tripData);
 
             expect((prismaService as any).savedTrip.create).toHaveBeenCalledWith({
                 data: expect.objectContaining({
