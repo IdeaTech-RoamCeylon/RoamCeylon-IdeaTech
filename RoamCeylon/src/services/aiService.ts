@@ -79,8 +79,30 @@ interface BackendResponseWrapper {
 class AIService {
   // MOCK_DELAY removed
 
+  private lastRequestKey: string | null = null;
+  private cachedResponse: TripPlanResponse | null = null;
+
   async generateTripPlan(request: TripPlanRequest): Promise<TripPlanResponse> {
     try {
+      // 1. Generate a cache key based on meaningful preferences
+      const cacheKey = JSON.stringify({
+        destination: request.destination?.trim().toLowerCase(),
+        duration: request.duration,
+        budget: request.budget,
+        // Sort interests so order doesn't matter
+        interests: request.interests ? [...request.interests].sort() : [],
+        // Context fields
+        useSavedContext: request.useSavedContext,
+        mode: request.mode,
+        tripId: request.tripId
+      });
+
+      // 2. Check if we have a valid cache hit
+      if (this.cachedResponse && this.lastRequestKey === cacheKey) {
+        console.log('[AIService] Returning cached trip plan (preferences matched)');
+        return this.cachedResponse;
+      }
+
       // Parse duration to calculate dates
       const durationStr = request.duration || '1';
       // extract number from string (e.g. "3 days" -> 3)
@@ -171,6 +193,10 @@ class AIService {
           }),
         })),
       };
+
+      // 3. Update Cache
+      this.lastRequestKey = cacheKey;
+      this.cachedResponse = mappedResponse;
 
       return mappedResponse;
     } catch (error) {
