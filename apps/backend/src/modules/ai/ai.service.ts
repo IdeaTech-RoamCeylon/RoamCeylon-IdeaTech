@@ -94,13 +94,16 @@ export class AIService {
     sequence: string,
     activityNames: string[],
   ): string[] {
-    const foundActivities: string[] = [];
+    const foundActivities: { name: string; index: number }[] = [];
+
     activityNames.forEach((name) => {
-      if (sequence.toLowerCase().includes(name.toLowerCase())) {
-        foundActivities.push(name);
+      const idx = sequence.toLowerCase().indexOf(name.toLowerCase());
+      if (idx !== -1) {
+        foundActivities.push({ name, index: idx });
       }
     });
-    return foundActivities;
+
+    return foundActivities.sort((a, b) => a.index - b.index).map((f) => f.name);
   }
 
   private isOrderCorrect(

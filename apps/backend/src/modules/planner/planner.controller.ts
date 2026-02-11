@@ -20,7 +20,7 @@ interface RequestWithUser extends Request {
 @Controller('planner')
 @UseGuards(JwtAuthGuard)
 export class PlannerController {
-  constructor(private readonly plannerService: PlannerService) { }
+  constructor(private readonly plannerService: PlannerService) {}
 
   @Post('save')
   async saveTrip(
