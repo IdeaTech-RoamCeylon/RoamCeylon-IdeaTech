@@ -1,17 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
-
-export interface TripData {
-  name?: string;
-  destination?: string;
-  startDate: string | Date;
-  endDate: string | Date;
-  itinerary: any;
-  preferences?: Record<string, any>;
-}
+import { CreateTripDto } from './dto/create-trip.dto';
+import { UpdateTripDto } from './dto/update-trip.dto';
 
 export interface SavedTrip {
   id: number;
@@ -31,28 +24,44 @@ export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
   private normalizePreferences(
     prefs?: Record<string, any>,
   ): Record<string, any> {
-    if (!prefs) return {};
-    return {
-      budget: prefs.budget || 'medium', // Default to medium
+    if (!prefs) {
+      return {
+        budget: 'medium',
+        interests: [],
+        travelStyle: 'relaxed',
+        accessibility: false,
+      };
+    }
+
+    // Validate and normalize preferences
+    const normalized = {
+      budget: prefs.budget || 'medium',
       interests: Array.isArray(prefs.interests) ? prefs.interests : [],
       travelStyle: prefs.travelStyle || 'relaxed',
       accessibility: !!prefs.accessibility,
-      ...prefs, // Keep other keys but ensuring defaults above
     };
+
+    // Validate interests array length
+    if (normalized.interests.length > 20) {
+      throw new BadRequestException(
+        'Too many interests specified. Maximum is 20.',
+      );
+    }
+
+    return normalized;
   }
 
-  async saveTrip(userId: string, tripData: TripData): Promise<SavedTrip> {
-    if (new Date(tripData.startDate) > new Date(tripData.endDate)) {
-      throw new Error('Start date cannot be after end date');
-    }
-    if (!tripData.itinerary) {
-      throw new Error('Itinerary data is required');
-    }
+  async saveTrip(
+    userId: string,
+    tripData: CreateTripDto,
+  ): Promise<SavedTrip> {
+    // Validation is now handled by class-validator decorators
+    // Additional business logic validation can be added here
 
     const normalizedPrefs = this.normalizePreferences(tripData.preferences);
 
@@ -127,22 +136,24 @@ export class PlannerService {
   async updateTrip(
     userId: string,
     tripId: number,
-    data: TripData,
+    data: UpdateTripDto,
   ): Promise<SavedTrip> {
-    if (
-      data.startDate &&
-      data.endDate &&
-      new Date(data.startDate) > new Date(data.endDate)
-    ) {
-      throw new Error('Start date cannot be after end date');
-    }
+    // Validation is now handled by class-validator decorators
 
     const trip = (await (this.prisma as any).savedTrip.findUnique({
       where: { id: tripId },
     })) as SavedTrip | null;
 
-    if (!trip || trip.userId !== userId) {
-      throw new Error('Trip not found or access denied');
+    if (!trip) {
+      throw new BadRequestException(
+        `Trip with ID ${tripId} not found. Please check the trip ID and try again.`,
+      );
+    }
+
+    if (trip.userId !== userId) {
+      throw new BadRequestException(
+        'Access denied. You can only update your own trips.',
+      );
     }
 
     // Invalidate caches
@@ -174,8 +185,16 @@ export class PlannerService {
       where: { id: tripId },
     })) as SavedTrip | null;
 
-    if (!trip || trip.userId !== userId) {
-      throw new Error('Trip not found or access denied');
+    if (!trip) {
+      throw new BadRequestException(
+        `Trip with ID ${tripId} not found. Please check the trip ID and try again.`,
+      );
+    }
+
+    if (trip.userId !== userId) {
+      throw new BadRequestException(
+        'Access denied. You can only delete your own trips.',
+      );
     }
 
     // Invalidate caches
