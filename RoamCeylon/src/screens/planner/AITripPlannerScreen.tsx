@@ -61,6 +61,20 @@ const AITripPlannerScreen = () => {
   const [showContextInfo, setShowContextInfo] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // Ref for cleanup
+  const isMounted = useRef(true);
+  const contextInfoTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (contextInfoTimeout.current) {
+        clearTimeout(contextInfoTimeout.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (tripPlan) {
       setSelectedDay(1); // Reset to Day 1 when new plan is loaded
@@ -114,19 +128,31 @@ const AITripPlannerScreen = () => {
           mode: useSavedContext ? ('refine' as const) : ('new' as const),
         };
         const plan = await aiService.generateTripPlan(requestWithContext);
-        setTripPlan(plan);
         
-        // Show context info if used saved context
-        if (plan.usedSavedContext) {
-          setShowContextInfo(true);
-          setTimeout(() => setShowContextInfo(false), 5000);
+        if (isMounted.current) {
+          setTripPlan(plan);
+          
+          // Show context info if used saved context
+          if (plan.usedSavedContext) {
+            setShowContextInfo(true);
+            // Clear existing timeout if any
+            if (contextInfoTimeout.current) clearTimeout(contextInfoTimeout.current);
+            // Set new timeout
+            contextInfoTimeout.current = setTimeout(() => {
+                if (isMounted.current) setShowContextInfo(false);
+            }, 5000);
+          }
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        setError(`Failed to generate trip plan: ${errorMessage}`);
-        console.error('[AITripPlannerScreen] Error generating plan:', error);
+        if (isMounted.current) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setError(`Failed to generate trip plan: ${errorMessage}`);
+          console.error('[AITripPlannerScreen] Error generating plan:', error);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 

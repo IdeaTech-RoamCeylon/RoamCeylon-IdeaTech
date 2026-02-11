@@ -121,20 +121,22 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     return () => clearTimeout(saveTimer);
   }, [query]);
 
-  // Save tripPlan to storage whenever it changes
+  // Debounce tripPlan saves to prevent blocking UI during drag-and-drop updates
   useEffect(() => {
-    const saveTripPlan = async () => {
+    const saveTripPlan = setTimeout(async () => {
       try {
         if (tripPlan) {
           await AsyncStorage.setItem(STORAGE_KEYS.TRIP_PLAN, JSON.stringify(tripPlan));
+          console.log('[PlannerContext] Trip plan saved to storage (debounced)');
         } else {
           await AsyncStorage.removeItem(STORAGE_KEYS.TRIP_PLAN);
         }
       } catch (error) {
         console.error('Failed to save trip plan:', error);
       }
-    };
-    saveTripPlan();
+    }, 500);
+
+    return () => clearTimeout(saveTripPlan);
   }, [tripPlan]);
 
   // Save currentTripId and isEditing to storage whenever they change
