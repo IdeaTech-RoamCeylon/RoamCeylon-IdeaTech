@@ -10,7 +10,6 @@ import { UpdateTripDto } from './dto/update-trip.dto';
 describe('PlannerService - Validation Tests', () => {
     let service: PlannerService;
     let prismaService: jest.Mocked<PrismaService>;
-    let cacheManager: any;
 
     beforeEach(async () => {
         // Mock PrismaService

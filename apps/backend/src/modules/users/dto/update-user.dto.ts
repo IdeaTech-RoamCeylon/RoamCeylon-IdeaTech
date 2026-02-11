@@ -25,6 +25,7 @@ function IsValidBirthday(validationOptions?: ValidationOptions) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         validate(value: any) {
           if (!value) return true; // Optional field
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const birthday = new Date(value);
           const today = new Date();
           const minDate = new Date();
