@@ -103,7 +103,70 @@ export const TripPlannerForm = React.memo(({
 
         <TouchableOpacity
           style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
-          onPress={onGenerate}
+          onPress={() => {
+            // Client-side validations for edge cases
+            const days = parseInt(query.duration, 10);
+            
+            // 1. Validate Duration Limits
+            if (isNaN(days) || days < 1) {
+               // Alert.alert('Invalid Duration', 'Trip must be at least 1 day.');
+               // Using onGenerate which parent parses, but we intercept here.
+               // Actually parent currently checks for empty strings.
+                updateQuery('duration', '1'); // Auto-fix
+                return;
+            }
+            if (days > 30) {
+              updateQuery('duration', '30'); // Cap at 30
+               // You might want to alert the user too
+            }
+
+            // 2. Conflicting Preferences: Short Trip + Many Interests
+            if (days < 3 && query.interests.length > 4) {
+              // Edge case: User wants too much in little time
+               // We can either block or warn. A warning is better UX.
+               // However, to keep it simple and blocking bad requests:
+               // Or update the UI to show a warning message.
+               // Let's use the error prop logic or a local alert?
+               // Since we can't easily change the parent's error state without a new prop callback,
+               // we'll use a local check.
+               // Let's assume onGenerate handles the actual call.
+            }
+
+             // Validation Logic
+            const validationErrors = [];
+            
+            if (!query.destination.trim()) {
+                validationErrors.push("Please enter a destination.");
+            }
+            
+            if (isNaN(days) || days <= 0) {
+                validationErrors.push("Duration must be at least 1 day.");
+            } else if (days > 30) {
+                validationErrors.push("Trips cannot exceed 30 days.");
+            }
+
+            // Edge Case: Conflicting Preferences (Too many interests for short duration)
+            if (days <= 2 && query.interests.length > 3) {
+                 validationErrors.push(`Too many interests for a ${days}-day trip. Please remove ${query.interests.length - 3} interests.`);
+            }
+
+            // Edge Case: Conflicting Pace (Relaxed vs Many Interests)
+            if (query.pace === 'Relaxed' && query.interests.length > 4) {
+                validationErrors.push("Too many interests for a 'Relaxed' pace. Try 'Fast' or remove interests.");
+            }
+
+            if (validationErrors.length > 0) {
+                // Show first error
+                // We can't set the parent 'error' prop. 
+                // We will use alert for immediate feedback
+                const React = require('react'); // Ensure React is available if not in scope, though it is at top
+                const { Alert } = require('react-native');
+                Alert.alert("Please Check Your Plan", validationErrors[0]);
+                return;
+            }
+
+            onGenerate();
+          }}
           disabled={isLoading}
         >
           {isLoading ? (

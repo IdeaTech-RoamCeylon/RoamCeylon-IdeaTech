@@ -150,17 +150,12 @@ class AIService {
       };
 
       // Adapter: Convert Backend Response to Frontend Response
-      const mappedResponse: TripPlanResponse = {
-        destination: backendData.plan.destination,
-        duration: String(backendData.plan.totalDays),
-        budget: request.budget || 'Medium', // Backend doesn't echo budget, preserve from request
-        // Version tracking
-        tripId: backendData.plan.summary?.tripId,
-        versionNo: backendData.plan.summary?.versionNo,
-        usedSavedContext: backendData.plan.summary?.usedSavedContext,
-        itinerary: backendData.plan.dayByDayPlan.map((day) => ({
+      // Safely map itinerary, handling partial/malformed data
+      const safeItinerary = (backendData.plan.dayByDayPlan || []).map((day) => ({
           day: day.day,
-          activities: day.activities.map((act, idx) => {
+          activities: (day.activities || []).map((act, idx) => {
+             if (!act) return null; // Skip invalid activities
+
              // Log raw activity data to debug preference matching
              if (idx === 0) {
                console.log('[AIService] Raw backend activity:', {
@@ -171,27 +166,46 @@ class AIService {
              }
 
              // Logic to avoid generic names like "Kandy"
-             const destLower = backendData.plan.destination.toLowerCase().trim();
-             const placeLower = act.placeName.toLowerCase().trim();
+             const destLower = (backendData.plan.destination || '').toLowerCase().trim();
+             const placeLower = (act.placeName || '').toLowerCase().trim();
              
              // If place name is just the destination name (e.g. "Kandy" == "Kandy"), use description
              const shouldUseDescription = placeLower === destLower || placeLower.includes(destLower);
              
              const finalDescription = shouldUseDescription && act.shortDescription 
                 ? act.shortDescription 
-                : act.placeName;
+                : (act.placeName || 'Unknown Activity');
 
              return {
                 description: finalDescription,
                 coordinate: getMockCoordinates(idx), // Inject mock coordinate
                 // Map preference-aware data from backend
-                category: act.category,
+                category: act.category || 'General',
                 matchedPreferences: act.explanation?.rankingFactors?.preferenceMatch || [],
                 confidenceScore: act.confidenceScore,
-                tips: act.explanation?.tips,
+                tips: act.explanation?.tips || [],
              };
-          }),
-        })),
+          }).filter(Boolean) as TripActivity[], // Filter out nulls
+      }));
+
+      // Edge Case: Handling "Empty planner results"
+      // If the AI returns 0 days or 0 activities total
+      const totalActivities = safeItinerary.reduce((sum, day) => sum + day.activities.length, 0);
+      
+      if (safeItinerary.length === 0 || totalActivities === 0) {
+        console.warn('[AIService] Generated plan was empty. Throwing specific error.');
+        throw new Error('We could not generate a plan for these preferences. Please try adjusting your destination or interests.');
+      }
+
+      const mappedResponse: TripPlanResponse = {
+        destination: backendData.plan.destination || request.destination,
+        duration: String(backendData.plan.totalDays || safeItinerary.length),
+        budget: request.budget || 'Medium', 
+        // Version tracking
+        tripId: backendData.plan.summary?.tripId,
+        versionNo: backendData.plan.summary?.versionNo,
+        usedSavedContext: backendData.plan.summary?.usedSavedContext,
+        itinerary: safeItinerary,
       };
 
       // 3. Update Cache
