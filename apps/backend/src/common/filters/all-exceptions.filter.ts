@@ -36,6 +36,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private sanitizeObject(obj: any): any {
     if (!obj || typeof obj !== 'object') return obj;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const sanitized = { ...obj };
 
     for (const key in sanitized) {
@@ -47,9 +48,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
 
       if (isSensitive) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sanitized[key] = '***REDACTED***';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       } else if (typeof sanitized[key] === 'object') {
         // Recursively sanitize nested objects
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         sanitized[key] = this.sanitizeObject(sanitized[key]);
       }
     }
@@ -99,6 +103,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Enhanced logging with more context and sensitive data sanitization
     const logContext = `${request.method} ${request.url}`;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const sanitizedBody = this.sanitizeObject(request.body);
 
     if (httpStatus === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {

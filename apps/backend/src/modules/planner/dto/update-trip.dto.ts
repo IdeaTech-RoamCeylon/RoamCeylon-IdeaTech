@@ -3,9 +3,6 @@ import {
     IsDateString,
     IsOptional,
     IsObject,
-    IsIn,
-    IsArray,
-    IsBoolean,
     MaxLength,
     ValidateNested,
 } from 'class-validator';

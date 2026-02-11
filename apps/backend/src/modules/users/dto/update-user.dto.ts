@@ -17,12 +17,14 @@ function IsValidBirthday(validationOptions?: ValidationOptions) {
   return function (object: any, propertyName: string) {
     registerDecorator({
       name: 'isValidBirthday',
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       target: object.constructor,
       propertyName: propertyName,
       options: validationOptions,
       validator: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        validate(value: any, args: ValidationArguments) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        validate(value: any) {
           if (!value) return true; // Optional field
           const birthday = new Date(value);
           const today = new Date();
@@ -30,9 +32,10 @@ function IsValidBirthday(validationOptions?: ValidationOptions) {
           minDate.setFullYear(today.getFullYear() - 120); // Max age 120 years
 
           // Birthday must be in the past and within reasonable range
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           return birthday < today && birthday > minDate;
         },
-        defaultMessage(args: ValidationArguments) {
+        defaultMessage() {
           return 'Birthday must be a valid date in the past (within the last 120 years)';
         },
       },

@@ -22,18 +22,20 @@ function IsBeforeEndDate(validationOptions?: ValidationOptions) {
     return function (object: any, propertyName: string) {
         registerDecorator({
             name: 'isBeforeEndDate',
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             target: object.constructor,
             propertyName: propertyName,
             options: validationOptions,
             validator: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
                 validate(value: any, args: ValidationArguments) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                     const obj = args.object as any;
                     if (!value || !obj.endDate) return true; // Skip if either is missing
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                     return new Date(value) < new Date(obj.endDate);
                 },
-                defaultMessage(args: ValidationArguments) {
+                defaultMessage() {
                     return 'Start date must be before end date';
                 },
             },
