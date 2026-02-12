@@ -14,11 +14,15 @@ interface PlannerContextProps {
     destination: string;
     duration: string;
     budget: string;
+    interests: string[];
+    pace: string;
   };
   setQuery: React.Dispatch<React.SetStateAction<{
     destination: string;
     duration: string;
     budget: string;
+    interests: string[];
+    pace: string;
   }>>;
   tripPlan: TripPlanResponse | null;
   setTripPlan: React.Dispatch<React.SetStateAction<TripPlanResponse | null>>;
@@ -37,6 +41,8 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     destination: '',
     duration: '',
     budget: 'Medium',
+    interests: [] as string[],
+    pace: 'Moderate',
   });
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
@@ -100,32 +106,37 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     loadState();
   }, []);
 
-  // Save query to storage whenever it changes
+  // Debounce query saves to prevent excessive AsyncStorage writes
+  // Wait 500ms after last change before saving
   useEffect(() => {
-    const saveQuery = async () => {
+    const saveTimer = setTimeout(async () => {
       try {
         await AsyncStorage.setItem(STORAGE_KEYS.QUERY, JSON.stringify(query));
+        console.log('[PlannerContext] Query saved to storage (debounced)');
       } catch (error) {
         console.error('Failed to save query:', error);
       }
-    };
-    saveQuery();
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(saveTimer);
   }, [query]);
 
-  // Save tripPlan to storage whenever it changes
+  // Debounce tripPlan saves to prevent blocking UI during drag-and-drop updates
   useEffect(() => {
-    const saveTripPlan = async () => {
+    const saveTripPlan = setTimeout(async () => {
       try {
         if (tripPlan) {
           await AsyncStorage.setItem(STORAGE_KEYS.TRIP_PLAN, JSON.stringify(tripPlan));
+          console.log('[PlannerContext] Trip plan saved to storage (debounced)');
         } else {
           await AsyncStorage.removeItem(STORAGE_KEYS.TRIP_PLAN);
         }
       } catch (error) {
         console.error('Failed to save trip plan:', error);
       }
-    };
-    saveTripPlan();
+    }, 500);
+
+    return () => clearTimeout(saveTripPlan);
   }, [tripPlan]);
 
   // Save currentTripId and isEditing to storage whenever they change
@@ -147,7 +158,7 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
 
   const clearPlanner = useCallback(async () => {
     try {
-      setQuery({ destination: '', duration: '', budget: 'Medium' });
+      setQuery({ destination: '', duration: '', budget: 'Medium', interests: [], pace: 'Moderate' });
       setTripPlan(null);
       setCurrentTripId(null);
       setIsEditing(false);

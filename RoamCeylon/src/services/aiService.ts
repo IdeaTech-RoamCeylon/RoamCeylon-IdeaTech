@@ -16,6 +16,12 @@ export interface TripActivity {
   description: string;
   coordinate?: [number, number]; // [longitude, latitude]
   dayNumber?: number;
+  
+  // Preference-aware data from backend
+  category?: string; // 'Culture', 'Nature', 'Beach', etc.
+  matchedPreferences?: string[]; // User preferences that matched this activity
+  confidenceScore?: 'High' | 'Medium' | 'Low';
+  tips?: string[]; // Helpful tips from backend
 }
 
 export interface TripDay {
@@ -38,7 +44,14 @@ export interface TripPlanResponse {
 interface BackendActivity {
   placeName: string;
   shortDescription: string;
-  // coordinate is missing in backend
+  category?: string;
+  confidenceScore?: 'High' | 'Medium' | 'Low';
+  explanation?: {
+    rankingFactors?: {
+      preferenceMatch?: string[];
+    };
+    tips?: string[];
+  };
 }
 
 interface BackendDayPlan {
@@ -66,8 +79,30 @@ interface BackendResponseWrapper {
 class AIService {
   // MOCK_DELAY removed
 
+  private lastRequestKey: string | null = null;
+  private cachedResponse: TripPlanResponse | null = null;
+
   async generateTripPlan(request: TripPlanRequest): Promise<TripPlanResponse> {
     try {
+      // 1. Generate a cache key based on meaningful preferences
+      const cacheKey = JSON.stringify({
+        destination: request.destination?.trim().toLowerCase(),
+        duration: request.duration,
+        budget: request.budget,
+        // Sort interests so order doesn't matter
+        interests: request.interests ? [...request.interests].sort() : [],
+        // Context fields
+        useSavedContext: request.useSavedContext,
+        mode: request.mode,
+        tripId: request.tripId
+      });
+
+      // 2. Check if we have a valid cache hit
+      if (this.cachedResponse && this.lastRequestKey === cacheKey) {
+        console.log('[AIService] Returning cached trip plan (preferences matched)');
+        return this.cachedResponse;
+      }
+
       // Parse duration to calculate dates
       const durationStr = request.duration || '1';
       // extract number from string (e.g. "3 days" -> 3)
@@ -87,6 +122,10 @@ class AIService {
         mode: request.mode,
         tripId: request.tripId,
       };
+
+      // Log preferences being sent to backend
+      console.log('[AIService] Generating trip plan with preferences:', payload.preferences);
+      console.log('[AIService] Full request payload:', JSON.stringify(payload, null, 2));
 
       // Fetch data matching the BACKEND structure
       const wrapper = await retryWithBackoff(
@@ -111,35 +150,67 @@ class AIService {
       };
 
       // Adapter: Convert Backend Response to Frontend Response
-      const mappedResponse: TripPlanResponse = {
-        destination: backendData.plan.destination,
-        duration: String(backendData.plan.totalDays),
-        budget: request.budget || 'Medium', // Backend doesn't echo budget, preserve from request
-        // Version tracking
-        tripId: backendData.plan.summary?.tripId,
-        versionNo: backendData.plan.summary?.versionNo,
-        usedSavedContext: backendData.plan.summary?.usedSavedContext,
-        itinerary: backendData.plan.dayByDayPlan.map((day) => ({
+      // Safely map itinerary, handling partial/malformed data
+      const safeItinerary = (backendData.plan.dayByDayPlan || []).map((day) => ({
           day: day.day,
-          activities: day.activities.map((act, idx) => {
+          activities: (day.activities || []).map((act, idx) => {
+             if (!act) return null; // Skip invalid activities
+
+             // Log raw activity data to debug preference matching
+             if (idx === 0) {
+               console.log('[AIService] Raw backend activity:', {
+                 placeName: act.placeName,
+                 category: act.category,
+                 preferenceMatch: act.explanation?.rankingFactors?.preferenceMatch
+               });
+             }
+
              // Logic to avoid generic names like "Kandy"
-             const destLower = backendData.plan.destination.toLowerCase().trim();
-             const placeLower = act.placeName.toLowerCase().trim();
+             const destLower = (backendData.plan.destination || '').toLowerCase().trim();
+             const placeLower = (act.placeName || '').toLowerCase().trim();
              
              // If place name is just the destination name (e.g. "Kandy" == "Kandy"), use description
              const shouldUseDescription = placeLower === destLower || placeLower.includes(destLower);
              
              const finalDescription = shouldUseDescription && act.shortDescription 
                 ? act.shortDescription 
-                : act.placeName;
+                : (act.placeName || 'Unknown Activity');
 
              return {
                 description: finalDescription,
                 coordinate: getMockCoordinates(idx), // Inject mock coordinate
+                // Map preference-aware data from backend
+                category: act.category || 'General',
+                matchedPreferences: act.explanation?.rankingFactors?.preferenceMatch || [],
+                confidenceScore: act.confidenceScore,
+                tips: act.explanation?.tips || [],
              };
-          }),
-        })),
+          }).filter(Boolean) as TripActivity[], // Filter out nulls
+      }));
+
+      // Edge Case: Handling "Empty planner results"
+      // If the AI returns 0 days or 0 activities total
+      const totalActivities = safeItinerary.reduce((sum, day) => sum + day.activities.length, 0);
+      
+      if (safeItinerary.length === 0 || totalActivities === 0) {
+        console.warn('[AIService] Generated plan was empty. Throwing specific error.');
+        throw new Error('We could not generate a plan for these preferences. Please try adjusting your destination or interests.');
+      }
+
+      const mappedResponse: TripPlanResponse = {
+        destination: backendData.plan.destination || request.destination,
+        duration: String(backendData.plan.totalDays || safeItinerary.length),
+        budget: request.budget || 'Medium', 
+        // Version tracking
+        tripId: backendData.plan.summary?.tripId,
+        versionNo: backendData.plan.summary?.versionNo,
+        usedSavedContext: backendData.plan.summary?.usedSavedContext,
+        itinerary: safeItinerary,
       };
+
+      // 3. Update Cache
+      this.lastRequestKey = cacheKey;
+      this.cachedResponse = mappedResponse;
 
       return mappedResponse;
     } catch (error) {

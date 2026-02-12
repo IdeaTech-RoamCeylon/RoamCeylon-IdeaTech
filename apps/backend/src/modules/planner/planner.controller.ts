@@ -9,7 +9,9 @@ import {
   UseGuards,
   Param,
 } from '@nestjs/common';
-import { PlannerService, TripData, SavedTrip } from './planner.service';
+import { PlannerService, SavedTrip } from './planner.service';
+import { CreateTripDto } from './dto/create-trip.dto';
+import { UpdateTripDto } from './dto/update-trip.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -20,12 +22,12 @@ interface RequestWithUser extends Request {
 @Controller('planner')
 @UseGuards(JwtAuthGuard)
 export class PlannerController {
-  constructor(private readonly plannerService: PlannerService) {}
+  constructor(private readonly plannerService: PlannerService) { }
 
   @Post('save')
   async saveTrip(
     @Req() req: RequestWithUser,
-    @Body() body: TripData,
+    @Body() body: CreateTripDto,
   ): Promise<SavedTrip> {
     return this.plannerService.saveTrip(req.user.userId, body);
   }
@@ -35,11 +37,19 @@ export class PlannerController {
     return this.plannerService.getHistory(req.user.userId);
   }
 
+  @Get(':id')
+  async getTrip(
+    @Req() req: RequestWithUser,
+    @Param('id') id: string,
+  ): Promise<SavedTrip | null> {
+    return this.plannerService.getTrip(req.user.userId, parseInt(id, 10));
+  }
+
   @Put(':id')
   async updateTrip(
     @Req() req: RequestWithUser,
     @Param('id') id: string,
-    @Body() body: TripData,
+    @Body() body: UpdateTripDto,
   ) {
     return this.plannerService.updateTrip(
       req.user.userId,

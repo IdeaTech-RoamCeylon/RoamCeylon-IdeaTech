@@ -1,16 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
-
-export interface TripData {
-  name?: string;
-  destination?: string;
-  startDate: string | Date;
-  endDate: string | Date;
-  itinerary: any;
-}
+import { CreateTripDto } from './dto/create-trip.dto';
+import { UpdateTripDto } from './dto/update-trip.dto';
 
 export interface SavedTrip {
   id: number;
@@ -20,6 +14,7 @@ export interface SavedTrip {
   startDate: Date;
   endDate: Date;
   itinerary: any;
+  preferences?: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,15 +24,46 @@ export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
-  async saveTrip(userId: string, tripData: TripData): Promise<SavedTrip> {
-    if (new Date(tripData.startDate) > new Date(tripData.endDate)) {
-      throw new Error('Start date cannot be after end date');
+  private normalizePreferences(
+    prefs?: Record<string, any>,
+  ): Record<string, any> {
+    if (!prefs) {
+      return {
+        budget: 'medium',
+        interests: [],
+        travelStyle: 'relaxed',
+        accessibility: false,
+      };
     }
-    if (!tripData.itinerary) {
-      throw new Error('Itinerary data is required');
+
+    // Validate and normalize preferences
+    const normalized = {
+      budget: prefs.budget || 'medium',
+      interests: Array.isArray(prefs.interests) ? prefs.interests : [],
+      travelStyle: prefs.travelStyle || 'relaxed',
+      accessibility: !!prefs.accessibility,
+    };
+
+    // Validate interests array length
+    if (normalized.interests.length > 20) {
+      throw new BadRequestException(
+        'Too many interests specified. Maximum is 20.',
+      );
     }
+
+    return normalized;
+  }
+
+  async saveTrip(
+    userId: string,
+    tripData: CreateTripDto,
+  ): Promise<SavedTrip> {
+    // Validation is now handled by class-validator decorators
+    // Additional business logic validation can be added here
+
+    const normalizedPrefs = this.normalizePreferences(tripData.preferences);
 
     const result = await (this.prisma as any).savedTrip.create({
       data: {
@@ -47,12 +73,47 @@ export class PlannerService {
         startDate: new Date(tripData.startDate),
         endDate: new Date(tripData.endDate),
         itinerary: tripData.itinerary as object,
+        preferences: normalizedPrefs,
       },
     });
+
+    // Validating & Storing User History (Day 40 Task)
+    try {
+      await (this.prisma as any).user.update({
+        where: { id: userId },
+        data: { preferences: normalizedPrefs },
+      });
+    } catch (e) {
+      // Non-blocking error for user preference update
+      console.warn('Failed to update user preferences history', e);
+    }
 
     await this.cacheManager.del(`planner_history_${userId}`);
 
     return result as SavedTrip;
+  }
+
+  async getTrip(userId: string, tripId: number): Promise<SavedTrip | null> {
+    const cacheKey = `trip_${tripId}`;
+    const cachedTrip = await this.cacheManager.get<SavedTrip>(cacheKey);
+
+    if (cachedTrip) {
+      if (cachedTrip.userId !== userId) {
+        throw new Error('Access denied');
+      }
+      return cachedTrip;
+    }
+
+    const trip = (await (this.prisma as any).savedTrip.findUnique({
+      where: { id: tripId },
+    })) as SavedTrip | null;
+
+    if (!trip || trip.userId !== userId) {
+      return null;
+    }
+
+    await this.cacheManager.set(cacheKey, trip, 300000); // 5 minutes TTL
+    return trip;
   }
 
   async getHistory(userId: string): Promise<SavedTrip[]> {
@@ -75,27 +136,33 @@ export class PlannerService {
   async updateTrip(
     userId: string,
     tripId: number,
-    data: TripData,
+    data: UpdateTripDto,
   ): Promise<SavedTrip> {
-    if (
-      data.startDate &&
-      data.endDate &&
-      new Date(data.startDate) > new Date(data.endDate)
-    ) {
-      throw new Error('Start date cannot be after end date');
-    }
+    // Validation is now handled by class-validator decorators
 
     const trip = (await (this.prisma as any).savedTrip.findUnique({
       where: { id: tripId },
     })) as SavedTrip | null;
 
-    if (!trip || trip.userId !== userId) {
-      throw new Error('Trip not found or access denied');
+    if (!trip) {
+      throw new BadRequestException(
+        `Trip with ID ${tripId} not found. Please check the trip ID and try again.`,
+      );
     }
 
-    await this.cacheManager.del(`planner_history_${userId}`);
+    if (trip.userId !== userId) {
+      throw new BadRequestException(
+        'Access denied. You can only update your own trips.',
+      );
+    }
 
-    return (this.prisma as any).savedTrip.update({
+    // Invalidate caches
+    await this.cacheManager.del(`planner_history_${userId}`);
+    await this.cacheManager.del(`trip_${tripId}`);
+
+    const normalizedPrefs = this.normalizePreferences(data.preferences);
+
+    const updatedTrip = (await (this.prisma as any).savedTrip.update({
       where: { id: tripId },
       data: {
         name: data.name,
@@ -103,8 +170,14 @@ export class PlannerService {
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
         itinerary: data.itinerary as object,
+        preferences: normalizedPrefs,
       },
-    }) as Promise<SavedTrip>;
+    })) as SavedTrip;
+
+    // Cache the updated trip immediately
+    await this.cacheManager.set(`trip_${tripId}`, updatedTrip, 300000);
+
+    return updatedTrip;
   }
 
   async deleteTrip(userId: string, tripId: number): Promise<SavedTrip> {
@@ -112,11 +185,21 @@ export class PlannerService {
       where: { id: tripId },
     })) as SavedTrip | null;
 
-    if (!trip || trip.userId !== userId) {
-      throw new Error('Trip not found or access denied');
+    if (!trip) {
+      throw new BadRequestException(
+        `Trip with ID ${tripId} not found. Please check the trip ID and try again.`,
+      );
     }
 
+    if (trip.userId !== userId) {
+      throw new BadRequestException(
+        'Access denied. You can only delete your own trips.',
+      );
+    }
+
+    // Invalidate caches
     await this.cacheManager.del(`planner_history_${userId}`);
+    await this.cacheManager.del(`trip_${tripId}`);
 
     return (this.prisma as any).savedTrip.delete({
       where: { id: tripId },

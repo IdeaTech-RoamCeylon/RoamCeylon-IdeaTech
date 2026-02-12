@@ -16,19 +16,41 @@ class TripStorageService {
   private useBackend = true; // Try backend first, fallback to local
 
   /**
-   * Get all saved trips (from backend or local storage)
+   * Get all saved trips (from backend or local storage) with optional pagination
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of items per page
    */
-  async getSavedTrips(): Promise<SavedTrip[]> {
+  async getSavedTrips(
+    page?: number,
+    pageSize?: number
+  ): Promise<SavedTrip[] | { data: SavedTrip[]; hasMore: boolean; total: number }> {
     if (this.useBackend) {
       try {
-        return await plannerApiService.getSavedTrips();
+        const trips = await plannerApiService.getSavedTrips();
+        
+        // If pagination params provided, paginate the results
+        if (page !== undefined && pageSize !== undefined) {
+          const total = trips.length;
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const paginatedData = trips.slice(startIndex, endIndex);
+          const hasMore = endIndex < total;
+          
+          return {
+            data: paginatedData,
+            hasMore,
+            total,
+          };
+        }
+        
+        return trips;
       } catch (error) {
         console.warn('Backend unavailable, using local storage:', error);
         this.useBackend = false;
-        return this.getLocalTrips();
+        return this.getLocalTrips(page, pageSize);
       }
     }
-    return this.getLocalTrips();
+    return this.getLocalTrips(page, pageSize);
   }
 
   /**
@@ -116,10 +138,13 @@ class TripStorageService {
 
   // ===== Local Storage Methods (Fallback) =====
 
-  private async getLocalTrips(): Promise<SavedTrip[]> {
+  private async getLocalTrips(
+    page?: number,
+    pageSize?: number
+  ): Promise<SavedTrip[] | { data: SavedTrip[]; hasMore: boolean; total: number }> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!data) return [];
+      if (!data) return page !== undefined && pageSize !== undefined ? { data: [], hasMore: false, total: 0 } : [];
       
       const parsed = JSON.parse(data);
       
@@ -127,11 +152,11 @@ class TripStorageService {
       if (!Array.isArray(parsed)) {
         console.error('Stored trips data is not an array, clearing corrupted data');
         await AsyncStorage.removeItem(STORAGE_KEY);
-        return [];
+        return page !== undefined && pageSize !== undefined ? { data: [], hasMore: false, total: 0 } : [];
       }
       
       // Filter out any corrupted trip objects
-      return parsed.filter(trip => 
+      const validTrips = parsed.filter(trip => 
         trip && 
         trip.id && 
         trip.name && 
@@ -139,17 +164,35 @@ class TripStorageService {
         trip.tripPlan.itinerary && 
         Array.isArray(trip.tripPlan.itinerary)
       );
+      
+      // If pagination params provided, paginate the results
+      if (page !== undefined && pageSize !== undefined) {
+        const total = validTrips.length;
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedData = validTrips.slice(startIndex, endIndex);
+        const hasMore = endIndex < total;
+        
+        return {
+          data: paginatedData,
+          hasMore,
+          total,
+        };
+      }
+      
+      return validTrips;
     } catch (error) {
       console.error('Error loading local trips:', error);
       // Clear corrupted data
       await AsyncStorage.removeItem(STORAGE_KEY);
-      return [];
+      return page !== undefined && pageSize !== undefined ? { data: [], hasMore: false, total: 0 } : [];
     }
   }
 
   private async saveLocalTrip(trip: SavedTrip): Promise<SavedTrip> {
     try {
-      const trips = await this.getLocalTrips();
+      const tripsResult = await this.getLocalTrips();
+      const trips = Array.isArray(tripsResult) ? tripsResult : tripsResult.data;
       trips.unshift(trip);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
       return trip;
@@ -161,7 +204,8 @@ class TripStorageService {
 
   private async deleteLocalTrip(id: string): Promise<void> {
     try {
-      const trips = await this.getLocalTrips();
+      const tripsResult = await this.getLocalTrips();
+      const trips = Array.isArray(tripsResult) ? tripsResult : tripsResult.data;
       const filtered = trips.filter(trip => trip.id !== id);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     } catch (error) {
@@ -172,7 +216,8 @@ class TripStorageService {
 
   private async getLocalTripById(id: string): Promise<SavedTrip | null> {
     try {
-      const trips = await this.getLocalTrips();
+      const tripsResult = await this.getLocalTrips();
+      const trips = Array.isArray(tripsResult) ? tripsResult : tripsResult.data;
       return trips.find(trip => trip.id === id) || null;
     } catch (error) {
       console.error('Error getting local trip:', error);
@@ -182,7 +227,8 @@ class TripStorageService {
 
   private async updateLocalTrip(id: string, updates: Partial<SavedTrip>): Promise<void> {
     try {
-      const trips = await this.getLocalTrips();
+      const tripsResult = await this.getLocalTrips();
+      const trips = Array.isArray(tripsResult) ? tripsResult : tripsResult.data;
       const index = trips.findIndex(trip => trip.id === id);
       if (index !== -1) {
         trips[index] = { ...trips[index], ...updates };

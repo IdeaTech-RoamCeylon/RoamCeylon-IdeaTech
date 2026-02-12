@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { TripActivity } from '../services/aiService';
+import { PreferenceTag } from './PreferenceTag';
+import { ConfidenceIndicator } from './ConfidenceIndicator';
 
 interface EnhancedItineraryCardProps {
   activity: TripActivity;
@@ -14,7 +16,24 @@ interface EnhancedItineraryCardProps {
   canMoveDown: boolean;
 }
 
-const getActivityIcon = (description: string): string => {
+const getCategoryIcon = (category?: string, description?: string): string => {
+  // Use category from backend if available
+  if (category) {
+    switch (category.toLowerCase()) {
+      case 'culture': return '🏛️';
+      case 'nature': return '🌿';
+      case 'beach': return '🏖️';
+      case 'adventure': return '⛰️';
+      case 'relaxation': return '🧘';
+      case 'history': return '📜';
+      case 'sightseeing': return '👁️';
+      case 'arrival': return '✈️';
+      default: break;
+    }
+  }
+  
+  // Fallback to description-based detection
+  if (!description) return '📍';
   const lower = description.toLowerCase();
   if (lower.includes('breakfast') || lower.includes('lunch') || lower.includes('dinner') || lower.includes('food') || lower.includes('restaurant') || lower.includes('cafe')) {
     return '🍽️';
@@ -99,10 +118,13 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
   canMoveUp,
   canMoveDown,
 }) => {
-  const icon = getActivityIcon(activity.description);
+  const icon = getCategoryIcon(activity.category, activity.description);
   const cost = getMockCost(activity.description);
   const duration = getMockDuration(activity.description);
   const rating = getMockRating();
+  
+  const hasPreferences = activity.matchedPreferences && activity.matchedPreferences.length > 0;
+  const hasTips = activity.tips && activity.tips.length > 0;
 
   return (
     <TouchableOpacity
@@ -120,12 +142,26 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
             <View style={styles.ratingContainer}>
               <Text style={styles.ratingStar}>⭐</Text>
               <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+              {activity.confidenceScore && (
+                <ConfidenceIndicator level={activity.confidenceScore} compact />
+              )}
             </View>
           </View>
         </View>
       </View>
 
       <Text style={styles.description}>{activity.description}</Text>
+
+      {hasPreferences && (
+        <View style={styles.preferencesContainer}>
+          <Text style={styles.preferencesLabel}>Matches your interests:</Text>
+          <View style={styles.preferencesTags}>
+            {activity.matchedPreferences!.map((pref) => (
+              <PreferenceTag key={pref} preference={pref} variant="compact" />
+            ))}
+          </View>
+        </View>
+      )}
 
       <View style={styles.metaContainer}>
         <View style={styles.metaItem}>
@@ -143,6 +179,13 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
           </View>
         )}
       </View>
+
+      {hasTips && (
+        <View style={styles.tipsContainer}>
+          <Text style={styles.tipsIcon}>💡</Text>
+          <Text style={styles.tipsText}>{activity.tips![0]}</Text>
+        </View>
+      )}
 
       {(onMoveUp || onMoveDown || onDelete) && (
         <View style={styles.actions}>
@@ -295,6 +338,38 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: 16,
+  },
+  preferencesContainer: {
+    marginBottom: 12,
+  },
+  preferencesLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  preferencesTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tipsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF9C4',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+  },
+  tipsIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  tipsText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#5D4037',
+    fontStyle: 'italic',
+    lineHeight: 18,
   },
 });
 

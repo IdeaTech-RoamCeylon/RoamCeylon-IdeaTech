@@ -47,6 +47,7 @@ model User {
   email       String?
   birthday    DateTime?
   gender      String?
+  preferences Json?
   updatedAt   DateTime  @default(now()) @updatedAt
 }
 
@@ -77,6 +78,7 @@ model SavedTrip {
   startDate   DateTime
   endDate     DateTime
   itinerary   Json
+  preferences Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

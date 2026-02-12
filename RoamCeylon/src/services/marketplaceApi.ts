@@ -39,15 +39,39 @@ class MarketplaceApi {
   }
 
   /**
-   * Fetch products, optionally filtered by category
+   * Fetch products, optionally filtered by category with pagination support
    * @param category - Optional category filter
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of items per page
    */
-  getProducts = async (category?: string): Promise<Product[]> => {
+  getProducts = async (
+    category?: string,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<{ data: Product[]; hasMore: boolean; total: number }> => {
     try {
       return await retryWithBackoff(async () => {
-        const params = category ? { category } : {};
+        const params: any = { page, pageSize };
+        if (category) {
+          params.category = category;
+        }
+        
         const response = await apiService.get<WrappedResponse<Product[]> | Product[]>('/marketplace/products', { params });
-        return this.unwrap(response);
+        const products = this.unwrap(response);
+        
+        // Calculate pagination metadata
+        // In a real app, this would come from the backend
+        const total = products.length;
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedData = products.slice(startIndex, endIndex);
+        const hasMore = endIndex < total;
+        
+        return {
+          data: paginatedData,
+          hasMore,
+          total,
+        };
       });
     } catch (error) {
       console.error('Error fetching products:', error);

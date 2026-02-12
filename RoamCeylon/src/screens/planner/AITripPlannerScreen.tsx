@@ -22,6 +22,7 @@ import DaySelector from '../../components/DaySelector';
 import ItineraryList from '../../components/ItineraryList';
 import BudgetBreakdown from '../../components/BudgetBreakdown';
 import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
+import { PreferenceSummaryBanner } from '../../components/PreferenceSummaryBanner';
 import { tripStorageService } from '../../services/tripStorageService';
 
 
@@ -60,6 +61,20 @@ const AITripPlannerScreen = () => {
   const [showContextInfo, setShowContextInfo] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // Ref for cleanup
+  const isMounted = useRef(true);
+  const contextInfoTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (contextInfoTimeout.current) {
+        clearTimeout(contextInfoTimeout.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (tripPlan) {
       setSelectedDay(1); // Reset to Day 1 when new plan is loaded
@@ -77,7 +92,7 @@ const AITripPlannerScreen = () => {
   const budgets = useMemo(() => ['Low', 'Medium', 'High', 'Luxury'], []);
 
   // Memoize updateQuery to prevent recreation
-  const updateQuery = useCallback((key: keyof typeof query, value: string) => {
+  const updateQuery = useCallback((key: keyof typeof query, value: string | string[]) => {
     setQuery(prev => ({ ...prev, [key]: value }));
   }, [setQuery]);
 
@@ -93,34 +108,74 @@ const AITripPlannerScreen = () => {
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-    setTripPlan(null); 
-    stopEditing(); // Clear editing state when generating a new plan
-
-    try {
-      // Include saved context parameters
-      const requestWithContext = {
-        ...query,
-        useSavedContext: useSavedContext,
-        mode: useSavedContext ? ('refine' as const) : ('new' as const),
-      };
-      const plan = await aiService.generateTripPlan(requestWithContext);
-      setTripPlan(plan);
-      
-      // Show context info if used saved context
-      if (plan.usedSavedContext) {
-        setShowContextInfo(true);
-        setTimeout(() => setShowContextInfo(false), 5000);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Failed to generate trip plan: ${errorMessage}`);
-      console.error('[AITripPlannerScreen] Error generating plan:', error);
-    } finally {
-      setIsLoading(false);
+    // Prevent double-clicks by checking if already loading
+    if (isLoading) {
+      return;
     }
-  }, [query, networkStatus.isConnected, setTripPlan]);
+
+    // Helper function to proceed with generation
+    const proceedWithGeneration = async () => {
+      setIsLoading(true);
+      setError(null);
+      setTripPlan(null); 
+      stopEditing(); // Clear editing state when generating a new plan
+
+      try {
+        // Include saved context parameters
+        const requestWithContext = {
+          ...query,
+          useSavedContext: useSavedContext,
+          mode: useSavedContext ? ('refine' as const) : ('new' as const),
+        };
+        const plan = await aiService.generateTripPlan(requestWithContext);
+        
+        if (isMounted.current) {
+          setTripPlan(plan);
+          
+          // Show context info if used saved context
+          if (plan.usedSavedContext) {
+            setShowContextInfo(true);
+            // Clear existing timeout if any
+            if (contextInfoTimeout.current) clearTimeout(contextInfoTimeout.current);
+            // Set new timeout
+            contextInfoTimeout.current = setTimeout(() => {
+                if (isMounted.current) setShowContextInfo(false);
+            }, 5000);
+          }
+        }
+      } catch (error) {
+        if (isMounted.current) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setError(`Failed to generate trip plan: ${errorMessage}`);
+          console.error('[AITripPlannerScreen] Error generating plan:', error);
+        }
+      } finally {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Warn if overwriting existing plan (not in editing mode)
+    if (tripPlan && !isEditing) {
+      Alert.alert(
+        'Generate New Plan?',
+        'This will replace your current trip plan. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Generate', 
+            onPress: proceedWithGeneration,
+            style: 'destructive' 
+          }
+        ]
+      );
+      return;
+    }
+
+    // Proceed directly if no existing plan or in editing mode
+    await proceedWithGeneration();
+  }, [query, networkStatus.isConnected, setTripPlan, tripPlan, isEditing, useSavedContext, stopEditing, isLoading]);
 
   const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
     if (!tripPlan) return;
@@ -444,6 +499,14 @@ const AITripPlannerScreen = () => {
                 <Text style={styles.summaryValue}>{tripPlan.budget}</Text>
               </View>
             </View>
+
+            {/* Preference Summary Banner */}
+            {query.interests && query.interests.length > 0 && (
+              <PreferenceSummaryBanner
+                selectedPreferences={query.interests}
+                itinerary={tripPlan.itinerary}
+              />
+            )}
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
