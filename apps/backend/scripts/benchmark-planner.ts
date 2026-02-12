@@ -15,8 +15,8 @@ async function bootstrap() {
     // 1. Create a Trip
     logger.log('1. Creating a fresh trip...');
     const trip = await plannerService.saveTrip(userId, {
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 86400000),
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 86400000).toISOString(),
         destination: 'Galle',
         itinerary: { day1: 'Beach' },
     });
