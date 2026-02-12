@@ -399,6 +399,22 @@ export class AIController {
     );
   }
 
+  // Prevent one preference from dominating scoring
+  private capByBaseQuality(baseScore: number, cap: number): number {
+    // low quality -> smaller cap, high quality -> closer to cap
+    // baseScore is typically 0..1
+    const factor = Math.min(Math.max((baseScore - 0.5) / 0.5, 0), 1); // maps 0.5..1 -> 0..1
+    return cap * (0.35 + 0.65 * factor); // at least 35% of cap
+  }
+
+  // Normalize boost when many preferences are provided (avoid "more prefs = always better")
+  private normalizeByPrefCount(boost: number, prefCount: number): number {
+    if (prefCount <= 0) return boost;
+    // sublinear scaling: 1 pref = 1.0, 4 prefs ~= 0.5 multiplier
+    const scale = 1 / Math.sqrt(prefCount);
+    return boost * Math.min(1, Math.max(0.4, scale));
+  }
+
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
@@ -1075,29 +1091,29 @@ export class AIController {
     let boost = 0;
     const titleLower = result.title.toLowerCase();
     const contentLower = result.content.toLowerCase();
+    const baseScore = result.score || 0;
+
+    // Cap per single preference (prevents "beach" from dominating)
+    const PER_PREF_CAP = 0.45; // controller-only, not in constants file
+    const TOTAL_PREF_CAP = 0.9; // total preference influence before normalization
+
     const matchedPrefs: Array<{
       pref: string;
       location: string;
       boost: number;
     }> = [];
 
-    preferences.forEach((pref) => {
+    for (const pref of preferences) {
       const prefLower = pref.toLowerCase();
+      let prefBoost = 0;
+      let location = '';
 
       if (titleLower.includes(prefLower)) {
-        boost += this.PREFERENCE_WEIGHTS.TITLE_DIRECT_MATCH;
-        matchedPrefs.push({
-          pref,
-          location: 'title',
-          boost: this.PREFERENCE_WEIGHTS.TITLE_DIRECT_MATCH,
-        });
+        prefBoost += this.PREFERENCE_WEIGHTS.TITLE_DIRECT_MATCH;
+        location = 'title';
       } else if (contentLower.includes(prefLower)) {
-        boost += this.PREFERENCE_WEIGHTS.CONTENT_DIRECT_MATCH;
-        matchedPrefs.push({
-          pref,
-          location: 'content',
-          boost: this.PREFERENCE_WEIGHTS.CONTENT_DIRECT_MATCH,
-        });
+        prefBoost += this.PREFERENCE_WEIGHTS.CONTENT_DIRECT_MATCH;
+        location = 'content';
       } else {
         const mappedCategories = this.INTEREST_CATEGORY_MAP[prefLower] || [];
         for (const category of mappedCategories) {
@@ -1106,33 +1122,56 @@ export class AIController {
             titleLower.includes(categoryLower) ||
             contentLower.includes(categoryLower)
           ) {
-            boost += this.PREFERENCE_WEIGHTS.CATEGORY_MAPPED_MATCH;
-            matchedPrefs.push({
-              pref,
-              location: `mapped to ${category}`,
-              boost: this.PREFERENCE_WEIGHTS.CATEGORY_MAPPED_MATCH,
-            });
+            prefBoost += this.PREFERENCE_WEIGHTS.CATEGORY_MAPPED_MATCH;
+            location = `mapped to ${category}`;
             break;
           }
         }
       }
-    });
 
+      // HARD per-pref cap
+      if (prefBoost > 0) {
+        const capped = Math.min(prefBoost, PER_PREF_CAP);
+        boost += capped;
+        matchedPrefs.push({
+          pref,
+          location: location || 'match',
+          boost: capped,
+        });
+      }
+    }
+
+    // Multi-match bonus, but also cap it
     if (matchedPrefs.length > 1) {
-      const multiMatchBonus =
+      const rawBonus =
         (matchedPrefs.length - 1) *
         this.PREFERENCE_WEIGHTS.MULTIPLE_MATCH_BONUS;
-      boost += multiMatchBonus;
+
+      // Keep multi bonus from overpowering
+      const multiBonus = Math.min(rawBonus, 0.35);
+      boost += multiBonus;
+
       rankingDetails.adjustments.push(
-        `Multi-preference bonus: ${matchedPrefs.length} matches (+${Number(multiMatchBonus).toFixed(2)})`,
+        `Multi-preference bonus: ${matchedPrefs.length} matches (+${multiBonus.toFixed(2)})`,
       );
     }
 
+    // Total preference cap (before normalization)
+    boost = Math.min(boost, TOTAL_PREF_CAP);
+
+    // Scale down preference influence if baseScore is low (relevance-first)
+    const qualityCap = this.capByBaseQuality(baseScore, TOTAL_PREF_CAP);
+    boost = Math.min(boost, qualityCap);
+
+    // Normalize if user gives many preferences
+    boost = this.normalizeByPrefCount(boost, preferences.length);
+
     if (matchedPrefs.length > 0) {
       const details = matchedPrefs
+        .slice(0, 6)
         .map((m) => `${m.pref} (${m.location}: +${m.boost})`)
         .join(', ');
-      rankingDetails.adjustments.push(`Preferences: ${details}`);
+      rankingDetails.adjustments.push(`Preferences (capped): ${details}`);
     }
 
     return boost;
@@ -1149,7 +1188,7 @@ export class AIController {
 
     const scored = results
       .map((result) => {
-        const baseScore = result.score || 0.5;
+        const baseScore = result.score ?? 0.5;
         let priorityScore = baseScore;
 
         const rankingDetails: RankingDetails = {
@@ -1164,6 +1203,7 @@ export class AIController {
           PLANNER_CONFIG.SCORING.CONFIDENCE_MULTIPLIERS[
             result.confidence ?? 'Low'
           ];
+
         priorityScore *= confidenceMultiplier;
         rankingDetails.confidenceMultiplier = confidenceMultiplier;
 
@@ -1174,9 +1214,13 @@ export class AIController {
             ? PLANNER_CONFIG.SCORING.LOW_QUALITY_MULTIPLIER
             : 1.0;
 
+        // -------------------- PROXIMITY BOOSTS --------------------
         if (dest && dest.length >= PLANNER_CONFIG.SEARCH.MIN_QUERY_LENGTH) {
-          const hasDestInTitle = result.title.toLowerCase().includes(dest);
-          const hasDestInContent = result.content.toLowerCase().includes(dest);
+          const titleLower = result.title.toLowerCase();
+          const contentLower = result.content.toLowerCase();
+
+          const hasDestInTitle = titleLower.includes(dest);
+          const hasDestInContent = contentLower.includes(dest);
           const hasNearMetadata = text.includes('near:') && text.includes(dest);
 
           if (hasDestInTitle) {
@@ -1205,7 +1249,7 @@ export class AIController {
 
           if (
             (hasDestInTitle || hasNearMetadata) &&
-            result.score >= PLANNER_CONFIG.THRESHOLDS.HIGH_SCORE_COMBO
+            (result.score ?? 0) >= PLANNER_CONFIG.THRESHOLDS.HIGH_SCORE_COMBO
           ) {
             const comboBoost = PLANNER_CONFIG.SCORING.PROXIMITY_BOOSTS.COMBO;
             priorityScore += comboBoost;
@@ -1215,15 +1259,41 @@ export class AIController {
           }
         }
 
+        // -------------------- PREFERENCE BOOST (CONTROLLED) --------------------
         if (preferences && preferences.length > 0) {
           const preferenceBoost = this.calculatePreferenceBoost(
             result,
             preferences,
             rankingDetails,
           );
-          priorityScore += preferenceBoost * boostMultiplier;
+
+          // Soften preference influence for Low-confidence items
+          const prefSoftener = result.confidence === 'Low' ? 0.6 : 1.0;
+          if (prefSoftener !== 1.0) {
+            rankingDetails.adjustments.push(
+              'Preference softener applied (Low confidence)',
+            );
+          }
+
+          const appliedPrefBoost =
+            preferenceBoost * boostMultiplier * prefSoftener;
+          priorityScore += appliedPrefBoost;
+
+          // Hard cap: preference influence should not exceed a fraction of base quality
+          // (controller-only rule; uses locked constant for influence limit)
+          const prefCap =
+            baseScore *
+            PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE;
+          if (appliedPrefBoost > prefCap) {
+            const over = appliedPrefBoost - prefCap;
+            priorityScore -= over;
+            rankingDetails.adjustments.push(
+              `Preference cap: -${this.q(over, 4).toFixed(4)} (cap=${this.q(prefCap, 4).toFixed(4)})`,
+            );
+          }
         }
 
+        // -------------------- TRIP OPTIMIZATION --------------------
         if (tripType === 'short') {
           if (text.match(/fort|temple|kovil|church|museum|beach/)) {
             const boost =
@@ -1248,10 +1318,27 @@ export class AIController {
           }
         }
 
+        // -------------------- RELEVANCE CEILING (CORE QUALITY FIRST) --------------------
+        // Prevent any boosts (prefs/proximity/etc.) from turning weak items into top picks.
+        // Same ceiling concept as personalization method.
+        const maxFinal = this.q(
+          baseScore +
+            baseScore *
+              PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE,
+        );
+        if (priorityScore > maxFinal) {
+          rankingDetails.adjustments.push(
+            `Relevance ceiling applied: ${this.q(priorityScore, 4).toFixed(4)} -> ${this.q(maxFinal, 4).toFixed(4)}`,
+          );
+          priorityScore = maxFinal;
+        }
+
+        // Global cap
         priorityScore = Math.min(
           priorityScore,
           PLANNER_CONFIG.SCORING.MAX_PRIORITY,
         );
+
         rankingDetails.finalScore = priorityScore;
 
         const { matched: matchedPreferences } = this.extractMatchedPreferences(
@@ -1470,13 +1557,25 @@ export class AIController {
         // CONSISTENCY LOCK: fixed precision rounding
         const finalScore = this.q(item.priorityScore + personalizationBoost);
 
+        const baseScore = item.score || 0;
+
+        // Ceiling: personalization cannot move item beyond a relevance-bound max
+        const maxFinal = this.q(
+          baseScore +
+            baseScore *
+              PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE,
+        );
+
+        const boundedFinal = Math.min(finalScore, maxFinal);
+
         return {
           ...item,
-          priorityScore: finalScore,
+          priorityScore: boundedFinal,
           rankingDetails: {
             ...item.rankingDetails,
             personalizationBoost: this.q(personalizationBoost),
             userPace,
+            relevanceCeiling: maxFinal, // optional debug info
           },
         };
       }),
