@@ -56,7 +56,6 @@ const AITripPlannerScreen = () => {
   const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [tripName, setTripName] = useState('');
-  const [useEnhancedView, setUseEnhancedView] = useState(true);
   const [useSavedContext, setUseSavedContext] = useState(true);
   const [showContextInfo, setShowContextInfo] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;

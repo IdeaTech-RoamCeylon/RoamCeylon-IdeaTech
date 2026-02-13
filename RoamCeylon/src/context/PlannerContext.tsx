@@ -112,7 +112,6 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
     const saveTimer = setTimeout(async () => {
       try {
         await AsyncStorage.setItem(STORAGE_KEYS.QUERY, JSON.stringify(query));
-        console.log('[PlannerContext] Query saved to storage (debounced)');
       } catch (error) {
         console.error('Failed to save query:', error);
       }
@@ -127,7 +126,6 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
       try {
         if (tripPlan) {
           await AsyncStorage.setItem(STORAGE_KEYS.TRIP_PLAN, JSON.stringify(tripPlan));
-          console.log('[PlannerContext] Trip plan saved to storage (debounced)');
         } else {
           await AsyncStorage.removeItem(STORAGE_KEYS.TRIP_PLAN);
         }
