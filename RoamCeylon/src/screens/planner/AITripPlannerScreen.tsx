@@ -23,7 +23,7 @@ import ItineraryList from '../../components/ItineraryList';
 import BudgetBreakdown from '../../components/BudgetBreakdown';
 import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
 import { PreferenceSummaryBanner } from '../../components/PreferenceSummaryBanner';
-import { tripStorageService } from '../../services/tripStorageService';
+import { tripStorageService, TripFeedback } from '../../services/tripStorageService';
 
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
@@ -58,6 +58,11 @@ const AITripPlannerScreen = () => {
   const [tripName, setTripName] = useState('');
   const [useSavedContext, setUseSavedContext] = useState(true);
   const [showContextInfo, setShowContextInfo] = useState(false);
+  
+  // Feedback State
+  const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative' | 'submitted'>('none');
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
+  
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Ref for cleanup
@@ -342,6 +347,57 @@ const AITripPlannerScreen = () => {
     navigation.navigate('SavedTrips' as never);
   }, [navigation]);
 
+  const handleFeedback = useCallback(async (isPositive: boolean) => {
+    if (isPositive) {
+      setFeedbackState('submitted');
+      // Save positive feedback properly
+       const feedback: TripFeedback = {
+        tripId: currentTripId || `temp_${Date.now()}`,
+        isPositive: true,
+        timestamp: new Date().toISOString(),
+      };
+      await tripStorageService.saveFeedback(feedback);
+      
+      // Auto-revert after 3 seconds
+      setTimeout(() => {
+        if (isMounted.current) setFeedbackState('none');
+      }, 3000);
+    } else {
+      setFeedbackState('negative');
+    }
+  }, [currentTripId]);
+
+  const handleSubmitNegativeFeedback = useCallback(async () => {
+    setFeedbackState('submitted');
+    
+    // Save negative feedback properly
+     const feedback: TripFeedback = {
+      tripId: currentTripId || `temp_${Date.now()}`,
+      isPositive: false,
+      reasons: selectedReasons,
+      timestamp: new Date().toISOString(),
+    };
+    await tripStorageService.saveFeedback(feedback);
+
+    // Auto-revert after 3 seconds
+    setTimeout(() => {
+      if (isMounted.current) {
+        setFeedbackState('none');
+        setSelectedReasons([]);
+      }
+    }, 3000);
+  }, [currentTripId, selectedReasons]);
+
+  const toggleReason = useCallback((reason: string) => {
+    setSelectedReasons(prev => {
+      if (prev.includes(reason)) {
+        return prev.filter(r => r !== reason);
+      } else {
+        return [...prev, reason];
+      }
+    });
+  }, []);
+
 
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
@@ -506,6 +562,76 @@ const AITripPlannerScreen = () => {
                 itinerary={tripPlan.itinerary}
               />
             )}
+
+            {/* Feedback Section */}
+            <View style={styles.feedbackSection}>
+              {feedbackState === 'none' && (
+                <View style={styles.feedbackRow}>
+                  <Text style={styles.feedbackLabel}>How is this plan?</Text>
+                  <View style={styles.feedbackButtons}>
+                    <TouchableOpacity 
+                      style={styles.feedbackButton}
+                      onPress={() => handleFeedback(true)}
+                    >
+                      <Text style={styles.feedbackIcon}>👍</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.feedbackButton}
+                      onPress={() => handleFeedback(false)}
+                    >
+                      <Text style={styles.feedbackIcon}>👎</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {feedbackState === 'negative' && (
+                <View style={styles.negativeFeedbackContainer}>
+                  <Text style={styles.feedbackQuestion}>What can be improved?</Text>
+                  <View style={styles.reasonChips}>
+                    {['Too expensive', 'Too busy', 'Bad location', 'Not my style'].map((reason) => (
+                      <TouchableOpacity
+                        key={reason}
+                        style={[
+                          styles.reasonChip,
+                          selectedReasons.includes(reason) && styles.reasonChipSelected
+                        ]}
+                        onPress={() => toggleReason(reason)}
+                      >
+                        <Text style={[
+                          styles.reasonChipText,
+                          selectedReasons.includes(reason) && styles.reasonChipTextSelected
+                        ]}>{reason}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={styles.feedbackActions}>
+                     <TouchableOpacity 
+                      onPress={() => setFeedbackState('none')}
+                      style={styles.feedbackCancelButton}
+                    >
+                      <Text style={styles.feedbackCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={handleSubmitNegativeFeedback}
+                      style={[
+                        styles.feedbackSubmitButton, 
+                        selectedReasons.length === 0 && styles.feedbackSubmitButtonDisabled
+                      ]}
+                      disabled={selectedReasons.length === 0}
+                    >
+                      <Text style={styles.feedbackSubmitText}>Submit Feedback</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {feedbackState === 'submitted' && (
+                <View style={styles.thankYouContainer}>
+                  <Text style={styles.thankYouText}>Thanks for your feedback! 🤖</Text>
+                </View>
+              )}
+            </View>
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
@@ -1061,6 +1187,113 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Feedback Styles
+  feedbackSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    marginTop: 5,
+  },
+  feedbackRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  feedbackLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  feedbackButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  feedbackButton: {
+    padding: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackIcon: {
+    fontSize: 20,
+  },
+  // Negative Feedback
+  negativeFeedbackContainer: {
+    width: '100%',
+  },
+  feedbackQuestion: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  reasonChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15,
+  },
+  reasonChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  reasonChipSelected: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#2196F3',
+  },
+  reasonChipText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  reasonChipTextSelected: {
+    color: '#2196F3',
+    fontWeight: '500',
+  },
+  feedbackActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 15,
+    alignItems: 'center',
+  },
+  feedbackCancelButton: {
+    padding: 8,
+  },
+  feedbackCancelText: {
+    color: '#999',
+    fontSize: 13,
+  },
+  feedbackSubmitButton: {
+    backgroundColor: '#0066CC',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 15,
+  },
+  feedbackSubmitButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  feedbackSubmitText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Thank You
+  thankYouContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  thankYouText: {
+    color: '#4CAF50',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 
