@@ -122,7 +122,7 @@ const HomeScreen = () => {
             <Text style={styles.aicardTitle}>AI Powered Full Trip Planning</Text>
           </View>
           <Text style={styles.aiCardSubtitle}>Easy, instant travel planning with AI</Text>
-          <TouchableOpacity onPress={() => handleNavigate('AIHome')}>
+          <TouchableOpacity onPress={() => handleNavigate('AIWelcome')}>
             <LinearGradient
               colors={['#FFDE59', '#FFBD0C']}
               style={styles.aiButton}
