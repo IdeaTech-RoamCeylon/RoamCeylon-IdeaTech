@@ -4,18 +4,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../../context/AuthContext';
+
+
 
 const { width } = Dimensions.get('window');
 
 const AIHomeScreen = () => {
     const navigation = useNavigation();
+    const { user } = useAuth();
+    const userName = user?.name || 'Traveler';
+
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.greeting}>Hi, Name</Text>
+                    <Text style={styles.greeting}>Hi, {userName}</Text>
                     <Text style={styles.subGreeting}>How may I help you today ?</Text>
                 </View>
 
@@ -164,8 +170,8 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     avatar: {
-        width: 120, // Slightly larger than container for overlaps if needed
-        height: 120,
+        width: 180, // Slightly larger than container for overlaps if needed
+        height: 180,
         marginBottom: -10, // Adjust position
     },
     proContent: {
