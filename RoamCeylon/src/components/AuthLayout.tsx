@@ -32,10 +32,6 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             source={require('../../assets/Roam Ceylon Logo.png')}
             style={styles.logo}
           />
-          <View style={styles.welcomeTextContainer}>
-            <Text style={styles.welcomeText}>Welcome to</Text>
-            <Text style={styles.brandText}>Roam Ceylon</Text>
-          </View>
         </View>
       )}
       
@@ -46,6 +42,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         {children}
       </View>
     </View>
+    <Image source={require('../../assets/Skyline.png')} style={styles.skyline} />
   </LinearGradient>
   );
 };
@@ -67,7 +64,7 @@ const styles = StyleSheet.create({
   },
   welcomeTextContainer: {
     alignItems: 'center',
-    marginBottom : 10,
+    marginBottom : 0,
   },
   welcomeText: {
     fontSize: 30,
@@ -75,8 +72,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   logo: {
-    width: width * 0.6, // Adjust width as needed (e.g., 50% of screen width)
-    height: width * 0.6, // Keep aspect ratio square-ish
+    width: width * 0.8, // Adjust width as needed (e.g., 50% of screen width)
+    height: width * 0.8, // Keep aspect ratio square-ish
     resizeMode: 'contain',
     marginBottom: 0,
     alignSelf: 'flex-start',
@@ -87,6 +84,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   title: {
+    paddingTop: 0,
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
@@ -105,5 +103,15 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignItems: 'center',
-  }
+  },
+
+  skyline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    height: 250, // Adjust height based on your actual image's aspect ratio
+    resizeMode: 'stretch', // or 'cover' depending on the image asset
+    opacity: 0.2, // Optional: to blend it slightly with the background
+  },
 });

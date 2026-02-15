@@ -12,6 +12,7 @@ import TransportStatusScreen from '../screens/transport/TransportStatusScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import AITripPlannerScreen from '../screens/planner/AITripPlannerScreen';
 import SavedTripsScreen from '../screens/planner/SavedTripsScreen';
+import AIHomeScreen from '../screens/planner/AIHomeScreen';
 
 const Stack = createStackNavigator<MainStackParamList>();
 
@@ -32,6 +33,7 @@ const MainStack = () => {
             <Stack.Screen name="TransportStatus" component={TransportStatusScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+            <Stack.Screen name="AIHome" component={AIHomeScreen} />
             <Stack.Screen name="AITripPlanner" component={AITripPlannerScreen} />
             <Stack.Screen name="SavedTrips" component={SavedTripsScreen} />
         </Stack.Navigator>
