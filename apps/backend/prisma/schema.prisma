@@ -85,7 +85,7 @@ model SavedTrip {
   @@index([userId, createdAt])
 }
 
-model TripFeedback {
+model PlannerFeedback {
   id            Int      @id @default(autoincrement())
   userId        String
   tripId        String

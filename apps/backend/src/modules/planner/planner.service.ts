@@ -227,7 +227,7 @@ export class PlannerService {
 
     // Use upsert to handle both new feedback and updates
     // If user has already submitted feedback for this trip, update it
-    const feedback = await (this.prisma as any).tripFeedback.upsert({
+    const feedback = await (this.prisma as any).plannerFeedback.upsert({
       where: {
         unique_user_trip_feedback: {
           userId,
