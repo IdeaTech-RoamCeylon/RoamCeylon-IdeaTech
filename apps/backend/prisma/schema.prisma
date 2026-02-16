@@ -1,3 +1,9 @@
+// ❄️ SCHEMA FROZEN - Month 2 Lock
+// Date: 2026-02-13
+// Tag: v2-schema-freeze
+// Changes require Month 3 approval and must be documented in DB_SCHEMA_FREEZE.md
+// Verification: npx ts-node scripts/check-schema-freeze.ts
+
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
