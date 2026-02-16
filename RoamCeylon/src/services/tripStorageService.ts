@@ -12,6 +12,20 @@ export interface SavedTrip {
   thumbnail?: string;
 }
 
+export interface TripFeedback {
+  tripId?: string;
+  isPositive: boolean;
+  reasons?: string[];
+  timestamp: string;
+}
+
+export interface TripFeedback {
+  tripId?: string;
+  isPositive: boolean;
+  reasons?: string[]; // e.g., 'Expensive', 'Too busy', 'Bad location'
+  timestamp: string;
+}
+
 class TripStorageService {
   private useBackend = true; // Try backend first, fallback to local
 
@@ -133,6 +147,21 @@ class TripStorageService {
       }
     } else {
       await this.updateLocalTrip(id, updates);
+    }
+  }
+
+  /**
+   * Save trip feedback (currently local only)
+   */
+  async saveFeedback(feedback: TripFeedback): Promise<void> {
+    try {
+      const feedbackKey = 'trip_feedback';
+      const existing = await AsyncStorage.getItem(feedbackKey);
+      const feedbacks: TripFeedback[] = existing ? JSON.parse(existing) : [];
+      feedbacks.push(feedback);
+      await AsyncStorage.setItem(feedbackKey, JSON.stringify(feedbacks));
+    } catch (error) {
+      console.error('Error saving feedback:', error);
     }
   }
 

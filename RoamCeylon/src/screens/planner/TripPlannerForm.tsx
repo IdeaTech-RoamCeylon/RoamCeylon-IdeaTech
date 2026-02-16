@@ -121,18 +121,7 @@ export const TripPlannerForm = React.memo(({
             }
 
             // 2. Conflicting Preferences: Short Trip + Many Interests
-            if (days < 3 && query.interests.length > 4) {
-              // Edge case: User wants too much in little time
-               // We can either block or warn. A warning is better UX.
-               // However, to keep it simple and blocking bad requests:
-               // Or update the UI to show a warning message.
-               // Let's use the error prop logic or a local alert?
-               // Since we can't easily change the parent's error state without a new prop callback,
-               // we'll use a local check.
-               // Let's assume onGenerate handles the actual call.
-            }
-
-             // Validation Logic
+            // Validation Logic
             const validationErrors = [];
             
             if (!query.destination.trim()) {

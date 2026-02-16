@@ -77,8 +77,6 @@ interface BackendResponseWrapper {
 }
 
 class AIService {
-  // MOCK_DELAY removed
-
   private lastRequestKey: string | null = null;
   private cachedResponse: TripPlanResponse | null = null;
 
@@ -99,7 +97,6 @@ class AIService {
 
       // 2. Check if we have a valid cache hit
       if (this.cachedResponse && this.lastRequestKey === cacheKey) {
-        console.log('[AIService] Returning cached trip plan (preferences matched)');
         return this.cachedResponse;
       }
 
@@ -122,10 +119,6 @@ class AIService {
         mode: request.mode,
         tripId: request.tripId,
       };
-
-      // Log preferences being sent to backend
-      console.log('[AIService] Generating trip plan with preferences:', payload.preferences);
-      console.log('[AIService] Full request payload:', JSON.stringify(payload, null, 2));
 
       // Fetch data matching the BACKEND structure
       const wrapper = await retryWithBackoff(
@@ -155,15 +148,6 @@ class AIService {
           day: day.day,
           activities: (day.activities || []).map((act, idx) => {
              if (!act) return null; // Skip invalid activities
-
-             // Log raw activity data to debug preference matching
-             if (idx === 0) {
-               console.log('[AIService] Raw backend activity:', {
-                 placeName: act.placeName,
-                 category: act.category,
-                 preferenceMatch: act.explanation?.rankingFactors?.preferenceMatch
-               });
-             }
 
              // Logic to avoid generic names like "Kandy"
              const destLower = (backendData.plan.destination || '').toLowerCase().trim();
