@@ -24,6 +24,7 @@ import BudgetBreakdown from '../../components/BudgetBreakdown';
 import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
 import { PreferenceSummaryBanner } from '../../components/PreferenceSummaryBanner';
 import { tripStorageService, TripFeedback } from '../../services/tripStorageService';
+import { analyticsService } from '../../services/analyticsService';
 
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
@@ -146,6 +147,13 @@ const AITripPlannerScreen = () => {
                 if (isMounted.current) setShowContextInfo(false);
             }, 5000);
           }
+          
+          // Log analytics event
+          analyticsService.logPlanGenerated(
+            plan.destination,
+            plan.duration,
+            plan.budget
+          );
         }
       } catch (error) {
         if (isMounted.current) {
@@ -313,7 +321,8 @@ const AITripPlannerScreen = () => {
         Alert.alert('Success', 'Trip updated successfully!');
       } else {
         // Save new trip
-        await tripStorageService.saveTrip(tripNameToSave, tripPlan);
+        const savedTrip = await tripStorageService.saveTrip(tripNameToSave, tripPlan);
+        analyticsService.logTripSaved(savedTrip.id, tripNameToSave);
         setIsSaving(false);
         Alert.alert('Success', 'Trip saved successfully!');
       }
@@ -358,6 +367,8 @@ const AITripPlannerScreen = () => {
       };
       await tripStorageService.saveFeedback(feedback);
       
+      analyticsService.logFeedbackSubmitted(true);
+      
       // Auto-revert after 3 seconds
       setTimeout(() => {
         if (isMounted.current) setFeedbackState('none');
@@ -378,6 +389,8 @@ const AITripPlannerScreen = () => {
       timestamp: new Date().toISOString(),
     };
     await tripStorageService.saveFeedback(feedback);
+
+    analyticsService.logFeedbackSubmitted(false, selectedReasons);
 
     // Auto-revert after 3 seconds
     setTimeout(() => {
