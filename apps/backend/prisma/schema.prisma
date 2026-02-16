@@ -91,6 +91,19 @@ model SavedTrip {
   @@index([userId, createdAt])
 }
 
+model TripFeedback {
+  id            Int      @id @default(autoincrement())
+  userId        String
+  tripId        Int
+  feedbackValue Json
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, tripId], name: "unique_user_trip_feedback")
+  @@index([tripId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
 model TransportSession {
   id             String   @id @default(uuid())
   passengerId    String

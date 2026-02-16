@@ -12,6 +12,7 @@ import {
 import { PlannerService, SavedTrip } from './planner.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -64,5 +65,17 @@ export class PlannerController {
     @Param('id') id: string,
   ): Promise<SavedTrip> {
     return this.plannerService.deleteTrip(req.user.userId, parseInt(id, 10));
+  }
+
+  @Post('feedback')
+  async submitFeedback(
+    @Req() req: RequestWithUser,
+    @Body() body: CreateFeedbackDto,
+  ) {
+    return this.plannerService.submitFeedback(
+      req.user.userId,
+      body.tripId,
+      body.feedbackValue,
+    );
   }
 }

@@ -205,4 +205,49 @@ export class PlannerService {
       where: { id: tripId },
     }) as Promise<SavedTrip>;
   }
+
+  async submitFeedback(
+    userId: string,
+    tripId: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    feedbackValue: any,
+  ): Promise<any> {
+    // Verify trip exists and belongs to user
+    const trip = (await (this.prisma as any).savedTrip.findUnique({
+      where: { id: tripId },
+    })) as SavedTrip | null;
+
+    if (!trip) {
+      throw new BadRequestException(
+        `Trip with ID ${tripId} not found. Please check the trip ID and try again.`,
+      );
+    }
+
+    if (trip.userId !== userId) {
+      throw new BadRequestException(
+        'Access denied. You can only provide feedback for your own trips.',
+      );
+    }
+
+    // Use upsert to handle both new feedback and updates
+    // If user has already submitted feedback for this trip, update it
+    const feedback = await (this.prisma as any).tripFeedback.upsert({
+      where: {
+        unique_user_trip_feedback: {
+          userId,
+          tripId,
+        },
+      },
+      update: {
+        feedbackValue: feedbackValue as object,
+      },
+      create: {
+        userId,
+        tripId,
+        feedbackValue: feedbackValue as object,
+      },
+    });
+
+    return feedback;
+  }
 }
