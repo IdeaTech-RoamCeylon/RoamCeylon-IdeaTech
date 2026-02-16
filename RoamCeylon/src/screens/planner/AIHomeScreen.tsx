@@ -89,7 +89,7 @@ const AIHomeScreen = () => {
                         />
                         <TouchableOpacity 
                             style={styles.inputIconRight}
-                            onPress={() => navigation.navigate('AIChat' as never)}
+                            onPress={() => navigation.navigate('AITripPlanner' as never)}
                         >
                              <MaterialCommunityIcons name="star-four-points" size={22} color="#F9D423" />
                         </TouchableOpacity>
