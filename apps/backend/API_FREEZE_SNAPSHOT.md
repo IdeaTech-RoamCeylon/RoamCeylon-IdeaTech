@@ -1,7 +1,7 @@
 # API Freeze Snapshot
 **Status:** ❄️ FROZEN
-**Date:** 2026-01-20
-**Version:** Sprint 3 Final
+**Date:** 2026-02-13
+**Version:** Month 2 Final
 
 ## Overview
 This document represents the **final frozen state** of the backend API contracts.
@@ -98,7 +98,65 @@ This freeze is enforced to ensure stability for frontend (mobile/web) and AI int
 
 ---
 
-## 5. Transport (`/transport`) [Guarded]
+## 5. Planner (`/planner`) [Guarded]
+### Save Trip
+- **Endpoint:** `POST /planner/trips`
+- **Body:** `CreateTripDto`
+  ```json
+  {
+    "name": "string" (optional, max 100 chars),
+    "destination": "string" (optional, max 100 chars),
+    "startDate": "YYYY-MM-DD" (required, ISO 8601),
+    "endDate": "YYYY-MM-DD" (required, ISO 8601, must be after startDate),
+    "itinerary": { ... } (required, object),
+    "preferences": {
+      "budget": "low" | "medium" | "high" (optional),
+      "interests": ["string"] (optional, max 20 items, max 50 chars each),
+      "travelStyle": "relaxed" | "moderate" | "packed" (optional),
+      "accessibility": boolean (optional)
+    }
+  }
+  ```
+- **Response:** Saved trip object with ID
+
+### Get Trip
+- **Endpoint:** `GET /planner/trips/:id`
+- **Response:** Trip details (only if user owns trip)
+
+### Get Trip History
+- **Endpoint:** `GET /planner/trips`
+- **Response:** Array of user's saved trips, ordered by creation date (desc)
+
+### Update Trip
+- **Endpoint:** `PATCH /planner/trips/:id`
+- **Body:** `UpdateTripDto` (all fields optional)
+  ```json
+  {
+    "name": "string",
+    "destination": "string",
+    "startDate": "YYYY-MM-DD",
+    "endDate": "YYYY-MM-DD",
+    "itinerary": { ... },
+    "preferences": { ... }
+  }
+  ```
+- **Response:** Updated trip object
+
+### Delete Trip
+- **Endpoint:** `DELETE /planner/trips/:id`
+- **Response:** Deleted trip object
+
+**Validation Rules**:
+- Maximum 20 interests per trip
+- Start date must be before end date
+- Access control enforced (user can only modify own trips)
+- Preferences normalized with safe defaults
+
+**Caching**: 5-minute TTL on trip reads
+
+---
+
+## 6. Transport (`/transport`) [Guarded]
 ### Get Nearby Drivers
 - **Endpoint:** `GET /transport/drivers`
 - **Query Params:** `lat` (number), `lng` (number), `limit` (number)
@@ -123,10 +181,24 @@ This freeze is enforced to ensure stability for frontend (mobile/web) and AI int
 
 ---
 
-## 6. Users (`/users`) [Guarded]
+## 7. Users (`/users`) [Guarded]
 ### Get Current User
 - **Endpoint:** `GET /users/me`
 - **Response:** User profile object.
+
+### Update User
+- **Endpoint:** `PATCH /users/me`
+- **Body:** `UpdateUserDto`
+  ```json
+  {
+    "name": "string" (optional),
+    "email": "string" (optional, valid email),
+    "birthday": "YYYY-MM-DD" (optional),
+    "gender": "string" (optional),
+    "preferences": { ... } (optional)
+  }
+  ```
+- **Response:** Updated user profile object.
 
 ---
 
