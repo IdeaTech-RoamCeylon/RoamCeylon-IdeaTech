@@ -61,7 +61,8 @@ const AITripPlannerScreen = () => {
   const [showContextInfo, setShowContextInfo] = useState(false);
   
   // Feedback State
-  const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative' | 'submitted'>('none');
+  const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative'>('none');
+  const [isFeedbackSubmitted, setIsFeedbackSubmitted] = useState(false);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -357,8 +358,12 @@ const AITripPlannerScreen = () => {
   }, [navigation]);
 
   const handleFeedback = useCallback(async (isPositive: boolean) => {
+    if (isFeedbackSubmitted) return;
+
     if (isPositive) {
-      setFeedbackState('submitted');
+      setFeedbackState('positive');
+      setIsFeedbackSubmitted(true);
+      
       // Save positive feedback properly
        const feedback: TripFeedback = {
         tripId: currentTripId || `temp_${Date.now()}`,
@@ -368,18 +373,13 @@ const AITripPlannerScreen = () => {
       await tripStorageService.saveFeedback(feedback);
       
       analyticsService.logFeedbackSubmitted(true);
-      
-      // Auto-revert after 3 seconds
-      setTimeout(() => {
-        if (isMounted.current) setFeedbackState('none');
-      }, 3000);
     } else {
       setFeedbackState('negative');
     }
-  }, [currentTripId]);
+  }, [currentTripId, isFeedbackSubmitted]);
 
   const handleSubmitNegativeFeedback = useCallback(async () => {
-    setFeedbackState('submitted');
+    setIsFeedbackSubmitted(true);
     
     // Save negative feedback properly
      const feedback: TripFeedback = {
@@ -391,14 +391,6 @@ const AITripPlannerScreen = () => {
     await tripStorageService.saveFeedback(feedback);
 
     analyticsService.logFeedbackSubmitted(false, selectedReasons);
-
-    // Auto-revert after 3 seconds
-    setTimeout(() => {
-      if (isMounted.current) {
-        setFeedbackState('none');
-        setSelectedReasons([]);
-      }
-    }, 3000);
   }, [currentTripId, selectedReasons]);
 
   const toggleReason = useCallback((reason: string) => {
@@ -578,27 +570,35 @@ const AITripPlannerScreen = () => {
 
             {/* Feedback Section */}
             <View style={styles.feedbackSection}>
-              {feedbackState === 'none' && (
-                <View style={styles.feedbackRow}>
-                  <Text style={styles.feedbackLabel}>How is this plan?</Text>
-                  <View style={styles.feedbackButtons}>
-                    <TouchableOpacity 
-                      style={styles.feedbackButton}
-                      onPress={() => handleFeedback(true)}
-                    >
-                      <Text style={styles.feedbackIcon}>👍</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.feedbackButton}
-                      onPress={() => handleFeedback(false)}
-                    >
-                      <Text style={styles.feedbackIcon}>👎</Text>
-                    </TouchableOpacity>
-                  </View>
+              <View style={styles.feedbackRow}>
+                <Text style={styles.feedbackLabel}>How is this plan?</Text>
+                <View style={styles.feedbackButtons}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.feedbackButton, 
+                      feedbackState === 'positive' && styles.feedbackButtonSelected,
+                      isFeedbackSubmitted && feedbackState !== 'positive' && styles.feedbackButtonDisabled
+                    ]}
+                    onPress={() => handleFeedback(true)}
+                    disabled={isFeedbackSubmitted}
+                  >
+                    <Text style={styles.feedbackIcon}>👍</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[
+                      styles.feedbackButton, 
+                      feedbackState === 'negative' && styles.feedbackButtonSelected,
+                      isFeedbackSubmitted && feedbackState !== 'negative' && styles.feedbackButtonDisabled
+                    ]}
+                    onPress={() => handleFeedback(false)}
+                    disabled={isFeedbackSubmitted}
+                  >
+                    <Text style={styles.feedbackIcon}>👎</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
+              </View>
 
-              {feedbackState === 'negative' && (
+              {feedbackState === 'negative' && !isFeedbackSubmitted && (
                 <View style={styles.negativeFeedbackContainer}>
                   <Text style={styles.feedbackQuestion}>What can be improved?</Text>
                   <View style={styles.reasonChips}>
@@ -620,7 +620,10 @@ const AITripPlannerScreen = () => {
                   </View>
                   <View style={styles.feedbackActions}>
                      <TouchableOpacity 
-                      onPress={() => setFeedbackState('none')}
+                      onPress={() => {
+                        setFeedbackState('none');
+                        setSelectedReasons([]);
+                      }}
                       style={styles.feedbackCancelButton}
                     >
                       <Text style={styles.feedbackCancelText}>Cancel</Text>
@@ -639,7 +642,7 @@ const AITripPlannerScreen = () => {
                 </View>
               )}
 
-              {feedbackState === 'submitted' && (
+              {isFeedbackSubmitted && (
                 <View style={styles.thankYouContainer}>
                   <Text style={styles.thankYouText}>Thanks for your feedback! 🤖</Text>
                 </View>
@@ -1231,6 +1234,14 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  feedbackButtonSelected: {
+    backgroundColor: '#E3F2FD',
+    borderWidth: 2,
+    borderColor: '#2196F3',
+  },
+  feedbackButtonDisabled: {
+    opacity: 0.6,
   },
   feedbackIcon: {
     fontSize: 20,
