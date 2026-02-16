@@ -71,7 +71,7 @@ model spatial_ref_sys {
 }
 
 model SavedTrip {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @default(uuid())
   userId      String
   name        String
   destination String
@@ -88,7 +88,7 @@ model SavedTrip {
 model TripFeedback {
   id            Int      @id @default(autoincrement())
   userId        String
-  tripId        Int
+  tripId        String
   feedbackValue Json
   createdAt     DateTime @default(now())
 
