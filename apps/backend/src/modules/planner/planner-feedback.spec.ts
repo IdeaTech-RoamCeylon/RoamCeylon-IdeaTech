@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
 import { PlannerService } from './planner.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -6,8 +7,6 @@ import { BadRequestException } from '@nestjs/common';
 
 describe('PlannerService - Feedback', () => {
     let service: PlannerService;
-    let prisma: PrismaService;
-    let cacheManager: any;
 
     const mockCacheManager = {
         get: jest.fn(),
@@ -49,8 +48,6 @@ describe('PlannerService - Feedback', () => {
         }).compile();
 
         service = module.get<PlannerService>(PlannerService);
-        prisma = module.get<PrismaService>(PrismaService);
-        cacheManager = module.get(CACHE_MANAGER);
 
         jest.clearAllMocks();
     });

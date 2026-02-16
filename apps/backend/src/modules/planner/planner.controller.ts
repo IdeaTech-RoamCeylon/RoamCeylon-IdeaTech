@@ -72,6 +72,7 @@ export class PlannerController {
     @Req() req: RequestWithUser,
     @Body() body: CreateFeedbackDto,
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.plannerService.submitFeedback(
       req.user.userId,
       body.tripId,
