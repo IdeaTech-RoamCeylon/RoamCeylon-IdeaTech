@@ -228,6 +228,22 @@ export class AIController {
       adventure_day: ['Adventure'],
     };
 
+  /* --------------------------------------------------
+      ENERGY MODEL (Deterministic)
+  -------------------------------------------------- */
+  private readonly CATEGORY_ENERGY_SCORE: Record<string, number> = {
+    adventure: 3,
+    nature: 3,
+    sightseeing: 2,
+    culture: 2,
+    history: 2,
+    shopping: 2,
+    nightlife: 2,
+    beach: 1,
+    relaxation: 1,
+    food: 1,
+  };
+
   private readonly LOCATION_REGION_HINTS: Record<string, string[]> = {
     galle: [
       'galle',
@@ -886,18 +902,25 @@ export class AIController {
   ): RichExplanation {
     const score = result.score ?? 0;
     const confidence = (result.confidence ?? 'Low') as ConfidenceLevel;
-
     const { matched } = this.extractMatchedPreferences(result, ctx.preferences);
+
+    const energyScore =
+      matched.length > 0
+      ? this.CATEGORY_ENERGY_SCORE[matched[0].toLowerCase()] ?? 2
+      : 2;
 
     const whyPlace: string[] = [];
     const whyDay: string[] = [];
     const whyTime: string[] = [];
     const tips: string[] = [];
 
+    /* -------------------------------------------------- */
+    /*   Fallback (keep minimal and factual)            */
+    /* -------------------------------------------------- */
     if (ctx.isFallback) {
       return {
         selectionReason:
-          "We included this to give you a complete itinerary, though we don't have strong matches for your search.",
+          'Included to ensure your itinerary remains complete despite limited strong matches.',
         rankingFactors: {
           relevanceScore: 0,
           confidenceLevel: 'Low',
@@ -905,107 +928,140 @@ export class AIController {
           novelty: 'Low',
         },
         whyThisPlace: [
-          'Added because we found limited options matching your preferences',
-          'Try adding specific interests (like "beach" or "temples") for better suggestions',
+          'Limited preference-aligned results were available',
         ],
-        tips: [
-          'Consider refining your destination or adding nearby town names',
-        ],
+        tips: ['Try adding more specific interests for better matches'],
       };
     }
 
+    /* -------------------------------------------------- */
+    /*  Preference Faithfulness                        */
+    /* -------------------------------------------------- */
     if (matched.length > 0) {
       whyPlace.push(
-        `Matches what you're looking for: ${matched.slice(0, 2).join(', ')}`,
+        `Matches your interest in ${matched.slice(0, 2).join(', ')}`,
       );
     }
 
-    if (score >= 0.85) whyPlace.push('Strong match for your trip');
-    else if (score >= 0.72) whyPlace.push('Good fit based on your preferences');
-    else if (score >= 0.62) whyPlace.push('Decent option that fits your style');
-    else whyPlace.push('Added for variety');
+    /* -------------------------------------------------- */
+    /* Score + Confidence (NO exaggeration)          */
+    /* -------------------------------------------------- */
+    if (confidence === 'High') {
+      whyPlace.push('Strong relevance based on search scoring');
+    } else if (confidence === 'Medium') {
+      whyPlace.push('Good relevance based on search scoring');
+    } else {
+      whyPlace.push('Included based on overall ranking score');
+    }
 
-    if (priorityScore >= 1.3)
-      whyPlace.push('Highly recommended based on your trip style');
-
+    /* -------------------------------------------------- */
+    /* Destination Region Alignment                   */
+    /* -------------------------------------------------- */
     const destRegion = this.inferRegion(ctx.destination);
     const placeRegion = this.inferRegion(`${result.title} ${result.content}`);
+
     if (destRegion && placeRegion && destRegion !== placeRegion) {
-      whyPlace.push('Note: This is farther from your main destination');
-      tips.push(
-        'If you prefer staying local, add nearby town names to your preferences',
-      );
+      whyPlace.push('Located outside your main destination area');
+      tips.push('Consider travel time if staying within one region');
     }
 
-    if (ctx.dayNumber === 1) {
-      if (category === 'Arrival')
-        whyDay.push('Perfect for your first day - easy after traveling');
-      else whyDay.push('Scheduled for day one to start your trip smoothly');
-    } else if (ctx.dayNumber === ctx.totalDays) {
-      whyDay.push('Great way to end your trip on a high note');
-    } else {
-      if (category === 'Beach' || category === 'Relaxation')
-        whyDay.push('Placed here to give you a break mid-trip');
-      else if (category === 'Adventure' || category === 'Nature')
-        whyDay.push("Scheduled when you'll have good energy levels");
-      else whyDay.push('Fits well with your other activities this day');
-    }
-
-    const slot = ctx.timeSlot;
+    /* -------------------------------------------------- */
+    /* Day Placement (aligned with planner logic)     */
+    /* -------------------------------------------------- */
     if (ctx.dayNumber === 1 && ctx.activityIndex === 0) {
-      whyTime.push('Afternoon works best after check-in');
-    } else if (slot === 'Morning') {
-      whyTime.push('Morning is ideal for this type of activity');
-    } else if (slot === 'Afternoon') {
-      whyTime.push('Afternoon timing keeps your day balanced');
-    } else if (slot === 'Evening') {
-      whyTime.push('Evening slot for a relaxed end to the day');
+      whyDay.push('Scheduled first to ease into your trip');
+    } else if (ctx.dayNumber === ctx.totalDays) {
+      whyDay.push('Placed toward the end of your itinerary');
+    } else {
+      whyDay.push('Balanced within your trip schedule');
     }
 
-    const titleLower = result.title.toLowerCase();
-    const contentLower = result.content.toLowerCase();
+    /* -------------------------------------------------- */
+    /* Time Slot (Energy-aware explanation)              */
+    /* -------------------------------------------------- */
 
-    if (category === 'Beach') tips.push('Bring sunscreen and stay hydrated');
-    else if (category === 'Nature' || category === 'Adventure')
-      tips.push('Wear comfortable sturdy shoes - paths can be uneven');
-    else if (category === 'Culture' || category === 'History') {
+    if (energyScore === 3) {
+      whyPlace.push('Classified as a higher-energy activity');
+
+    if (ctx.timeSlot === 'Morning') {
+      whyTime.push(
+        'Scheduled in the morning when energy levels are typically higher',
+      );
+    } else {
+      whyTime.push('Placed earlier in the day due to its active nature');
+    }
+    } else if (energyScore === 1) {
+      whyPlace.push('Classified as a relaxing or lower-energy experience');
+
+    if (ctx.timeSlot === 'Evening') {
+      whyTime.push(
+        'Scheduled later in the day to allow a more relaxed pace',
+      );
+    } else {
+      whyTime.push('Placed at a calmer time of day');
+    }
+    } else {
+      whyPlace.push('Balanced activity with moderate energy level');
+
+    if (ctx.timeSlot === 'Morning') {
+      whyTime.push('Assigned to the morning slot');
+    } else if (ctx.timeSlot === 'Afternoon') {
+      whyTime.push('Assigned to the afternoon slot');
+    } else if (ctx.timeSlot === 'Evening') {
+      whyTime.push('Assigned to the evening slot');
+    }
+    }
+
+    /* -------------------------------------------------- */
+    /* Practical Tips (category-driven only)          */
+    /* -------------------------------------------------- */
+    const titleLower = result.title.toLowerCase();
+
+    if (category === 'Beach') {
+      tips.push('Bring sun protection and water');
+    }
+
+    if (category === 'Nature' || category === 'Adventure') {
+      tips.push('Wear comfortable walking shoes');
+    }
+
+    if (
+      category === 'Culture' ||
+      category === 'History'
+    ) {
       if (
         titleLower.includes('temple') ||
         titleLower.includes('kovil') ||
         titleLower.includes('church') ||
         titleLower.includes('mosque')
       ) {
-        tips.push('Dress modestly - cover shoulders and knees');
-      } else {
-        tips.push(
-          'Allow extra time - these sites are often larger than expected',
-        );
+        tips.push('Dress modestly when visiting religious sites');
       }
     }
 
-    if (
-      contentLower.includes('entrance fee') ||
-      contentLower.includes('ticket')
-    )
-      tips.push('Cash may be needed for entrance fees');
+    /* -------------------------------------------------- */
+    /* Selection Summary (strictly factual)           */
+    /* -------------------------------------------------- */
+    const summaryParts: string[] = [];
 
-    const parts: string[] = [];
-    if (matched.length)
-      parts.push(
-        `it matches your interest in ${matched.slice(0, 2).join(' and ')}`,
+    if (matched.length > 0) {
+      summaryParts.push(
+        `it aligns with your interest in ${matched.slice(0, 2).join(' and ')}`,
       );
-    parts.push(
-      score >= 0.72
-        ? "it's a strong fit for your trip"
-        : 'it adds variety to your itinerary',
+    }
+
+    summaryParts.push(
+      confidence === 'High' || confidence === 'Medium'
+        ? 'it ranked well in search scoring'
+        : 'it was selected based on available ranking results',
     );
 
     return {
-      selectionReason: `We picked this because ${parts.join(' and ')}.`,
+      selectionReason: `This was selected because ${summaryParts.join(' and ')}.`,
       rankingFactors: {
         relevanceScore: score,
         confidenceLevel: confidence,
-        categoryMatch: true,
+        categoryMatch: matched.length > 0,
         preferenceMatch: matched.length ? matched : undefined,
         novelty: ctx.novelty,
       },
@@ -1177,6 +1233,21 @@ export class AIController {
     return boost;
   }
 
+  private getEnergyScoreForItem(item: ScoredResult): number {
+    const matched = item.matchedPreferences;
+
+    if (!matched || matched.length === 0) {
+      return 2; // neutral default
+    }
+
+    // Take highest energy among matched categories
+    const energies = matched.map((cat) =>
+      this.CATEGORY_ENERGY_SCORE[cat.toLowerCase()] ?? 2,
+    );
+
+    return Math.max(...energies);
+  }
+
   private scoreResultsByPreferences(
     results: SearchResultItem[],
     preferences?: string[],
@@ -1199,6 +1270,7 @@ export class AIController {
           adjustments: [],
         };
 
+        /* -------------------- CONFIDENCE MULTIPLIER -------------------- */
         const confidenceMultiplier =
           PLANNER_CONFIG.SCORING.CONFIDENCE_MULTIPLIERS[
             result.confidence ?? 'Low'
@@ -1214,7 +1286,7 @@ export class AIController {
             ? PLANNER_CONFIG.SCORING.LOW_QUALITY_MULTIPLIER
             : 1.0;
 
-        // -------------------- PROXIMITY BOOSTS --------------------
+        /* -------------------- PROXIMITY BOOSTS -------------------- */
         if (dest && dest.length >= PLANNER_CONFIG.SEARCH.MIN_QUERY_LENGTH) {
           const titleLower = result.title.toLowerCase();
           const contentLower = result.content.toLowerCase();
@@ -1259,7 +1331,8 @@ export class AIController {
           }
         }
 
-        // -------------------- PREFERENCE BOOST (CONTROLLED) --------------------
+        /* -------------------- PREFERENCE BOOST -------------------- */
+        let matchedPreferences: string[] = [];
         if (preferences && preferences.length > 0) {
           const preferenceBoost = this.calculatePreferenceBoost(
             result,
@@ -1267,7 +1340,6 @@ export class AIController {
             rankingDetails,
           );
 
-          // Soften preference influence for Low-confidence items
           const prefSoftener = result.confidence === 'Low' ? 0.6 : 1.0;
           if (prefSoftener !== 1.0) {
             rankingDetails.adjustments.push(
@@ -1277,13 +1349,13 @@ export class AIController {
 
           const appliedPrefBoost =
             preferenceBoost * boostMultiplier * prefSoftener;
+
           priorityScore += appliedPrefBoost;
 
-          // Hard cap: preference influence should not exceed a fraction of base quality
-          // (controller-only rule; uses locked constant for influence limit)
           const prefCap =
             baseScore *
             PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE;
+
           if (appliedPrefBoost > prefCap) {
             const over = appliedPrefBoost - prefCap;
             priorityScore -= over;
@@ -1291,9 +1363,34 @@ export class AIController {
               `Preference cap: -${this.q(over, 4).toFixed(4)} (cap=${this.q(prefCap, 4).toFixed(4)})`,
             );
           }
+
+          // Extract matched preferences ONCE here
+            const extracted = this.extractMatchedPreferences(result, preferences);
+            matchedPreferences = extracted.matched ?? [];
+          }
+
+        /* -------------------- ENERGY BOOST -------------------- */
+        if (matchedPreferences.length > 0) {
+          const energyScore =
+          this.CATEGORY_ENERGY_SCORE[
+            matchedPreferences[0].toLowerCase()
+          ] ?? 2;
+
+          const energyBoost =
+            energyScore === 3
+              ? 0.03
+              : energyScore === 1
+              ? 0.015
+              : 0.02;
+
+          priorityScore += energyBoost;
+
+          rankingDetails.adjustments.push(
+            `Energy alignment boost: +${energyBoost.toFixed(2)}`,
+          );
         }
 
-        // -------------------- TRIP OPTIMIZATION --------------------
+        /* -------------------- TRIP OPTIMIZATION -------------------- */
         if (tripType === 'short') {
           if (text.match(/fort|temple|kovil|church|museum|beach/)) {
             const boost =
@@ -1318,14 +1415,13 @@ export class AIController {
           }
         }
 
-        // -------------------- RELEVANCE CEILING (CORE QUALITY FIRST) --------------------
-        // Prevent any boosts (prefs/proximity/etc.) from turning weak items into top picks.
-        // Same ceiling concept as personalization method.
+        /* -------------------- RELEVANCE CEILING -------------------- */
         const maxFinal = this.q(
           baseScore +
             baseScore *
               PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE,
         );
+
         if (priorityScore > maxFinal) {
           rankingDetails.adjustments.push(
             `Relevance ceiling applied: ${this.q(priorityScore, 4).toFixed(4)} -> ${this.q(maxFinal, 4).toFixed(4)}`,
@@ -1333,7 +1429,7 @@ export class AIController {
           priorityScore = maxFinal;
         }
 
-        // Global cap
+        /* -------------------- GLOBAL CAP -------------------- */
         priorityScore = Math.min(
           priorityScore,
           PLANNER_CONFIG.SCORING.MAX_PRIORITY,
@@ -1341,12 +1437,12 @@ export class AIController {
 
         rankingDetails.finalScore = priorityScore;
 
-        const { matched: matchedPreferences } = this.extractMatchedPreferences(
-          result,
-          preferences,
-        );
-
-        return { ...result, priorityScore, rankingDetails, matchedPreferences };
+        return {
+          ...result,
+          priorityScore,
+          rankingDetails,
+          matchedPreferences,
+        };
       })
       .sort((a, b) => {
         const scoreDiff = this.q(b.priorityScore) - this.q(a.priorityScore);
@@ -1357,7 +1453,10 @@ export class AIController {
           return (order[b.confidence!] ?? 0) - (order[a.confidence!] ?? 0);
         }
 
-        return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
+        return this.collator.compare(
+          this.stableId(a.id),
+          this.stableId(b.id),
+        );
       });
 
     return scored;
@@ -1518,15 +1617,8 @@ export class AIController {
     dayCount?: number,
     destination?: string,
     userId?: string,
-  ): Promise<
-    Array<
-      SearchResultItem & {
-        priorityScore: number;
-        rankingDetails?: any;
-        matchedPreferences?: string[];
-      }
-    >
-  > {
+  ): Promise<ScoredResult[]>{
+
     const baseScored = this.scoreResultsByPreferences(
       results,
       preferences,
@@ -1604,24 +1696,169 @@ export class AIController {
     return durations[category];
   }
 
-  private assignTimeSlot(
-    activityIndex: number,
-    totalActivitiesInDay: number,
-    dayNumber?: number,
+  private assignSingleDaySlot(
+    energy: number,
+    ratio: number,
   ): 'Morning' | 'Afternoon' | 'Evening' {
-    if (dayNumber === 1) {
-      if (activityIndex === 0) return 'Afternoon';
+
+    // High energy prefers earlier but not all morning
+    if (energy === 3) {
+      if (ratio < 0.4) return 'Morning';
+      if (ratio < 0.75) return 'Afternoon';
       return 'Evening';
     }
-    if (totalActivitiesInDay === 1) return 'Morning';
-    if (totalActivitiesInDay === 2)
-      return activityIndex === 0 ? 'Morning' : 'Afternoon';
 
-    const ratio = activityIndex / (totalActivitiesInDay - 1);
-    if (ratio < 0.4) return 'Morning';
-    if (ratio < 0.7) return 'Afternoon';
+    // Relax prefers later but not all evening
+    if (energy === 1) {
+      if (ratio < 0.3) return 'Afternoon';
+      return 'Evening';
+    }
+
+    // Neutral natural flow
+    if (ratio < 0.33) return 'Morning';
+    if (ratio < 0.66) return 'Afternoon';
     return 'Evening';
   }
+
+  private getDayEnergyProfile(
+    dayNumber: number,
+    totalDays: number,
+  ): 'moderate' | 'high' | 'relaxed' {
+
+    if (totalDays === 1) return 'high';
+
+    // Arrival day
+    if (dayNumber === 1) return 'moderate';
+
+    // Last day
+    if (dayNumber === totalDays) return 'relaxed';
+
+    // Middle days
+    return 'high';
+  }
+  
+  private assignMultiDaySlot(
+    energy: number,
+    ratio: number,
+    dayType: 'moderate' | 'high' | 'relaxed',
+  ): 'Morning' | 'Afternoon' | 'Evening' {
+    
+    // ---------------- HIGH ENERGY DAY ----------------
+    if (dayType === 'high') {
+      if (energy === 3) {
+        if (ratio < 0.5) return 'Morning';
+        return 'Afternoon';
+      }
+
+      if (energy === 1) {
+        if (ratio > 0.6) return 'Evening';
+        return 'Afternoon';
+      }
+    }
+
+    // ---------------- MODERATE DAY ----------------
+    if (dayType === 'moderate') {
+      if (energy === 3 && ratio < 0.3) return 'Morning';
+      if (energy === 1 && ratio > 0.6) return 'Evening';
+    }
+
+    // ---------------- RELAXED DAY ----------------
+    if (dayType === 'relaxed') {
+      // Only ONE high energy early
+      if (energy === 3 && ratio < 0.3) return 'Morning';
+      // Spread neutral + relax naturally
+      if (ratio < 0.5) return 'Afternoon';
+      return 'Evening';
+    }
+
+    // Default fallback distribution
+    if (ratio < 0.33) return 'Morning';
+    if (ratio < 0.66) return 'Afternoon';
+    return 'Evening';
+  } 
+
+  private assignTimeSlot(
+    item: ScoredResult,
+    activityIndex: number,
+    totalActivitiesInDay: number,
+    dayNumber: number,
+    totalDays: number,
+  ): 'Morning' | 'Afternoon' | 'Evening' {
+    // Edge case safety
+    if (totalActivitiesInDay <= 0) return 'Afternoon';
+    
+    const energy = this.getEnergyScoreForItem(item);
+
+    // Single activity → energy based
+    if (totalActivitiesInDay === 1) {
+      if (energy === 3) return 'Morning';
+      if (energy === 1) return 'Evening';
+      return 'Afternoon';
+    }
+
+    const ratio =
+    totalActivitiesInDay > 1
+      ? activityIndex / (totalActivitiesInDay - 1)
+      : 0;
+
+    // -----------------------------
+    // SINGLE DAY TRIP
+    // -----------------------------
+    if (totalDays === 1) {
+      return this.assignSingleDaySlot(energy, ratio);
+    }
+
+    // -----------------------------
+    // MULTI DAY TRIP
+    // -----------------------------
+    const dayType = this.getDayEnergyProfile(dayNumber, totalDays);
+
+    return this.assignMultiDaySlot(energy, ratio, dayType);
+  }
+
+    /* --------------------------------------------------
+      MULTI-DAY TRIP (Balanced flow logic)
+    -------------------------------------------------- */
+
+    // // If only one activity that day → schedule by energy
+    // if (totalActivitiesInDay === 1) {
+    //   if (energy === 3) return 'Morning';
+    //   if (energy === 1) return 'Evening';
+    //   return 'Afternoon';
+    // }
+
+    // // If two activities → split by energy naturally
+    // if (totalActivitiesInDay === 2) {
+    //   if (energy === 3) return activityIndex === 0 ? 'Morning' : 'Afternoon';
+    //   if (energy === 1) return activityIndex === 0 ? 'Afternoon' : 'Evening';
+    //   return activityIndex === 0 ? 'Morning' : 'Afternoon';
+    // }
+
+    // /* --------------------------------------------------
+    //   3+ Activities → Energy + Natural Flow Hybrid
+    // -------------------------------------------------- */
+
+    // const ratio = activityIndex / (totalActivitiesInDay - 1);
+
+    // // High energy prefers early
+    // if (energy === 3) {
+    //   if (ratio < 0.5) return 'Morning';
+    //   return 'Afternoon';
+    // }
+
+    // // Low energy prefers late
+    // if (energy === 1) {
+    //   if (ratio < 0.5) return 'Afternoon';
+    //   return 'Evening';
+    // }
+
+    // // Neutral energy → standard distribution
+    // if (ratio < 0.4) return 'Morning';
+    // if (ratio < 0.7) return 'Afternoon';
+    // return 'Evening';
+  // }
+
+  
 
   private createFallbackItinerary(
     dayCount: number,
@@ -2165,7 +2402,19 @@ export class AIController {
         const novelty = this.computeNovelty(normalizedText, seenText);
         seenText.add(normalizedText);
 
-        const timeSlot = this.assignTimeSlot(i, bucket.length, day);
+        const totalDays = dayCount;
+
+        if (!scoredResult) {
+          continue; // should never happen, but safe guard
+        }
+
+        const timeSlot = this.assignTimeSlot(
+          scoredResult,
+          i,
+          bucket.length,
+          day,
+          totalDays,
+        );
 
         const activityItem: EnhancedItineraryItemDto = {
           order: i + 1,

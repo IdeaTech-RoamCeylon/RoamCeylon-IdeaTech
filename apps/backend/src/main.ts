@@ -25,7 +25,7 @@ async function bootstrap() {
   );
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 3001;
   // Listen on 0.0.0.0 to accept connections from network (not just localhost)
   await app.listen(port, '0.0.0.0');
 
