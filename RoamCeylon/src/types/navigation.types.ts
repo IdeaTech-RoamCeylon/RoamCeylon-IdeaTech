@@ -29,6 +29,7 @@ export type MainStackParamList = {
   AITripPlanner: undefined;
   AIWelcome: undefined;
   AIHome: undefined;
+  AIChat: undefined;
   SavedTrips: undefined;
 };
 

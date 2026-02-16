@@ -85,8 +85,12 @@ const AIHomeScreen = () => {
                             style={styles.input}
                             placeholder="Message"
                             placeholderTextColor="#888"
+                            onFocus={() => navigation.navigate('AIChat' as never)}
                         />
-                        <TouchableOpacity style={styles.inputIconRight}>
+                        <TouchableOpacity 
+                            style={styles.inputIconRight}
+                            onPress={() => navigation.navigate('AIChat' as never)}
+                        >
                              <MaterialCommunityIcons name="star-four-points" size={22} color="#F9D423" />
                         </TouchableOpacity>
                     </View>
@@ -95,7 +99,12 @@ const AIHomeScreen = () => {
                 {/* Bottom Navigation */}
                 <View style={styles.bottomNav}>
                     <NavItem icon="home-outline" label="Home" active={true} />
-                    <NavItem icon="chatbubble-outline" label="Chat" active={false} />
+                    <NavItem 
+                        icon="chatbubble-outline" 
+                        label="Chat" 
+                        active={false} 
+                        onPress={() => navigation.navigate('AIChat' as never)}
+                    />
                     
                     {/* Center Mic Button */}
                     <View style={styles.micButtonContainer}>
@@ -120,8 +129,8 @@ const ActionCard = ({ image, title }: { image: any, title: string }) => (
     </TouchableOpacity>
 );
 
-const NavItem = ({ icon, label, active }: { icon: any, label: string, active: boolean }) => (
-   <TouchableOpacity style={styles.navItem}>
+const NavItem = ({ icon, label, active, onPress }: { icon: any, label: string, active: boolean, onPress?: () => void }) => (
+   <TouchableOpacity style={styles.navItem} onPress={onPress}>
        <Ionicons name={icon} size={24} color={active ? '#000' : '#555'} />
        <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
    </TouchableOpacity>
