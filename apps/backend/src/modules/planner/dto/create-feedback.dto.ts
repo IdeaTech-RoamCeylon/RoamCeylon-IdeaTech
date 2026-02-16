@@ -18,8 +18,8 @@ import { Type, Transform } from 'class-transformer';
  * Sanitizes text input by trimming whitespace and removing potential XSS characters
  */
 function SanitizeText() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return Transform(({ value }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         if (typeof value !== 'string') return value;
         // Trim whitespace
         let sanitized = value.trim();
