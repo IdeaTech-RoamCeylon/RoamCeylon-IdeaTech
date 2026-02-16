@@ -23,7 +23,7 @@ interface RequestWithUser extends Request {
 @Controller('planner')
 @UseGuards(JwtAuthGuard)
 export class PlannerController {
-  constructor(private readonly plannerService: PlannerService) { }
+  constructor(private readonly plannerService: PlannerService) {}
 
   @Post('save')
   async saveTrip(
@@ -43,7 +43,7 @@ export class PlannerController {
     @Req() req: RequestWithUser,
     @Param('id') id: string,
   ): Promise<SavedTrip | null> {
-    return this.plannerService.getTrip(req.user.userId, parseInt(id, 10));
+    return this.plannerService.getTrip(req.user.userId, id);
   }
 
   @Put(':id')
@@ -52,11 +52,7 @@ export class PlannerController {
     @Param('id') id: string,
     @Body() body: UpdateTripDto,
   ) {
-    return this.plannerService.updateTrip(
-      req.user.userId,
-      parseInt(id, 10),
-      body,
-    );
+    return this.plannerService.updateTrip(req.user.userId, id, body);
   }
 
   @Delete(':id')
@@ -64,7 +60,7 @@ export class PlannerController {
     @Req() req: RequestWithUser,
     @Param('id') id: string,
   ): Promise<SavedTrip> {
-    return this.plannerService.deleteTrip(req.user.userId, parseInt(id, 10));
+    return this.plannerService.deleteTrip(req.user.userId, id);
   }
 
   @Post('feedback')

@@ -7,7 +7,7 @@ import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 
 export interface SavedTrip {
-  id: number;
+  id: string;
   userId: string;
   name: string;
   destination: string;
@@ -24,7 +24,7 @@ export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) { }
+  ) {}
 
   private normalizePreferences(
     prefs?: Record<string, any>,
@@ -56,10 +56,7 @@ export class PlannerService {
     return normalized;
   }
 
-  async saveTrip(
-    userId: string,
-    tripData: CreateTripDto,
-  ): Promise<SavedTrip> {
+  async saveTrip(userId: string, tripData: CreateTripDto): Promise<SavedTrip> {
     // Validation is now handled by class-validator decorators
     // Additional business logic validation can be added here
 
@@ -93,7 +90,7 @@ export class PlannerService {
     return result as SavedTrip;
   }
 
-  async getTrip(userId: string, tripId: number): Promise<SavedTrip | null> {
+  async getTrip(userId: string, tripId: string): Promise<SavedTrip | null> {
     const cacheKey = `trip_${tripId}`;
     const cachedTrip = await this.cacheManager.get<SavedTrip>(cacheKey);
 
@@ -135,7 +132,7 @@ export class PlannerService {
 
   async updateTrip(
     userId: string,
-    tripId: number,
+    tripId: string,
     data: UpdateTripDto,
   ): Promise<SavedTrip> {
     // Validation is now handled by class-validator decorators
@@ -180,7 +177,7 @@ export class PlannerService {
     return updatedTrip;
   }
 
-  async deleteTrip(userId: string, tripId: number): Promise<SavedTrip> {
+  async deleteTrip(userId: string, tripId: string): Promise<SavedTrip> {
     const trip = (await (this.prisma as any).savedTrip.findUnique({
       where: { id: tripId },
     })) as SavedTrip | null;
@@ -208,8 +205,7 @@ export class PlannerService {
 
   async submitFeedback(
     userId: string,
-    tripId: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tripId: string,
     feedbackValue: any,
   ): Promise<any> {
     // Verify trip exists and belongs to user

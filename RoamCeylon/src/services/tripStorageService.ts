@@ -156,6 +156,28 @@ class TripStorageService {
   async saveFeedback(feedback: TripFeedback): Promise<void> {
     try {
       const feedbackKey = 'trip_feedback';
+      
+      // If we have a backend and the trip ID is a UUID (not a temp ID), send to backend
+      // Simple UUID check or just length check (UUID is 36 chars)
+      const isBackendId = feedback.tripId && feedback.tripId.length === 36 && !feedback.tripId.startsWith('temp_');
+      
+      if (this.useBackend && isBackendId) {
+        try {
+          await plannerApiService.submitFeedback(feedback.tripId!, {
+            rating: feedback.isPositive ? 5 : 1, // Simple mapping for now
+            comment: feedback.reasons ? feedback.reasons.join(', ') : undefined,
+            categories: {
+                isPositive: feedback.isPositive,
+                reasons: feedback.reasons || []
+            }
+          });
+          // Also save locally as backup/history
+        } catch (error) {
+           console.warn('Backend feedback failed, falling back to local:', error);
+           // Fallthrough to local save
+        }
+      }
+
       const existing = await AsyncStorage.getItem(feedbackKey);
       const feedbacks: TripFeedback[] = existing ? JSON.parse(existing) : [];
       feedbacks.push(feedback);
