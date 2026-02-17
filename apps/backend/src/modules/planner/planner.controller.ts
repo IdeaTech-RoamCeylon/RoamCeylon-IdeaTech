@@ -112,7 +112,7 @@ export class PlannerController {
    * Day 46 Task 3: Performance & Stability Check
    */
   @Get('metrics')
-  async getMetrics() {
+  getMetrics() {
     return this.metricsInterceptor.getPerformanceStats();
   }
 }

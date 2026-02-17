@@ -245,33 +245,33 @@ describe('PlannerRankingService', () => {
 
             jest
                 .spyOn(aggregationService, 'aggregateTripFeedback')
-                .mockImplementation(async (tripId: string) => {
+                .mockImplementation((tripId: string) => {
                     if (tripId === 'trip1') {
-                        return {
+                        return Promise.resolve({
                             totalFeedback: 5,
                             positiveCount: 5,
                             negativeCount: 0,
                             averageRating: 5.0,
                             hasMinimumThreshold: true,
-                        };
+                        });
                     }
                     if (tripId === 'trip2') {
-                        return {
+                        return Promise.resolve({
                             totalFeedback: 5,
                             positiveCount: 2,
                             negativeCount: 3,
                             averageRating: 3.0,
                             hasMinimumThreshold: true,
-                        };
+                        });
                     }
                     // trip3 - insufficient feedback
-                    return {
+                    return Promise.resolve({
                         totalFeedback: 2,
                         positiveCount: 2,
                         negativeCount: 0,
                         averageRating: 5.0,
                         hasMinimumThreshold: false,
-                    };
+                    });
                 });
 
             const sorted = await service.sortTripsByFeedback(trips);
