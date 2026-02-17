@@ -86,7 +86,7 @@ const HomeScreen = () => {
       <View>
         <View>
           <LinearGradient
-            colors={['#1B7F6B', '#6f9f93','#7aaea1']}
+            colors={['#fee578', '#f7df75','#fbe992']}
             style={styles.header}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -109,12 +109,13 @@ const HomeScreen = () => {
               <View style={styles.searchInputContainer}>
                 <TextInput
                   placeholder="Your Destination"
-                  placeholderTextColor="#D88A8A"
+                  placeholderTextColor="#000000"
                   style={styles.searchInput}
                 />
               </View>
             </View>
           </View>
+          <Image source={require('../../../assets/Skyline.png')} style={styles.skylineImage} />
         </View>
         <View style={styles.aiCard}>
           <View style={styles.aiCardHeader}>
@@ -122,7 +123,7 @@ const HomeScreen = () => {
             <Text style={styles.aicardTitle}>AI Powered Full Trip Planning</Text>
           </View>
           <Text style={styles.aiCardSubtitle}>Easy, instant travel planning with AI</Text>
-          <TouchableOpacity onPress={() => handleNavigate('AITripPlanner')}>
+          <TouchableOpacity onPress={() => handleNavigate('AITripPlanner') as never}>
             <LinearGradient
               colors={['#FFDE59', '#FFBD0C']}
               style={styles.aiButton}
@@ -141,7 +142,7 @@ const HomeScreen = () => {
 
   return (
     <LinearGradient
-      colors={['#6fedb0','#B2F2D3']}
+      colors={['#edfaea', '#d5f2ce', '#b6e9ab']}
       style={styles.container}
     >
       <FlatList
@@ -154,6 +155,7 @@ const HomeScreen = () => {
         ListHeaderComponent={ListHeaderComponent}
         ListHeaderComponentStyle={styles.headerWrapper}
         showsVerticalScrollIndicator={false}
+        style={styles.list}
       />
       
       <View style={styles.footer}>
@@ -185,6 +187,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  list: {
+    flex: 1,
+  },
   headerWrapper: {
     marginHorizontal: -10,
     marginTop: -10,
@@ -195,7 +200,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#197d6e',
-    padding: 30,
+    padding: 20,
     paddingTop: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#030101',
   },
   cardImage: {
     width: 80,
@@ -227,10 +232,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#fff',
+    color: '#030101',
     marginTop: 5,
   },
   helptext: {
+    marginTop: 0,
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -240,22 +246,20 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     justifyContent: 'space-between',
+    marginBottom: 0,
   },
   card: {
+    
     width: '48%',
   },
-  cardTitle: {
-    fontSize: 24,
-    marginBottom: 10,
-  },
   cardText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
     textAlign: 'center',
   },
   searchSection: {
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 10,
     marginBottom: 10,
     position: 'relative',
     zIndex: 1,
@@ -299,11 +303,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   skylineImage: {
+    position: 'absolute',
+    top:210,
     width: '100%',
     height: 100,
-    opacity: 0.3,
-    marginTop: 10,
-    zIndex: -1,
+    opacity: 0.15
   },
   aiCard: {
     backgroundColor: '#ffffff',
@@ -311,8 +315,8 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 8,
     shadowColor: '#d2f9f6',
-    margin: 15,
-    marginTop: 10,
+    margin: 10,
+    marginTop: 115,
     elevation: 4,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -339,7 +343,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 0,
   },
   aiButtonText: {
     color: '#222',
@@ -352,7 +356,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 10,
-    paddingBottom: Platform.OS === 'android' ? 53 : 15,
+    paddingBottom: Platform.OS === 'android' ? 20 : 15,
   },
   footerItem: {
     alignItems: 'center',

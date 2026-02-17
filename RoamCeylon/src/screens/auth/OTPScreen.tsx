@@ -122,6 +122,8 @@ const OTPScreen = () => {
         style={styles.resendButton}
         textStyle={styles.resendButtonText}
       />
+
+      i
     </AuthLayout>
   );
 };
@@ -134,15 +136,16 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     paddingHorizontal: 10,
     gap: 10,
+    fontSize: 10,
   },
   otpBox: {
-    width: 50,
+    width: 40,
     height: 60,
     borderWidth: 2,
     borderColor: '#ddd',
     borderRadius: 12,
     backgroundColor: '#fff',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
     color: '#333',

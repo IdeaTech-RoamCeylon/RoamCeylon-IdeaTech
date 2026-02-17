@@ -27,6 +27,9 @@ export type MainStackParamList = {
   Profile: undefined;
   ComponentShowcase: undefined;
   AITripPlanner: undefined;
+  AIWelcome: undefined;
+  AIHome: undefined;
+  AIChat: undefined;
   SavedTrips: undefined;
 };
 

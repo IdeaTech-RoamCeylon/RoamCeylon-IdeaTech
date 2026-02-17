@@ -3,7 +3,7 @@ import { TripPlanResponse } from './aiService';
 
 // Backend API types
 export interface BackendSavedTrip {
-  id: number;
+  id: string; // Changed from number to string
   userId: string;
   name: string;
   destination: string;
@@ -139,6 +139,18 @@ export const plannerApiService = {
       tripsCache = null;
     } catch (error) {
       console.error('Error deleting trip from backend:', error);
+      throw error;
+    }
+  },
+
+  async submitFeedback(tripId: string, feedbackValue: any): Promise<void> {
+    try {
+      await apiService.post('/planner/feedback', {
+        tripId,
+        feedbackValue,
+      });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
       throw error;
     }
   },
