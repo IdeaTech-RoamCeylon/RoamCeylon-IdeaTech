@@ -20,6 +20,7 @@ export interface TripActivity {
   // Preference-aware data from backend
   category?: string; // 'Culture', 'Nature', 'Beach', etc.
   matchedPreferences?: string[]; // User preferences that matched this activity
+  hasPositiveFeedback?: boolean; // NEW: Positive feedback influence
   confidenceScore?: 'High' | 'Medium' | 'Low';
   tips?: string[]; // Helpful tips from backend
 }
@@ -50,6 +51,7 @@ interface BackendActivity {
     rankingFactors?: {
       preferenceMatch?: string[];
     };
+    hasPositiveFeedback?: boolean;
     tips?: string[];
   };
 }
@@ -166,6 +168,7 @@ class AIService {
                 // Map preference-aware data from backend
                 category: act.category || 'General',
                 matchedPreferences: act.explanation?.rankingFactors?.preferenceMatch || [],
+                hasPositiveFeedback: act.explanation?.hasPositiveFeedback,
                 confidenceScore: act.confidenceScore,
                 tips: act.explanation?.tips || [],
              };

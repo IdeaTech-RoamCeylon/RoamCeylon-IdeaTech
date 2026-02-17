@@ -620,4 +620,36 @@ export class TripStoreService {
       return [];
     }
   }
+
+  /**
+   * Get destinations where user gave positive feedback (4+ stars)
+   */
+  async getUserPositiveFeedbackDestinations(userId: string): Promise<string[]> {
+    const db = await this.ensureConnected();
+
+    try {
+      // "PlannerFeedback" table is created by Prisma (case-sensitive)
+      // Join on tripId to get destination from trips
+      // Filter rating >= 4
+      const result = await db.query<{ destination: string }>(
+        `
+        SELECT DISTINCT t.destination
+        FROM "PlannerFeedback" pf
+        JOIN trips t ON t.id = pf."tripId"
+        WHERE pf."userId" = $1
+          AND (pf."feedbackValue"->>'rating')::int >= 4;
+        `,
+        [userId],
+      );
+
+      return result.rows
+        .map((r) => r.destination)
+        .filter((d) => d && d.trim().length > 0);
+    } catch (error) {
+      this.logger.warn(
+        `getUserPositiveFeedbackDestinations failed: ${(error as Error).message}`,
+      );
+      return [];
+    }
+  }
 }
