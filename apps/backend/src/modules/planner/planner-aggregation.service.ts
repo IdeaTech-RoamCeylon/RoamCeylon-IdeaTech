@@ -113,6 +113,7 @@ export class PlannerAggregationService {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const aggregation = this.calculateAggregation(feedbackList);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const result: DestinationFeedback = {
             destination,
             totalFeedback: aggregation.totalFeedback,

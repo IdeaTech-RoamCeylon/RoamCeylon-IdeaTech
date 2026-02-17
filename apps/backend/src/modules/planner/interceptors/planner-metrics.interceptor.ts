@@ -61,6 +61,7 @@ export class PlannerMetricsInterceptor implements NestInterceptor {
                     const metric: MetricData = {
                         endpoint,
                         duration,
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         timestamp: new Date(),
                         statusCode,
                     };
