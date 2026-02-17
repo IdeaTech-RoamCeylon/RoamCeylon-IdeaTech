@@ -57,11 +57,11 @@ export class PlannerMetricsInterceptor implements NestInterceptor {
                     }
 
                     // Store metric in memory (circular buffer)
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const metric: MetricData = {
                         endpoint,
                         duration,
                         timestamp: new Date(),
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         statusCode,
                     };
 
