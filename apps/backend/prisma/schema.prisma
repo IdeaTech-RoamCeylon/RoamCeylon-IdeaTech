@@ -15,8 +15,8 @@ model DriverLocation {
   location  Unsupported("geometry")
   updatedAt DateTime
 
-  @@index([location], name: "driver_location_idx", type: Gist)
-  @@index([driverId], name: "driver_id_idx")
+  @@index([location], map: "driver_location_idx", type: Gist)
+  @@index([driverId], map: "driver_id_idx")
 }
 
 model RideRequest {
@@ -27,10 +27,10 @@ model RideRequest {
   status         String
   createdAt      DateTime                @default(now())
 
-  @@index([pickupLocation], name: "ride_request_pickup_idx", type: Gist)
-  @@index([destination], name: "ride_request_dest_idx", type: Gist)
-  @@index([passengerId], name: "ride_request_passenger_idx")
-  @@index([status], name: "ride_request_status_idx")
+  @@index([pickupLocation], map: "ride_request_pickup_idx", type: Gist)
+  @@index([destination], map: "ride_request_dest_idx", type: Gist)
+  @@index([passengerId], map: "ride_request_passenger_idx")
+  @@index([status], map: "ride_request_status_idx")
 }
 
 model SystemMetadata {
@@ -45,10 +45,10 @@ model User {
   name        String?
   createdAt   DateTime  @default(now())
   email       String?
+  updatedAt   DateTime  @default(now()) @updatedAt
   birthday    DateTime?
   gender      String?
   preferences Json?
-  updatedAt   DateTime  @default(now()) @updatedAt
 }
 
 model embeddings {
@@ -58,7 +58,7 @@ model embeddings {
   content    String?
   title      String?
 
-  @@index([title], name: "embeddings_title_idx")
+  @@index([title])
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -78,25 +78,25 @@ model SavedTrip {
   startDate   DateTime
   endDate     DateTime
   itinerary   Json
-  preferences Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  preferences Json?
 
   @@index([userId, createdAt])
 }
 
 model TransportSession {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   passengerId    String
   driverId       String?
   status         String
   pickupLocation Json
   destination    Json
   fare           Decimal?
-  startTime      DateTime @default(now())
+  startTime      DateTime  @default(now())
   endTime        DateTime?
-  
-  statusUpdates  Json[]   @default([])
+  statusUpdates  Json[]    @default([])
+
   @@index([passengerId])
   @@index([driverId])
   @@index([status])
@@ -107,4 +107,13 @@ model PlannerMetadata {
   key       String   @unique
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+model PlannerFeedback {
+  userId String
+  tripId Int
+  rating Int
+  reason String?
+
+  @@id([userId, tripId])
 }

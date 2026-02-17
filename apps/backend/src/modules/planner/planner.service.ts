@@ -5,6 +5,7 @@ import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import { PlannerFeedbackDto } from './dto/feedback.dto';
 
 export interface SavedTrip {
   id: number;
@@ -205,4 +206,68 @@ export class PlannerService {
       where: { id: tripId },
     }) as Promise<SavedTrip>;
   }
+
+  async saveFeedback(userId: string, dto: PlannerFeedbackDto) {
+    return this.prisma.plannerFeedback.upsert({
+      where: {
+        userId_tripId: {
+          userId,
+          tripId: dto.tripId, // Int 
+        },
+      },
+      update: {
+        rating: dto.rating,   // Int 
+        reason: dto.reason,   // String? 
+      },
+      create: {
+        userId,
+        tripId: dto.tripId,   // Int 
+        rating: dto.rating,   // Int 
+        reason: dto.reason,   // String? 
+      },
+    });
+  }
+
+  private sanitizeText(text?: string): string | undefined {
+    if (!text) return undefined;
+    return text.trim();
+  }
+
+  async addFeedback(
+    userId: string,
+    tripId: number,
+    feedback: { rating: number; comment?: string },
+  ) {
+    // 🔐 Check trip ownership
+    const trip = await (this.prisma as any).savedTrip.findUnique({
+      where: { id: tripId },
+    });
+
+    if (!trip) {
+      throw new BadRequestException('Trip not found');
+    }
+
+    if (trip.userId !== userId) {
+      throw new BadRequestException('Unauthorized access');
+    }
+
+    try {
+      return await (this.prisma as any).tripFeedback.create({
+        data: {
+          userId,
+          tripId,
+          rating: feedback.rating,
+          comment: this.sanitizeText(feedback.comment),
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        'Feedback already submitted for this trip',
+      );
+    }
+  }
+
+
+
+
 }

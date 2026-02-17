@@ -46,6 +46,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.savedTrip;
   }
 
+  get plannerFeedback() {
+    return this.prisma.plannerFeedback;
+  }
+
   async onModuleInit() {
     await this.prisma.$connect();
   }
