@@ -246,4 +246,32 @@ export class PlannerService {
 
     return feedback;
   }
+
+  async getFeedback(userId: string, tripId: string): Promise<any[]> {
+    const trip = (await (this.prisma as any).savedTrip.findUnique({
+      where: { id: tripId },
+    })) as SavedTrip | null;
+
+    if (!trip || trip.userId !== userId) {
+      throw new BadRequestException('Access denied.');
+    }
+
+    const feedbackEntries = await (this.prisma as any).plannerFeedback.findMany(
+      {
+        where: { userId, tripId },
+        orderBy: { createdAt: 'desc' },
+      },
+    );
+
+    const latestVersion = await (this.prisma as any).tripVersion.findFirst({
+      where: { tripId },
+      orderBy: { versionNo: 'desc' },
+    });
+
+    return feedbackEntries.map((entry: any) => ({
+      ...entry,
+      plannerMeta: latestVersion?.aiMeta ?? null,
+      versionNo: latestVersion?.versionNo ?? null,
+    }));
+  }
 }

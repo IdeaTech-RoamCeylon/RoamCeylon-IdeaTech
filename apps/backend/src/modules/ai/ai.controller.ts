@@ -1478,10 +1478,7 @@ export class AIController {
         }
 
         // eslint-disable-next-line prettier/prettier
-        return this.collator.compare(
-          this.stableId(a.id),
-          this.stableId(b.id),
-        );
+        return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
       });
 
     return scored;
