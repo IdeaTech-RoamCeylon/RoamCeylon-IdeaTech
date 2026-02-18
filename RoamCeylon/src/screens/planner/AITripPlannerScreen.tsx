@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
   ActivityIndicator,
   Alert,
   Animated,
-  Modal 
+  Modal
 } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -49,7 +49,7 @@ const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
   const { query, setQuery, tripPlan, setTripPlan, currentTripId, isEditing, stopEditing } = usePlannerContext();
   const networkStatus = useNetworkStatus();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,12 +59,12 @@ const AITripPlannerScreen = () => {
   const [tripName, setTripName] = useState('');
   const [useSavedContext, setUseSavedContext] = useState(true);
   const [showContextInfo, setShowContextInfo] = useState(false);
-  
+
   // Feedback State
   const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative'>('none');
   const [isFeedbackSubmitted, setIsFeedbackSubmitted] = useState(false);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Ref for cleanup
@@ -123,8 +123,13 @@ const AITripPlannerScreen = () => {
     const proceedWithGeneration = async () => {
       setIsLoading(true);
       setError(null);
-      setTripPlan(null); 
+      setTripPlan(null);
       stopEditing(); // Clear editing state when generating a new plan
+
+      // Reset feedback state so the new plan starts with a clean slate
+      setFeedbackState('none');
+      setIsFeedbackSubmitted(false);
+      setSelectedReasons([]);
 
       try {
         // Include saved context parameters
@@ -134,10 +139,10 @@ const AITripPlannerScreen = () => {
           mode: useSavedContext ? ('refine' as const) : ('new' as const),
         };
         const plan = await aiService.generateTripPlan(requestWithContext);
-        
+
         if (isMounted.current) {
           setTripPlan(plan);
-          
+
           // Show context info if used saved context
           if (plan.usedSavedContext) {
             setShowContextInfo(true);
@@ -145,10 +150,10 @@ const AITripPlannerScreen = () => {
             if (contextInfoTimeout.current) clearTimeout(contextInfoTimeout.current);
             // Set new timeout
             contextInfoTimeout.current = setTimeout(() => {
-                if (isMounted.current) setShowContextInfo(false);
+              if (isMounted.current) setShowContextInfo(false);
             }, 5000);
           }
-          
+
           // Log analytics event
           analyticsService.logPlanGenerated(
             plan.destination,
@@ -176,10 +181,10 @@ const AITripPlannerScreen = () => {
         'This will replace your current trip plan. Continue?',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Generate', 
+          {
+            text: 'Generate',
             onPress: proceedWithGeneration,
-            style: 'destructive' 
+            style: 'destructive'
           }
         ]
       );
@@ -192,19 +197,19 @@ const AITripPlannerScreen = () => {
 
   const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
     if (!tripPlan) return;
-    
+
     // Optimized update without deep clone for everything
     setTripPlan(prevPlan => {
       if (!prevPlan) return null;
-      
+
       const newItinerary = [...prevPlan.itinerary];
       const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
-      
+
       if (dayIndex === -1) return prevPlan;
-      
+
       const day = { ...newItinerary[dayIndex] };
       const newActivities = [...day.activities];
-      
+
       if (direction === 'up' && index > 0) {
         [newActivities[index], newActivities[index - 1]] = [newActivities[index - 1], newActivities[index]];
       } else if (direction === 'down' && index < newActivities.length - 1) {
@@ -212,10 +217,10 @@ const AITripPlannerScreen = () => {
       } else {
         return prevPlan; // No change
       }
-      
+
       day.activities = newActivities;
       newItinerary[dayIndex] = day;
-      
+
       return {
         ...prevPlan,
         itinerary: newItinerary
@@ -223,73 +228,73 @@ const AITripPlannerScreen = () => {
     });
   }, [selectedDay, setTripPlan]);
 
-// ...
+  // ...
 
   // Handle deleting an activity
   const handleDeleteActivity = useCallback((index: number) => {
     if (!tripPlan) return;
-    
+
     Alert.alert(
       "Remove Place?",
       "Are you sure you want to remove this place from your itinerary?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Remove", 
+        {
+          text: "Remove",
           style: "destructive",
           onPress: () => {
-             setTripPlan(prevPlan => {
-               if (!prevPlan) return null;
-               
-               const newItinerary = [...prevPlan.itinerary];
-               const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
-               
-               if (dayIndex === -1) return prevPlan;
-               
-               const day = { ...newItinerary[dayIndex] };
-               const newActivities = [...day.activities];
-               
-               // Remove item
-               const removed = newActivities.splice(index, 1)[0];
-               
-               if (selectedActivity && selectedActivity.description === removed.description) {
-                 setSelectedActivity(null);
-               }
+            setTripPlan(prevPlan => {
+              if (!prevPlan) return null;
 
-               day.activities = newActivities;
-               
-               if (newActivities.length === 0) {
-                 // Remove day if empty
-                 newItinerary.splice(dayIndex, 1);
-                 
-                 // Renumber
-                 newItinerary.forEach((d, idx) => {
-                   d.day = idx + 1;
-                   d.activities.forEach((act: any) => act.dayNumber = idx + 1);
-                 });
-                 
-                 // Update duration
-                 const newDuration = String(newItinerary.length);
-                 
-                 // Check if selectedDay is valid
-                 if (selectedDay > newItinerary.length) {
-                   setSelectedDay(Math.max(1, newItinerary.length));
-                 }
-                 
-                 return {
-                    ...prevPlan,
-                    itinerary: newItinerary,
-                    duration: newDuration
-                 };
-               }
-               
-               newItinerary[dayIndex] = day;
-               
-               return {
-                 ...prevPlan,
-                 itinerary: newItinerary
-               };
-             });
+              const newItinerary = [...prevPlan.itinerary];
+              const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
+
+              if (dayIndex === -1) return prevPlan;
+
+              const day = { ...newItinerary[dayIndex] };
+              const newActivities = [...day.activities];
+
+              // Remove item
+              const removed = newActivities.splice(index, 1)[0];
+
+              if (selectedActivity && selectedActivity.description === removed.description) {
+                setSelectedActivity(null);
+              }
+
+              day.activities = newActivities;
+
+              if (newActivities.length === 0) {
+                // Remove day if empty
+                newItinerary.splice(dayIndex, 1);
+
+                // Renumber
+                newItinerary.forEach((d, idx) => {
+                  d.day = idx + 1;
+                  d.activities.forEach((act: any) => act.dayNumber = idx + 1);
+                });
+
+                // Update duration
+                const newDuration = String(newItinerary.length);
+
+                // Check if selectedDay is valid
+                if (selectedDay > newItinerary.length) {
+                  setSelectedDay(Math.max(1, newItinerary.length));
+                }
+
+                return {
+                  ...prevPlan,
+                  itinerary: newItinerary,
+                  duration: newDuration
+                };
+              }
+
+              newItinerary[dayIndex] = day;
+
+              return {
+                ...prevPlan,
+                itinerary: newItinerary
+              };
+            });
           }
         }
       ]
@@ -298,19 +303,19 @@ const AITripPlannerScreen = () => {
 
   const handleSaveTrip = useCallback(async () => {
     if (!tripPlan) return;
-    
+
     if (!tripName.trim()) {
       Alert.alert('Trip Name Required', 'Please enter a name for your trip');
       return;
     }
 
     setIsSaving(true);
-    
+
     // Close modal immediately for better UX
     const tripNameToSave = tripName.trim();
     setShowSaveDialog(false);
     setTripName('');
-    
+
     try {
       if (isEditing && currentTripId) {
         // Update existing trip
@@ -330,15 +335,15 @@ const AITripPlannerScreen = () => {
     } catch (error) {
       setIsSaving(false);
       Alert.alert(
-        'Error', 
+        'Error',
         isEditing ? 'Failed to update trip. Please try again.' : 'Failed to save trip. Please try again.'
       );
     }
   }, [tripPlan, tripName, isEditing, currentTripId]);
 
-  // Load trip name when entering editing mode
+  // Load trip name and persisted feedback when entering editing mode
   useEffect(() => {
-    const loadTripName = async () => {
+    const loadTripData = async () => {
       if (isEditing && currentTripId) {
         try {
           const trip = await tripStorageService.getTripById(currentTripId);
@@ -348,9 +353,28 @@ const AITripPlannerScreen = () => {
         } catch (error) {
           console.error('Failed to load trip name:', error);
         }
+
+        // Restore persisted feedback state so UI reflects prior submission
+        try {
+          const savedFeedback = await tripStorageService.getFeedbackForTrip(currentTripId);
+          if (savedFeedback) {
+            setFeedbackState(savedFeedback.isPositive ? 'positive' : 'negative');
+            setIsFeedbackSubmitted(true);
+            if (savedFeedback.reasons) {
+              setSelectedReasons(savedFeedback.reasons);
+            }
+          } else {
+            // No prior feedback for this trip — reset to clean state
+            setFeedbackState('none');
+            setIsFeedbackSubmitted(false);
+            setSelectedReasons([]);
+          }
+        } catch (error) {
+          console.error('Failed to load trip feedback:', error);
+        }
       }
     };
-    loadTripName();
+    loadTripData();
   }, [isEditing, currentTripId]);
 
   const handleNavigateToSavedTrips = useCallback(() => {
@@ -363,15 +387,15 @@ const AITripPlannerScreen = () => {
     if (isPositive) {
       setFeedbackState('positive');
       setIsFeedbackSubmitted(true);
-      
+
       // Save positive feedback properly
-       const feedback: TripFeedback = {
+      const feedback: TripFeedback = {
         tripId: currentTripId || `temp_${Date.now()}`,
         isPositive: true,
         timestamp: new Date().toISOString(),
       };
       await tripStorageService.saveFeedback(feedback);
-      
+
       analyticsService.logFeedbackSubmitted(true);
     } else {
       setFeedbackState('negative');
@@ -380,9 +404,9 @@ const AITripPlannerScreen = () => {
 
   const handleSubmitNegativeFeedback = useCallback(async () => {
     setIsFeedbackSubmitted(true);
-    
+
     // Save negative feedback properly
-     const feedback: TripFeedback = {
+    const feedback: TripFeedback = {
       tripId: currentTripId || `temp_${Date.now()}`,
       isPositive: false,
       reasons: selectedReasons,
@@ -429,7 +453,7 @@ const AITripPlannerScreen = () => {
   }, [mapActivities]);
 
   const routeFeature = useMemo(() => {
-     return {
+    return {
       type: 'FeatureCollection',
       features: [
         {
@@ -456,24 +480,24 @@ const AITripPlannerScreen = () => {
     } else if (routeCoordinates.length > 0) {
       if (routeCoordinates.length > 1) {
         return {
-            bounds: {
-              ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
-              sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
-              paddingBottom: 40,
-              paddingTop: 40,
-              paddingLeft: 40,
-              paddingRight: 40,
-            },
-            animationMode: 'flyTo',
-            animationDuration: 1500,
+          bounds: {
+            ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
+            sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
+            paddingBottom: 40,
+            paddingTop: 40,
+            paddingLeft: 40,
+            paddingRight: 40,
+          },
+          animationMode: 'flyTo',
+          animationDuration: 1500,
         };
       } else {
-         return {
-            centerCoordinate: routeCoordinates[0],
-            zoomLevel: 11,
-            animationMode: 'flyTo',
-            animationDuration: 1500,
-         };
+        return {
+          centerCoordinate: routeCoordinates[0],
+          zoomLevel: 11,
+          animationMode: 'flyTo',
+          animationDuration: 1500,
+        };
       }
     }
     return {};
@@ -487,7 +511,7 @@ const AITripPlannerScreen = () => {
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>AI Trip Planner</Text>
-        <View style={{ width: 40 }} /> 
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.content}>
@@ -500,8 +524,8 @@ const AITripPlannerScreen = () => {
                 <View style={styles.contextToggleTextContainer}>
                   <Text style={styles.contextToggleTitle}>Use Previous Trip Context</Text>
                   <Text style={styles.contextToggleSubtitle}>
-                    {useSavedContext 
-                      ? 'Building on your last trip preferences' 
+                    {useSavedContext
+                      ? 'Building on your last trip preferences'
                       : 'Starting fresh with a new trip'}
                   </Text>
                 </View>
@@ -516,7 +540,7 @@ const AITripPlannerScreen = () => {
                 </Text>
               </TouchableOpacity>
             </View>
-            
+
             <TripPlannerForm
               query={query}
               updateQuery={updateQuery}
@@ -539,7 +563,7 @@ const AITripPlannerScreen = () => {
                 </Text>
               </View>
             )}
-            
+
             {/* Editing Mode Indicator */}
             {isEditing && (
               <View style={styles.editingBadge}>
@@ -547,7 +571,7 @@ const AITripPlannerScreen = () => {
                 <Text style={styles.editingBadgeText}>Editing Mode</Text>
               </View>
             )}
-            
+
             <Text style={styles.resultTitle}> Your Trip to {tripPlan.destination}</Text>
             <View style={styles.summaryContainer}>
               <View style={styles.summaryItem}>
@@ -573,9 +597,9 @@ const AITripPlannerScreen = () => {
               <View style={styles.feedbackRow}>
                 <Text style={styles.feedbackLabel}>How is this plan?</Text>
                 <View style={styles.feedbackButtons}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[
-                      styles.feedbackButton, 
+                      styles.feedbackButton,
                       feedbackState === 'positive' && styles.feedbackButtonSelected,
                       isFeedbackSubmitted && feedbackState !== 'positive' && styles.feedbackButtonDisabled
                     ]}
@@ -584,9 +608,9 @@ const AITripPlannerScreen = () => {
                   >
                     <Text style={styles.feedbackIcon}>👍</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[
-                      styles.feedbackButton, 
+                      styles.feedbackButton,
                       feedbackState === 'negative' && styles.feedbackButtonSelected,
                       isFeedbackSubmitted && feedbackState !== 'negative' && styles.feedbackButtonDisabled
                     ]}
@@ -619,7 +643,7 @@ const AITripPlannerScreen = () => {
                     ))}
                   </View>
                   <View style={styles.feedbackActions}>
-                     <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => {
                         setFeedbackState('none');
                         setSelectedReasons([]);
@@ -628,10 +652,10 @@ const AITripPlannerScreen = () => {
                     >
                       <Text style={styles.feedbackCancelText}>Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={handleSubmitNegativeFeedback}
                       style={[
-                        styles.feedbackSubmitButton, 
+                        styles.feedbackSubmitButton,
                         selectedReasons.length === 0 && styles.feedbackSubmitButtonDisabled
                       ]}
                       disabled={selectedReasons.length === 0}
@@ -651,7 +675,7 @@ const AITripPlannerScreen = () => {
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.actionButton, isEditing && styles.actionButtonPrimary]}
                 onPress={() => setShowSaveDialog(true)}
               >
@@ -660,7 +684,7 @@ const AITripPlannerScreen = () => {
                   {isEditing ? 'Update Trip' : 'Save Trip'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.actionButton}
                 onPress={handleNavigateToSavedTrips}
               >
@@ -673,7 +697,7 @@ const AITripPlannerScreen = () => {
             <BudgetBreakdown budget={tripPlan.budget} duration={tripPlan.duration} />
 
             {/* Day Selector */}
-            <DaySelector 
+            <DaySelector
               days={tripPlan.itinerary.map(item => item.day)}
               selectedDay={selectedDay}
               onSelectDay={(day) => {
@@ -692,7 +716,7 @@ const AITripPlannerScreen = () => {
                   attributionEnabled={false}
                 >
                   <MapboxGL.Camera
-                     {...cameraSettings}
+                    {...cameraSettings}
                   />
 
                   {/* Route Line */}
@@ -716,18 +740,18 @@ const AITripPlannerScreen = () => {
                   {mapActivities.map((activity, index) => {
                     const isSelected = selectedActivity === activity;
                     return (
-                        <MapboxGL.PointAnnotation
+                      <MapboxGL.PointAnnotation
                         key={`${selectedDay}-${index}`}
                         id={`marker-${index}`}
                         coordinate={activity.coordinate}
                         onSelected={() => setSelectedActivity(activity)}
-                        >
+                      >
                         <View style={styles.markerContainer}>
-                            <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
+                          <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
                             <Text style={styles.markerText}>{index + 1}</Text>
-                            </View>
+                          </View>
                         </View>
-                        </MapboxGL.PointAnnotation>
+                      </MapboxGL.PointAnnotation>
                     );
                   })}
                 </MapboxGL.MapView>
@@ -753,7 +777,7 @@ const AITripPlannerScreen = () => {
             </View>
 
             <View style={styles.bottomActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.resetButton}
                 onPress={() => {
                   setTripPlan(null);
@@ -763,8 +787,8 @@ const AITripPlannerScreen = () => {
               >
                 <Text style={styles.resetButtonText}>Refine This Trip</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.startFreshButton}
                 onPress={() => {
                   setTripPlan(null);
@@ -792,7 +816,7 @@ const AITripPlannerScreen = () => {
             <Text style={styles.modalSubtitle}>
               {isEditing ? 'Update your trip name' : 'Give your trip a name'}
             </Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="e.g., Summer Sri Lanka Adventure"

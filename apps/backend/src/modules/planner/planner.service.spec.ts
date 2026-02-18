@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import { Test, TestingModule } from '@nestjs/testing';
 import { PlannerService } from './planner.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { FeedbackMappingService } from '../feedback/feedback-mapping.service';
+import { PlannerAggregationService } from './planner-aggregation.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException } from '@nestjs/common';
 import { CreateTripDto } from './dto/create-trip.dto';
@@ -33,6 +34,19 @@ describe('PlannerService - Validation Tests', () => {
       del: jest.fn(),
     };
 
+    // Mock FeedbackMappingService
+    const mockFeedbackMappingService = {
+      processFeedback: jest.fn(),
+    };
+
+    // Mock PlannerAggregationService
+    const mockAggregationService = {
+      aggregateTripFeedback: jest.fn(),
+      aggregateByDestination: jest.fn(),
+      aggregateByCategory: jest.fn(),
+      invalidateCache: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PlannerService,
@@ -43,6 +57,14 @@ describe('PlannerService - Validation Tests', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCache,
+        },
+        {
+          provide: FeedbackMappingService,
+          useValue: mockFeedbackMappingService,
+        },
+        {
+          provide: PlannerAggregationService,
+          useValue: mockAggregationService,
         },
       ],
     }).compile();
@@ -149,10 +171,10 @@ describe('PlannerService - Validation Tests', () => {
       (prismaService as any).savedTrip.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.updateTrip('user1', 999, updateData),
+        service.updateTrip('user1', '999', updateData),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateTrip('user1', 999, updateData),
+        service.updateTrip('user1', '999', updateData),
       ).rejects.toThrow('Trip with ID 999 not found');
     });
 
@@ -174,10 +196,10 @@ describe('PlannerService - Validation Tests', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.updateTrip('user1', 1, updateData)).rejects.toThrow(
+      await expect(service.updateTrip('user1', '1', updateData)).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.updateTrip('user1', 1, updateData)).rejects.toThrow(
+      await expect(service.updateTrip('user1', '1', updateData)).rejects.toThrow(
         'Access denied. You can only update your own trips.',
       );
     });
@@ -187,10 +209,10 @@ describe('PlannerService - Validation Tests', () => {
     it('should provide actionable error when trip not found', async () => {
       (prismaService as any).savedTrip.findUnique.mockResolvedValue(null);
 
-      await expect(service.deleteTrip('user1', 999)).rejects.toThrow(
+      await expect(service.deleteTrip('user1', '999')).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.deleteTrip('user1', 999)).rejects.toThrow(
+      await expect(service.deleteTrip('user1', '999')).rejects.toThrow(
         'Trip with ID 999 not found',
       );
     });
@@ -209,10 +231,10 @@ describe('PlannerService - Validation Tests', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.deleteTrip('user1', 1)).rejects.toThrow(
+      await expect(service.deleteTrip('user1', '1')).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.deleteTrip('user1', 1)).rejects.toThrow(
+      await expect(service.deleteTrip('user1', '1')).rejects.toThrow(
         'Access denied. You can only delete your own trips.',
       );
     });
