@@ -152,6 +152,13 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
 
       <Text style={styles.description}>{activity.description}</Text>
 
+      {activity.hasPositiveFeedback && (
+        <View style={styles.positiveFeedbackContainer}>
+          <Text style={styles.positiveFeedbackIcon}>✨</Text>
+          <Text style={styles.positiveFeedbackText}>Based on your positive history</Text>
+        </View>
+      )}
+
       {hasPreferences && (
         <View style={styles.preferencesContainer}>
           <Text style={styles.preferencesLabel}>Matches your interests:</Text>
@@ -191,7 +198,10 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
         <View style={styles.actions}>
           {onMoveUp && (
             <TouchableOpacity
-              style={[styles.actionButton, !canMoveUp && styles.actionButtonDisabled]}
+              style={[
+                styles.actionButton,
+                !canMoveUp && styles.actionButtonDisabled,
+              ]}
               onPress={onMoveUp}
               disabled={!canMoveUp}
             >
@@ -200,7 +210,10 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
           )}
           {onMoveDown && (
             <TouchableOpacity
-              style={[styles.actionButton, !canMoveDown && styles.actionButtonDisabled]}
+              style={[
+                styles.actionButton,
+                !canMoveDown && styles.actionButtonDisabled,
+              ]}
               onPress={onMoveDown}
               disabled={!canMoveDown}
             >
@@ -287,6 +300,25 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 22,
     marginBottom: 12,
+  },
+  positiveFeedbackContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  positiveFeedbackIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  positiveFeedbackText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    fontWeight: '600',
   },
   metaContainer: {
     flexDirection: 'row',

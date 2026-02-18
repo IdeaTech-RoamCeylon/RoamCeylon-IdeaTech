@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
+import { randomUUID } from 'crypto';
 
 export type ActivityInteraction = {
   userId: string;
@@ -36,15 +37,16 @@ export type TripVersionRow = {
 
 /* -------------------- DB Row Types -------------------- */
 
-type TripsRow = {
+type SavedTripRow = {
   id: string;
-  user_id: string;
+  userId: string;
   destination: string;
-  start_date: string;
-  end_date: string;
-  preferences: unknown; // jsonb can come as object/array depending on pg config
-  created_at: string;
-  updated_at: string;
+  startDate: Date;
+  endDate: Date;
+  preferences: unknown; // jsonb
+  itinerary: unknown; // jsonb
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 type TripVersionsRow = {
@@ -61,7 +63,6 @@ type MaxVersionRow = {
   max_version: number | string | null;
 };
 
-type InsertTripRow = { id: string };
 type InsertVersionRow = {
   id: string;
   trip_id: string;
@@ -129,16 +130,16 @@ export class TripStoreService {
     return [];
   }
 
-  private mapTripRow(row: TripsRow): SavedTrip {
+  private mapSavedTripRow(row: SavedTripRow): SavedTrip {
     return {
       id: String(row.id),
-      userId: String(row.user_id),
+      userId: String(row.userId),
       destination: String(row.destination),
-      startDate: String(row.start_date),
-      endDate: String(row.end_date),
+      startDate: String(row.startDate),
+      endDate: String(row.endDate),
       preferences: this.parsePreferences(row.preferences),
-      createdAt: String(row.created_at),
-      updatedAt: String(row.updated_at),
+      createdAt: String(row.createdAt),
+      updatedAt: String(row.updatedAt),
     };
   }
 
@@ -147,17 +148,18 @@ export class TripStoreService {
   async getLatestForUser(userId: string): Promise<SavedTrip | null> {
     const db = await this.ensureConnected();
 
+    // Use "SavedTrip" table (Prisma managed)
     const q = `
-      SELECT id, user_id, destination, start_date, end_date, preferences, created_at, updated_at
-      FROM trips
-      WHERE user_id = $1
-      ORDER BY updated_at DESC
+      SELECT id, "userId", destination, "startDate", "endDate", preferences, "createdAt", "updatedAt"
+      FROM "SavedTrip"
+      WHERE "userId" = $1
+      ORDER BY "updatedAt" DESC
       LIMIT 1;
     `;
 
-    const res = await db.query<TripsRow>(q, [userId]);
+    const res = await db.query<SavedTripRow>(q, [userId]);
     if (res.rowCount === 0) return null;
-    return this.mapTripRow(res.rows[0]);
+    return this.mapSavedTripRow(res.rows[0]);
   }
 
   async getByIdForUser(
@@ -167,15 +169,15 @@ export class TripStoreService {
     const db = await this.ensureConnected();
 
     const q = `
-      SELECT id, user_id, destination, start_date, end_date, preferences, created_at, updated_at
-      FROM trips
-      WHERE user_id = $1 AND id = $2
+      SELECT id, "userId", destination, "startDate", "endDate", preferences, "createdAt", "updatedAt"
+      FROM "SavedTrip"
+      WHERE "userId" = $1 AND id = $2
       LIMIT 1;
     `;
 
-    const res = await db.query<TripsRow>(q, [userId, tripId]);
+    const res = await db.query<SavedTripRow>(q, [userId, tripId]);
     if (res.rowCount === 0) return null;
-    return this.mapTripRow(res.rows[0]);
+    return this.mapSavedTripRow(res.rows[0]);
   }
 
   async saveTripVersion(args: {
@@ -205,6 +207,7 @@ export class TripStoreService {
 
     const startDate = normalizeDate(args.startDate);
     const endDate = normalizeDate(args.endDate);
+    const now = new Date().toISOString();
 
     await db.query('BEGIN');
     try {
@@ -212,49 +215,72 @@ export class TripStoreService {
 
       if (tripId) {
         const check = await db.query<{ id: string }>(
-          `SELECT id FROM trips WHERE id = $1 AND user_id = $2 LIMIT 1`,
+          `SELECT id FROM "SavedTrip" WHERE id = $1 AND "userId" = $2 LIMIT 1`,
           [tripId, args.userId],
         );
         if (check.rowCount === 0) tripId = undefined;
       }
 
       if (!tripId) {
-        const insertTrip = await db.query<InsertTripRow>(
+        // Generate a new UUID
+        const newTripId = randomUUID();
+
+        await db.query(
           `
-          INSERT INTO trips (user_id, destination, start_date, end_date, preferences)
-          VALUES ($1, $2, $3, $4, $5::jsonb)
-          RETURNING id;
+          INSERT INTO "SavedTrip" (id, "userId", name, destination, "startDate", "endDate", preferences, itinerary, "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9)
           `,
           [
+            newTripId,
             args.userId,
+            'My AI Trip', // Default name
             args.destination,
-            startDate,
-            endDate,
+            new Date(startDate), // Date object for timestamp columns
+            new Date(endDate),
             JSON.stringify(args.preferences ?? []),
+            JSON.stringify(args.planJson ?? {}),
+            now,
           ],
         );
-        tripId = String(insertTrip.rows[0].id);
+        tripId = newTripId;
       } else {
         await db.query(
           `
-          UPDATE trips
+          UPDATE "SavedTrip"
           SET destination = $2,
-              start_date = $3,
-              end_date = $4,
+              "startDate" = $3,
+              "endDate" = $4,
               preferences = $5::jsonb,
-              updated_at = NOW()
-          WHERE id = $1 AND user_id = $6;
+              itinerary = $6::jsonb,
+              "updatedAt" = $7
+          WHERE id = $1 AND "userId" = $8;
           `,
           [
             tripId,
             args.destination,
-            startDate,
-            endDate,
+            new Date(startDate),
+            new Date(endDate),
             JSON.stringify(args.preferences ?? []),
+            JSON.stringify(args.planJson ?? {}),
+            now,
             args.userId,
           ],
         );
       }
+
+      // Ensure trip_versions table exists (manually managed)
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS trip_versions (
+          id SERIAL PRIMARY KEY,
+          trip_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          version_no INT NOT NULL,
+          plan_json JSONB,
+          ai_meta JSONB,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_trip_versions_trip_id ON trip_versions(trip_id);
+      `);
 
       const versionRes = await db.query<MaxVersionRow>(
         `
@@ -335,12 +361,16 @@ export class TripStoreService {
   ): Promise<Array<SavedTrip & { planJson?: unknown }>> {
     const db = await this.ensureConnected();
 
+    // Join with trip_versions to get plan_json if available,
+    // otherwise fallback to SavedTrip.itinerary?
+    // Actually, SavedTrip.itinerary should be the latest if we update it.
+    // For now, keep the logic consistent with old implementation: prefer versioned plan.
     const q = `
       SELECT 
-        t.id, t.user_id, t.destination, t.start_date, t.end_date, 
-        t.preferences, t.created_at, t.updated_at,
+        t.id, t."userId", t.destination, t."startDate", t."endDate", 
+        t.preferences, t."createdAt", t."updatedAt",
         tv.plan_json
-      FROM trips t
+      FROM "SavedTrip" t
       LEFT JOIN LATERAL (
         SELECT plan_json 
         FROM trip_versions 
@@ -348,15 +378,17 @@ export class TripStoreService {
         ORDER BY version_no DESC 
         LIMIT 1
       ) tv ON true
-      WHERE t.user_id = $1
-      ORDER BY t.updated_at DESC;
+      WHERE t."userId" = $1
+      ORDER BY t."updatedAt" DESC;
     `;
 
-    const res = await db.query<TripsRow & { plan_json?: unknown }>(q, [userId]);
+    const res = await db.query<SavedTripRow & { plan_json: unknown }>(q, [
+      userId,
+    ]);
 
     return res.rows.map((row) => ({
-      ...this.mapTripRow(row),
-      planJson: row.plan_json,
+      ...this.mapSavedTripRow(row),
+      planJson: row.plan_json || row.itinerary, // Fallback to itinerary if version missing
     }));
   }
 
@@ -616,6 +648,38 @@ export class TripStoreService {
     } catch (error) {
       this.logger.warn(
         `getUserFrequentPlaces failed: ${(error as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Get destinations where user gave positive feedback (4+ stars)
+   */
+  async getUserPositiveFeedbackDestinations(userId: string): Promise<string[]> {
+    const db = await this.ensureConnected();
+
+    try {
+      // "PlannerFeedback" table is created by Prisma (case-sensitive)
+      // Join on tripId to get destination from "SavedTrip"
+      // Filter rating >= 4
+      const result = await db.query<{ destination: string }>(
+        `
+        SELECT DISTINCT t.destination
+        FROM "PlannerFeedback" pf
+        JOIN "SavedTrip" t ON t.id = pf."tripId"
+        WHERE pf."userId" = $1
+          AND (pf."feedbackValue"->>'rating')::int >= 4;
+        `,
+        [userId],
+      );
+
+      return result.rows
+        .map((r) => r.destination)
+        .filter((d) => d && d.trim().length > 0);
+    } catch (error) {
+      this.logger.warn(
+        `getUserPositiveFeedbackDestinations failed: ${(error as Error).message}`,
       );
       return [];
     }
