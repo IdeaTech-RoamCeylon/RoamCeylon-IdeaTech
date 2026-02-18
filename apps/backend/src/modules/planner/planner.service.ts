@@ -1,3 +1,4 @@
+//apps\backend\src\modules\planner\planner.service.ts
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -5,6 +6,12 @@ import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import {
+  PlannerAggregationService,
+  FeedbackAggregation,
+  DestinationFeedback,
+} from './planner-aggregation.service';
+import { FeedbackMappingService } from '../feedback/feedback-mapping.service';
 
 export interface SavedTrip {
   id: string;
@@ -23,7 +30,9 @@ export interface SavedTrip {
 export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly feedbackMappingService: FeedbackMappingService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly aggregationService: PlannerAggregationService,
   ) {}
 
   private normalizePreferences(
@@ -206,45 +215,71 @@ export class PlannerService {
   async submitFeedback(
     userId: string,
     tripId: string,
-    feedbackValue: any,
+    feedbackValue: number,
   ): Promise<any> {
+    // Validate numeric range (extra safety layer)
+    if (feedbackValue < 1 || feedbackValue > 5) {
+      throw new BadRequestException('Feedback value must be between 1 and 5.');
+    }
+
     // Verify trip exists and belongs to user
-    const trip = (await (this.prisma as any).savedTrip.findUnique({
-      where: { id: tripId },
-    })) as SavedTrip | null;
-
+    const trip = await this.getTrip(userId, tripId);
     if (!trip) {
-      throw new BadRequestException(
-        `Trip with ID ${tripId} not found. Please check the trip ID and try again.`,
-      );
+      throw new BadRequestException(`Trip with ID ${tripId} not found.`);
     }
 
-    if (trip.userId !== userId) {
-      throw new BadRequestException(
-        'Access denied. You can only provide feedback for your own trips.',
-      );
-    }
-
-    // Use upsert to handle both new feedback and updates
-    // If user has already submitted feedback for this trip, update it
-    const feedback = await (this.prisma as any).plannerFeedback.upsert({
+    // Save numeric feedback
+    const feedback = await this.prisma.plannerFeedback.upsert({
       where: {
         unique_user_trip_feedback: {
           userId,
           tripId,
         },
       },
-      update: {
-        feedbackValue: feedbackValue as object,
-      },
-      create: {
-        userId,
-        tripId,
-        feedbackValue: feedbackValue as object,
-      },
+      update: { feedbackValue },
+      create: { userId, tripId, feedbackValue },
+    });
+
+    // Pass tripId to match processFeedback signature
+    await this.feedbackMappingService.processFeedback(userId, tripId, {
+      rating: feedbackValue,
     });
 
     return feedback;
+  }
+
+  /**
+   * Get aggregated feedback for a specific trip
+   * Day 46 Task 1: Feedback Aggregation Logic
+   */
+  async getFeedbackAggregation(tripId: string): Promise<FeedbackAggregation> {
+    return this.aggregationService.aggregateTripFeedback(tripId);
+  }
+
+  /**
+   * Get aggregated feedback by destination
+   */
+  async getDestinationFeedback(
+    destination: string,
+  ): Promise<DestinationFeedback> {
+    return this.aggregationService.aggregateByDestination(destination);
+  }
+
+  /**
+   * Get aggregated feedback by category
+   */
+  async getCategoryFeedback(category: string): Promise<FeedbackAggregation> {
+    return this.aggregationService.aggregateByCategory(category);
+  }
+
+  /**
+   * Invalidate feedback cache when new feedback is submitted
+   */
+  async invalidateFeedbackCache(
+    tripId: string,
+    destination?: string,
+  ): Promise<void> {
+    await this.aggregationService.invalidateCache(tripId, destination);
   }
 
   async getFeedback(userId: string, tripId: string): Promise<any[]> {

@@ -27,12 +27,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     'ssn',
   ];
 
-  constructor(private readonly httpAdapterHost: HttpAdapterHost) { }
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
   /**
    * Sanitize request body by redacting sensitive fields
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   private sanitizeObject(obj: any): any {
     if (!obj || typeof obj !== 'object') return obj;
 
@@ -86,8 +86,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const message =
       typeof exceptionResponse === 'object' &&
-        exceptionResponse !== null &&
-        'message' in exceptionResponse
+      exceptionResponse !== null &&
+      'message' in exceptionResponse
         ? (exceptionResponse as Record<string, unknown>).message
         : exceptionResponse;
 

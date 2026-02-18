@@ -1,3 +1,4 @@
+// apps\backend\src\modules\planner\dto\create-feedback.dto.ts
 import {
   IsNotEmpty,
   IsObject,
@@ -7,10 +8,9 @@ import {
   Max,
   IsString,
   MaxLength,
-  ValidateNested,
   Matches,
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Transform } from 'class-transformer';
 
 /**
  * Sanitizes text input by trimming whitespace and removing potential XSS characters
@@ -36,8 +36,9 @@ function SanitizeText() {
 }
 
 /**
- * DTO for feedback value structure
- * Supports flexible feedback formats:
+ * DTO for feedback value structure (FUTURE EXTENSION)
+ *
+ * Will support:
  * - Numeric rating (1-5)
  * - Optional text comment (sanitized)
  * - Optional category-based feedback
@@ -60,21 +61,21 @@ export class FeedbackValueDto {
 
   @IsOptional()
   @IsObject()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories?: Record<string, any>;
+  categories?: Record<string, number>;
 }
 
 /**
  * DTO for creating trip feedback
+ * Currently supports only rating (1-5)
  */
 export class CreateFeedbackDto {
   @IsNotEmpty({ message: 'Trip ID is required' })
   @IsString({ message: 'Trip ID must be a string' })
   tripId: string;
 
-  @IsNotEmpty({ message: 'Feedback value is required' })
-  @IsObject({ message: 'Feedback value must be a valid object' })
-  @ValidateNested()
-  @Type(() => FeedbackValueDto)
-  feedbackValue: FeedbackValueDto;
+  @IsNotEmpty({ message: 'Rating is required' })
+  @IsNumber({}, { message: 'Rating must be a number' })
+  @Min(1, { message: 'Rating must be at least 1' })
+  @Max(5, { message: 'Rating must be at most 5' })
+  feedbackRating: number;
 }

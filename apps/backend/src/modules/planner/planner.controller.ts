@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
   Param,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PlannerService, SavedTrip } from './planner.service';
 import { CreateTripDto } from './dto/create-trip.dto';
@@ -15,6 +16,7 @@ import { UpdateTripDto } from './dto/update-trip.dto';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
+import { PlannerMetricsInterceptor } from './interceptors/planner-metrics.interceptor';
 
 interface RequestWithUser extends Request {
   user: { userId: string; username: string };
@@ -22,8 +24,12 @@ interface RequestWithUser extends Request {
 
 @Controller('planner')
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(PlannerMetricsInterceptor)
 export class PlannerController {
-  constructor(private readonly plannerService: PlannerService) {}
+  constructor(
+    private readonly plannerService: PlannerService,
+    private readonly metricsInterceptor: PlannerMetricsInterceptor,
+  ) {}
 
   @Post('save')
   async saveTrip(
@@ -72,7 +78,41 @@ export class PlannerController {
     return this.plannerService.submitFeedback(
       req.user.userId,
       body.tripId,
-      body.feedbackValue,
+      body.feedbackRating,
     );
+  }
+
+  /**
+   * Get aggregated feedback for a specific trip
+   * Day 46 Task 1: Feedback Aggregation Logic
+   */
+  @Get('feedback/trip/:tripId')
+  async getTripFeedback(@Param('tripId') tripId: string) {
+    return this.plannerService.getFeedbackAggregation(tripId);
+  }
+
+  /**
+   * Get aggregated feedback by destination
+   */
+  @Get('feedback/destination/:destination')
+  async getDestinationFeedback(@Param('destination') destination: string) {
+    return this.plannerService.getDestinationFeedback(destination);
+  }
+
+  /**
+   * Get aggregated feedback by category
+   */
+  @Get('feedback/category/:category')
+  async getCategoryFeedback(@Param('category') category: string) {
+    return this.plannerService.getCategoryFeedback(category);
+  }
+
+  /**
+   * Get performance metrics
+   * Day 46 Task 3: Performance & Stability Check
+   */
+  @Get('metrics')
+  getMetrics() {
+    return this.metricsInterceptor.getPerformanceStats();
   }
 }

@@ -10,9 +10,8 @@ import {
 } from 'class-validator';
 
 // Custom validator to ensure birthday is in the past and reasonable
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 function IsValidBirthday(validationOptions?: ValidationOptions) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (object: any, propertyName: string) {
     registerDecorator({
       name: 'isValidBirthday',
@@ -21,8 +20,6 @@ function IsValidBirthday(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         validate(value: any) {
           if (!value) return true; // Optional field
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -32,7 +29,7 @@ function IsValidBirthday(validationOptions?: ValidationOptions) {
           minDate.setFullYear(today.getFullYear() - 120); // Max age 120 years
 
           // Birthday must be in the past and within reasonable range
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
           return birthday < today && birthday > minDate;
         },
         defaultMessage() {
