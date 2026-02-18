@@ -5,6 +5,11 @@ import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import {
+  PlannerAggregationService,
+  FeedbackAggregation,
+  DestinationFeedback,
+} from './planner-aggregation.service';
 
 export interface SavedTrip {
   id: string;
@@ -24,7 +29,8 @@ export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+    private readonly aggregationService: PlannerAggregationService,
+  ) { }
 
   private normalizePreferences(
     prefs?: Record<string, any>,
@@ -245,5 +251,39 @@ export class PlannerService {
     });
 
     return feedback;
+  }
+
+  /**
+   * Get aggregated feedback for a specific trip
+   * Day 46 Task 1: Feedback Aggregation Logic
+   */
+  async getFeedbackAggregation(tripId: string): Promise<FeedbackAggregation> {
+    return this.aggregationService.aggregateTripFeedback(tripId);
+  }
+
+  /**
+   * Get aggregated feedback by destination
+   */
+  async getDestinationFeedback(
+    destination: string,
+  ): Promise<DestinationFeedback> {
+    return this.aggregationService.aggregateByDestination(destination);
+  }
+
+  /**
+   * Get aggregated feedback by category
+   */
+  async getCategoryFeedback(category: string): Promise<FeedbackAggregation> {
+    return this.aggregationService.aggregateByCategory(category);
+  }
+
+  /**
+   * Invalidate feedback cache when new feedback is submitted
+   */
+  async invalidateFeedbackCache(
+    tripId: string,
+    destination?: string,
+  ): Promise<void> {
+    await this.aggregationService.invalidateCache(tripId, destination);
   }
 }

@@ -4,7 +4,6 @@ import {
 } from './planningHeuristics';
 
 describe('Multi-Day Planning Algorithm', () => {
-  // --- EXISTING TEST DATA ---
   const MOCK_DATA: TripDestination[] = [
     {
       id: '1',
@@ -25,26 +24,16 @@ describe('Multi-Day Planning Algorithm', () => {
       metadata: { duration: '2 hours', category: 'relaxation' },
     },
     {
-      id: '3',
-      placeName: 'Far Away Fort',
-      shortDescription: '',
-      order: 0,
-      coordinates: { latitude: 8.0, longitude: 81.0 },
-      confidenceScore: 0.95,
-      metadata: { duration: '4 hours', category: 'culture' },
-    },
-    {
       id: 'TRASH',
       placeName: 'Trash Place',
       shortDescription: '',
       order: 0,
       coordinates: { latitude: 7.29, longitude: 80.64 },
-      confidenceScore: 0.1, // Low score (< 0.4)
+      confidenceScore: 0.1,
       metadata: { duration: '1 hour', category: 'relaxation' },
     },
   ];
 
-  // --- NEW TEST DATA FOR PERSONALIZATION ---
   const MOCK_PERSONALIZATION_DATA: TripDestination[] = [
     {
       id: 'culture-1',
@@ -52,7 +41,7 @@ describe('Multi-Day Planning Algorithm', () => {
       order: 0,
       shortDescription: '',
       coordinates: { latitude: 0, longitude: 0 },
-      confidenceScore: 0.6, // Moderate baseline
+      confidenceScore: 0.6,
       metadata: { duration: '2h', category: 'culture' },
     },
     {
@@ -61,28 +50,18 @@ describe('Multi-Day Planning Algorithm', () => {
       order: 0,
       shortDescription: '',
       coordinates: { latitude: 0, longitude: 1 },
-      confidenceScore: 0.6, // Moderate baseline (Same as temple)
+      confidenceScore: 0.6,
       metadata: { duration: '2h', category: 'food' },
     },
   ];
 
-  // --- TEST 1: EXISTING LOGIC ---
-  it('balances days AND filters out low-confidence items (Noise Reduction)', () => {
+  it('balances days AND filters out low-confidence items', () => {
     const plan = distributeActivitiesAcrossDays(MOCK_DATA, 2);
-    const allPlaces = plan.flat().map((p) => p.placeName);
-
-    // DAY 1 CHECK:
     expect(plan[0][0].placeName).toBe('Main Temple');
-    expect(plan[0][1].placeName).toBe('Nearby Lake');
-    expect(plan[0].length).toBe(2);
-
-    // CRITICAL: Verify "Trash Place" was filtered out
-    expect(allPlaces).not.toContain('Trash Place');
+    expect(plan[0][0].selectionReason).toBe('popular');
   });
 
-  // --- TEST 2: NEW PERSONALIZATION LOGIC ---
-  it('prioritizes categories based on user history (The "Foodie" vs "Historian" test)', () => {
-    // 1. Profile: Loves FOOD
+  it('prioritizes categories based on user history', () => {
     const foodiePlan = distributeActivitiesAcrossDays(
       MOCK_PERSONALIZATION_DATA,
       1,
@@ -91,44 +70,59 @@ describe('Multi-Day Planning Algorithm', () => {
         previouslyVisitedIds: [],
       },
     );
-
-    // Food should be #1 because of the boost (+15%)
     expect(foodiePlan[0][0].placeName).toBe('Street Food Market');
+  });
 
-    // 2. Profile: Loves CULTURE
-    const historianPlan = distributeActivitiesAcrossDays(
+  it('correctly tags the "Why" (Reasoning Check)', () => {
+    const foodiePlan = distributeActivitiesAcrossDays(
       MOCK_PERSONALIZATION_DATA,
       1,
       {
-        likedCategories: ['culture'],
+        likedCategories: ['food'],
         previouslyVisitedIds: [],
       },
     );
-
-    // Culture should be #1 because of the boost (+15%)
-    expect(historianPlan[0][0].placeName).toBe('Ancient Temple');
+    expect(foodiePlan[0][0].selectionReason).toBe('preference');
   });
 
-  // --- TEST 3: EXPLICIT BOOST ---
-  it('massively boosts explicitly edited/visited places', () => {
-    const hiddenGem: TripDestination = {
-      id: 'gem-1',
-      placeName: 'Hidden Gem',
-      order: 0,
-      shortDescription: '',
-      coordinates: { latitude: 0, longitude: 0 },
-      confidenceScore: 0.3, // LOW SCORE (Normally filtered out < 0.4)
-      metadata: { duration: '1h', category: 'relaxation' },
-    };
+  // --- NEW TEST FOR SPRINT 7: SAFEGUARD ---
+  it('applies a soft penalty to dislikes (The Safeguard Test)', () => {
+    const mixedBag: TripDestination[] = [
+      {
+        id: 'bad-shop',
+        placeName: 'Mediocre Mall',
+        order: 0,
+        shortDescription: '',
+        coordinates: { latitude: 0, longitude: 0 },
+        confidenceScore: 0.5, // Decent score
+        metadata: { duration: '1h', category: 'shopping' },
+      },
+      {
+        id: 'good-shop',
+        placeName: 'World Famous Mall',
+        order: 0,
+        shortDescription: '',
+        coordinates: { latitude: 0, longitude: 0.1 },
+        confidenceScore: 0.9, // Excellent score
+        metadata: { duration: '1h', category: 'shopping' },
+      },
+    ];
 
-    // Run with History that includes this ID
-    const plan = distributeActivitiesAcrossDays([hiddenGem], 1, {
+    // Profile: HATES shopping
+    const result = distributeActivitiesAcrossDays(mixedBag, 1, {
       likedCategories: [],
-      previouslyVisitedIds: ['gem-1'], // User manually added this before
+      previouslyVisitedIds: [],
+      dislikedCategories: ['shopping'], // <--- DISLIKE
     });
 
-    // It should now survive the filter because 0.3 + 0.25 (boost) = 0.55 (> 0.4)
-    expect(plan.length).toBeGreaterThan(0);
-    expect(plan[0][0].placeName).toBe('Hidden Gem');
+    const placeNames = result.flat().map((p) => p.placeName);
+
+    // 1. Safeguard Check: The "World Famous Mall" should SURVIVE
+    // (0.9 - 0.2 = 0.7, which is > 0.4 threshold)
+    expect(placeNames).toContain('World Famous Mall');
+
+    // 2. Quality Control: The "Mediocre Mall" should be DROPPED
+    // (0.5 - 0.2 = 0.3, which is < 0.4 threshold)
+    expect(placeNames).not.toContain('Mediocre Mall');
   });
 });

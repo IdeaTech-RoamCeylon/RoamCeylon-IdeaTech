@@ -121,6 +121,7 @@ interface RichExplanation {
   whyThisDay?: string[];
   whyThisTimeSlot?: string[];
   tips?: string[];
+  hasPositiveFeedback?: boolean;
 }
 
 interface ItineraryItemDto {
@@ -906,9 +907,8 @@ export class AIController {
 
     const energyScore =
       matched.length > 0
-      ? this.CATEGORY_ENERGY_SCORE[matched[0].toLowerCase()] ?? 2
-      : 2;
-
+        ? (this.CATEGORY_ENERGY_SCORE[matched[0].toLowerCase()] ?? 2)
+        : 2;
     const whyPlace: string[] = [];
     const whyDay: string[] = [];
     const whyTime: string[] = [];
@@ -927,9 +927,7 @@ export class AIController {
           categoryMatch: false,
           novelty: 'Low',
         },
-        whyThisPlace: [
-          'Limited preference-aligned results were available',
-        ],
+        whyThisPlace: ['Limited preference-aligned results were available'],
         tips: ['Try adding more specific interests for better matches'],
       };
     }
@@ -983,33 +981,31 @@ export class AIController {
     if (energyScore === 3) {
       whyPlace.push('Classified as a higher-energy activity');
 
-    if (ctx.timeSlot === 'Morning') {
-      whyTime.push(
-        'Scheduled in the morning when energy levels are typically higher',
-      );
-    } else {
-      whyTime.push('Placed earlier in the day due to its active nature');
-    }
+      if (ctx.timeSlot === 'Morning') {
+        whyTime.push(
+          'Scheduled in the morning when energy levels are typically higher',
+        );
+      } else {
+        whyTime.push('Placed earlier in the day due to its active nature');
+      }
     } else if (energyScore === 1) {
       whyPlace.push('Classified as a relaxing or lower-energy experience');
 
-    if (ctx.timeSlot === 'Evening') {
-      whyTime.push(
-        'Scheduled later in the day to allow a more relaxed pace',
-      );
-    } else {
-      whyTime.push('Placed at a calmer time of day');
-    }
+      if (ctx.timeSlot === 'Evening') {
+        whyTime.push('Scheduled later in the day to allow a more relaxed pace');
+      } else {
+        whyTime.push('Placed at a calmer time of day');
+      }
     } else {
       whyPlace.push('Balanced activity with moderate energy level');
 
-    if (ctx.timeSlot === 'Morning') {
-      whyTime.push('Assigned to the morning slot');
-    } else if (ctx.timeSlot === 'Afternoon') {
-      whyTime.push('Assigned to the afternoon slot');
-    } else if (ctx.timeSlot === 'Evening') {
-      whyTime.push('Assigned to the evening slot');
-    }
+      if (ctx.timeSlot === 'Morning') {
+        whyTime.push('Assigned to the morning slot');
+      } else if (ctx.timeSlot === 'Afternoon') {
+        whyTime.push('Assigned to the afternoon slot');
+      } else if (ctx.timeSlot === 'Evening') {
+        whyTime.push('Assigned to the evening slot');
+      }
     }
 
     /* -------------------------------------------------- */
@@ -1025,10 +1021,7 @@ export class AIController {
       tips.push('Wear comfortable walking shoes');
     }
 
-    if (
-      category === 'Culture' ||
-      category === 'History'
-    ) {
+    if (category === 'Culture' || category === 'History') {
       if (
         titleLower.includes('temple') ||
         titleLower.includes('kovil') ||
@@ -1088,6 +1081,42 @@ export class AIController {
 
     if (userId) {
       try {
+        /* -------------------------------------------------- */
+        /*   POSITIVE FEEDBACK INFLUENCE                      */
+        /* -------------------------------------------------- */
+        // Check if user has previously rated trips to this destination highly
+        const positiveDestinations =
+          await this.tripStore.getUserPositiveFeedbackDestinations(userId);
+
+        const currentDestLower = (ctx.destination || '').toLowerCase();
+        const matchesOverallDest = positiveDestinations.some(
+          (d) => d && currentDestLower.includes(d.toLowerCase()),
+        );
+
+        // Also check if this specific place title matches a positive destination (unlikely for city names but possible)
+        const resultTitleLower = result.title.toLowerCase();
+        const matchesTitle = positiveDestinations.some(
+          (d) => d && resultTitleLower.includes(d.toLowerCase()),
+        );
+
+        if (matchesOverallDest) {
+          baseExplanation.hasPositiveFeedback = true;
+          baseExplanation.whyThisPlace = [
+            `Based on your positive experience in ${ctx.destination}`,
+            ...(baseExplanation.whyThisPlace || []),
+          ];
+        } else if (matchesTitle) {
+          baseExplanation.hasPositiveFeedback = true;
+          baseExplanation.whyThisPlace = [
+            `Based on your positive experience with similar destinations`,
+            ...(baseExplanation.whyThisPlace || []),
+          ];
+        }
+
+        /* -------------------------------------------------- */
+        /*   EXISTING PERSONALIZATION LOGIC                   */
+        /* -------------------------------------------------- */
+
         const frequentPlacesRaw =
           await this.tripStore.getUserFrequentPlaces(userId);
         const frequentPlaces = this.asFrequentPlaces(frequentPlacesRaw);
@@ -1241,8 +1270,8 @@ export class AIController {
     }
 
     // Take highest energy among matched categories
-    const energies = matched.map((cat) =>
-      this.CATEGORY_ENERGY_SCORE[cat.toLowerCase()] ?? 2,
+    const energies = matched.map(
+      (cat) => this.CATEGORY_ENERGY_SCORE[cat.toLowerCase()] ?? 2,
     );
 
     return Math.max(...energies);
@@ -1365,23 +1394,18 @@ export class AIController {
           }
 
           // Extract matched preferences ONCE here
-            const extracted = this.extractMatchedPreferences(result, preferences);
-            matchedPreferences = extracted.matched ?? [];
-          }
+          const extracted = this.extractMatchedPreferences(result, preferences);
+          matchedPreferences = extracted.matched ?? [];
+        }
 
         /* -------------------- ENERGY BOOST -------------------- */
         if (matchedPreferences.length > 0) {
           const energyScore =
-          this.CATEGORY_ENERGY_SCORE[
-            matchedPreferences[0].toLowerCase()
-          ] ?? 2;
+            this.CATEGORY_ENERGY_SCORE[matchedPreferences[0].toLowerCase()] ??
+            2;
 
           const energyBoost =
-            energyScore === 3
-              ? 0.03
-              : energyScore === 1
-              ? 0.015
-              : 0.02;
+            energyScore === 3 ? 0.03 : energyScore === 1 ? 0.015 : 0.02;
 
           priorityScore += energyBoost;
 
@@ -1453,6 +1477,7 @@ export class AIController {
           return (order[b.confidence!] ?? 0) - (order[a.confidence!] ?? 0);
         }
 
+        // eslint-disable-next-line prettier/prettier
         return this.collator.compare(
           this.stableId(a.id),
           this.stableId(b.id),
@@ -1617,8 +1642,7 @@ export class AIController {
     dayCount?: number,
     destination?: string,
     userId?: string,
-  ): Promise<ScoredResult[]>{
-
+  ): Promise<ScoredResult[]> {
     const baseScored = this.scoreResultsByPreferences(
       results,
       preferences,
@@ -1700,7 +1724,6 @@ export class AIController {
     energy: number,
     ratio: number,
   ): 'Morning' | 'Afternoon' | 'Evening' {
-
     // High energy prefers earlier but not all morning
     if (energy === 3) {
       if (ratio < 0.4) return 'Morning';
@@ -1724,7 +1747,6 @@ export class AIController {
     dayNumber: number,
     totalDays: number,
   ): 'moderate' | 'high' | 'relaxed' {
-
     if (totalDays === 1) return 'high';
 
     // Arrival day
@@ -1736,13 +1758,12 @@ export class AIController {
     // Middle days
     return 'high';
   }
-  
+
   private assignMultiDaySlot(
     energy: number,
     ratio: number,
     dayType: 'moderate' | 'high' | 'relaxed',
   ): 'Morning' | 'Afternoon' | 'Evening' {
-    
     // ---------------- HIGH ENERGY DAY ----------------
     if (dayType === 'high') {
       if (energy === 3) {
@@ -1775,7 +1796,7 @@ export class AIController {
     if (ratio < 0.33) return 'Morning';
     if (ratio < 0.66) return 'Afternoon';
     return 'Evening';
-  } 
+  }
 
   private assignTimeSlot(
     item: ScoredResult,
@@ -1786,7 +1807,6 @@ export class AIController {
   ): 'Morning' | 'Afternoon' | 'Evening' {
     // Edge case safety
     if (totalActivitiesInDay <= 0) return 'Afternoon';
-    
     const energy = this.getEnergyScoreForItem(item);
 
     // Single activity → energy based
@@ -1797,9 +1817,7 @@ export class AIController {
     }
 
     const ratio =
-    totalActivitiesInDay > 1
-      ? activityIndex / (totalActivitiesInDay - 1)
-      : 0;
+      totalActivitiesInDay > 1 ? activityIndex / (totalActivitiesInDay - 1) : 0;
 
     // -----------------------------
     // SINGLE DAY TRIP
@@ -1816,49 +1834,46 @@ export class AIController {
     return this.assignMultiDaySlot(energy, ratio, dayType);
   }
 
-    /* --------------------------------------------------
-      MULTI-DAY TRIP (Balanced flow logic)
+  /* --------------------------------------------------
+     MULTI-DAY TRIP (Balanced flow logic)
     -------------------------------------------------- */
-
-    // // If only one activity that day → schedule by energy
-    // if (totalActivitiesInDay === 1) {
-    //   if (energy === 3) return 'Morning';
-    //   if (energy === 1) return 'Evening';
-    //   return 'Afternoon';
-    // }
-
-    // // If two activities → split by energy naturally
-    // if (totalActivitiesInDay === 2) {
-    //   if (energy === 3) return activityIndex === 0 ? 'Morning' : 'Afternoon';
-    //   if (energy === 1) return activityIndex === 0 ? 'Afternoon' : 'Evening';
-    //   return activityIndex === 0 ? 'Morning' : 'Afternoon';
-    // }
-
-    // /* --------------------------------------------------
-    //   3+ Activities → Energy + Natural Flow Hybrid
-    // -------------------------------------------------- */
-
-    // const ratio = activityIndex / (totalActivitiesInDay - 1);
-
-    // // High energy prefers early
-    // if (energy === 3) {
-    //   if (ratio < 0.5) return 'Morning';
-    //   return 'Afternoon';
-    // }
-
-    // // Low energy prefers late
-    // if (energy === 1) {
-    //   if (ratio < 0.5) return 'Afternoon';
-    //   return 'Evening';
-    // }
-
-    // // Neutral energy → standard distribution
-    // if (ratio < 0.4) return 'Morning';
-    // if (ratio < 0.7) return 'Afternoon';
-    // return 'Evening';
+  // // If only one activity that day → schedule by energy
+  // if (totalActivitiesInDay === 1) {
+  //   if (energy === 3) return 'Morning';
+  //   if (energy === 1) return 'Evening';
+  //   return 'Afternoon';
   // }
 
-  
+  // // If two activities → split by energy naturally
+  // if (totalActivitiesInDay === 2) {
+  //   if (energy === 3) return activityIndex === 0 ? 'Morning' : 'Afternoon';
+  //   if (energy === 1) return activityIndex === 0 ? 'Afternoon' : 'Evening';
+  //   return activityIndex === 0 ? 'Morning' : 'Afternoon';
+  // }
+
+  // /* --------------------------------------------------
+  //    3+ Activities → Energy + Natural Flow Hybrid
+  // -------------------------------------------------- */
+
+  // const ratio = activityIndex / (totalActivitiesInDay - 1);
+
+  // // High energy prefers early
+  // if (energy === 3) {
+  //   if (ratio < 0.5) return 'Morning';
+  //   return 'Afternoon';
+  // }
+
+  // // Low energy prefers late
+  // if (energy === 1) {
+  //   if (ratio < 0.5) return 'Afternoon';
+  //   return 'Evening';
+  // }
+
+  // // Neutral energy → standard distribution
+  // if (ratio < 0.4) return 'Morning';
+  // if (ratio < 0.7) return 'Afternoon';
+  // return 'Evening';
+  // }
 
   private createFallbackItinerary(
     dayCount: number,
