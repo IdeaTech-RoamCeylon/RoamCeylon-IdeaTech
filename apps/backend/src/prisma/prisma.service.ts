@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private prisma: PrismaClient;
+  userCategoryWeight: any;
+  userFeedbackSignal: any;
 
   constructor() {
     // Create a NEW Prisma Client instance with explicit datasource

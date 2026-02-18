@@ -98,6 +98,30 @@ model PlannerFeedback {
   @@index([createdAt])
 }
 
+model UserCategoryWeight {
+  id            Int      @id @default(autoincrement())
+  userId        String
+  category      String
+  weight        Float    @default(1.0)
+  feedbackCount Int      @default(0)
+  lastUpdated   DateTime @updatedAt
+
+  @@unique([userId, category])
+  @@index([userId])
+}
+
+model UserFeedbackSignal {
+  id            Int      @id @default(autoincrement())
+  userId        String   @unique
+  positiveCount Int      @default(0)
+  negativeCount Int      @default(0)
+  neutralCount  Int      @default(0)
+  trustScore    Float    @default(0.5)
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
 model TransportSession {
   id             String    @id @default(uuid())
   passengerId    String

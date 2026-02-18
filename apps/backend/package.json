@@ -33,7 +33,7 @@
     "@nestjs/platform-socket.io": "^11.0.1",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.0.1",
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^6.19.2",
     "@types/pg": "^8.15.6",
     "cache-manager": "^5.7.6",
     "cache-manager-redis-store": "^3.0.1",
