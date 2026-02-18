@@ -33,7 +33,7 @@ export class PlannerService {
     private readonly feedbackMappingService: FeedbackMappingService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly aggregationService: PlannerAggregationService,
-  ) { }
+  ) {}
 
   private normalizePreferences(
     prefs?: Record<string, any>,
@@ -219,9 +219,7 @@ export class PlannerService {
   ): Promise<any> {
     // Validate numeric range (extra safety layer)
     if (feedbackValue < 1 || feedbackValue > 5) {
-      throw new BadRequestException(
-        'Feedback value must be between 1 and 5.',
-      );
+      throw new BadRequestException('Feedback value must be between 1 and 5.');
     }
 
     // Verify trip exists and belongs to user
@@ -243,11 +241,9 @@ export class PlannerService {
     });
 
     // Pass tripId to match processFeedback signature
-    await this.feedbackMappingService.processFeedback(
-      userId,
-      tripId,
-      { rating: feedbackValue },
-    );
+    await this.feedbackMappingService.processFeedback(userId, tripId, {
+      rating: feedbackValue,
+    });
 
     return feedback;
   }

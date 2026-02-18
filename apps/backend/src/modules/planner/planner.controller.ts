@@ -29,7 +29,7 @@ export class PlannerController {
   constructor(
     private readonly plannerService: PlannerService,
     private readonly metricsInterceptor: PlannerMetricsInterceptor,
-  ) { }
+  ) {}
 
   @Post('save')
   async saveTrip(
@@ -78,7 +78,7 @@ export class PlannerController {
     return this.plannerService.submitFeedback(
       req.user.userId,
       body.tripId,
-      body.feedbackValue,
+      body.feedbackRating,
     );
   }
 

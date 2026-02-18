@@ -7,13 +7,13 @@ import { PlannerRankingService } from './planner-ranking.service';
 import { PlannerMetricsInterceptor } from './interceptors/planner-metrics.interceptor';
 
 @Module({
-    imports: [CacheModule.register()],
-    controllers: [PlannerController],
-    providers: [
-        PlannerService,
-        PlannerAggregationService,
-        PlannerRankingService,
-        PlannerMetricsInterceptor,
-    ],
+  imports: [CacheModule.register()],
+  controllers: [PlannerController],
+  providers: [
+    PlannerService,
+    PlannerAggregationService,
+    PlannerRankingService,
+    PlannerMetricsInterceptor,
+  ],
 })
-export class PlannerModule { }
+export class PlannerModule {}

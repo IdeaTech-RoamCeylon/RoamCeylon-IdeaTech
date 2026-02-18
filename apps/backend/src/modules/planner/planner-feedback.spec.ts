@@ -1,5 +1,5 @@
 // apps/backend/src/modules/planner/planner-feedback.spec.ts
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { PlannerService } from './planner.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -43,7 +43,10 @@ describe('PlannerService - Feedback', () => {
         PlannerService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
-        { provide: FeedbackMappingService, useValue: mockFeedbackMappingService },
+        {
+          provide: FeedbackMappingService,
+          useValue: mockFeedbackMappingService,
+        },
       ],
     }).compile();
 
@@ -82,7 +85,11 @@ describe('PlannerService - Feedback', () => {
       mockPrismaService.savedTrip.findUnique.mockResolvedValue(mockTrip);
       mockPrismaService.plannerFeedback.upsert.mockResolvedValue(mockFeedback);
 
-      const result = await service.submitFeedback(userId, tripId, feedbackValue);
+      const result = await service.submitFeedback(
+        userId,
+        tripId,
+        feedbackValue,
+      );
 
       expect(result).toEqual(mockFeedback);
       expect(mockPrismaService.savedTrip.findUnique).toHaveBeenCalledWith({
@@ -93,26 +100,37 @@ describe('PlannerService - Feedback', () => {
         update: { feedbackValue },
         create: { userId, tripId, feedbackValue },
       });
-      expect(mockFeedbackMappingService.processFeedback).toHaveBeenCalledWith(userId, { rating: feedbackValue });
+      expect(mockFeedbackMappingService.processFeedback).toHaveBeenCalledWith(
+        userId,
+        { rating: feedbackValue },
+      );
     });
 
     it('should throw BadRequestException if trip not found', async () => {
       mockPrismaService.savedTrip.findUnique.mockResolvedValue(null);
 
-      await expect(service.submitFeedback(userId, tripId, feedbackValue)).rejects.toThrow(BadRequestException);
-      await expect(service.submitFeedback(userId, tripId, feedbackValue)).rejects.toThrow(
-        `Trip with ID ${tripId} not found.`,
-      );
+      await expect(
+        service.submitFeedback(userId, tripId, feedbackValue),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.submitFeedback(userId, tripId, feedbackValue),
+      ).rejects.toThrow(`Trip with ID ${tripId} not found.`);
       expect(mockPrismaService.plannerFeedback.upsert).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if user does not own the trip', async () => {
       const differentUserId = 'different-user-456';
       const mockTripOwnedByOther = { ...mockTrip, userId: differentUserId };
-      mockPrismaService.savedTrip.findUnique.mockResolvedValue(mockTripOwnedByOther);
+      mockPrismaService.savedTrip.findUnique.mockResolvedValue(
+        mockTripOwnedByOther,
+      );
 
-      await expect(service.submitFeedback(userId, tripId, feedbackValue)).rejects.toThrow(BadRequestException);
-      await expect(service.submitFeedback(userId, tripId, feedbackValue)).rejects.toThrow(
+      await expect(
+        service.submitFeedback(userId, tripId, feedbackValue),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.submitFeedback(userId, tripId, feedbackValue),
+      ).rejects.toThrow(
         'Access denied. You can only provide feedback for your own trips.',
       );
       expect(mockPrismaService.plannerFeedback.upsert).not.toHaveBeenCalled();
@@ -121,7 +139,9 @@ describe('PlannerService - Feedback', () => {
     it('should reject feedbackValue less than 1', async () => {
       mockPrismaService.savedTrip.findUnique.mockResolvedValue(mockTrip);
 
-      await expect(service.submitFeedback(userId, tripId, 0)).rejects.toThrow(BadRequestException);
+      await expect(service.submitFeedback(userId, tripId, 0)).rejects.toThrow(
+        BadRequestException,
+      );
       await expect(service.submitFeedback(userId, tripId, 0)).rejects.toThrow(
         'Feedback value must be between 1 and 5.',
       );
@@ -130,7 +150,9 @@ describe('PlannerService - Feedback', () => {
     it('should reject feedbackValue greater than 5', async () => {
       mockPrismaService.savedTrip.findUnique.mockResolvedValue(mockTrip);
 
-      await expect(service.submitFeedback(userId, tripId, 6)).rejects.toThrow(BadRequestException);
+      await expect(service.submitFeedback(userId, tripId, 6)).rejects.toThrow(
+        BadRequestException,
+      );
       await expect(service.submitFeedback(userId, tripId, 6)).rejects.toThrow(
         'Feedback value must be between 1 and 5.',
       );

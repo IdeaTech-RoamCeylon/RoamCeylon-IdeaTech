@@ -37,7 +37,7 @@ function SanitizeText() {
 
 /**
  * DTO for feedback value structure (FUTURE EXTENSION)
- * 
+ *
  * Will support:
  * - Numeric rating (1-5)
  * - Optional text comment (sanitized)

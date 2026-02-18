@@ -49,7 +49,6 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   get plannerFeedback() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.prisma.plannerFeedback;
   }
 

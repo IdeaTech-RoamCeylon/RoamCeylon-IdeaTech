@@ -8,15 +8,7 @@ import { RankingService } from './ranking.service';
 
 @Module({
   imports: [PrismaModule],
-  providers: [
-    FeedbackService,
-    FeedbackMappingService,
-    RankingService,
-  ],
-  exports: [
-    FeedbackService,
-    RankingService,
-  ],
+  providers: [FeedbackService, FeedbackMappingService, RankingService],
+  exports: [FeedbackService, RankingService],
 })
 export class FeedbackModule {}
-
