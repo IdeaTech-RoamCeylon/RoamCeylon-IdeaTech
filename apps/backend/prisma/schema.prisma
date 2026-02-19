@@ -110,10 +110,13 @@ model PlannerMetadata {
 }
 
 model PlannerFeedback {
-  userId String
-  tripId Int
-  rating Int
-  reason String?
+  id        String   @id @default(uuid())
+  userId    String
+  tripId    Int
+  rating    Int
+  reason    String?
+  createdAt DateTime @default(now())
 
-  @@id([userId, tripId])
+  @@unique([userId, tripId])
 }
+
