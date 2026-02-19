@@ -15,13 +15,6 @@ export interface SavedTrip {
 export interface TripFeedback {
   tripId?: string;
   isPositive: boolean;
-  reasons?: string[];
-  timestamp: string;
-}
-
-export interface TripFeedback {
-  tripId?: string;
-  isPositive: boolean;
   reasons?: string[]; // e.g., 'Expensive', 'Too busy', 'Bad location'
   timestamp: string;
 }
@@ -41,7 +34,7 @@ class TripStorageService {
     if (this.useBackend) {
       try {
         const trips = await plannerApiService.getSavedTrips();
-        
+
         // If pagination params provided, paginate the results
         if (page !== undefined && pageSize !== undefined) {
           const total = trips.length;
@@ -49,14 +42,14 @@ class TripStorageService {
           const endIndex = startIndex + pageSize;
           const paginatedData = trips.slice(startIndex, endIndex);
           const hasMore = endIndex < total;
-          
+
           return {
             data: paginatedData,
             hasMore,
             total,
           };
         }
-        
+
         return trips;
       } catch (error) {
         console.warn('Backend unavailable, using local storage:', error);
@@ -156,25 +149,25 @@ class TripStorageService {
   async saveFeedback(feedback: TripFeedback): Promise<void> {
     try {
       const feedbackKey = 'trip_feedback';
-      
+
       // If we have a backend and the trip ID is a UUID (not a temp ID), send to backend
       // Simple UUID check or just length check (UUID is 36 chars)
       const isBackendId = feedback.tripId && feedback.tripId.length === 36 && !feedback.tripId.startsWith('temp_');
-      
+
       if (this.useBackend && isBackendId) {
         try {
           await plannerApiService.submitFeedback(feedback.tripId!, {
             rating: feedback.isPositive ? 5 : 1, // Simple mapping for now
             comment: feedback.reasons ? feedback.reasons.join(', ') : undefined,
             categories: {
-                isPositive: feedback.isPositive,
-                reasons: feedback.reasons || []
+              isPositive: feedback.isPositive,
+              reasons: feedback.reasons || []
             }
           });
           // Also save locally as backup/history
         } catch (error) {
-           console.warn('Backend feedback failed, falling back to local:', error);
-           // Fallthrough to local save
+          console.warn('Backend feedback failed, falling back to local:', error);
+          // Fallthrough to local save
         }
       }
 
@@ -187,6 +180,27 @@ class TripStorageService {
     }
   }
 
+  /**
+   * Get the most recent feedback for a specific trip from local storage
+   */
+  async getFeedbackForTrip(tripId: string): Promise<TripFeedback | null> {
+    try {
+      const feedbackKey = 'trip_feedback';
+      const existing = await AsyncStorage.getItem(feedbackKey);
+      if (!existing) return null;
+
+      const feedbacks: TripFeedback[] = JSON.parse(existing);
+      // Return the most recent feedback entry for this tripId
+      const tripFeedbacks = feedbacks.filter(f => f.tripId === tripId);
+      if (tripFeedbacks.length === 0) return null;
+
+      return tripFeedbacks[tripFeedbacks.length - 1];
+    } catch (error) {
+      console.error('Error loading feedback for trip:', error);
+      return null;
+    }
+  }
+
   // ===== Local Storage Methods (Fallback) =====
 
   private async getLocalTrips(
@@ -196,26 +210,26 @@ class TripStorageService {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEY);
       if (!data) return page !== undefined && pageSize !== undefined ? { data: [], hasMore: false, total: 0 } : [];
-      
+
       const parsed = JSON.parse(data);
-      
+
       // Validate that parsed data is an array
       if (!Array.isArray(parsed)) {
         console.error('Stored trips data is not an array, clearing corrupted data');
         await AsyncStorage.removeItem(STORAGE_KEY);
         return page !== undefined && pageSize !== undefined ? { data: [], hasMore: false, total: 0 } : [];
       }
-      
+
       // Filter out any corrupted trip objects
-      const validTrips = parsed.filter(trip => 
-        trip && 
-        trip.id && 
-        trip.name && 
-        trip.tripPlan && 
-        trip.tripPlan.itinerary && 
+      const validTrips = parsed.filter(trip =>
+        trip &&
+        trip.id &&
+        trip.name &&
+        trip.tripPlan &&
+        trip.tripPlan.itinerary &&
         Array.isArray(trip.tripPlan.itinerary)
       );
-      
+
       // If pagination params provided, paginate the results
       if (page !== undefined && pageSize !== undefined) {
         const total = validTrips.length;
@@ -223,14 +237,14 @@ class TripStorageService {
         const endIndex = startIndex + pageSize;
         const paginatedData = validTrips.slice(startIndex, endIndex);
         const hasMore = endIndex < total;
-        
+
         return {
           data: paginatedData,
           hasMore,
           total,
         };
       }
-      
+
       return validTrips;
     } catch (error) {
       console.error('Error loading local trips:', error);

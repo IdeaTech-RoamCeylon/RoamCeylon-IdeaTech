@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as redisStore from 'cache-manager-redis-store';
+import { redisStore } from 'cache-manager-ioredis-yet';
 import { MarketplaceController } from './marketplace.controller';
 import { MarketplaceService } from './marketplace.service';
 
