@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as redisStore from 'cache-manager-redis-store';
+import { IoRedisStore } from '@tirke/node-cache-manager-ioredis';
 import { MarketplaceController } from './marketplace.controller';
 import { MarketplaceService } from './marketplace.service';
 
@@ -11,7 +11,7 @@ import { MarketplaceService } from './marketplace.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        store: redisStore,
+        store: IoRedisStore,
         url: configService.get('REDIS_URL') || 'redis://localhost:6379',
         ttl: 600,
       }),
