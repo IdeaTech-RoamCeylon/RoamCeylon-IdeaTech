@@ -17,7 +17,7 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "Vector" (
     "id" TEXT NOT NULL,
-    "embedding" vector,
+    "embedding" public.vector,
     "content" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
