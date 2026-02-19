@@ -10,22 +10,35 @@ import { UpdateTripDto } from './dto/update-trip.dto';
 
 describe('PlannerService - Validation Tests', () => {
   let service: PlannerService;
-  let prismaService: jest.Mocked<PrismaService>;
+
+  // Typed mock for savedTrip and user delegates on PrismaService
+  const mockPrisma: {
+    savedTrip: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      findMany: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+    };
+    user: {
+      update: jest.Mock;
+    };
+  } = {
+    savedTrip: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    user: {
+      update: jest.fn(),
+    },
+  };
 
   beforeEach(async () => {
-    // Mock PrismaService
-    const mockPrisma = {
-      savedTrip: {
-        create: jest.fn(),
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      },
-      user: {
-        update: jest.fn(),
-      },
-    };
+    // Reset all mocks before each test
+    jest.clearAllMocks();
 
     // Mock Cache Manager
     const mockCache = {
@@ -70,7 +83,6 @@ describe('PlannerService - Validation Tests', () => {
     }).compile();
 
     service = module.get<PlannerService>(PlannerService);
-    prismaService = module.get(PrismaService);
   });
 
   describe('saveTrip - Preference Validation', () => {
@@ -83,7 +95,7 @@ describe('PlannerService - Validation Tests', () => {
         itinerary: { days: [] },
       };
 
-      (prismaService as any).savedTrip.create.mockResolvedValue({
+      mockPrisma.savedTrip.create.mockResolvedValue({
         id: 1,
         userId: 'user1',
         ...tripData,
@@ -94,15 +106,17 @@ describe('PlannerService - Validation Tests', () => {
 
       await service.saveTrip('user1', tripData);
 
-      expect((prismaService as any).savedTrip.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          preferences: expect.objectContaining({
-            budget: 'medium',
-            interests: [],
-            travelStyle: 'relaxed',
-            accessibility: false,
-          }),
-        }),
+      const expectedPrefs = expect.objectContaining({
+        budget: 'medium',
+        interests: [],
+        travelStyle: 'relaxed',
+        accessibility: false,
+      }) as unknown as Record<string, unknown>;
+      const expectedData = expect.objectContaining({
+        preferences: expectedPrefs,
+      }) as unknown as Record<string, unknown>;
+      expect(mockPrisma.savedTrip.create).toHaveBeenCalledWith({
+        data: expectedData,
       });
     });
 
@@ -139,7 +153,7 @@ describe('PlannerService - Validation Tests', () => {
         },
       };
 
-      (prismaService as any).savedTrip.create.mockResolvedValue({
+      mockPrisma.savedTrip.create.mockResolvedValue({
         id: 1,
         userId: 'user1',
         ...tripData,
@@ -149,15 +163,16 @@ describe('PlannerService - Validation Tests', () => {
 
       await service.saveTrip('user1', tripData);
 
-      expect((prismaService as any).savedTrip.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          preferences: {
-            budget: 'low',
-            interests: ['beach', 'temple'],
-            travelStyle: 'moderate',
-            accessibility: true,
-          },
-        }),
+      const expectedDataNormalized = expect.objectContaining({
+        preferences: {
+          budget: 'low',
+          interests: ['beach', 'temple'],
+          travelStyle: 'moderate',
+          accessibility: true,
+        },
+      }) as unknown as Record<string, unknown>;
+      expect(mockPrisma.savedTrip.create).toHaveBeenCalledWith({
+        data: expectedDataNormalized,
       });
     });
   });
@@ -168,7 +183,7 @@ describe('PlannerService - Validation Tests', () => {
         name: 'Updated Trip',
       };
 
-      (prismaService as any).savedTrip.findUnique.mockResolvedValue(null);
+      mockPrisma.savedTrip.findUnique.mockResolvedValue(null);
 
       await expect(
         service.updateTrip('user1', '999', updateData),
@@ -183,7 +198,7 @@ describe('PlannerService - Validation Tests', () => {
         name: 'Updated Trip',
       };
 
-      (prismaService as any).savedTrip.findUnique.mockResolvedValue({
+      mockPrisma.savedTrip.findUnique.mockResolvedValue({
         id: 1,
         userId: 'user2', // Different user
         name: 'Original Trip',
@@ -196,18 +211,18 @@ describe('PlannerService - Validation Tests', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.updateTrip('user1', '1', updateData)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.updateTrip('user1', '1', updateData)).rejects.toThrow(
-        'Access denied. You can only update your own trips.',
-      );
+      await expect(
+        service.updateTrip('user1', '1', updateData),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.updateTrip('user1', '1', updateData),
+      ).rejects.toThrow('Access denied. You can only update your own trips.');
     });
   });
 
   describe('deleteTrip - Access Control and Error Messages', () => {
     it('should provide actionable error when trip not found', async () => {
-      (prismaService as any).savedTrip.findUnique.mockResolvedValue(null);
+      mockPrisma.savedTrip.findUnique.mockResolvedValue(null);
 
       await expect(service.deleteTrip('user1', '999')).rejects.toThrow(
         BadRequestException,
@@ -218,7 +233,7 @@ describe('PlannerService - Validation Tests', () => {
     });
 
     it("should provide actionable error when deleting another user's trip", async () => {
-      (prismaService as any).savedTrip.findUnique.mockResolvedValue({
+      mockPrisma.savedTrip.findUnique.mockResolvedValue({
         id: 1,
         userId: 'user2', // Different user
         name: 'Trip',
