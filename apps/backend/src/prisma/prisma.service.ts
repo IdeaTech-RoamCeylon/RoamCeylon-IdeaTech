@@ -4,8 +4,6 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private prisma: PrismaClient;
-  userCategoryWeight: any;
-  userFeedbackSignal: any;
 
   constructor() {
     // Create a NEW Prisma Client instance with explicit datasource
@@ -50,6 +48,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   get plannerFeedback() {
     return this.prisma.plannerFeedback;
+  }
+
+  get userFeedbackSignal() {
+    return this.prisma.userFeedbackSignal;
   }
 
   async onModuleInit() {
