@@ -2,17 +2,10 @@
 
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PrismaClient } from '@prisma/client';
-
-type TypedPrisma = PrismaClient;
 
 @Injectable()
 export class FeedbackMappingService {
-  private readonly db: TypedPrisma;
-
-  constructor(private readonly prisma: PrismaService) {
-    this.db = prisma as unknown as TypedPrisma;
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async processFeedback(
     userId: string,
@@ -29,7 +22,7 @@ export class FeedbackMappingService {
   }
 
   private async recalculateTrustScore(userId: string): Promise<void> {
-    const feedbacks = await this.db.plannerFeedback.findMany({
+    const feedbacks = await this.prisma.plannerFeedback.findMany({
       where: { userId },
       select: {
         feedbackValue: true,
@@ -38,7 +31,7 @@ export class FeedbackMappingService {
     });
 
     if (feedbacks.length === 0) {
-      await this.db.userFeedbackSignal.upsert({
+      await this.prisma.userFeedbackSignal.upsert({
         where: { userId },
         create: {
           userId,
@@ -85,7 +78,7 @@ export class FeedbackMappingService {
 
     const safeTrust = Math.max(0, Math.min(trustScore, 1));
 
-    await this.db.userFeedbackSignal.upsert({
+    await this.prisma.userFeedbackSignal.upsert({
       where: { userId },
       create: {
         userId,
