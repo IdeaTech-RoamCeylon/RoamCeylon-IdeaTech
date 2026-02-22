@@ -249,8 +249,8 @@ export class PlannerService {
           tripId,
         },
       },
-      update: { feedbackValue },
-      create: { userId, tripId, feedbackValue },
+      update: { feedbackValue: { rating: feedbackValue } },
+      create: { userId, tripId, feedbackValue: { rating: feedbackValue } },
     });
 
     // Corrected call

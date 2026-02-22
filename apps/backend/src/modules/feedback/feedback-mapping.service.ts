@@ -51,18 +51,25 @@ export class FeedbackMappingService {
     let neutralCount = 0;
 
     for (const fb of feedbacks) {
-      const value = fb.feedbackValue as { rating?: number };
+      // feedbackValue may be stored as {rating: N} (new) or bare number (legacy)
+      const raw = fb.feedbackValue;
+      const ratingVal =
+        raw !== null && typeof raw === 'object' && !Array.isArray(raw)
+          ? (raw as { rating?: number }).rating
+          : typeof raw === 'number'
+            ? raw
+            : undefined;
 
-      if (!value?.rating) continue;
+      if (!ratingVal) continue;
 
       const daysOld =
         (now.getTime() - fb.createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
       const decayWeight = Math.exp(-this.DECAY_LAMBDA * daysOld);
 
-      if (value.rating >= 4) {
+      if (ratingVal >= 4) {
         weightedPositive += decayWeight;
-      } else if (value.rating <= 2) {
+      } else if (ratingVal <= 2) {
         weightedNegative += decayWeight;
       } else {
         neutralCount++;

@@ -669,7 +669,15 @@ export class TripStoreService {
         FROM "PlannerFeedback" pf
         JOIN "SavedTrip" t ON t.id = pf."tripId"
         WHERE pf."userId" = $1
-          AND (pf."feedbackValue"->>'rating')::int >= 4;
+          AND COALESCE(
+            -- New format: {"rating": N}
+            (pf."feedbackValue"->>'rating')::int,
+            -- Legacy format: bare number stored as JSON
+            CASE jsonb_typeof(pf."feedbackValue")
+              WHEN 'number' THEN (pf."feedbackValue"::text)::int
+              ELSE NULL
+            END
+          ) >= 4;
         `,
         [userId],
       );
