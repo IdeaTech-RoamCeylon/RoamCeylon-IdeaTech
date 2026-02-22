@@ -16,5 +16,6 @@ import { FeedbackModule } from '../feedback/feedback.module';
     PlannerRankingService,
     PlannerMetricsInterceptor,
   ],
+  exports: [PlannerService],
 })
 export class PlannerModule {}
