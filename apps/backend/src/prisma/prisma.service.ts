@@ -54,6 +54,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.userFeedbackSignal;
   }
 
+  get userCategoryWeight() {
+    return this.prisma.userCategoryWeight;
+  }
+
   async onModuleInit() {
     await this.prisma.$connect();
   }
