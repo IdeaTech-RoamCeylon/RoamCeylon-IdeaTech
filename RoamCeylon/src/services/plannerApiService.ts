@@ -143,11 +143,11 @@ export const plannerApiService = {
     }
   },
 
-  async submitFeedback(tripId: string, feedbackValue: any): Promise<void> {
+  async submitFeedback(tripId: string, feedbackValue: { rating: number; comment?: string; categories?: object }): Promise<void> {
     try {
       await apiService.post('/planner/feedback', {
         tripId,
-        feedbackValue,
+        feedbackRating: feedbackValue.rating, // Backend DTO expects top-level feedbackRating: number
       });
     } catch (error) {
       console.error('Error submitting feedback:', error);

@@ -47,7 +47,7 @@ type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITr
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
-  const { query, setQuery, tripPlan, setTripPlan, currentTripId, isEditing, stopEditing } = usePlannerContext();
+  const { query, setQuery, tripPlan, setTripPlan, currentTripId, setCurrentTripId, isEditing, stopEditing } = usePlannerContext();
   const networkStatus = useNetworkStatus();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -142,6 +142,11 @@ const AITripPlannerScreen = () => {
 
         if (isMounted.current) {
           setTripPlan(plan);
+
+          // Store the backend-assigned tripId so feedback can be linked to this trip
+          if (plan.tripId) {
+            setCurrentTripId(plan.tripId);
+          }
 
           // Show context info if used saved context
           if (plan.usedSavedContext) {

@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { showToast } from '../utils/toast';
 import { CONFIG } from '../config';
 import { logger } from '../utils/logger';
+import { getUserId } from './auth';
 
 class ApiService {
   private client: AxiosInstance;
@@ -16,12 +17,17 @@ class ApiService {
       },
     });
 
-    // Request interceptor - add auth token
+    // Request interceptor - add auth token and user ID
     this.client.interceptors.request.use(
       async config => {
         const token = await SecureStore.getItemAsync('authToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        // Attach userId as header for controllers that use optional-auth pattern
+        const userId = await getUserId();
+        if (userId) {
+          config.headers['x-user-id'] = userId;
         }
         return config;
       },

@@ -46,6 +46,19 @@ export const removeAuthToken = async (): Promise<void> => {
   await SecureStore.deleteItemAsync('authToken');
 };
 
+export const storeUserId = async (userId: string): Promise<void> => {
+  await SecureStore.setItemAsync('userId', userId);
+};
+
+export const getUserId = async (): Promise<string | null> => {
+  return await SecureStore.getItemAsync('userId');
+};
+
+export const removeUserId = async (): Promise<void> => {
+  await SecureStore.deleteItemAsync('userId');
+};
+
+
 // Auth API functions
 export const sendOtp = async (phoneNumber: string): Promise<OTPResponse> => {
   try {
@@ -88,13 +101,18 @@ export const verifyOtp = async (
       throw new Error('No access token received from server');
     }
 
-    // Store token if verification successful
+    // Store token and user ID if verification successful
     await storeAuthToken(accessToken);
 
     const user = response.data?.user || {
       id: '',
       phoneNumber: phoneNumber
     };
+
+    // Persist userId so API interceptor can attach x-user-id header
+    if (user.id) {
+      await storeUserId(user.id);
+    }
 
     return {
       accessToken,
@@ -119,12 +137,14 @@ export const getMe = async (): Promise<UserProfile> => {
 export const logout = async (): Promise<void> => {
   try {
     await removeAuthToken();
+    await removeUserId();
     // Additional logout logic (clear cache, reset state, etc.)
   } catch (error) {
     logger.error('Logout error:', error);
     throw error;
   }
 };
+
 
 export const updateProfile = async (
   name: string,
