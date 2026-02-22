@@ -1,10 +1,11 @@
 // apps/backend/src/modules/feedback/ranking.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class RankingService {
+  private readonly logger = new Logger(RankingService.name);
   private readonly CONFIDENCE_K = 10;
   private readonly TRUST_MIN = 0.8;
   private readonly TRUST_RANGE = 0.4;
@@ -43,10 +44,19 @@ export class RankingService {
       {} as Record<string, number>,
     );
 
+    this.logger.log(
+      `[LearningMetrics] Ranking: userId=${userId}, trips=${trips.length}, trustScore=${trustScore.toFixed(4)}, confidence=${confidence.toFixed(4)}, trustMultiplier=${trustMultiplier.toFixed(4)}`,
+    );
+
     const rankedTrips = trips.map((trip) => {
       const categoryMultiplier = categoryMap[trip.category] ?? 1;
 
       const finalScore = trip.baseScore * categoryMultiplier * trustMultiplier;
+
+      const adjustmentMagnitude = Math.abs(finalScore - trip.baseScore);
+      this.logger.debug(
+        `[LearningMetrics] Trip ranking adjustment: tripId=${trip.id}, category=${trip.category}, baseScore=${trip.baseScore.toFixed(3)}, categoryMultiplier=${categoryMultiplier.toFixed(3)}, finalScore=${finalScore.toFixed(3)}, adjustmentMagnitude=${adjustmentMagnitude.toFixed(3)}`,
+      );
 
       return { ...trip, finalScore };
     });
@@ -85,6 +95,13 @@ export class RankingService {
 
     const categoryMultiplier = categoryWeight?.weight ?? 1;
 
-    return baseScore * categoryMultiplier * trustMultiplier;
+    const finalScore = baseScore * categoryMultiplier * trustMultiplier;
+    const adjustmentMagnitude = Math.abs(finalScore - baseScore);
+
+    this.logger.log(
+      `[LearningMetrics] Score computed: userId=${userId}, category=${category}, baseScore=${baseScore.toFixed(3)}, trustMultiplier=${trustMultiplier.toFixed(4)}, categoryMultiplier=${categoryMultiplier.toFixed(3)}, finalScore=${finalScore.toFixed(3)}, adjustmentMagnitude=${adjustmentMagnitude.toFixed(3)}`,
+    );
+
+    return finalScore;
   }
 }

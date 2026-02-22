@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -11,6 +11,8 @@ import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { AIModule } from './modules/ai/ai.module';
 import { PlannerModule } from './modules/planner/planner.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AnalyticsMiddleware } from './modules/analytics/analytics.middleware';
 // import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -30,8 +32,13 @@ import { FeedbackModule } from './modules/feedback/feedback.module';
     AIModule,
     PlannerModule,
     FeedbackModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AnalyticsMiddleware).forRoutes('*'); // Apply to all routes
+  }
+}
