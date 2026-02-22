@@ -1,5 +1,5 @@
 //apps\backend\src\modules\planner\planner.service.ts
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -24,6 +24,16 @@ export interface SavedTrip {
   preferences?: any;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PlannerFeedbackEntry {
+  id: string;
+  userId: string;
+  tripId: string;
+  feedbackValue: number;
+  createdAt: Date;
+  plannerMeta?: any;
+  versionNo?: number;
 }
 
 @Injectable()
@@ -71,7 +81,7 @@ export class PlannerService {
 
     const normalizedPrefs = this.normalizePreferences(tripData.preferences);
 
-    const result = await (this.prisma as any).savedTrip.create({
+    const result = await this.prisma.savedTrip.create({
       data: {
         userId,
         name: tripData.name || 'My Trip',
@@ -85,7 +95,7 @@ export class PlannerService {
 
     // Validating & Storing User History (Day 40 Task)
     try {
-      await (this.prisma as any).user.update({
+      await this.prisma.user.update({
         where: { id: userId },
         data: { preferences: normalizedPrefs },
       });
@@ -110,9 +120,9 @@ export class PlannerService {
       return cachedTrip;
     }
 
-    const trip = (await (this.prisma as any).savedTrip.findUnique({
+    const trip = await this.prisma.savedTrip.findUnique({
       where: { id: tripId },
-    })) as SavedTrip | null;
+    });
 
     if (!trip || trip.userId !== userId) {
       return null;
@@ -130,12 +140,12 @@ export class PlannerService {
       return cachedData;
     }
 
-    const history = (await (this.prisma as any).savedTrip.findMany({
+    const history = await this.prisma.savedTrip.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-    })) as SavedTrip[];
+    });
 
-    await this.cacheManager.set(cacheKey, history, 300000); // 5 minutes TTL
+    await this.cacheManager.set(cacheKey, history, 300000); // 5 minutes
     return history;
   }
 
@@ -146,8 +156,10 @@ export class PlannerService {
   ): Promise<SavedTrip> {
     // Validation is now handled by class-validator decorators
 
-    const trip = (await (this.prisma as any).savedTrip.findUnique({
-      where: { id: tripId },
+    const trip = (await this.prisma.savedTrip.findUnique({
+      where: {
+        id: tripId,
+      },
     })) as SavedTrip | null;
 
     if (!trip) {
@@ -168,8 +180,10 @@ export class PlannerService {
 
     const normalizedPrefs = this.normalizePreferences(data.preferences);
 
-    const updatedTrip = (await (this.prisma as any).savedTrip.update({
-      where: { id: tripId },
+    const updatedTrip = (await this.prisma.savedTrip.update({
+      where: {
+        id: tripId,
+      },
       data: {
         name: data.name,
         destination: data.destination,
@@ -187,9 +201,11 @@ export class PlannerService {
   }
 
   async deleteTrip(userId: string, tripId: string): Promise<SavedTrip> {
-    const trip = (await (this.prisma as any).savedTrip.findUnique({
-      where: { id: tripId },
-    })) as SavedTrip | null;
+    const trip = await this.prisma.savedTrip.findUnique({
+      where: {
+        id: tripId,
+      },
+    });
 
     if (!trip) {
       throw new BadRequestException(
@@ -207,9 +223,9 @@ export class PlannerService {
     await this.cacheManager.del(`planner_history_${userId}`);
     await this.cacheManager.del(`trip_${tripId}`);
 
-    return (this.prisma as any).savedTrip.delete({
+    return await this.prisma.savedTrip.delete({
       where: { id: tripId },
-    }) as Promise<SavedTrip>;
+    });
   }
 
   async submitFeedback(
@@ -217,18 +233,15 @@ export class PlannerService {
     tripId: string,
     feedbackValue: number,
   ): Promise<any> {
-    // Validate numeric range (extra safety layer)
     if (feedbackValue < 1 || feedbackValue > 5) {
       throw new BadRequestException('Feedback value must be between 1 and 5.');
     }
 
-    // Verify trip exists and belongs to user
     const trip = await this.getTrip(userId, tripId);
     if (!trip) {
       throw new BadRequestException(`Trip with ID ${tripId} not found.`);
     }
 
-    // Save numeric feedback
     const feedback = await this.prisma.plannerFeedback.upsert({
       where: {
         unique_user_trip_feedback: {
@@ -240,10 +253,12 @@ export class PlannerService {
       create: { userId, tripId, feedbackValue },
     });
 
-    // Pass tripId to match processFeedback signature
-    await this.feedbackMappingService.processFeedback(userId, tripId, {
-      rating: feedbackValue,
-    });
+    // Corrected call
+    await this.feedbackMappingService.processFeedback(
+      userId,
+      tripId,
+      feedbackValue,
+    );
 
     return feedback;
   }
@@ -282,31 +297,34 @@ export class PlannerService {
     await this.aggregationService.invalidateCache(tripId, destination);
   }
 
-  async getFeedback(userId: string, tripId: string): Promise<any[]> {
-    const trip = (await (this.prisma as any).savedTrip.findUnique({
+  async getFeedback(
+    userId: string,
+    tripId: string,
+  ): Promise<PlannerFeedbackEntry[]> {
+    const trip = await this.prisma.savedTrip.findUnique({
       where: { id: tripId },
-    })) as SavedTrip | null;
-
+    });
     if (!trip || trip.userId !== userId) {
       throw new BadRequestException('Access denied.');
     }
 
-    const feedbackEntries = await (this.prisma as any).plannerFeedback.findMany(
-      {
-        where: { userId, tripId },
-        orderBy: { createdAt: 'desc' },
-      },
-    );
-
-    const latestVersion = await (this.prisma as any).tripVersion.findFirst({
-      where: { tripId },
-      orderBy: { versionNo: 'desc' },
+    const feedbackEntries = await this.prisma.plannerFeedback.findMany({
+      where: { userId, tripId },
+      orderBy: { createdAt: 'desc' },
     });
 
-    return feedbackEntries.map((entry: any) => ({
+    // const latestVersion = await this.prisma.tripVersion.findFirst({
+    //   where: { tripId },
+    //   orderBy: { versionNo: 'desc' },
+    // });
+
+    return feedbackEntries.map((entry) => ({
       ...entry,
-      plannerMeta: latestVersion?.aiMeta ?? null,
-      versionNo: latestVersion?.versionNo ?? null,
+      id: entry.id.toString(),
+      feedbackValue:
+        entry.feedbackValue !== null ? Number(entry.feedbackValue) : 0,
+      // plannerMeta: latestVersion?.aiMeta ?? null,
+      // versionNo: latestVersion?.versionNo ?? null,
     }));
   }
 }
