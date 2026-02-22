@@ -16,7 +16,7 @@ export class AnalyticsService {
     category: 'planner' | 'feedback' | 'system',
     eventType: string,
     userId?: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     metadata: Record<string, any> = {},
   ): Promise<void> {
     try {

@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-// @ts-ignore - cache-manager-ioredis-yet is a future Redis dependency, not yet installed
+// @ts-expect-error - cache-manager-ioredis-yet is a future Redis dependency, not yet installed
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { MarketplaceController } from './marketplace.controller';
 import { MarketplaceService } from './marketplace.service';
