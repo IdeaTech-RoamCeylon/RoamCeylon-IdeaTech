@@ -92,7 +92,12 @@ export class AnalyticsService {
       durationCount > 0 ? Math.round(totalDuration / durationCount) : 0;
 
     const recentResponseTimes = recentResponseEvents
-      .map((e) => (e.metadata as Record<string, any>)?.durationMs)
+      .map(
+        (e) =>
+          (e.metadata as Record<string, unknown>)?.durationMs as
+            | number
+            | undefined,
+      )
       .filter((val): val is number => typeof val === 'number')
       .reverse();
 
