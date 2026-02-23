@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 interface LineChartProps {
-  data: any[];
+  data: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   index: string;
   categories: string[];
   colors?: string[];
@@ -66,7 +66,7 @@ export function LineChart({
               color: 'var(--tooltip-text, #18181b)'
             }}
             itemStyle={{ color: 'var(--tooltip-text, #18181b)' }}
-            formatter={(value: any) => [valueFormatter(value as number)]}
+            formatter={(value: any) => [valueFormatter(value as number)]} // eslint-disable-line @typescript-eslint/no-explicit-any
             labelStyle={{ fontWeight: 600, marginBottom: '0.25rem' }}
           />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />

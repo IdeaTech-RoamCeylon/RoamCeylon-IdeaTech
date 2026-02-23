@@ -1,25 +1,31 @@
 import { MetricCard } from "../../../components/ui/MetricCard";
 import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
-import { Users, Map, Cpu, Star } from 'lucide-react';
+import { Map, Cpu, Star, AlertTriangle } from 'lucide-react';
+import { getPlannerDailyStats, getFeedbackRate, getSystemErrors } from "../../../lib/api";
 
-const mockLineData = [
-  { date: 'Jan 1', users: 2400 },
-  { date: 'Jan 5', users: 3100 },
-  { date: 'Jan 10', users: 2800 },
-  { date: 'Jan 15', users: 3800 },
-  { date: 'Jan 20', users: 4300 },
-  { date: 'Jan 25', users: 4100 },
-  { date: 'Jan 30', users: 4800 },
-];
+export default async function AnalyticsPage() {
+  const [plannerDaily, feedbackRate, systemErrors] = await Promise.all([
+    getPlannerDailyStats(),
+    getFeedbackRate(),
+    getSystemErrors()
+  ]);
 
-const mockBarData = [
-  { source: 'Organic', visits: 4500 },
-  { source: 'Direct', visits: 3500 },
-  { source: 'Referral', visits: 2000 },
-];
+  // Aggregate stats from the Daily Planner Metrics
+  const tripsSaved = plannerDaily.find(p => p.eventType === 'trip_saved')?._count._all || 0;
+  const plannerGenerated = plannerDaily.find(p => p.eventType === 'planner_generated')?._count._all || 0;
 
-export default function AnalyticsPage() {
+  // Formatting for charts
+  const feedbackTrendData = feedbackRate?.last7Days.map(day => ({
+    date: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    feedback: day.count
+  })) || [];
+
+  const plannerActivityData = plannerDaily.map(stat => ({
+    event: stat.eventType.replace('_', ' '),
+    count: stat._count._all
+  }));
+
   return (
     <div className="space-y-6">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -42,32 +48,29 @@ export default function AnalyticsPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Users"
-          value="12,482"
-          icon={<Users className="w-5 h-5" />}
-          trend={{ value: 12.5, label: "from last month" }}
+          title="Trips Generated (Today)"
+          value={plannerGenerated.toString()}
+          icon={<Cpu className="w-5 h-5" />}
           colorVariant="blue"
         />
         <MetricCard
-          title="Active Trips"
-          value="3,892"
+          title="Trips Saved (Today)"
+          value={tripsSaved.toString()}
           icon={<Map className="w-5 h-5" />}
-          trend={{ value: 8.2, label: "from last month" }}
           colorVariant="purple"
         />
         <MetricCard
-          title="AI Tokens Used"
-          value="2.4M"
-          icon={<Cpu className="w-5 h-5" />}
-          trend={{ value: -2.4, label: "from last month" }}
-          colorVariant="orange"
+          title="Feedback Rate"
+          value={`${((feedbackRate?.submissionRate || 0) * 100).toFixed(1)}%`}
+          icon={<Star className="w-5 h-5" />}
+          colorVariant="yellow"
         />
         <MetricCard
-          title="Avg. Trip Rating"
-          value="4.8"
-          icon={<Star className="w-5 h-5" />}
-          trend={{ value: 2.1, label: "from last month" }}
-          colorVariant="yellow"
+          title="System Errors (24h)"
+          value={systemErrors?.totalErrors.toString() || '0'}
+          icon={<AlertTriangle className="w-5 h-5" />}
+          trend={systemErrors ? { value: systemErrors.errorRate, label: "error rate" } : undefined}
+          colorVariant="rose"
         />
       </div>
 
@@ -76,31 +79,31 @@ export default function AnalyticsPage() {
         {/* Main Line Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-lg">Platform Usage</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Daily active users over the last 30 days.</p>
+            <h3 className="font-semibold text-lg">Feedback Submissions</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Total feedbacks collected over the last 7 days.</p>
           </div>
           <div className="p-6 flex-1 w-full min-h-[350px]">
             <LineChart
-              data={mockLineData}
+              data={feedbackTrendData}
               index="date"
-              categories={['users']}
-              colors={['#3b82f6']}
+              categories={['feedback']}
+              colors={['#8b5cf6']}
             />
           </div>
         </div>
 
-        {/* Bar Chart Replacement */}
+        {/* Bar Chart */}
         <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-lg">Traffic Sources</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Where your users are coming from.</p>
+            <h3 className="font-semibold text-lg">Planner Activity (Today)</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Distribution of user events across the AI Planner.</p>
           </div>
           <div className="p-6 flex-1 w-full min-h-[350px]">
-            <BarChart
-              data={mockBarData}
-              index="source"
-              categories={['visits']}
-              colors={['#8b5cf6']}
+             <BarChart
+              data={plannerActivityData}
+              index="event"
+              categories={['count']}
+              colors={['#3b82f6']}
             />
           </div>
         </div>
