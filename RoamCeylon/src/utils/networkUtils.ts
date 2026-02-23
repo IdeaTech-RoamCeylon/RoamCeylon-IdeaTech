@@ -41,6 +41,27 @@ const calculateBackoff = (
 };
 
 /**
+ * Returns true if this error is worth retrying (network blip, 5xx, etc.)
+ * Returns false for definitive client/timeout errors where retry won't help.
+ */
+const isRetryableError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return true;
+  const e = error as Record<string, any>;
+  const status: number | undefined = e?.response?.status ?? e?.status;
+
+  if (status !== undefined) {
+    // 408 Request Timeout — backend timed out, no point retrying immediately
+    // 4xx Client Errors — bad request, auth failure, not found etc. — won't fix on retry
+    if (status === 408 || (status >= 400 && status < 500)) return false;
+    // 5xx Server Errors — might be transient, worth retrying
+    return status >= 500;
+  }
+
+  // Network errors (no response) — worth retrying
+  return true;
+};
+
+/**
  * Retry a function with exponential backoff
  * @param fn - The async function to retry
  * @param options - Retry configuration options
@@ -72,6 +93,10 @@ export const retryWithBackoff = async <T>(
     } catch (error) {
       lastError = error as Error;
 
+      // Don't retry non-retryable errors (4xx, 408 timeout)
+      if (!isRetryableError(error)) {
+        throw lastError;
+      }
 
       // If this was the last attempt, throw the error
       if (attempt === maxAttempts) {
@@ -94,6 +119,7 @@ export const retryWithBackoff = async <T>(
   // This should never be reached, but TypeScript needs it
   throw lastError!;
 };
+
 
 /**
  * Queue for storing failed requests to retry when connection is restored

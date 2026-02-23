@@ -34,7 +34,9 @@ const SavedTripsScreen = () => {
   const loadTrips = async () => {
     setIsLoading(true);
     try {
-      const trips = await tripStorageService.getSavedTrips();
+      const result = await tripStorageService.getSavedTrips();
+      // getSavedTrips may return paginated or plain array — normalize
+      const trips = Array.isArray(result) ? result : result.data;
       setSavedTrips(trips);
     } catch (error) {
       console.error('Error loading trips:', error);
@@ -61,11 +63,12 @@ const SavedTripsScreen = () => {
           onPress: () => {
             try {
               setTripPlan(trip.tripPlan);
-              setQuery({
+              setQuery(prev => ({
+                ...prev,
                 destination: trip.tripPlan.destination || '',
                 duration: trip.tripPlan.duration || '1',
                 budget: trip.tripPlan.budget || 'Medium',
-              });
+              }));
               startEditing(trip.id);
               navigation.navigate('AITripPlanner');
             } catch (error) {
@@ -107,10 +110,14 @@ const SavedTripsScreen = () => {
   }, [savedTrips]);
 
   // Memoize filtered trips to avoid recalculating on every render
+  // Also filter out trips with incomplete/malformed data (e.g. auto-saved trips with wrong shape)
   const filteredTrips = useMemo(() => {
-    if (!searchQuery.trim()) return savedTrips;
+    const validTrips = savedTrips.filter(
+      trip => trip?.tripPlan?.itinerary && Array.isArray(trip.tripPlan.itinerary)
+    );
+    if (!searchQuery.trim()) return validTrips;
     const query = searchQuery.toLowerCase();
-    return savedTrips.filter(trip =>
+    return validTrips.filter(trip =>
       trip.name.toLowerCase().includes(query) ||
       trip.tripPlan.destination.toLowerCase().includes(query)
     );
@@ -124,7 +131,9 @@ const SavedTripsScreen = () => {
       day: 'numeric',
       year: 'numeric',
     });
-    const activitiesCount = item.tripPlan.itinerary.reduce((sum, day) => sum + day.activities.length, 0);
+    const activitiesCount = Array.isArray(item.tripPlan?.itinerary)
+      ? item.tripPlan.itinerary.reduce((sum, day) => sum + (day?.activities?.length ?? 0), 0)
+      : 0;
 
     return (
       <TouchableOpacity

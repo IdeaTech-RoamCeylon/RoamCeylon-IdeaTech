@@ -1,11 +1,13 @@
 generator client {
   provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
   extensions = [citext(schema: "public"), postgis, vector]
 }
 
@@ -144,4 +146,43 @@ model PlannerMetadata {
   key       String   @unique
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+// ==============================
+// Analytics Data Models (Day 49)
+// ==============================
+
+model PlannerEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  eventType String
+  metadata  Json     @default("{}")
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+model FeedbackEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  eventType String
+  metadata  Json     @default("{}")
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+model SystemMetric {
+  id           String   @id @default(uuid())
+  userId       String?
+  eventType    String
+  metadata     Json     @default("{}")
+  timestamp    DateTime @default(now())
+
+  @@index([eventType])
+  @@index([timestamp])
 }

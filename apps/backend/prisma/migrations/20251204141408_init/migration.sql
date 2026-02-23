@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- CreateExtension
-CREATE EXTENSION IF NOT EXISTS "vector";
+CREATE EXTENSION IF NOT EXISTS "vector" CASCADE;
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -17,7 +17,7 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "Vector" (
     "id" TEXT NOT NULL,
-    "embedding" vector,
+    "embedding" public.vector,
     "content" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
  * Metrics data structure
@@ -30,7 +29,7 @@ export class PlannerMetricsInterceptor implements NestInterceptor {
   private recentMetrics: MetricData[] = [];
   private readonly MAX_METRICS_MEMORY = 100;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor() {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -68,10 +67,8 @@ export class PlannerMetricsInterceptor implements NestInterceptor {
             this.recentMetrics.shift(); // Remove oldest
           }
 
-          // Persist to database for analysis (async, non-blocking)
-          this.persistMetric(metric).catch((err) => {
-            this.logger.error('Failed to persist metric', err);
-          });
+          // Persist metric (stored in in-memory circular buffer above)
+          this.persistMetric();
         },
         error: (err) => {
           const duration = Date.now() - startTime;
@@ -86,29 +83,12 @@ export class PlannerMetricsInterceptor implements NestInterceptor {
   }
 
   /**
-   * Persist metric to database for long-term analysis
+   * Persist metric — stored in-memory circular buffer only.
+   * The plannerMetadata DB table does not exist in the current schema.
    */
-  private async persistMetric(metric: MetricData): Promise<void> {
-    try {
-      // Use PlannerMetadata table to store metrics
-      const key = `metric_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      await (this.prisma as any).plannerMetadata.create({
-        data: {
-          key,
-          value: {
-            endpoint: metric.endpoint,
-            duration: metric.duration,
-            timestamp: metric.timestamp.toISOString(),
-            statusCode: metric.statusCode,
-          },
-        },
-      });
-    } catch (error) {
-      // Silent fail for metrics persistence - don't affect user requests
-      this.logger.debug('Metric persistence skipped', error);
-    }
+  private persistMetric(): void {
+    // No-op: metrics are already stored in this.recentMetrics above.
+    // Extend this method if a DB metrics table is added in future.
   }
 
   /**

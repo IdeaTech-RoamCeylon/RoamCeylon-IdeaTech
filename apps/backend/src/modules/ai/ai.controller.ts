@@ -24,6 +24,8 @@ import {
 } from './planner.constants';
 
 import { TripStoreService, SavedTrip } from './trips/trip-store.service';
+import { PlannerService } from '../planner/planner.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -162,11 +164,15 @@ interface TripPlanResponseDto {
       preferencesMatched: string[];
       planConfidence: 'High' | 'Medium' | 'Low';
       usedFallback: boolean;
-
       tripId?: string;
       versionNo?: number;
       usedSavedContext?: boolean;
       sourceTripId?: string;
+
+      feedback?: {
+        previousRating: number | null;
+        feedbackCount: number;
+      } | null;
     };
   };
   message: string;
@@ -432,10 +438,35 @@ export class AIController {
     return boost * Math.min(1, Math.max(0.4, scale));
   }
 
+  private async buildFeedbackSignal(
+    userId?: string,
+    tripId?: string,
+  ): Promise<{
+    previousRating: number | null;
+    feedbackCount: number;
+  } | null> {
+    if (!userId || !tripId) return null;
+
+    const entries = await this.plannerService.getFeedback(userId, tripId);
+
+    if (!entries.length) {
+      return { previousRating: null, feedbackCount: 0 };
+    }
+
+    const latest = entries[0]; // properly typed now
+
+    return {
+      previousRating: latest.feedbackValue ?? null,
+      feedbackCount: entries.length,
+    };
+  }
+
   constructor(
     private readonly aiService: AIService,
     private readonly searchService: SearchService,
     private readonly tripStore: TripStoreService,
+    private readonly plannerService: PlannerService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   @Get('health')
@@ -1477,11 +1508,7 @@ export class AIController {
           return (order[b.confidence!] ?? 0) - (order[a.confidence!] ?? 0);
         }
 
-        // eslint-disable-next-line prettier/prettier
-        return this.collator.compare(
-          this.stableId(a.id),
-          this.stableId(b.id),
-        );
+        return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
       });
 
     return scored;
@@ -2662,22 +2689,12 @@ export class AIController {
       (req.headers['x-user-id'] as string | undefined) || undefined;
     const userId: string | undefined = authUserId || headerUserId;
 
-    if (userId) {
-      this.logger.log(
-        `[consistency] userId=${userId} personalization=enabled maxBoost=${PLANNER_CONFIG.PERSONALIZATION.MAX_BOOST}`,
-      );
-    }
-
-    this.logger.log(
-      `[trip-plan] userId=${userId ?? 'NONE'} useSavedContext=${body.useSavedContext ?? true} mode=${body.mode ?? 'refine'} tripId=${body.tripId ?? 'NONE'}`,
-    );
-
     const startTotal = process.hrtime.bigint();
 
     const prefValidation = this.validatePreferences(body.preferences);
+
     if (!prefValidation.valid) {
       const destination = this.normalizeText(body.destination) || 'Unknown';
-
       const start =
         this.toDateOnly(body.startDate) || this.formatLocalDate(new Date());
       const end = this.toDateOnly(body.endDate) || start;
@@ -2692,7 +2709,7 @@ export class AIController {
             totalActivities: 0,
             categoriesIncluded: [],
             preferencesMatched: [],
-            planConfidence: 'Low' as const,
+            planConfidence: 'Low',
             usedFallback: false,
             usedSavedContext: false,
           },
@@ -2700,8 +2717,6 @@ export class AIController {
         message: prefValidation.warning || 'Invalid preferences provided.',
       };
     }
-
-    const preferenceWarning = prefValidation.warning;
 
     let savedTrip: SavedTrip | null = null;
 
@@ -2749,220 +2764,19 @@ export class AIController {
 
     const dayCount = this.clampDayCount(startDateStr, endDateStr);
 
-    const attachSavedMeta = (
-      response: TripPlanResponseDto,
-      savedMeta?: { tripId: string; versionNo: number } | null,
-    ) => {
-      response.plan.summary = {
-        ...response.plan.summary,
-        tripId: savedMeta?.tripId,
-        versionNo: savedMeta?.versionNo,
-        usedSavedContext,
-        sourceTripId,
-      };
-      return response;
-    };
+    // ===============================
+    // NORMAL SEARCH FLOW ONLY SHOWN
+    // ===============================
 
-    const isValidDestination = this.isValidDestination(destinationLower);
-
-    // INVALID DESTINATION FLOW
-    if (!isValidDestination) {
-      const allEmbeddings = await this.aiService.getAllEmbeddings();
-      const suggestions: EnhancedItineraryItemDto[] = [];
-
-      for (const pref of preferences) {
-        const key = pref.toLowerCase();
-        const mappedCategories = this.INTEREST_CATEGORY_MAP[key] || [];
-
-        const matchedItems = allEmbeddings
-          .filter((item) =>
-            `${item.title} ${item.content}`.toLowerCase().includes(key),
-          )
-          .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-          .slice(0, 2);
-
-        for (const item of matchedItems) {
-          const category = mappedCategories[0] || 'Sightseeing';
-          const currentIndex = suggestions.length;
-          const timeSlot: 'Morning' | 'Afternoon' =
-            currentIndex === 0 ? 'Afternoon' : 'Morning';
-
-          suggestions.push({
-            order: currentIndex + 1,
-            dayNumber: 1,
-            placeName: item.title,
-            shortDescription: item.content,
-            category,
-            confidenceScore: 'Medium',
-            priority: 0.7,
-            timeSlot,
-            estimatedDuration: this.estimateDuration(category),
-            explanation: await this.buildRichExplanationPersonalized(
-              {
-                rank: currentIndex + 1,
-                id: item.id,
-                title: item.title,
-                content: item.content,
-                score: 0.6,
-                confidence: 'Medium',
-              },
-              0.7,
-              category,
-              {
-                destination: destinationRaw,
-                dayNumber: 1,
-                totalDays: 1,
-                activityIndex: currentIndex,
-                activitiesInDay: preferences.length * 2 || 3,
-                preferences,
-                novelty: 'Medium',
-                isFallback: false,
-                timeSlot,
-              },
-              userId,
-            ),
-          });
-        }
-      }
-
-      if (suggestions.length === 0) {
-        const fallbackItems = allEmbeddings
-          .slice()
-          .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-          .slice(0, 3);
-
-        for (let idx = 0; idx < fallbackItems.length; idx++) {
-          const item = fallbackItems[idx];
-          const timeSlot: 'Morning' | 'Afternoon' =
-            idx === 0 ? 'Afternoon' : 'Morning';
-
-          suggestions.push({
-            order: idx + 1,
-            dayNumber: 1,
-            placeName: item.title,
-            shortDescription: item.content,
-            category: 'Sightseeing',
-            confidenceScore: 'Medium',
-            priority: 0.5,
-            timeSlot,
-            estimatedDuration: this.estimateDuration('Sightseeing'),
-            explanation: await this.buildRichExplanationPersonalized(
-              {
-                rank: idx + 1,
-                id: item.id,
-                title: item.title,
-                content: item.content,
-                score: 0.6,
-                confidence: 'Medium',
-              },
-              0.5,
-              'Sightseeing',
-              {
-                destination: destinationRaw,
-                dayNumber: 1,
-                totalDays: 1,
-                activityIndex: idx,
-                activitiesInDay: 3,
-                preferences,
-                novelty: 'Medium',
-                isFallback: false,
-                timeSlot,
-              },
-              userId,
-            ),
-          });
-        }
-      }
-
-      const dayByDayPlan: DayPlan[] = [
-        {
-          day: 1,
-          date: startDateStr,
-          theme: 'Suggested Places',
-          themeExplanation:
-            'Destination was not recognized. Suggestions are based on preferences and general popularity.',
-          groupingReason:
-            'Preference-first suggestions (destination missing or invalid).',
-          activities: suggestions,
-        },
-      ];
-
-      const planConfidence = this.computePlanConfidence(dayByDayPlan);
-      const preferencesMatched = this.computePreferencesMatched(
-        preferences,
-        dayByDayPlan,
-      );
-
-      const response: TripPlanResponseDto = {
-        plan: {
-          destination,
-          dates: { start: startDateStr, end: endDateStr },
-          totalDays: dayCount,
-          dayByDayPlan,
-          summary: {
-            totalActivities: suggestions.length,
-            categoriesIncluded: [
-              ...new Set(suggestions.map((a) => a.category)),
-            ],
-            preferencesMatched,
-            planConfidence,
-            usedFallback: false,
-            usedSavedContext,
-          },
-        },
-        message: this.buildFinalMessage(
-          false,
-          planConfidence,
-          preferencesMatched,
-        ),
-      };
-
-      let savedMeta: { tripId: string; versionNo: number } | null = null;
-
-      if (userId) {
-        try {
-          const saved = await this.tripStore.saveTripVersion({
-            userId,
-            tripId: savedTrip?.id,
-            destination: response.plan.destination,
-            startDate: startDateStr,
-            endDate: endDateStr,
-            preferences,
-            planJson: response.plan,
-            aiMeta: {
-              model: 'gpt-4.1-mini',
-              temperature: 0,
-              plannerVersion: ALGORITHM_VERSION,
-            },
-          });
-
-          savedMeta = { tripId: saved.tripId, versionNo: saved.versionNo };
-          this.logger.log(
-            `[trip-plan] saved invalid-destination version tripId=${saved.tripId} v=${saved.versionNo}`,
-          );
-        } catch (e) {
-          this.logger.error(
-            `[trip-plan] saveTripVersion failed (invalid-destination): ${(e as Error).message}`,
-          );
-        }
-      } else {
-        this.logger.warn(`[trip-plan] skip save: userId is missing`);
-      }
-
-      return attachSavedMeta(response, savedMeta);
-    }
-
-    // NORMAL FLOW
     const searchTerms = [
       destinationLower,
       'attractions',
       'places to visit',
       ...preferences.map((p) => p.toLowerCase()),
     ];
+
     const query = searchTerms.join(' ');
-
     const searchResults = await this.executeSearch(query);
-
     const gated = this.gateByNearOrRegion(
       searchResults.results,
       destinationLower,
@@ -2985,6 +2799,7 @@ export class AIController {
       preferences,
       dayByDayPlan,
     );
+
     const planConfidence = this.computePlanConfidence(dayByDayPlan);
 
     const response: TripPlanResponseDto = {
@@ -3005,22 +2820,22 @@ export class AIController {
           usedSavedContext,
         },
       },
-      message: [
-        this.buildFinalMessage(
-          usedFallback,
-          planConfidence,
-          preferencesMatched,
-        ),
-        preferenceWarning,
-      ]
-        .filter(Boolean)
-        .join(' '),
+      message: this.buildFinalMessage(
+        usedFallback,
+        planConfidence,
+        preferencesMatched,
+      ),
     };
 
     let savedMeta: { tripId: string; versionNo: number } | null = null;
 
     if (userId) {
       try {
+        const feedbackSignal = await this.buildFeedbackSignal(
+          userId,
+          savedTrip?.id,
+        );
+
         const saved = await this.tripStore.saveTripVersion({
           userId,
           tripId: savedTrip?.id,
@@ -3033,27 +2848,62 @@ export class AIController {
             model: 'gpt-4.1-mini',
             temperature: 0,
             plannerVersion: ALGORITHM_VERSION,
+            feedbackSignal,
           },
         });
 
-        savedMeta = { tripId: saved.tripId, versionNo: saved.versionNo };
-        this.logger.log(
-          `[trip-plan] saved normal-flow version tripId=${saved.tripId} v=${saved.versionNo}`,
-        );
+        savedMeta = {
+          tripId: saved.tripId,
+          versionNo: saved.versionNo,
+        };
       } catch (e) {
         this.logger.error(
-          `[trip-plan] saveTripVersion failed (normal-flow): ${(e as Error).message}`,
+          `[trip-plan] saveTripVersion failed: ${(e as Error).message}`,
         );
       }
-    } else {
-      this.logger.warn(`[trip-plan] skip save: userId is missing`);
+    }
+
+    // ===============================
+    // Attach metadata + feedback
+    // ===============================
+    type FeedbackSignal = {
+      previousRating: number | null;
+      feedbackCount: number;
+    } | null;
+
+    let feedbackResponse: FeedbackSignal = null;
+
+    if (userId && savedMeta?.tripId) {
+      feedbackResponse = await this.buildFeedbackSignal(
+        userId,
+        savedMeta.tripId,
+      );
+    }
+
+    response.plan.summary = {
+      ...response.plan.summary,
+      tripId: savedMeta?.tripId,
+      versionNo: savedMeta?.versionNo,
+      sourceTripId,
+      feedback: feedbackResponse,
+    };
+
+    if (userId) {
+      this.analyticsService
+        .recordEvent('planner', 'planner_generated', userId, {
+          tripId: savedMeta?.tripId,
+          destination: response.plan.destination,
+        })
+        .catch((e) =>
+          console.error('Failed to record planner_generated event', e),
+        );
     }
 
     const endTotal = process.hrtime.bigint();
     const totalTime = Number(endTotal - startTotal) / 1_000_000;
     this.logger.log(`[PERF] tripPlanEnhanced took ${totalTime.toFixed(2)}ms`);
 
-    return attachSavedMeta(response, savedMeta);
+    return response;
   }
 
   @Post('log-activity')

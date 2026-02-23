@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 import { Driver, RideRequest } from './item.interface';
 
 export interface TransportSession {
@@ -22,7 +23,10 @@ interface TransportDelegate {
 export class TransportService {
   private readonly logger = new Logger(TransportService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly analyticsService: AnalyticsService,
+  ) {}
 
   // Helper to safely access transportSession preventing any-leaks
   private get transportModel(): TransportDelegate {
@@ -56,10 +60,10 @@ export class TransportService {
 
       // Insert Location (Raw query needed for geometry)
       // We diligently delete old location for this driver to avoid duplicates if re-seeding
-      await this.prisma.client
+      await this.prisma
         .$executeRaw`DELETE FROM "DriverLocation" WHERE "driverId" = ${d.id}`;
 
-      await this.prisma.client.$executeRaw`
+      await this.prisma.$executeRaw`
         INSERT INTO "DriverLocation" ("driverId", location, "updatedAt")
         VALUES (${d.id}, ST_SetSRID(ST_MakePoint(${d.lng}, ${d.lat}), 4326), NOW())
       `;
@@ -81,7 +85,7 @@ export class TransportService {
   ): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
-      const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
+      const raw = await this.prisma.$queryRaw<DriverRow[]>`
         SELECT
         d."driverId" as id,
         u.name,
@@ -97,7 +101,7 @@ export class TransportService {
 
     // Find nearby
     // Find nearby
-    const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
+    const raw = await this.prisma.$queryRaw<DriverRow[]>`
     SELECT
     d."driverId" as id,
       u.name,
@@ -141,7 +145,7 @@ export class TransportService {
     pickup: { lat: number; lng: number },
     destination: { lat: number; lng: number },
   ): Promise<TransportSession> {
-    return this.transportModel.create({
+    const ride = await this.transportModel.create({
       data: {
         passengerId,
         status: 'requested',
@@ -149,6 +153,16 @@ export class TransportService {
         destination: destination,
       },
     });
+
+    this.analyticsService
+      .recordEvent('system', 'transport_started', passengerId, {
+        rideId: ride.id,
+        pickup,
+        destination,
+      })
+      .catch((e) => console.error('Failed to log transport_started event', e));
+
+    return ride;
   }
 
   async updateRideStatus(rideId: string, status: string) {
@@ -203,7 +217,19 @@ export class TransportService {
     };
 
     if (status === 'completed') {
-      data.endTime = new Date();
+      const endTime = new Date();
+      data.endTime = endTime;
+      this.analyticsService
+        .recordEvent(
+          'system',
+          'transport_completed',
+          currentSession.passengerId,
+          {
+            rideId,
+            durationMs: endTime.getTime() - currentSession.startTime.getTime(),
+          },
+        )
+        .catch((e) => console.error('Failed to record transport_completed', e));
     }
 
     return this.transportModel.update({

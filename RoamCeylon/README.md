@@ -247,9 +247,11 @@ RoamCeylon includes a powerful AI-powered trip planning feature that helps users
 - **🎯 Personalized**: Adapts to user preferences, interests, and budget
 - **💾 Save & Manage**: Save trips locally and sync with backend
 - **📊 Budget Breakdown**: Detailed cost estimation for trips
-- **🗓️ Flexible Duration**: Plan trips from 1 to 14 days
+- **🗓️ Flexible Duration**: Plan trips from 1 to 30 days
 - **⚡ Multiple Paces**: Choose relaxed, moderate, or fast-paced itineraries
 - **🎨 Rich UI**: Beautiful cards with confidence indicators and detailed breakdowns
+- **👍 Feedback System**: Submit thumbs-up/thumbs-down feedback on generated plans
+- **🏅 Positive History Badge**: Activities on destinations you've previously rated ≥4 stars are highlighted with a "Based on your positive history" ✨ badge
 
 ### Trip Planning Workflow
 
@@ -695,17 +697,26 @@ Backend API for trip planning data:
 import { plannerApiService } from './src/services/plannerApiService';
 
 // Save trip
-await plannerApiService.saveTrip(tripData);
+await plannerApiService.saveTrip(name, tripPlan);
 
-// Get all trips
-const trips = await plannerApiService.getTrips(page, limit);
+// Get all saved trips (with in-memory cache, 1-min TTL)
+const trips = await plannerApiService.getSavedTrips();
 
 // Get trip by ID
 const trip = await plannerApiService.getTripById(tripId);
 
 // Delete trip
 await plannerApiService.deleteTrip(tripId);
+
+// Submit feedback (1–5 star rating)
+// Payload matches backend CreateFeedbackDto: { tripId, feedbackRating: number }
+await plannerApiService.submitFeedback(tripId, { rating: 5 });
+
+// Force-invalidate the trip cache (e.g. after a mutation)
+plannerApiService.invalidateCache();
 ```
+
+> **Important:** `feedbackRating` must be a top-level numeric field in the POST body — not nested inside `feedbackValue`. The backend `CreateFeedbackDto` validates this.
 
 ### Transport Service (`transportService.ts`)
 
@@ -757,10 +768,11 @@ await tripStorageService.clearCache();
 **Features:**
 
 - Dual storage (AsyncStorage + Backend)
-- Automatic sync
-- Offline support
-- Pagination
-- Cache management
+- Automatic sync with backend fallback to local storage
+- Offline support with graceful degradation
+- Optional pagination (`page` / `pageSize` params)
+- Cache management via `plannerApiService.invalidateCache()`
+- Graceful handling of trips with incomplete/auto-saved data shapes (filtered before render)
 
 ---
 
@@ -1204,6 +1216,7 @@ The API service includes automatic error handling:
 - **Network Errors**: User-friendly "No internet connection" message
 - **Toast Notifications**: Automatic error display to users
 - **Error Logging**: Console logging for debugging (console.error preserved)
+- **Smart Retry Logic**: `retryWithBackoff` in `networkUtils.ts` retries only on transient failures (network errors, 5xx) — 4xx and 408 (timeout) errors **are not retried**, preventing wasted time on permanent failures
 
 ---
 
@@ -1409,6 +1422,9 @@ npx expo run:ios
 - [x] **AI Trip Planner** - ✅ Implemented with AI
 - [x] **Trip Storage** - ✅ Implemented with AsyncStorage + Backend sync
 - [x] **Enhanced Transport** - ✅ Location picker and ride status tracking
+- [x] **Feedback Submission** - ✅ 1–5 star rating stored in `PlannerFeedback` table
+- [x] **Feedback Influence** - ✅ Positive-history badge (✨) on activities for previously loved destinations
+- [x] **Trust Score** - ✅ Per-user trust score weighted by recency via `UserFeedbackSignal`
 - [ ] **Real OTP** - Backend integration for SMS verification
 - [ ] **Push Notifications** - Booking confirmations, trip updates
 - [ ] **Offline Mode** - Enhanced offline support for saved trips
@@ -1540,6 +1556,51 @@ npx expo start --port 8082
 3. **Use React Developer Tools** for debugging
 4. **Test on real devices** for best performance assessment
 5. **Keep dependencies updated** for security and features
+
+---
+
+## 🔧 Recent Bug Fixes & Improvements
+
+### Feedback Submission (Feb 2026)
+
+**Problem:** Feedback data was logged as submitted but never appeared in the database.
+
+**Root causes fixed:**
+
+- **Payload mismatch** — frontend sent `{ feedbackValue: {...} }` but backend `CreateFeedbackDto` expects `{ tripId, feedbackRating: number }`. Fixed in `plannerApiService.submitFeedback`.
+- **Wrong storage shape** — `feedbackValue` was saved as a bare JSON number (e.g. `5`) instead of `{ rating: 5 }`. All readers (`recalculateTrustScore`, `getUserPositiveFeedbackDestinations`, `planner-aggregation`) expected the object shape. Fixed in `planner.service.submitFeedback`.
+- **SQL query always empty** — `(pf."feedbackValue"->>'rating')::int` returns `NULL` on a bare number. Fixed to use `COALESCE` covering both the new `{rating: N}` format and legacy bare-number rows.
+
+### Saved Trips Screen Crash (Feb 2026)
+
+**Problem:** `TypeError: Cannot read property 'reduce' of undefined` on opening Saved Trips.
+
+**Root cause:** Trips auto-saved by the AI controller use a different `itinerary` shape than trips saved via the manual save flow. The plain `reduce` call had no guard.
+
+**Fixes:**
+
+- `filteredTrips` now pre-filters to only trips where `tripPlan.itinerary` is a real array.
+- `activitiesCount` reduce is guarded with optional chaining.
+- `getSavedTrips()` result is normalized (union of plain array or paginated object) before `setSavedTrips`.
+- `setQuery` uses a functional updater `prev => ({...prev, ...})` to preserve `interests` and `pace` fields.
+
+### AI Trip Planner Timeout (Feb 2026)
+
+**Problem:** `POST /ai/trip-plan` returned `408 Request Timeout` — the global 5-second timeout was too tight for an endpoint that runs vector search (~2s) + OpenAI generation (~3–5s).
+
+**Fix:** `TimeoutInterceptor` now applies **60 seconds** for `/ai/*` routes and **30 seconds** for all other routes (up from the previous 5s global limit).
+
+### Smart Retry Logic (Feb 2026)
+
+`retryWithBackoff` in `networkUtils.ts` now skips retries for non-retryable errors:
+
+- **4xx errors** (bad request, auth failure, not found) — retrying won't help
+- **408 Request Timeout** — retrying immediately after a timeout wastes user's time
+- **5xx / network errors** — still retried with exponential backoff (up to 3 attempts)
+
+### Metrics Interceptor (Feb 2026)
+
+`PlannerMetricsInterceptor` was crashing silently on every request trying to write to a `plannerMetadata` Prisma model that exists in the schema but the table column types conflicted. The DB-persist path was removed; metrics are retained in the in-memory circular buffer (max 100) that powers `GET /planner/metrics`.
 
 ---
 

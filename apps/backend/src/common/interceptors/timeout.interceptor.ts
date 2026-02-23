@@ -11,8 +11,12 @@ import { catchError, timeout } from 'rxjs/operators';
 @Injectable()
 export class TimeoutInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    // Default 5 seconds
-    const timeoutValue = 5000;
+    const request = context.switchToHttp().getRequest<{ url?: string }>();
+    const url = request?.url ?? '';
+
+    // AI endpoints (vector search + OpenAI) need more time than regular API calls
+    const isAiRoute = url.includes('/ai/');
+    const timeoutValue = isAiRoute ? 60_000 : 30_000;
 
     return next.handle().pipe(
       timeout(timeoutValue),

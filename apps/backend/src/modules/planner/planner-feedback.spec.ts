@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlannerService } from './planner.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeedbackMappingService } from '../feedback/feedback-mapping.service';
+import { PlannerAggregationService } from './planner-aggregation.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException } from '@nestjs/common';
 
@@ -37,6 +38,13 @@ describe('PlannerService - Feedback', () => {
     processFeedback: jest.fn(),
   };
 
+  const mockAggregationService = {
+    aggregateTripFeedback: jest.fn(),
+    aggregateByDestination: jest.fn(),
+    aggregateByCategory: jest.fn(),
+    invalidateCache: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -46,6 +54,10 @@ describe('PlannerService - Feedback', () => {
         {
           provide: FeedbackMappingService,
           useValue: mockFeedbackMappingService,
+        },
+        {
+          provide: PlannerAggregationService,
+          useValue: mockAggregationService,
         },
       ],
     }).compile();
@@ -96,12 +108,13 @@ describe('PlannerService - Feedback', () => {
         where: { id: tripId },
       });
       expect(mockPrismaService.plannerFeedback.upsert).toHaveBeenCalledWith({
-        where: { userId_tripId: { userId, tripId } },
+        where: { unique_user_trip_feedback: { userId, tripId } },
         update: { feedbackValue },
         create: { userId, tripId, feedbackValue },
       });
       expect(mockFeedbackMappingService.processFeedback).toHaveBeenCalledWith(
         userId,
+        tripId,
         { rating: feedbackValue },
       );
     });
@@ -119,6 +132,9 @@ describe('PlannerService - Feedback', () => {
     });
 
     it('should throw BadRequestException if user does not own the trip', async () => {
+      // Note: getTrip() returns null when the userId does not match the trip owner
+      // (it hides the trip rather than throwing access denied), so submitFeedback
+      // will throw "Trip not found" — not "Access denied" — for unauthorized users.
       const differentUserId = 'different-user-456';
       const mockTripOwnedByOther = { ...mockTrip, userId: differentUserId };
       mockPrismaService.savedTrip.findUnique.mockResolvedValue(
@@ -130,9 +146,7 @@ describe('PlannerService - Feedback', () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.submitFeedback(userId, tripId, feedbackValue),
-      ).rejects.toThrow(
-        'Access denied. You can only provide feedback for your own trips.',
-      );
+      ).rejects.toThrow(`Trip with ID ${tripId} not found.`);
       expect(mockPrismaService.plannerFeedback.upsert).not.toHaveBeenCalled();
     });
 
