@@ -2888,19 +2888,21 @@ export class AIController {
       feedback: feedbackResponse,
     };
 
+    const endTotal = process.hrtime.bigint();
+    const totalTime = Number(endTotal - startTotal) / 1_000_000;
+
     if (userId) {
       this.analyticsService
         .recordEvent('planner', 'planner_generated', userId, {
           tripId: savedMeta?.tripId,
           destination: response.plan.destination,
+          durationMs: totalTime,
         })
         .catch((e) =>
           console.error('Failed to record planner_generated event', e),
         );
     }
 
-    const endTotal = process.hrtime.bigint();
-    const totalTime = Number(endTotal - startTotal) / 1_000_000;
     this.logger.log(`[PERF] tripPlanEnhanced took ${totalTime.toFixed(2)}ms`);
 
     return response;

@@ -9,8 +9,16 @@ export interface PlannerDailyMetric {
   };
 }
 
+export interface PlannerDailyStatsResponse {
+  date: string;
+  totalEvents: number;
+  avgResponseTimeMs: number;
+  breakdown: PlannerDailyMetric[];
+}
+
 export interface FeedbackRateMetric {
   submissionRate: number;
+  positiveFeedbackPercentage: number;
   last7Days: {
     date: string;
     count: number;
@@ -22,14 +30,14 @@ export interface SystemErrorMetric {
   errorRate: number;
 }
 
-export async function getPlannerDailyStats(): Promise<PlannerDailyMetric[]> {
+export async function getPlannerDailyStats(): Promise<PlannerDailyStatsResponse | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/analytics/planner/daily`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to fetch planner stats');
     return await res.json();
   } catch (error) {
     console.error('Error fetching planner daily stats:', error);
-    return [];
+    return null;
   }
 }
 

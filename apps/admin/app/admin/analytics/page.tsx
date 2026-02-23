@@ -12,8 +12,14 @@ export default async function AnalyticsPage() {
   ]);
 
   // Aggregate stats from the Daily Planner Metrics
-  const tripsSaved = plannerDaily.find(p => p.eventType === 'trip_saved')?._count._all || 0;
-  const plannerGenerated = plannerDaily.find(p => p.eventType === 'planner_generated')?._count._all || 0;
+  const breakdown = plannerDaily?.breakdown || [];
+  const plannerGenerated = breakdown.find(p => p.eventType === 'planner_generated')?._count._all || 0;
+  
+  // Format Response Time 
+  const avgResponseMs = plannerDaily?.avgResponseTimeMs || 0;
+  const avgResponseFormatted = avgResponseMs > 1000 
+    ? `${(avgResponseMs / 1000).toFixed(1)}s` 
+    : `${avgResponseMs}ms`;
 
   // Formatting for charts
   const feedbackTrendData = feedbackRate?.last7Days.map(day => ({
@@ -21,7 +27,7 @@ export default async function AnalyticsPage() {
     feedback: day.count
   })) || [];
 
-  const plannerActivityData = plannerDaily.map(stat => ({
+  const plannerActivityData = breakdown.map(stat => ({
     event: stat.eventType.replace('_', ' '),
     count: stat._count._all
   }));
@@ -48,22 +54,22 @@ export default async function AnalyticsPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Trips Generated (Today)"
+          title="Total Planner Requests (Today)"
           value={plannerGenerated.toString()}
           icon={<Cpu className="w-5 h-5" />}
           colorVariant="blue"
         />
         <MetricCard
-          title="Trips Saved (Today)"
-          value={tripsSaved.toString()}
-          icon={<Map className="w-5 h-5" />}
-          colorVariant="purple"
+          title="Positive Feedback"
+          value={`${feedbackRate?.positiveFeedbackPercentage || 0}%`}
+          icon={<Star className="w-5 h-5" />}
+          colorVariant="emerald"
         />
         <MetricCard
-          title="Feedback Rate"
-          value={`${((feedbackRate?.submissionRate || 0) * 100).toFixed(1)}%`}
-          icon={<Star className="w-5 h-5" />}
-          colorVariant="yellow"
+          title="Avg Response Time"
+          value={avgResponseFormatted}
+          icon={<Map className="w-5 h-5" />}
+          colorVariant="purple"
         />
         <MetricCard
           title="System Errors (24h)"
