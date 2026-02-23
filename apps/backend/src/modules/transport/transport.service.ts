@@ -56,10 +56,10 @@ export class TransportService {
 
       // Insert Location (Raw query needed for geometry)
       // We diligently delete old location for this driver to avoid duplicates if re-seeding
-      await this.prisma.client
+      await this.prisma
         .$executeRaw`DELETE FROM "DriverLocation" WHERE "driverId" = ${d.id}`;
 
-      await this.prisma.client.$executeRaw`
+      await this.prisma.$executeRaw`
         INSERT INTO "DriverLocation" ("driverId", location, "updatedAt")
         VALUES (${d.id}, ST_SetSRID(ST_MakePoint(${d.lng}, ${d.lat}), 4326), NOW())
       `;
@@ -81,7 +81,7 @@ export class TransportService {
   ): Promise<Driver[]> {
     if (lat === undefined || lng === undefined) {
       // Return all if no location provided (limit 50)
-      const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
+      const raw = await this.prisma.$queryRaw<DriverRow[]>`
         SELECT
         d."driverId" as id,
         u.name,
@@ -97,7 +97,7 @@ export class TransportService {
 
     // Find nearby
     // Find nearby
-    const raw = await this.prisma.client.$queryRaw<DriverRow[]>`
+    const raw = await this.prisma.$queryRaw<DriverRow[]>`
     SELECT
     d."driverId" as id,
       u.name,

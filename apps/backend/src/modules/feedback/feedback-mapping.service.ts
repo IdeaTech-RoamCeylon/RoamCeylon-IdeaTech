@@ -1,10 +1,11 @@
 // apps/backend/src/modules/feedback/feedback-mapping.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class FeedbackMappingService {
+  private readonly logger = new Logger(FeedbackMappingService.name);
   private readonly DECAY_LAMBDA = 0.02;
   private readonly PRIOR = 2;
 
@@ -16,6 +17,10 @@ export class FeedbackMappingService {
     rating: number,
     category?: string,
   ): Promise<void> {
+    this.logger.log(
+      `[LearningMetrics] Processing feedback: userId=${userId}, tripId=${tripId}, rating=${rating}, category=${category ?? 'none'}`,
+    );
+
     await Promise.all([
       this.recalculateTrustScore(userId),
       category ? this.updateCategoryWeight(userId, tripId, rating) : null,
@@ -82,6 +87,10 @@ export class FeedbackMappingService {
 
     const safeTrust = Math.max(0, Math.min(trustScore, 1));
 
+    this.logger.log(
+      `[LearningMetrics] Trust score update: userId=${userId}, positiveWeight=${weightedPositive.toFixed(3)}, negativeWeight=${weightedNegative.toFixed(3)}, computedTrust=${safeTrust.toFixed(4)}, feedbackCount=${feedbacks.length}`,
+    );
+
     await this.prisma.userFeedbackSignal.upsert({
       where: { userId },
       create: {
@@ -130,6 +139,10 @@ export class FeedbackMappingService {
     }
 
     const newWeight = Math.max(0.5, Math.min(existing.weight + delta, 2));
+
+    this.logger.log(
+      `[LearningMetrics] Category weight update: userId=${userId}, category=${category}, oldWeight=${existing.weight.toFixed(3)}, delta=${delta}, newWeight=${newWeight.toFixed(3)}, feedbackCount=${existing.feedbackCount + 1}`,
+    );
 
     await this.prisma.userCategoryWeight.update({
       where: {
