@@ -7,11 +7,13 @@ import { EmbeddingService } from './embeddings/embedding.service';
 import { SearchService } from './retrieval/search.service';
 import { TripStoreService } from './trips/trip-store.service';
 import { PlannerModule } from '../planner/planner.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
     ConfigModule,
     PlannerModule,
+    AnalyticsModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 seconds

@@ -12,6 +12,7 @@ import {
   DestinationFeedback,
 } from './planner-aggregation.service';
 import { FeedbackMappingService } from '../feedback/feedback-mapping.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 export interface SavedTrip {
   id: string;
@@ -43,6 +44,7 @@ export class PlannerService {
     private readonly feedbackMappingService: FeedbackMappingService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly aggregationService: PlannerAggregationService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   private normalizePreferences(
@@ -105,6 +107,14 @@ export class PlannerService {
     }
 
     await this.cacheManager.del(`planner_history_${userId}`);
+
+    // Fire Analytics Event: trip_saved
+    this.analyticsService
+      .recordEvent('planner', 'trip_saved', userId, {
+        tripId: result.id,
+        destination: result.destination,
+      })
+      .catch((e) => console.error('Failed to record trip_saved event', e));
 
     return result as SavedTrip;
   }
@@ -259,6 +269,16 @@ export class PlannerService {
       tripId,
       feedbackValue,
     );
+
+    // Fire Analytics Event: feedback_submitted
+    this.analyticsService
+      .recordEvent('feedback', 'feedback_submitted', userId, {
+        tripId,
+        rating: feedbackValue,
+      })
+      .catch((e) =>
+        console.error('Failed to record feedback_submitted event', e),
+      );
 
     return feedback;
   }

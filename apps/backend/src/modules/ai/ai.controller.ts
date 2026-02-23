@@ -25,6 +25,7 @@ import {
 
 import { TripStoreService, SavedTrip } from './trips/trip-store.service';
 import { PlannerService } from '../planner/planner.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -465,6 +466,7 @@ export class AIController {
     private readonly searchService: SearchService,
     private readonly tripStore: TripStoreService,
     private readonly plannerService: PlannerService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   @Get('health')
@@ -2885,6 +2887,17 @@ export class AIController {
       sourceTripId,
       feedback: feedbackResponse,
     };
+
+    if (userId) {
+      this.analyticsService
+        .recordEvent('planner', 'planner_generated', userId, {
+          tripId: savedMeta?.tripId,
+          destination: response.plan.destination,
+        })
+        .catch((e) =>
+          console.error('Failed to record planner_generated event', e),
+        );
+    }
 
     const endTotal = process.hrtime.bigint();
     const totalTime = Number(endTotal - startTotal) / 1_000_000;

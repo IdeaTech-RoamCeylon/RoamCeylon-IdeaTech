@@ -6,9 +6,10 @@ import { PlannerAggregationService } from './planner-aggregation.service';
 import { PlannerRankingService } from './planner-ranking.service';
 import { PlannerMetricsInterceptor } from './interceptors/planner-metrics.interceptor';
 import { FeedbackModule } from '../feedback/feedback.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
-  imports: [CacheModule.register(), FeedbackModule],
+  imports: [CacheModule.register(), FeedbackModule, AnalyticsModule],
   controllers: [PlannerController],
   providers: [
     PlannerService,
