@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -54,6 +54,7 @@ describe('UsersService - Validation Tests', () => {
       const result = await service.updateProfile('user1', updateData);
 
       expect(result.birthday).toEqual(mockUser.birthday);
+
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user1' },
         data: expect.objectContaining({
