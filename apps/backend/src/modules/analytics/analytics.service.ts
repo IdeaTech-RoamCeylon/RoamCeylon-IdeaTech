@@ -103,7 +103,7 @@ export class AnalyticsService {
       avgFeedbackEventsPerDay: parseFloat(avgPerDay.toFixed(2)),
       breakdown: dailyBreakdown.map((d) => ({
         eventType: d.eventType,
-        count: d._count.id,
+        count: d._count.id as number,
       })),
     };
   }
