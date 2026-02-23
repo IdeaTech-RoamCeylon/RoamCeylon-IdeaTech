@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkline } from '../charts/Sparkline';
 
 type ColorVariant = 'blue' | 'purple' | 'emerald' | 'rose' | 'orange' | 'yellow';
 
@@ -11,6 +12,7 @@ interface MetricCardProps {
     label: string;
   };
   colorVariant?: ColorVariant;
+  sparklineData?: number[];
 }
 
 const colorStyles: Record<ColorVariant, { bg: string; text: string; trend: string }> = {
@@ -22,11 +24,21 @@ const colorStyles: Record<ColorVariant, { bg: string; text: string; trend: strin
   yellow: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-600 dark:text-yellow-400', trend: 'text-emerald-600 dark:text-emerald-400' },
 };
 
-export function MetricCard({ title, value, icon, trend, colorVariant = 'blue' }: MetricCardProps) {
+export function MetricCard({ title, value, icon, trend, colorVariant = 'blue', sparklineData }: MetricCardProps) {
   const styles = colorStyles[colorVariant];
   
+  // Map colorVariant to a hex string for Recharts Line stroke
+  const sparklineColors: Record<ColorVariant, string> = {
+    blue: '#3b82f6',
+    purple: '#a855f7',
+    emerald: '#10b981',
+    rose: '#f43f5e',
+    orange: '#f97316',
+    yellow: '#eab308'
+  };
+
   return (
-    <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:shadow-md">
+    <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:shadow-md h-full flex flex-col">
       <div className="flex justify-between items-start">
         <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{title}</p>
         <span className={`p-2 rounded-lg ${styles.bg} ${styles.text}`}>
@@ -48,6 +60,12 @@ export function MetricCard({ title, value, icon, trend, colorVariant = 'blue' }:
           <span>
             {trend.value > 0 ? '+' : ''}{trend.value}% {trend.label}
           </span>
+        </div>
+      )}
+
+      {sparklineData && sparklineData.length > 0 && (
+        <div className="mt-auto pt-4">
+          <Sparkline data={sparklineData} color={sparklineColors[colorVariant]} />
         </div>
       )}
     </div>

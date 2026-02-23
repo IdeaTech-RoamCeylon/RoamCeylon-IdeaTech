@@ -13,12 +13,21 @@ export interface PlannerDailyStatsResponse {
   date: string;
   totalEvents: number;
   avgResponseTimeMs: number;
+  recentResponseTimes: number[];
+  last7Days: {
+    date: string;
+    count: number;
+  }[];
   breakdown: PlannerDailyMetric[];
 }
 
 export interface FeedbackRateMetric {
   submissionRate: number;
   positiveFeedbackPercentage: number;
+  ratingDistribution: {
+    rating: number;
+    count: number;
+  }[];
   last7Days: {
     date: string;
     count: number;

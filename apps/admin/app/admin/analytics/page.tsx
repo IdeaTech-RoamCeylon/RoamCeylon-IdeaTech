@@ -22,15 +22,15 @@ export default async function AnalyticsPage() {
     : `${avgResponseMs}ms`;
 
   // Formatting for charts
-  const feedbackTrendData = feedbackRate?.last7Days.map(day => ({
+  const plannerTrendData = plannerDaily?.last7Days.map(day => ({
     date: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    feedback: day.count
+    usage: day.count
   })) || [];
 
-  const plannerActivityData = breakdown.map(stat => ({
-    event: stat.eventType.replace('_', ' '),
-    count: stat._count._all
-  }));
+  const feedbackDistributionData = feedbackRate?.ratingDistribution.map(stat => ({
+    rating: `${stat.rating} Stars`,
+    count: stat.count
+  })) || [];
 
   return (
     <div className="space-y-6">
@@ -70,6 +70,7 @@ export default async function AnalyticsPage() {
           value={avgResponseFormatted}
           icon={<Map className="w-5 h-5" />}
           colorVariant="purple"
+          sparklineData={plannerDaily?.recentResponseTimes}
         />
         <MetricCard
           title="System Errors (24h)"
@@ -85,15 +86,15 @@ export default async function AnalyticsPage() {
         {/* Main Line Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-lg">Feedback Submissions</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Total feedbacks collected over the last 7 days.</p>
+            <h3 className="font-semibold text-lg">Planner Usage</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Total trips generated over the last 7 days.</p>
           </div>
           <div className="p-6 flex-1 w-full min-h-[350px]">
             <LineChart
-              data={feedbackTrendData}
+              data={plannerTrendData}
               index="date"
-              categories={['feedback']}
-              colors={['#8b5cf6']}
+              categories={['usage']}
+              colors={['#3b82f6']}
             />
           </div>
         </div>
@@ -101,15 +102,15 @@ export default async function AnalyticsPage() {
         {/* Bar Chart */}
         <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-lg">Planner Activity (Today)</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Distribution of user events across the AI Planner.</p>
+            <h3 className="font-semibold text-lg">Feedback Breakdown</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Distribution of 1-5 star ratings.</p>
           </div>
           <div className="p-6 flex-1 w-full min-h-[350px]">
              <BarChart
-              data={plannerActivityData}
-              index="event"
+              data={feedbackDistributionData}
+              index="rating"
               categories={['count']}
-              colors={['#3b82f6']}
+              colors={['#10b981']}
             />
           </div>
         </div>
