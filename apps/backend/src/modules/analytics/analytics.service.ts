@@ -182,7 +182,7 @@ export class AnalyticsService {
         : 0;
 
     // Build real last7Days trend array for submission events
-    const last7Days = [];
+    const last7Days: { date: string; count: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(startOfDay);
       d.setDate(d.getDate() - i);

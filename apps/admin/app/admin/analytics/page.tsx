@@ -22,12 +22,12 @@ export default async function AnalyticsPage() {
     : `${avgResponseMs}ms`;
 
   // Formatting for charts
-  const plannerTrendData = plannerDaily?.last7Days.map(day => ({
+  const plannerTrendData = plannerDaily?.last7Days?.map(day => ({
     date: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     usage: day.count
   })) || [];
 
-  const feedbackDistributionData = feedbackRate?.ratingDistribution.map(stat => ({
+  const feedbackDistributionData = feedbackRate?.ratingDistribution?.map(stat => ({
     rating: `${stat.rating} Stars`,
     count: stat.count
   })) || [];
@@ -74,7 +74,7 @@ export default async function AnalyticsPage() {
         />
         <MetricCard
           title="System Errors (24h)"
-          value={systemErrors?.totalErrors.toString() || '0'}
+          value={systemErrors?.totalErrors?.toString() || '0'}
           icon={<AlertTriangle className="w-5 h-5" />}
           trend={systemErrors ? { value: systemErrors.errorRate, label: "error rate" } : undefined}
           colorVariant="rose"
