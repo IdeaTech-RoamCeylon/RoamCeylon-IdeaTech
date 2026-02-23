@@ -52,21 +52,76 @@ export class AnalyticsService {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const events = await this.prisma.plannerEvent.groupBy({
-      by: ['eventType'],
-      _count: { id: true },
-      where: {
-        timestamp: { gte: startOfDay },
-      },
-    });
+    const [events, totalEvents, plannerEventsData, recentResponseEvents] =
+      await Promise.all([
+        this.prisma.plannerEvent.groupBy({
+          by: ['eventType'],
+          _count: { id: true },
+          where: { timestamp: { gte: startOfDay } },
+        }),
+        this.prisma.plannerEvent.count({
+          where: { timestamp: { gte: startOfDay } },
+        }),
+        this.prisma.plannerEvent.findMany({
+          where: {
+            eventType: 'planner_generated',
+            timestamp: { gte: startOfDay },
+          },
+          select: { metadata: true },
+        }),
+        this.prisma.plannerEvent.findMany({
+          where: { eventType: 'planner_generated' },
+          select: { metadata: true },
+          orderBy: { timestamp: 'desc' },
+          take: 30,
+        }),
+      ]);
 
-    const totalEvents = await this.prisma.plannerEvent.count({
-      where: { timestamp: { gte: startOfDay } },
-    });
+    let totalDuration = 0;
+    let durationCount = 0;
+
+    for (const e of plannerEventsData) {
+      const md = e.metadata as Record<string, any>;
+      if (typeof md?.durationMs === 'number') {
+        totalDuration += md.durationMs;
+        durationCount++;
+      }
+    }
+
+    const avgResponseTimeMs =
+      durationCount > 0 ? Math.round(totalDuration / durationCount) : 0;
+
+    const recentResponseTimes = recentResponseEvents
+      .map((e) => (e.metadata as Record<string, any>)?.durationMs)
+      .filter((val): val is number => typeof val === 'number')
+      .reverse();
+
+    const last7Days: { date: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(startOfDay);
+      d.setDate(d.getDate() - i);
+      const nextD = new Date(d);
+      nextD.setDate(nextD.getDate() + 1);
+
+      const count = await this.prisma.plannerEvent.count({
+        where: {
+          eventType: 'planner_generated',
+          timestamp: { gte: d, lt: nextD },
+        },
+      });
+
+      last7Days.push({
+        date: d.toISOString().split('T')[0],
+        count,
+      });
+    }
 
     return {
       date: startOfDay.toISOString().split('T')[0],
       totalEvents,
+      avgResponseTimeMs,
+      recentResponseTimes,
+      last7Days,
       breakdown: events.map((e) => ({
         eventType: e.eventType,
         count: e._count.id,
@@ -79,32 +134,81 @@ export class AnalyticsService {
    * Returns feedback submission rate: total submissions and avg per day.
    */
   async getFeedbackRate() {
-    const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const last7DaysDate = new Date(
+      startOfDay.getTime() - 6 * 24 * 60 * 60 * 1000,
+    );
 
-    const [totalFeedbacks, recentEvents] = await Promise.all([
+    const [totalFeedbacks, recentEventsData] = await Promise.all([
       this.prisma.plannerFeedback.count(),
-      this.prisma.feedbackEvent.count({
-        where: { timestamp: { gte: last7Days } },
+      this.prisma.feedbackEvent.findMany({
+        where: { timestamp: { gte: last7DaysDate } },
+        select: { eventType: true, metadata: true, timestamp: true },
       }),
     ]);
 
-    const avgPerDay = recentEvents / 7;
+    const recentEventsCount = recentEventsData.length;
+    const avgPerDay = recentEventsCount / 7;
 
-    // Group by day for breakdown
-    const dailyBreakdown = await this.prisma.feedbackEvent.groupBy({
-      by: ['eventType'],
-      _count: { id: true },
-      where: { timestamp: { gte: last7Days } },
-    });
+    let positiveCount = 0;
+    let submittedCount = 0;
+
+    const ratingDistribution = [
+      { rating: 1, count: 0 },
+      { rating: 2, count: 0 },
+      { rating: 3, count: 0 },
+      { rating: 4, count: 0 },
+      { rating: 5, count: 0 },
+    ];
+
+    for (const e of recentEventsData) {
+      if (e.eventType === 'feedback_submitted') {
+        submittedCount++;
+        const md = e.metadata as Record<string, any>;
+        if (typeof md?.rating === 'number') {
+          const r = Math.min(5, Math.max(1, Math.round(md.rating)));
+          ratingDistribution[r - 1].count++;
+          if (md.rating >= 4) {
+            positiveCount++;
+          }
+        }
+      }
+    }
+
+    const positiveFeedbackPercentage =
+      submittedCount > 0
+        ? parseFloat(((positiveCount / submittedCount) * 100).toFixed(1))
+        : 0;
+
+    // Build real last7Days trend array for submission events
+    const last7Days: { date: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(startOfDay);
+      d.setDate(d.getDate() - i);
+      const nextD = new Date(d);
+      nextD.setDate(nextD.getDate() + 1);
+
+      const countForDay = recentEventsData.filter(
+        (e) =>
+          e.eventType === 'feedback_submitted' &&
+          e.timestamp >= d &&
+          e.timestamp < nextD,
+      ).length;
+
+      last7Days.push({
+        date: d.toISOString().split('T')[0],
+        count: countForDay,
+      });
+    }
 
     return {
       totalFeedbacksAllTime: totalFeedbacks,
-      last7DaysEvents: recentEvents,
+      last7DaysEvents: recentEventsCount,
       avgFeedbackEventsPerDay: parseFloat(avgPerDay.toFixed(2)),
-      breakdown: dailyBreakdown.map((d) => ({
-        eventType: d.eventType,
-        count: d._count.id as number,
-      })),
+      positiveFeedbackPercentage,
+      ratingDistribution,
+      last7Days,
     };
   }
 

@@ -1,25 +1,37 @@
 import { MetricCard } from "../../../components/ui/MetricCard";
 import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
-import { Users, Map, Cpu, Star } from 'lucide-react';
+import { Map, Cpu, Star, AlertTriangle } from 'lucide-react';
+import { getPlannerDailyStats, getFeedbackRate, getSystemErrors } from "../../../lib/api";
 
-const mockLineData = [
-  { date: 'Jan 1', users: 2400 },
-  { date: 'Jan 5', users: 3100 },
-  { date: 'Jan 10', users: 2800 },
-  { date: 'Jan 15', users: 3800 },
-  { date: 'Jan 20', users: 4300 },
-  { date: 'Jan 25', users: 4100 },
-  { date: 'Jan 30', users: 4800 },
-];
+export default async function AnalyticsPage() {
+  const [plannerDaily, feedbackRate, systemErrors] = await Promise.all([
+    getPlannerDailyStats(),
+    getFeedbackRate(),
+    getSystemErrors()
+  ]);
 
-const mockBarData = [
-  { source: 'Organic', visits: 4500 },
-  { source: 'Direct', visits: 3500 },
-  { source: 'Referral', visits: 2000 },
-];
+  // Aggregate stats from the Daily Planner Metrics
+  const breakdown = plannerDaily?.breakdown || [];
+  const plannerGenerated = breakdown.find(p => p.eventType === 'planner_generated')?._count._all || 0;
+  
+  // Format Response Time 
+  const avgResponseMs = plannerDaily?.avgResponseTimeMs || 0;
+  const avgResponseFormatted = avgResponseMs > 1000 
+    ? `${(avgResponseMs / 1000).toFixed(1)}s` 
+    : `${avgResponseMs}ms`;
 
-export default function AnalyticsPage() {
+  // Formatting for charts
+  const plannerTrendData = plannerDaily?.last7Days?.map(day => ({
+    date: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    usage: day.count
+  })) || [];
+
+  const feedbackDistributionData = feedbackRate?.ratingDistribution?.map(stat => ({
+    rating: `${stat.rating} Stars`,
+    count: stat.count
+  })) || [];
+
   return (
     <div className="space-y-6">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -42,32 +54,30 @@ export default function AnalyticsPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Users"
-          value="12,482"
-          icon={<Users className="w-5 h-5" />}
-          trend={{ value: 12.5, label: "from last month" }}
+          title="Total Planner Requests (Today)"
+          value={plannerGenerated.toString()}
+          icon={<Cpu className="w-5 h-5" />}
           colorVariant="blue"
         />
         <MetricCard
-          title="Active Trips"
-          value="3,892"
-          icon={<Map className="w-5 h-5" />}
-          trend={{ value: 8.2, label: "from last month" }}
-          colorVariant="purple"
-        />
-        <MetricCard
-          title="AI Tokens Used"
-          value="2.4M"
-          icon={<Cpu className="w-5 h-5" />}
-          trend={{ value: -2.4, label: "from last month" }}
-          colorVariant="orange"
-        />
-        <MetricCard
-          title="Avg. Trip Rating"
-          value="4.8"
+          title="Positive Feedback"
+          value={`${feedbackRate?.positiveFeedbackPercentage || 0}%`}
           icon={<Star className="w-5 h-5" />}
-          trend={{ value: 2.1, label: "from last month" }}
-          colorVariant="yellow"
+          colorVariant="emerald"
+        />
+        <MetricCard
+          title="Avg Response Time"
+          value={avgResponseFormatted}
+          icon={<Map className="w-5 h-5" />}
+          colorVariant="purple"
+          sparklineData={plannerDaily?.recentResponseTimes}
+        />
+        <MetricCard
+          title="System Errors (24h)"
+          value={systemErrors?.totalErrors?.toString() || '0'}
+          icon={<AlertTriangle className="w-5 h-5" />}
+          trend={systemErrors ? { value: systemErrors.errorRate, label: "error rate" } : undefined}
+          colorVariant="rose"
         />
       </div>
 
@@ -76,31 +86,31 @@ export default function AnalyticsPage() {
         {/* Main Line Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-lg">Platform Usage</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Daily active users over the last 30 days.</p>
+            <h3 className="font-semibold text-lg">Planner Usage</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Total trips generated over the last 7 days.</p>
           </div>
           <div className="p-6 flex-1 w-full min-h-[350px]">
             <LineChart
-              data={mockLineData}
+              data={plannerTrendData}
               index="date"
-              categories={['users']}
+              categories={['usage']}
               colors={['#3b82f6']}
             />
           </div>
         </div>
 
-        {/* Bar Chart Replacement */}
+        {/* Bar Chart */}
         <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-lg">Traffic Sources</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Where your users are coming from.</p>
+            <h3 className="font-semibold text-lg">Feedback Breakdown</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Distribution of 1-5 star ratings.</p>
           </div>
           <div className="p-6 flex-1 w-full min-h-[350px]">
-            <BarChart
-              data={mockBarData}
-              index="source"
-              categories={['visits']}
-              colors={['#8b5cf6']}
+             <BarChart
+              data={feedbackDistributionData}
+              index="rating"
+              categories={['count']}
+              colors={['#10b981']}
             />
           </div>
         </div>
