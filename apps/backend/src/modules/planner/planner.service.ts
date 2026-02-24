@@ -263,11 +263,10 @@ export class PlannerService {
       create: { userId, tripId, feedbackValue: { rating: feedbackValue } },
     });
 
-    // Corrected call
     await this.feedbackMappingService.processFeedback(
       userId,
-      tripId,
       feedbackValue,
+      trip.destination, // or proper category field
     );
 
     // Fire Analytics Event: feedback_submitted
