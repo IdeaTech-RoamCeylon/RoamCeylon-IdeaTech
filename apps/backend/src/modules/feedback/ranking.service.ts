@@ -6,11 +6,23 @@ import { PrismaService } from '../../prisma/prisma.service';
 @Injectable()
 export class RankingService {
   private readonly logger = new Logger(RankingService.name);
+
+  // CONFIDENCE CONTROL
   private readonly CONFIDENCE_K = 10;
+
+  // TRUST MULTIPLIER BOUNDS
   private readonly TRUST_MIN = 0.8;
-  private readonly TRUST_RANGE = 0.4;
+  private readonly TRUST_RANGE = 0.4; // trust effect max ±20%
+
+  // GLOBAL PERSONALIZATION CAP
+  private readonly MAX_PERSONALIZATION_FACTOR = 1.5; // +50%
+  private readonly MIN_PERSONALIZATION_FACTOR = 0.7; // -30%
 
   constructor(private readonly prisma: PrismaService) {}
+
+  // ==================================================
+  // Rank Multiple Trips (Strict Controlled Learning)
+  // ==================================================
 
   async rankTrips(
     userId: string,
@@ -30,10 +42,12 @@ export class RankingService {
 
     const trustScore = userSignal?.trustScore ?? 0.5;
 
+    // Confidence Scaling
     const confidence = totalFeedback / (totalFeedback + this.CONFIDENCE_K);
 
     const effectiveTrust = trustScore * confidence;
 
+    // Bounded Trust Multiplier
     const trustMultiplier = this.TRUST_MIN + this.TRUST_RANGE * effectiveTrust;
 
     const categoryMap = userCategoryWeights.reduce(
@@ -45,17 +59,41 @@ export class RankingService {
     );
 
     this.logger.log(
-      `[LearningMetrics] Ranking: userId=${userId}, trips=${trips.length}, trustScore=${trustScore.toFixed(4)}, confidence=${confidence.toFixed(4)}, trustMultiplier=${trustMultiplier.toFixed(4)}`,
+      `[LearningMetrics] Ranking Start: userId=${userId}, trustScore=${trustScore.toFixed(
+        4,
+      )}, confidence=${confidence.toFixed(
+        4,
+      )}, trustMultiplier=${trustMultiplier.toFixed(
+        4,
+      )}, totalFeedback=${totalFeedback}`,
     );
 
     const rankedTrips = trips.map((trip) => {
       const categoryMultiplier = categoryMap[trip.category] ?? 1;
 
-      const finalScore = trip.baseScore * categoryMultiplier * trustMultiplier;
+      // Raw personalization factor
+      const rawFactor = categoryMultiplier * trustMultiplier;
+
+      // GLOBAL CLAMP (STRICT CONTROL)
+      const safeFactor = Math.max(
+        this.MIN_PERSONALIZATION_FACTOR,
+        Math.min(rawFactor, this.MAX_PERSONALIZATION_FACTOR),
+      );
+
+      const finalScore = trip.baseScore * safeFactor;
 
       const adjustmentMagnitude = Math.abs(finalScore - trip.baseScore);
+
       this.logger.debug(
-        `[LearningMetrics] Trip ranking adjustment: tripId=${trip.id}, category=${trip.category}, baseScore=${trip.baseScore.toFixed(3)}, categoryMultiplier=${categoryMultiplier.toFixed(3)}, finalScore=${finalScore.toFixed(3)}, adjustmentMagnitude=${adjustmentMagnitude.toFixed(3)}`,
+        `[LearningMetrics] Trip Adjusted: tripId=${trip.id}, category=${trip.category}, baseScore=${trip.baseScore.toFixed(
+          3,
+        )}, categoryMultiplier=${categoryMultiplier.toFixed(
+          3,
+        )}, rawFactor=${rawFactor.toFixed(3)}, safeFactor=${safeFactor.toFixed(
+          3,
+        )}, finalScore=${finalScore.toFixed(
+          3,
+        )}, adjustmentMagnitude=${adjustmentMagnitude.toFixed(3)}`,
       );
 
       return { ...trip, finalScore };
@@ -65,6 +103,10 @@ export class RankingService {
 
     return rankedTrips;
   }
+
+  // ==================================================
+  // Compute Score for Single Trip
+  // ==================================================
 
   async computeTripScore(
     userId: string,
@@ -95,11 +137,29 @@ export class RankingService {
 
     const categoryMultiplier = categoryWeight?.weight ?? 1;
 
-    const finalScore = baseScore * categoryMultiplier * trustMultiplier;
+    const rawFactor = categoryMultiplier * trustMultiplier;
+
+    const safeFactor = Math.max(
+      this.MIN_PERSONALIZATION_FACTOR,
+      Math.min(rawFactor, this.MAX_PERSONALIZATION_FACTOR),
+    );
+
+    const finalScore = baseScore * safeFactor;
+
     const adjustmentMagnitude = Math.abs(finalScore - baseScore);
 
     this.logger.log(
-      `[LearningMetrics] Score computed: userId=${userId}, category=${category}, baseScore=${baseScore.toFixed(3)}, trustMultiplier=${trustMultiplier.toFixed(4)}, categoryMultiplier=${categoryMultiplier.toFixed(3)}, finalScore=${finalScore.toFixed(3)}, adjustmentMagnitude=${adjustmentMagnitude.toFixed(3)}`,
+      `[LearningMetrics] Score Computed: userId=${userId}, category=${category}, baseScore=${baseScore.toFixed(
+        3,
+      )}, trustMultiplier=${trustMultiplier.toFixed(
+        4,
+      )}, categoryMultiplier=${categoryMultiplier.toFixed(
+        3,
+      )}, rawFactor=${rawFactor.toFixed(3)}, safeFactor=${safeFactor.toFixed(
+        3,
+      )}, finalScore=${finalScore.toFixed(
+        3,
+      )}, adjustmentMagnitude=${adjustmentMagnitude.toFixed(3)}`,
     );
 
     return finalScore;
