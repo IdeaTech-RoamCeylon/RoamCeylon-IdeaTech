@@ -65,10 +65,7 @@ describe('Multi-Day Planning Algorithm', () => {
     const foodiePlan = distributeActivitiesAcrossDays(
       MOCK_PERSONALIZATION_DATA,
       1,
-      {
-        likedCategories: ['food'],
-        previouslyVisitedIds: [],
-      },
+      { likedCategories: ['food'], previouslyVisitedIds: [] },
     );
     expect(foodiePlan[0][0].placeName).toBe('Street Food Market');
   });
@@ -77,15 +74,11 @@ describe('Multi-Day Planning Algorithm', () => {
     const foodiePlan = distributeActivitiesAcrossDays(
       MOCK_PERSONALIZATION_DATA,
       1,
-      {
-        likedCategories: ['food'],
-        previouslyVisitedIds: [],
-      },
+      { likedCategories: ['food'], previouslyVisitedIds: [] },
     );
     expect(foodiePlan[0][0].selectionReason).toBe('preference');
   });
 
-  // --- NEW TEST FOR SPRINT 7: SAFEGUARD ---
   it('applies a soft penalty to dislikes (The Safeguard Test)', () => {
     const mixedBag: TripDestination[] = [
       {
@@ -94,7 +87,7 @@ describe('Multi-Day Planning Algorithm', () => {
         order: 0,
         shortDescription: '',
         coordinates: { latitude: 0, longitude: 0 },
-        confidenceScore: 0.5, // Decent score
+        confidenceScore: 0.45, // Decent but low (0.45 * 0.8 = 0.36) -> DROPPED
         metadata: { duration: '1h', category: 'shopping' },
       },
       {
@@ -103,26 +96,77 @@ describe('Multi-Day Planning Algorithm', () => {
         order: 0,
         shortDescription: '',
         coordinates: { latitude: 0, longitude: 0.1 },
-        confidenceScore: 0.9, // Excellent score
+        confidenceScore: 0.9, // Excellent score (0.9 * 0.8 = 0.72) -> SURVIVES
         metadata: { duration: '1h', category: 'shopping' },
       },
     ];
 
-    // Profile: HATES shopping
     const result = distributeActivitiesAcrossDays(mixedBag, 1, {
       likedCategories: [],
       previouslyVisitedIds: [],
-      dislikedCategories: ['shopping'], // <--- DISLIKE
+      dislikedCategories: ['shopping'],
     });
 
     const placeNames = result.flat().map((p) => p.placeName);
-
-    // 1. Safeguard Check: The "World Famous Mall" should SURVIVE
-    // (0.9 - 0.2 = 0.7, which is > 0.4 threshold)
     expect(placeNames).toContain('World Famous Mall');
-
-    // 2. Quality Control: The "Mediocre Mall" should be DROPPED
-    // (0.5 - 0.2 = 0.3, which is < 0.4 threshold)
     expect(placeNames).not.toContain('Mediocre Mall');
+  });
+
+  // --- SPRINT 8: BALANCE RELEVANCE VS PERSONALIZATION ---
+  it('ensures personalization multipliers do not override core quality', () => {
+    const balanceData: TripDestination[] = [
+      {
+        id: 'trash-food',
+        placeName: 'Terrible Food Cart',
+        order: 0,
+        shortDescription: '',
+        coordinates: { latitude: 0, longitude: 0 },
+        confidenceScore: 0.2, // Terrible quality
+        metadata: { duration: '1h', category: 'food' },
+      },
+      {
+        id: 'great-culture',
+        placeName: 'Amazing Museum',
+        order: 0,
+        shortDescription: '',
+        coordinates: { latitude: 0, longitude: 0.1 },
+        confidenceScore: 0.9, // Great quality
+        metadata: { duration: '2h', category: 'culture' },
+      },
+    ];
+
+    // User LOVES food, but the food place is terrible.
+    const plan = distributeActivitiesAcrossDays(balanceData, 1, {
+      likedCategories: ['food'],
+      previouslyVisitedIds: [],
+    });
+
+    const placeNames = plan.flat().map((p) => p.placeName);
+
+    // The Great Culture spot should survive.
+    // The Terrible Food spot (0.2 * 1.15 = 0.23) should STILL be dropped. Quality > Personalization.
+    expect(placeNames).toContain('Amazing Museum');
+    expect(placeNames).not.toContain('Terrible Food Cart');
+  });
+
+  // --- SPRINT 8: CONSISTENCY TESTING ---
+  it('generates consistent itineraries for the same query multiple times (No Chaos)', () => {
+    // FIX: Explicitly tell TypeScript the shape of the array
+    const runs: TripDestination[][][] = [];
+
+    // Generate the exact same plan 5 times
+    for (let i = 0; i < 5; i++) {
+      runs.push(distributeActivitiesAcrossDays(MOCK_DATA, 2));
+    }
+
+    const baseRunString = JSON.stringify(runs[0]);
+
+    // Assert all 4 subsequent runs perfectly match the 1st run
+    for (let i = 1; i < 5; i++) {
+      expect(JSON.stringify(runs[i])).toBe(baseRunString);
+    }
+
+    // Assert the anchor place is stable across runs
+    expect(runs[0][0][0].placeName).toBe('Main Temple');
   });
 });
