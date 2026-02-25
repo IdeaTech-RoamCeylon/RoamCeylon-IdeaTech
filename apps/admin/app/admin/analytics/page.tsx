@@ -3,6 +3,9 @@ import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
 import { Map, Cpu, Star, AlertTriangle } from 'lucide-react';
 import { getPlannerDailyStats, getFeedbackRate, getSystemErrors } from "../../../lib/api";
+import { DashboardRefresh } from "../../../components/DashboardRefresh";
+
+export const revalidate = 60; // 60 seconds Cache for page level revalidation
 
 export default async function AnalyticsPage() {
   const [plannerDaily, feedbackRate, systemErrors] = await Promise.all([
@@ -32,6 +35,34 @@ export default async function AnalyticsPage() {
     count: stat.count
   })) || [];
 
+  // Define Thresholds
+  const ERROR_RATE_THRESHOLD = 5; // %
+  const RESPONSE_TIME_THRESHOLD = 2000; // ms
+  const POSITIVE_FEEDBACK_THRESHOLD = 80; // %
+
+  const warnings = [];
+  if (systemErrors && systemErrors.errorRate > ERROR_RATE_THRESHOLD) {
+    warnings.push({
+      id: 'error_rate',
+      message: `System error rate is high (${systemErrors.errorRate}%).`,
+      type: 'critical'
+    });
+  }
+  if (avgResponseMs > RESPONSE_TIME_THRESHOLD) {
+    warnings.push({
+      id: 'response_time',
+      message: `Average response time degraded (${avgResponseFormatted}). Expected < ${RESPONSE_TIME_THRESHOLD}ms.`,
+      type: 'warning'
+    });
+  }
+  if (feedbackRate && feedbackRate.positiveFeedbackPercentage < POSITIVE_FEEDBACK_THRESHOLD) {
+    warnings.push({
+      id: 'feedback',
+      message: `Positive AI feedback dropped below threshold (${feedbackRate.positiveFeedbackPercentage}%).`,
+      type: 'warning'
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -45,11 +76,28 @@ export default async function AnalyticsPage() {
           <button className="px-4 py-2 text-sm font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm">
             Export Report
           </button>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm">
-            Refresh Data
-          </button>
+          <DashboardRefresh intervalMs={60000} />
         </div>
       </div>
+
+      {/* Warning Banners */}
+      {warnings.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {warnings.map((warning) => (
+            <div 
+              key={warning.id} 
+              className={`flex items-center gap-3 p-4 rounded-lg border shadow-sm ${
+                warning.type === 'critical' 
+                  ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-400 border-rose-200 dark:border-rose-900' 
+                  : 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-900'
+              }`}
+            >
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{warning.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

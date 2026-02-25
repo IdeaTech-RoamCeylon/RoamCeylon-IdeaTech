@@ -41,7 +41,7 @@ export interface SystemErrorMetric {
 
 export async function getPlannerDailyStats(): Promise<PlannerDailyStatsResponse | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/analytics/planner/daily`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/analytics/planner/daily`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch planner stats');
     return await res.json();
   } catch (error) {
@@ -52,7 +52,7 @@ export async function getPlannerDailyStats(): Promise<PlannerDailyStatsResponse 
 
 export async function getFeedbackRate(): Promise<FeedbackRateMetric | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/analytics/feedback/rate`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/analytics/feedback/rate`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch feedback rate');
     return await res.json();
   } catch (error) {
@@ -63,7 +63,7 @@ export async function getFeedbackRate(): Promise<FeedbackRateMetric | null> {
 
 export async function getSystemErrors(): Promise<SystemErrorMetric | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/analytics/system/errors`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/analytics/system/errors`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch system errors');
     return await res.json();
   } catch (error) {
