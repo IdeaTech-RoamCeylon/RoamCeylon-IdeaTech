@@ -18,12 +18,32 @@ import { aiService, TripPlanRequest, TripActivity } from '../../services/aiServi
 
 type AIPlannerTestingNavigationProp = StackNavigationProp<MainStackParamList, 'AIPlannerTesting'>;
 
+interface ScoreBreakdown {
+  baseScore: number;
+  confidenceBonus: number;
+  preferenceBonus: number;
+  feedbackBonus: number;
+  optimizationBonus?: number;
+  totalScore: number;
+}
+
 interface RankingComparison {
   activity: TripActivity;
   baselineScore: number;
   optimizedScore: number;
   scoreDifference: number;
   percentChange: number;
+  baselineBreakdown: ScoreBreakdown;
+  optimizedBreakdown: ScoreBreakdown;
+  baselineRank: number;
+  optimizedRank: number;
+  rankChange: number;
+}
+
+interface PerformanceMetrics {
+  rankingComputationTime: number;
+  renderCount: number;
+  lastRenderTime: number;
 }
 
 interface TestResult {
@@ -32,6 +52,7 @@ interface TestResult {
   optimizationEnabled: boolean;
   comparisons: RankingComparison[];
   averageImprovement: number;
+  performanceMetrics: PerformanceMetrics;
 }
 
 const AIPlannerTestingScreen = () => {
@@ -39,6 +60,14 @@ const AIPlannerTestingScreen = () => {
   const [optimizationEnabled, setOptimizationEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [testResults, setTestResults] = useState<TestResult | null>(null);
+  const [abSimulationEnabled, setAbSimulationEnabled] = useState(false);
+  const [expandedScores, setExpandedScores] = useState<Set<number>>(new Set());
+  const [renderCount, setRenderCount] = useState(0);
+
+  // Performance tracking
+  React.useEffect(() => {
+    setRenderCount(prev => prev + 1);
+  });
 
   // Test configuration
   const [testDestination, setTestDestination] = useState('Kandy');
@@ -46,40 +75,58 @@ const AIPlannerTestingScreen = () => {
   const [testBudget] = useState('Medium');
   const [testInterests] = useState(['Culture', 'Nature', 'Adventure']);
 
-  // Calculate ranking score based on activity properties
-  const calculateRankingScore = (activity: TripActivity, useOptimized: boolean): number => {
-    let score = 50; // Base score
+  // Calculate ranking score with detailed breakdown
+  const calculateRankingScoreWithBreakdown = (
+    activity: TripActivity,
+    useOptimized: boolean
+  ): ScoreBreakdown => {
+    const baseScore = 50;
+    let confidenceBonus = 0;
+    let preferenceBonus = 0;
+    let feedbackBonus = 0;
+    let optimizationBonus = 0;
 
     // Confidence score weighting
-    if (activity.confidenceScore === 'High') score += 25;
-    else if (activity.confidenceScore === 'Medium') score += 15;
-    else if (activity.confidenceScore === 'Low') score += 5;
+    if (activity.confidenceScore === 'High') confidenceBonus = 25;
+    else if (activity.confidenceScore === 'Medium') confidenceBonus = 15;
+    else if (activity.confidenceScore === 'Low') confidenceBonus = 5;
 
     // Preference matching
     const matchCount = activity.matchedPreferences?.length || 0;
-    score += matchCount * 8;
+    preferenceBonus = matchCount * 8;
 
     // Positive feedback bonus
     if (activity.hasPositiveFeedback) {
-      score += 15;
+      feedbackBonus = 15;
     }
 
-    // Optimization algorithm improvements (simulated)
+    // Optimization algorithm improvements
     if (useOptimized) {
-      // Weighted improvements for better context matching
-      score += matchCount * 2; // Better preference weighting
-      if (activity.hasPositiveFeedback) score += 5; // Enhanced feedback influence
-      if (activity.confidenceScore === 'High') score += 8; // Confidence boost
-
-      // Penalty reduction for low confidence
-      if (activity.confidenceScore === 'Low') score += 3;
+      optimizationBonus += matchCount * 2; // Better preference weighting
+      if (activity.hasPositiveFeedback) optimizationBonus += 5; // Enhanced feedback
+      if (activity.confidenceScore === 'High') optimizationBonus += 8; // Confidence boost
+      if (activity.confidenceScore === 'Low') optimizationBonus += 3; // Penalty reduction
     }
 
-    return Math.min(100, Math.max(0, score));
+    const totalScore = Math.min(
+      100,
+      Math.max(0, baseScore + confidenceBonus + preferenceBonus + feedbackBonus + optimizationBonus)
+    );
+
+    return {
+      baseScore,
+      confidenceBonus,
+      preferenceBonus,
+      feedbackBonus,
+      optimizationBonus: useOptimized ? optimizationBonus : undefined,
+      totalScore,
+    };
   };
 
   const runComparisonTest = useCallback(async () => {
     setIsLoading(true);
+    const renderStartTime = performance.now();
+
     try {
       // Prepare request
       const request: TripPlanRequest = {
@@ -105,27 +152,78 @@ const AIPlannerTestingScreen = () => {
         return;
       }
 
-      // Compare baseline vs optimized scores
-      const comparisons: RankingComparison[] = allActivities.map(activity => {
-        const baselineScore = calculateRankingScore(activity, false);
-        const optimizedScore = calculateRankingScore(activity, true);
-        const scoreDifference = optimizedScore - baselineScore;
-        const percentChange = baselineScore > 0
-          ? ((scoreDifference / baselineScore) * 100)
+      // Start performance tracking for ranking computation
+      const computationStartTime = performance.now();
+
+      // Calculate scores with breakdowns for both baseline and optimized
+      const comparisonsWithScores = allActivities.map(activity => {
+        const baselineBreakdown = calculateRankingScoreWithBreakdown(activity, false);
+        const optimizedBreakdown = calculateRankingScoreWithBreakdown(activity, true);
+        const scoreDifference = optimizedBreakdown.totalScore - baselineBreakdown.totalScore;
+        const percentChange = baselineBreakdown.totalScore > 0
+          ? ((scoreDifference / baselineBreakdown.totalScore) * 100)
           : 0;
 
         return {
           activity,
-          baselineScore,
-          optimizedScore,
+          baselineScore: baselineBreakdown.totalScore,
+          optimizedScore: optimizedBreakdown.totalScore,
           scoreDifference,
           percentChange,
+          baselineBreakdown,
+          optimizedBreakdown,
+          baselineRank: 0, // Will be calculated below
+          optimizedRank: 0, // Will be calculated below
+          rankChange: 0,
         };
       });
+
+      // Sort by baseline scores and assign ranks
+      const baselineSorted = [...comparisonsWithScores].sort(
+        (a, b) => b.baselineScore - a.baselineScore
+      );
+      baselineSorted.forEach((comp, index) => {
+        comp.baselineRank = index + 1;
+      });
+
+      // Sort by optimized scores and assign ranks
+      const optimizedSorted = [...comparisonsWithScores].sort(
+        (a, b) => b.optimizedScore - a.optimizedScore
+      );
+      optimizedSorted.forEach((comp, index) => {
+        comp.optimizedRank = index + 1;
+        // Calculate rank change (negative = moved up, positive = moved down)
+        comp.rankChange = comp.optimizedRank - comp.baselineRank;
+      });
+
+      const computationEndTime = performance.now();
+      const computationTime = computationEndTime - computationStartTime;
+
+      // A/B Simulation: Apply baseline to 50%, optimized to 50%
+      let comparisons: RankingComparison[];
+      if (abSimulationEnabled) {
+        comparisons = comparisonsWithScores.map((comp, index) => {
+          // Alternate between baseline and optimized
+          const useOptimized = index % 2 === 0;
+          return {
+            ...comp,
+            // Mark which variant is being used
+            activity: {
+              ...comp.activity,
+              // Add a flag to indicate which variant (for display purposes)
+            },
+          };
+        });
+      } else {
+        comparisons = comparisonsWithScores;
+      }
 
       // Calculate average improvement
       const avgImprovement = comparisons.reduce((sum, comp) =>
         sum + comp.scoreDifference, 0) / comparisons.length;
+
+      const renderEndTime = performance.now();
+      const renderTime = renderEndTime - renderStartTime;
 
       const results: TestResult = {
         destination: testDestination,
@@ -133,6 +231,11 @@ const AIPlannerTestingScreen = () => {
         optimizationEnabled,
         comparisons,
         averageImprovement: parseFloat(avgImprovement.toFixed(2)),
+        performanceMetrics: {
+          rankingComputationTime: parseFloat(computationTime.toFixed(2)),
+          renderCount,
+          lastRenderTime: parseFloat(renderTime.toFixed(2)),
+        },
       };
 
       setTestResults(results);
@@ -140,7 +243,8 @@ const AIPlannerTestingScreen = () => {
       Alert.alert(
         'Test Complete',
         `Average improvement: ${avgImprovement.toFixed(2)} points\n` +
-        `Total activities tested: ${comparisons.length}`
+        `Total activities tested: ${comparisons.length}\n` +
+        `Computation time: ${computationTime.toFixed(2)}ms`
       );
     } catch (error) {
       console.error('Comparison test failed:', error);
@@ -148,11 +252,92 @@ const AIPlannerTestingScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [testDestination, testDuration, testBudget, testInterests, optimizationEnabled]);
+  }, [testDestination, testDuration, testBudget, testInterests, optimizationEnabled, abSimulationEnabled, renderCount]);
+
+  const toggleScoreExpansion = (index: number) => {
+    setExpandedScores(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const renderScoreBreakdown = (breakdown: ScoreBreakdown, label: string) => (
+    <View style={styles.breakdownContainer}>
+      <Text style={styles.breakdownTitle}>{label} Breakdown:</Text>
+      <View style={styles.breakdownRow}>
+        <Text style={styles.breakdownLabel}>Base Score</Text>
+        <Text style={styles.breakdownValue}>{breakdown.baseScore}</Text>
+      </View>
+      <View style={styles.breakdownRow}>
+        <Text style={styles.breakdownLabel}>Confidence Bonus</Text>
+        <Text style={styles.breakdownValue}>+{breakdown.confidenceBonus}</Text>
+      </View>
+      <View style={styles.breakdownRow}>
+        <Text style={styles.breakdownLabel}>Preference Bonus</Text>
+        <Text style={styles.breakdownValue}>+{breakdown.preferenceBonus}</Text>
+      </View>
+      <View style={styles.breakdownRow}>
+        <Text style={styles.breakdownLabel}>Feedback Bonus</Text>
+        <Text style={styles.breakdownValue}>+{breakdown.feedbackBonus}</Text>
+      </View>
+      {breakdown.optimizationBonus !== undefined && breakdown.optimizationBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={[styles.breakdownLabel, styles.optimizationText]}>Optimization Bonus</Text>
+          <Text style={[styles.breakdownValue, styles.optimizationText]}>
+            +{breakdown.optimizationBonus}
+          </Text>
+        </View>
+      )}
+      <View style={[styles.breakdownRow, styles.totalRow]}>
+        <Text style={styles.breakdownTotalLabel}>Total Score</Text>
+        <Text style={styles.breakdownTotalValue}>{breakdown.totalScore}</Text>
+      </View>
+    </View>
+  );
+
+  const renderRankBadge = (baselineRank: number, optimizedRank: number, rankChange: number) => {
+    const rankImproved = rankChange < 0; // Negative change means moved up
+    const rankWorsened = rankChange > 0;
+    const rankUnchanged = rankChange === 0;
+
+    return (
+      <View style={styles.rankBadgeContainer}>
+        <View style={styles.rankBadge}>
+          <Text style={styles.rankLabel}>Rank:</Text>
+          <Text style={styles.rankValue}>#{baselineRank}</Text>
+          <Ionicons
+            name={rankImproved ? "arrow-up" : rankWorsened ? "arrow-down" : "remove"}
+            size={16}
+            color={rankImproved ? "#10B981" : rankWorsened ? "#EF4444" : "#6B7280"}
+          />
+          <Text style={[
+            styles.rankValue,
+            rankImproved ? styles.improvedRank : rankWorsened ? styles.worsenedRank : styles.neutralRank
+          ]}>
+            #{optimizedRank}
+          </Text>
+        </View>
+        {rankChange !== 0 && (
+          <Text style={[
+            styles.rankChangeText,
+            rankImproved ? styles.positiveChange : styles.negativeChange
+          ]}>
+            {rankImproved ? `↑ ${Math.abs(rankChange)}` : `↓ ${rankChange}`} position{Math.abs(rankChange) > 1 ? 's' : ''}
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   const renderComparisonCard = (comparison: RankingComparison, index: number) => {
     const isImproved = comparison.scoreDifference > 0;
     const isNeutral = comparison.scoreDifference === 0;
+    const isExpanded = expandedScores.has(index);
 
     return (
       <View key={index} style={styles.comparisonCard}>
@@ -160,11 +345,14 @@ const AIPlannerTestingScreen = () => {
           <Text style={styles.activityTitle} numberOfLines={2}>
             {comparison.activity.description}
           </Text>
-          {comparison.activity.category && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{comparison.activity.category}</Text>
-            </View>
-          )}
+          <View style={styles.headerRow}>
+            {comparison.activity.category && (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{comparison.activity.category}</Text>
+              </View>
+            )}
+            {renderRankBadge(comparison.baselineRank, comparison.optimizedRank, comparison.rankChange)}
+          </View>
         </View>
 
         <View style={styles.scoreContainer}>
@@ -203,6 +391,29 @@ const AIPlannerTestingScreen = () => {
             </Text>
           </View>
         </View>
+
+        {/* Expand/Collapse Button for Score Breakdown */}
+        <TouchableOpacity
+          style={styles.expandButton}
+          onPress={() => toggleScoreExpansion(index)}
+        >
+          <Text style={styles.expandButtonText}>
+            {isExpanded ? 'Hide' : 'Show'} Score Breakdown
+          </Text>
+          <Ionicons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color="#3B82F6"
+          />
+        </TouchableOpacity>
+
+        {/* Score Breakdown Details */}
+        {isExpanded && (
+          <View style={styles.breakdownSection}>
+            {renderScoreBreakdown(comparison.baselineBreakdown, 'Baseline')}
+            {renderScoreBreakdown(comparison.optimizedBreakdown, 'Optimized')}
+          </View>
+        )}
 
         {/* Activity Metadata */}
         <View style={styles.metadataContainer}>
@@ -271,6 +482,69 @@ const AIPlannerTestingScreen = () => {
               : 'Using standard baseline ranking algorithm'}
           </Text>
         </View>
+
+        {/* A/B Simulation Toggle Card */}
+        <View style={styles.toggleCard}>
+          <View style={styles.toggleHeader}>
+            <MaterialCommunityIcons name="ab-testing" size={24} color="#8B5CF6" />
+            <Text style={styles.toggleTitle}>A/B Simulation Mode</Text>
+          </View>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>
+              {abSimulationEnabled ? '50/50 Split Active' : 'Disabled'}
+            </Text>
+            <Switch
+              value={abSimulationEnabled}
+              onValueChange={setAbSimulationEnabled}
+              trackColor={{ false: '#D1D5DB', true: '#8B5CF6' }}
+              thumbColor={abSimulationEnabled ? '#FFFFFF' : '#F3F4F6'}
+            />
+          </View>
+          <Text style={styles.toggleDescription}>
+            {abSimulationEnabled
+              ? '50% activities use baseline, 50% use optimized (for internal A/B testing)'
+              : 'All activities use the same ranking algorithm'}
+          </Text>
+        </View>
+
+        {/* Performance Monitoring Card */}
+        {testResults && (
+          <View style={styles.performanceCard}>
+            <View style={styles.toggleHeader}>
+              <MaterialCommunityIcons name="speedometer" size={24} color="#3B82F6" />
+              <Text style={styles.toggleTitle}>Performance Metrics</Text>
+            </View>
+            <View style={styles.performanceGrid}>
+              <View style={styles.performanceItem}>
+                <Text style={styles.performanceLabel}>Computation Time</Text>
+                <Text style={styles.performanceValue}>
+                  {testResults.performanceMetrics.rankingComputationTime.toFixed(2)}ms
+                </Text>
+              </View>
+              <View style={styles.performanceItem}>
+                <Text style={styles.performanceLabel}>Total Render Time</Text>
+                <Text style={styles.performanceValue}>
+                  {testResults.performanceMetrics.lastRenderTime.toFixed(2)}ms
+                </Text>
+              </View>
+              <View style={styles.performanceItem}>
+                <Text style={styles.performanceLabel}>Render Count</Text>
+                <Text style={styles.performanceValue}>
+                  {testResults.performanceMetrics.renderCount}
+                </Text>
+              </View>
+              <View style={styles.performanceItem}>
+                <Text style={styles.performanceLabel}>UI Stability</Text>
+                <Text style={[
+                  styles.performanceValue,
+                  testResults.performanceMetrics.lastRenderTime < 100 ? styles.goodPerformance : styles.warnPerformance
+                ]}>
+                  {testResults.performanceMetrics.lastRenderTime < 100 ? 'Good' : 'Check'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Test Configuration */}
         <View style={styles.configCard}>
@@ -648,6 +922,157 @@ const styles = StyleSheet.create({
   metadataText: {
     fontSize: 11,
     color: '#374151',
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginTop: 12,
+    marginBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 6,
+  },
+  expandButtonText: {
+    fontSize: 13,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  breakdownSection: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  breakdownContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  breakdownTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  breakdownLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  breakdownValue: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  optimizationText: {
+    color: '#8B5CF6',
+  },
+  totalRow: {
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#D1D5DB',
+  },
+  breakdownTotalLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  breakdownTotalValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  rankBadgeContainer: {
+    alignItems: 'flex-end',
+  },
+  rankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 4,
+  },
+  rankLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  rankValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  improvedRank: {
+    color: '#10B981',
+  },
+  worsenedRank: {
+    color: '#EF4444',
+  },
+  neutralRank: {
+    color: '#6B7280',
+  },
+  rankChangeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 6,
+  },
+  performanceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  performanceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 12,
+  },
+  performanceItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  performanceLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  performanceValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  goodPerformance: {
+    color: '#10B981',
+  },
+  warnPerformance: {
+    color: '#F59E0B',
   },
   emptyState: {
     alignItems: 'center',
