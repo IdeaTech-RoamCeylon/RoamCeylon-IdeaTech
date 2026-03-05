@@ -2120,6 +2120,12 @@ export class AIController {
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
 
+      // QUALITY GATE: Enforce minimum quality threshold
+      // Never select items below MINIMUM confidence, even for diversity
+      if (result.score < PLANNER_CONFIG.CONFIDENCE.MINIMUM) {
+        continue;
+      }
+
       const textKey = `${result.title} ${result.content}`.toLowerCase();
       if (textSet.has(textKey)) continue;
 
