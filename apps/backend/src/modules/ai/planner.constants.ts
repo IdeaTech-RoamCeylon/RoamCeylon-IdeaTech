@@ -152,6 +152,21 @@ export const PLANNER_CONFIG = Object.freeze({
     HIGH_SCORE_COMBO: 0.7,
     PARTIAL_HIGH_CONFIDENCE: 0.5,
   } as const,
+
+  LEARNING_INFLUENCE_CAPS: {
+    // Hard limit: Feedback influence cannot exceed 15% of base score
+    FEEDBACK_INFLUENCE_MAX: 0.15,
+
+    // Hard limit: Preference override cannot exceed 20% of base score
+    PREFERENCE_OVERRIDE_MAX: 0.2,
+
+    // Combined limit: Total learning influence (feedback + preferences) capped at 25%
+    COMBINED_LEARNING_MAX: 0.25,
+
+    // Prevents runaway bias from accumulated user interactions
+    DESCRIPTION: 'Prevents future runaway bias from feedback loops',
+  } as const,
+
   VALIDATION: {
     VAGUE_TERMS: [
       'things',
