@@ -1412,9 +1412,10 @@ export class AIController {
 
           priorityScore += appliedPrefBoost;
 
+          // ⚠️ LEARNING CAP: Apply preference override cap (20%)
           const prefCap =
             baseScore *
-            PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE;
+            PLANNER_CONFIG.LEARNING_INFLUENCE_CAPS.PREFERENCE_OVERRIDE_MAX;
 
           if (appliedPrefBoost > prefCap) {
             const over = appliedPrefBoost - prefCap;
@@ -1529,7 +1530,28 @@ export class AIController {
     if (baseScore < PLANNER_CONFIG.PERSONALIZATION.MIN_BASE_SCORE) return 0;
 
     let boost = 0;
+    let feedbackBoost = 0; // ⚠️ LEARNING CAP: Track feedback separately
     const resultText = `${result.title} ${result.content}`.toLowerCase();
+
+    // 0) FEEDBACK INFLUENCE (capped separately)
+    try {
+      const positiveDestinations =
+        await this.tripStore.getUserPositiveFeedbackDestinations(userId);
+
+      const resultTitleLower = result.title.toLowerCase();
+      const hasPositiveFeedback = positiveDestinations.some(
+        (d) => d && resultTitleLower.includes(d.toLowerCase()),
+      );
+
+      if (hasPositiveFeedback) {
+        // Apply feedback boost (will be capped below)
+        feedbackBoost = 0.1; // Base feedback influence
+      }
+    } catch (error) {
+      this.logger.error(
+        `Feedback influence failed for user ${userId}: ${(error as Error).message}`,
+      );
+    }
 
     // 1) INTEREST ALIGNMENT (exact / related)
     if (preferences?.length) {
@@ -1650,9 +1672,18 @@ export class AIController {
       );
     }
 
+    // ⚠️ LEARNING CAP: Apply feedback influence cap (15%)
+    const feedbackCap =
+      baseScore * PLANNER_CONFIG.LEARNING_INFLUENCE_CAPS.FEEDBACK_INFLUENCE_MAX;
+    const cappedFeedbackBoost = Math.min(feedbackBoost, feedbackCap);
+
+    // ⚠️ LEARNING CAP: Apply combined learning cap (feedback + other personalization)
+    // Note: preference boost has its own cap applied separately in scoreResultsByPreferences
+    const combinedBoost = boost + cappedFeedbackBoost;
+
     // CONSISTENCY LOCK: hard cap
     const cappedBoost = Math.min(
-      boost,
+      combinedBoost,
       PLANNER_CONFIG.PERSONALIZATION.MAX_BOOST,
     );
 
@@ -1702,7 +1733,8 @@ export class AIController {
 
         const baseScore = item.score || 0;
 
-        // Ceiling: personalization cannot move item beyond a relevance-bound max
+        // ⚠️ LEARNING CAP: Combined learning influence ceiling (feedback + preference + personalization)
+        // Ensures total learning boost cannot exceed COMBINED_LEARNING_MAX (25% of base score)
         const maxFinal = this.q(
           baseScore +
             baseScore *
@@ -2119,6 +2151,12 @@ export class AIController {
 
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
+
+      // QUALITY GATE: Enforce minimum quality threshold
+      // Never select items below MINIMUM confidence, even for diversity
+      if (result.score < PLANNER_CONFIG.CONFIDENCE.MINIMUM) {
+        continue;
+      }
 
       const textKey = `${result.title} ${result.content}`.toLowerCase();
       if (textSet.has(textKey)) continue;

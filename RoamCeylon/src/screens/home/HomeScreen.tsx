@@ -163,22 +163,30 @@ const HomeScreen = () => {
           <Ionicons name="home" size={24} color="#000" />
           <Text style={styles.footerText}>Home</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.footerItem}>
           <Ionicons name="list" size={24} color="#000" />
           <Text style={styles.footerText}>Activities</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.footerItem}>
           <Ionicons name="notifications" size={24} color="#000" />
           <Text style={styles.footerText}>Notification</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.footerItem}>
           <Ionicons name="settings" size={24} color="#000" />
           <Text style={styles.footerText}>Settings</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Internal AI Testing Button - Dev Only */}
+      <TouchableOpacity
+        style={styles.devTestButton}
+        onPress={() => handleNavigate('AIPlannerTesting')}
+      >
+        <MaterialCommunityIcons name="test-tube" size={20} color="#FFFFFF" />
+      </TouchableOpacity>
     </LinearGradient>
   );
 };
@@ -368,6 +376,22 @@ const styles = StyleSheet.create({
     color: '#000',
     marginTop: 4,
     fontWeight: '500',
+  },
+  devTestButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 });
 
