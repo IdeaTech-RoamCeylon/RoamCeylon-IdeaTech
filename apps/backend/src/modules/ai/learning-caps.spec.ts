@@ -1,6 +1,5 @@
 import { PLANNER_CONFIG } from './planner.constants';
 
-
 describe('Learning Influence Caps - Configuration Validation', () => {
   describe('Cap Hierarchy', () => {
     it('should have properly configured cap hierarchy', () => {
