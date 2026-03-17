@@ -5,6 +5,7 @@ import { SearchService } from './retrieval/search.service';
 import { TripStoreService } from './trips/trip-store.service';
 import { PlannerService } from '../planner/planner.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { FeedbackRankingService } from '../feedback/ranking.service';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 
@@ -60,6 +61,13 @@ describe('Final Stability Testing - 100 Repeated Queries', () => {
     recordMetric: jest.fn(),
     logQuery: jest.fn(),
     recordEvent: jest.fn().mockResolvedValue(undefined),
+    trackLearningInfluence: jest.fn(),
+  };
+
+  const mockRankingService = {
+    getPersonalizedScoringStats: jest.fn().mockResolvedValue({}),
+    getPersonalizationMetrics: jest.fn().mockResolvedValue({}),
+    getExplanation: jest.fn().mockResolvedValue({}),
   };
 
   beforeEach(async () => {
@@ -73,6 +81,7 @@ describe('Final Stability Testing - 100 Repeated Queries', () => {
         { provide: TripStoreService, useValue: mockTripStoreService },
         { provide: PlannerService, useValue: mockPlannerService },
         { provide: AnalyticsService, useValue: mockAnalyticsService },
+        { provide: FeedbackRankingService, useValue: mockRankingService },
       ],
     })
       .overrideGuard(ThrottlerGuard)

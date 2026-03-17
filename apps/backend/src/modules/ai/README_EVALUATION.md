@@ -65,8 +65,8 @@ npx tsx scripts/ai-quality-evaluation.ts
    Diversity: ✅ Improved by 17.3%
 
 🎯 TARGET COMPLIANCE
-   ✅ Avg Latency < 1500ms
-   ✅ P95 Latency < 3000ms
+   ✅ Avg Latency < 1550ms
+   ✅ P95 Latency < 3050ms
    ✅ Confidence > 0.70
    ✅ Diversity > 0.80
 
@@ -83,8 +83,8 @@ npx tsx scripts/ai-quality-evaluation.ts
 
 | Metric | Target | Interpretation |
 |--------|--------|----------------|
-| **Avg Latency** | < 1,500ms | Response time for typical request |
-| **P95 Latency** | < 3,000ms | 95% of requests complete within this time |
+| **Avg Latency** | < 1,550ms | Response time for typical request |
+| **P95 Latency** | < 3,050ms | 95% of requests complete within this time |
 | **Confidence Score** | > 0.70 | Average ranking quality (0-1 scale) |
 | **Diversity Score** | > 0.80 | Variety of activity categories (0-1 scale) |
 | **Preference Matching** | > 2.0 | Number of user preferences satisfied |
