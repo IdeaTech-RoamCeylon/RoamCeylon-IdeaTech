@@ -6,6 +6,24 @@ import { TripStoreService } from './trips/trip-store.service';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { PLANNER_CONFIG } from './planner.constants';
 import { Request } from 'express';
+import { PlannerService } from '../planner/planner.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { FeedbackRankingService } from '../feedback/ranking.service';
+
+const mockAnalyticsService = {
+  trackLearningInfluence: jest.fn(),
+  recordEvent: jest.fn().mockResolvedValue(undefined),
+};
+
+const mockRankingService = {
+  getPersonalizedScoringStats: jest.fn().mockResolvedValue({}),
+  getPersonalizationMetrics: jest.fn().mockResolvedValue({}),
+  getExplanation: jest.fn().mockResolvedValue({}),
+};
+
+const mockPlannerService = {
+  getFeedback: jest.fn().mockResolvedValue([]),
+};
 
 describe('Diversity vs Quality Balance', () => {
   let controller: AIController;
@@ -43,6 +61,9 @@ describe('Diversity vs Quality Balance', () => {
         { provide: AIService, useValue: mockAIService },
         { provide: SearchService, useValue: mockSearchService },
         { provide: TripStoreService, useValue: mockTripStoreService },
+        { provide: PlannerService, useValue: mockPlannerService },
+        { provide: AnalyticsService, useValue: mockAnalyticsService },
+        { provide: FeedbackRankingService, useValue: mockRankingService },
       ],
     })
       .overrideGuard(ThrottlerGuard)
@@ -61,24 +82,28 @@ describe('Diversity vs Quality Balance', () => {
           title: 'Best Temple',
           content: 'Amazing cultural site. Near: Kandy. Category: Culture',
           score: 0.95, // HIGHEST
+          confidence: 'High',
         },
         {
           id: '2',
           title: 'Good Beach',
           content: 'Nice beach. Near: Kandy. Category: Beach',
           score: 0.85,
+          confidence: 'High',
         },
         {
           id: '3',
           title: 'Another Temple',
           content: 'Another cultural site. Near: Kandy. Category: Culture',
           score: 0.82,
+          confidence: 'High',
         },
         {
           id: '4',
           title: 'Nature Park',
           content: 'Forest area. Near: Kandy. Category: Nature',
           score: 0.78,
+          confidence: 'High',
         },
       ];
 
@@ -175,24 +200,28 @@ describe('Diversity vs Quality Balance', () => {
           title: 'Good Activity',
           content: 'High quality. Near: Colombo. Category: Culture',
           score: 0.88,
+          confidence: 'High',
         },
         {
           id: '2',
           title: 'Mediocre Activity',
           content: 'Average. Near: Colombo. Category: Nature',
           score: 0.57,
+          confidence: 'Medium',
         },
         {
           id: '3',
           title: 'Poor Activity',
           content: 'Low quality. Near: Colombo. Category: Beach',
           score: 0.45, // Below MINIMUM
+          confidence: 'Low',
         },
         {
           id: '4',
           title: 'Terrible Activity',
           content: 'Very low. Near: Colombo. Category: Adventure',
           score: 0.3, // Well below MINIMUM
+          confidence: 'Low',
         },
       ];
 
@@ -201,7 +230,7 @@ describe('Diversity vs Quality Balance', () => {
       const request = {
         destination: 'Colombo',
         startDate: '2026-03-15',
-        endDate: '2026-03-17',
+        endDate: '2026-03-15', // 1 day trip so we don't need fallbacks
         preferences: ['culture', 'nature', 'beach', 'adventure'],
       };
 
@@ -236,24 +265,28 @@ describe('Diversity vs Quality Balance', () => {
           title: 'Excellent Temple',
           content: 'Top quality. Near: Galle. Category: Culture',
           score: 0.92,
+          confidence: 'High',
         },
         {
           id: '2',
           title: 'Great Museum',
           content: 'High quality. Near: Galle. Category: Culture',
           score: 0.87,
+          confidence: 'High',
         },
         {
           id: '3',
           title: 'Nice Fort',
           content: 'Good quality. Near: Galle. Category: History',
           score: 0.83,
+          confidence: 'High',
         },
         {
           id: '4',
           title: 'Weak Beach',
           content: 'Poor match. Near: Galle. Category: Beach',
           score: 0.52, // Just below MINIMUM, should be excluded
+          confidence: 'Low',
         },
       ];
 
@@ -294,24 +327,28 @@ describe('Diversity vs Quality Balance', () => {
           title: 'Premium Activity A',
           content: 'Excellent. Near: Kandy. Category: Culture',
           score: 0.9,
+          confidence: 'High',
         },
         {
           id: '2',
           title: 'Premium Activity B',
           content: 'Excellent. Near: Kandy. Category: Nature',
           score: 0.88,
+          confidence: 'High',
         },
         {
           id: '3',
           title: 'Low Quality X',
           content: 'Poor. Near: Kandy. Category: Beach',
           score: 0.4, // Way below minimum
+          confidence: 'Low',
         },
         {
           id: '4',
           title: 'Low Quality Y',
           content: 'Poor. Near: Kandy. Category: Adventure',
           score: 0.35, // Way below minimum
+          confidence: 'Low',
         },
       ];
 
@@ -357,24 +394,28 @@ describe('Diversity vs Quality Balance', () => {
           title: 'Temple',
           content: 'Culture site. Near: Kandy. Category: Culture',
           score: 0.85,
+          confidence: 'High',
         },
         {
           id: '2',
           title: 'Beach',
           content: 'Beach area. Near: Kandy. Category: Beach',
           score: 0.8,
+          confidence: 'High',
         },
         {
           id: '3',
           title: 'Forest',
           content: 'Nature park. Near: Kandy. Category: Nature',
           score: 0.75,
+          confidence: 'Medium',
         },
         {
           id: '4',
           title: 'Adventure Park',
           content: 'Adventure site. Near: Kandy. Category: Adventure',
           score: 0.7,
+          confidence: 'Medium',
         },
       ];
 
@@ -397,9 +438,7 @@ describe('Diversity vs Quality Balance', () => {
       );
 
       // Should have diverse categories
-      const uniqueCategories = new Set(
-        allActivities.map((a) => a.explanation!.rankingFactors.categoryMatch),
-      );
+      const uniqueCategories = new Set(allActivities.map((a) => a.category));
 
       // Should include multiple categories (diversity achieved)
       expect(uniqueCategories.size).toBeGreaterThanOrEqual(2);

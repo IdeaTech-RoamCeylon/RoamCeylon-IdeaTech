@@ -34,6 +34,14 @@ Algorithm changes:
 - Formula modifications
 - New features
 
+## Final Weight Configuration (v2.0 Locked)
+The finalized scoring pipeline utilizes the following relative base score limits for calculating the final rank:
+
+- **Base Score**: ~60% (Relevance, Match)
+- **Preference Match Influence**: 21% (Max override up to 21% of base)
+- **Feedback Influence**: 15.75% (User-history boost cap)
+- **Diversity Control**: ~3.25% (Emergency fallback and category penalties)
+
 Requires PO approval and version bump.
 
 ## Changelog
@@ -41,3 +49,4 @@ Requires PO approval and version bump.
 | Date | Version | Change | By |
 |------|---------|--------|-----|
 | 2026-01-16 | 1.0.0 | Initial lock | [Your Name] |
+| 2026-03-17 | 2.0.0 | Final optimized weight configuration locked per Day 55 tasks | Backend Team |

@@ -1,6 +1,6 @@
 import { PLANNER_CONFIG } from './planner.constants';
 
-describe('Learning Influence Caps - Configuration Validation', () => {
+describe('AI Learning Caps & Safeguards', () => {
   describe('Cap Hierarchy', () => {
     it('should have properly configured cap hierarchy', () => {
       const feedbackCap =
@@ -27,16 +27,16 @@ describe('Learning Influence Caps - Configuration Validation', () => {
       console.log(`   ✅ Cap hierarchy is properly configured`);
     });
 
-    it('should have feedback cap at 15%', () => {
+    it('should have feedback cap at 15.75%', () => {
       expect(
         PLANNER_CONFIG.LEARNING_INFLUENCE_CAPS.FEEDBACK_INFLUENCE_MAX,
-      ).toBe(0.15);
+      ).toBe(0.1575);
     });
 
-    it('should have preference cap at 20%', () => {
+    it('should have preference cap at 21%', () => {
       expect(
         PLANNER_CONFIG.LEARNING_INFLUENCE_CAPS.PREFERENCE_OVERRIDE_MAX,
-      ).toBe(0.2);
+      ).toBe(0.21);
     });
 
     it('should have combined cap at 25%', () => {

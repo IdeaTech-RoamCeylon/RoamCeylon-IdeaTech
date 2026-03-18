@@ -72,7 +72,7 @@ export const PLANNER_CONFIG = Object.freeze({
   } as const,
 
   DIVERSITY: {
-    CATEGORY_DIVISOR: 4,
+    CATEGORY_DIVISOR: 5,
     EMERGENCY_THRESHOLD: 0.6,
   } as const,
 
@@ -155,10 +155,10 @@ export const PLANNER_CONFIG = Object.freeze({
 
   LEARNING_INFLUENCE_CAPS: {
     // Hard limit: Feedback influence cannot exceed 15% of base score
-    FEEDBACK_INFLUENCE_MAX: 0.15,
+    FEEDBACK_INFLUENCE_MAX: 0.1575,
 
     // Hard limit: Preference override cannot exceed 20% of base score
-    PREFERENCE_OVERRIDE_MAX: 0.2,
+    PREFERENCE_OVERRIDE_MAX: 0.21,
 
     // Combined limit: Total learning influence (feedback + preferences) capped at 25%
     COMBINED_LEARNING_MAX: 0.25,

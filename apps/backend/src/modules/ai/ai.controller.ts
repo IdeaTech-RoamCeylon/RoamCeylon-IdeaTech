@@ -1745,6 +1745,8 @@ export class AIController {
       this.logger.warn(`Failed to get user pace: ${(error as Error).message}`);
     }
 
+    const t0 = performance.now();
+
     const personalizedScored = await Promise.all(
       baseScored.map(async (item) => {
         const personalizationBoost = await this.calculatePersonalizationBoost(
@@ -1757,6 +1759,19 @@ export class AIController {
         // CONSISTENCY LOCK: fixed precision rounding
         const finalScore = this.q(item.priorityScore + personalizationBoost);
         const baseScore = item.score || 0;
+
+        // --- SCORE COMPONENT LOGGING REVIEW ---
+        this.logger.debug(
+          `[Score Component] Item: ${item.id} | Base Score: ${baseScore.toFixed(4)} | Personalization Influence: ${personalizationBoost.toFixed(4)} | Final Score: ${finalScore.toFixed(4)}`,
+        );
+
+        // Identify extreme imbalances
+        if (baseScore > 0 && personalizationBoost / baseScore > 0.4) {
+          this.logger.warn(
+            `[Imbalance Alert] Personalization extremely high for item ${item.id} (${((personalizationBoost / baseScore) * 100).toFixed(1)}% of base score)`,
+          );
+        }
+        // --------------------------------------
 
         // ⚠️ LEARNING CAP: Combined learning influence ceiling (feedback + preference + personalization)
         // Ensures total learning boost cannot exceed COMBINED_LEARNING_MAX (25% of base score)
@@ -1779,6 +1794,12 @@ export class AIController {
           },
         };
       }),
+    );
+
+    const t1 = performance.now();
+    const latencyPostOpt = t1 - t0;
+    this.logger.log(
+      `[Performance Benchmark] Post-optimization latency for personalized scoring: ${latencyPostOpt.toFixed(2)}ms`,
     );
 
     return personalizedScored.sort((a, b) => {

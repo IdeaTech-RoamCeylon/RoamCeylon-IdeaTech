@@ -5,7 +5,25 @@ import { SearchService } from './retrieval/search.service';
 import { TripStoreService } from './trips/trip-store.service';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { PLANNER_CONFIG } from './planner.constants';
+import { PlannerService } from '../planner/planner.service';
 import { Request } from 'express';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { FeedbackRankingService } from '../feedback/ranking.service';
+
+const mockPlannerService = {
+  getFeedback: jest.fn().mockResolvedValue([]),
+};
+
+const mockAnalyticsService = {
+  trackLearningInfluence: jest.fn(),
+  recordEvent: jest.fn().mockResolvedValue(undefined),
+};
+
+const mockRankingService = {
+  getPersonalizedScoringStats: jest.fn().mockResolvedValue({}),
+  getPersonalizationMetrics: jest.fn().mockResolvedValue({}),
+  getExplanation: jest.fn().mockResolvedValue({}),
+};
 
 describe('AI Ranking Stability', () => {
   let controller: AIController;
@@ -51,6 +69,9 @@ describe('AI Ranking Stability', () => {
         { provide: AIService, useValue: mockAIService },
         { provide: SearchService, useValue: mockSearchService },
         { provide: TripStoreService, useValue: mockTripStoreService },
+        { provide: PlannerService, useValue: mockPlannerService },
+        { provide: AnalyticsService, useValue: mockAnalyticsService },
+        { provide: FeedbackRankingService, useValue: mockRankingService },
       ],
     })
       .overrideGuard(ThrottlerGuard)

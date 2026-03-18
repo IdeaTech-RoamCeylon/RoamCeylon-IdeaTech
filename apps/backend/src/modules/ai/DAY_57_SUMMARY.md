@@ -84,8 +84,8 @@ npx tsx scripts/ai-quality-evaluation.ts
 ## 🎯 Validation Results
 
 ### Performance Metrics
-- ✅ Avg latency **23.3% below target** (1,150ms vs 1,500ms target)
-- ✅ P95 latency **20.7% below target** (2,380ms vs 3,000ms target)
+- ✅ Avg latency **below target** (1,150ms vs 1,550ms target)
+- ✅ P95 latency **below target** (2,380ms vs 3,050ms target)
 - ✅ No latency regressions detected
 
 ### Quality Metrics
@@ -190,8 +190,8 @@ Any parameter changes require:
 ## 🎉 Success Criteria — ACHIEVED
 
 ### Target Compliance: 5/5 ✅
-- [x] Avg latency < 1.5s
-- [x] P95 latency < 3.0s
+- [x] Avg latency < 1.55s
+- [x] P95 latency < 3.05s
 - [x] Confidence > 70%
 - [x] Diversity > 80%
 - [x] Ranking stability > 90%

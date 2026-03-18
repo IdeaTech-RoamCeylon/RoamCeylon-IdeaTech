@@ -38,7 +38,8 @@ describe('AI Production Behavior Review', () => {
   let aiService: AIService;
 
   beforeEach(() => {
-    aiService = new AIService(null as unknown as EmbeddingService); // Mock embedding service
+    // Modified AIService instantiation
+    aiService = new AIService(null as unknown as EmbeddingService);
   });
 
   // SCENARIO 1: Predictability & Clarity (Happy Path)
