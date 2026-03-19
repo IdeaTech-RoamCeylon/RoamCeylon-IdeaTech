@@ -225,6 +225,7 @@ model RecommendationLog {
   mlScore          Float?   @map("ml_score")
   ruleScore        Float?   @map("rule_score")
   finalScore       Float?   @map("final_score")
+  source           String?  @default("rule-based") @map("source")
   clicked          Boolean? @default(false)
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
 
@@ -236,6 +237,8 @@ model UserInterestProfile {
   culturalScore   Int      @default(0) @map("cultural_score")
   adventureScore  Int      @default(0) @map("adventure_score")
   relaxationScore Int      @default(0) @map("relaxation_score")
+  timeOfDayPrefs  Json?    @map("time_of_day_prefs")
+  categoryDiversity Float? @default(0) @map("category_diversity")
   updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz
 
   @@map("user_interest_profile")
