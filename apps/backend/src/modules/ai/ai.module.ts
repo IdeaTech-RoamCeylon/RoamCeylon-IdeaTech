@@ -25,6 +25,12 @@ import { AIDecisionLoggerService } from './decision/ai-decision-logger.service';
     ]),
   ],
   controllers: [AIController],
-  providers: [AIService, EmbeddingService, SearchService, TripStoreService,  AIDecisionLoggerService],
+  providers: [
+    AIService,
+    EmbeddingService,
+    SearchService,
+    TripStoreService,
+    AIDecisionLoggerService,
+  ],
 })
 export class AIModule {}
