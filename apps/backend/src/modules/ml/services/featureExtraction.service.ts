@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-// @ts-expect-error - node-cron does not have its type definitions installed in this environment
-import * as cron from 'node-cron';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cron = require('node-cron');
 
 const prisma = new PrismaClient(); // Or use a persistent PrismaService if available
 
