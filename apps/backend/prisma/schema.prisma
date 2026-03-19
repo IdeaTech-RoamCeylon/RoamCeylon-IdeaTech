@@ -222,6 +222,9 @@ model RecommendationLog {
   recommendationId String?  @map("recommendation_id")
   itemId           String?  @map("item_id")
   score            Float?
+  mlScore          Float?   @map("ml_score")
+  ruleScore        Float?   @map("rule_score")
+  finalScore       Float?   @map("final_score")
   clicked          Boolean? @default(false)
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
 
