@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Get, Query, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
 import { MlService } from './ml.service';
 import { TrackBehaviorDto } from './dto/track-behavior.dto';
 

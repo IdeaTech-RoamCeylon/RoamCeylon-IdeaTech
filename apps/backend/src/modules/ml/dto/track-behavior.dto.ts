@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsIn, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsIn,
+  IsObject,
+} from 'class-validator';
 import { EVENT_TYPES } from '../constants/event-types';
 
 export class TrackBehaviorDto {

@@ -17,7 +17,9 @@ export class FeatureExtractionService implements OnModuleInit {
   }
 
   async generateUserFeatures(userId?: string) {
-    this.logger.log(`Starting feature extraction pipeline${userId ? ` for user ${userId}` : ''}...`);
+    this.logger.log(
+      `Starting feature extraction pipeline${userId ? ` for user ${userId}` : ''}...`,
+    );
 
     try {
       // 1. Fetch user events
@@ -32,23 +34,40 @@ export class FeatureExtractionService implements OnModuleInit {
 
       // 2. Group by user and category
       const userCategoryCounts = new Map<string, Record<string, number>>();
-      const feedbackCounts = new Map<string, { positive: number; negative: number }>();
-      const destinationScores = new Map<string, { category: string; popularity: number }>();
+      const feedbackCounts = new Map<
+        string,
+        { positive: number; negative: number }
+      >();
+      const destinationScores = new Map<
+        string,
+        { category: string; popularity: number }
+      >();
 
       for (const event of events) {
         const uid = event.userId;
-        const metadata = (event.metadata as any) || {};
-        
+        const metadata = (event.metadata as Record<string, unknown>) || {};
+
         // Ensure data quality: Handle missing metadata and normalize categories
         if (!metadata) continue;
 
-        let category = metadata.category ? String(metadata.category).toLowerCase().trim() : null;
-        let destinationId = metadata.destinationId ? String(metadata.destinationId) : null;
+        const rawCategory = metadata['category'];
+        const rawDestinationId = metadata['destinationId'];
+
+        const category =
+          typeof rawCategory === 'string'
+            ? rawCategory.toLowerCase().trim()
+            : null;
+        const destinationId =
+          typeof rawDestinationId === 'string' ? rawDestinationId : null;
 
         // Count category interactions
         if (category) {
           if (!userCategoryCounts.has(uid)) {
-            userCategoryCounts.set(uid, { cultural: 0, adventure: 0, relaxation: 0 });
+            userCategoryCounts.set(uid, {
+              cultural: 0,
+              adventure: 0,
+              relaxation: 0,
+            });
           }
           const userCounts = userCategoryCounts.get(uid)!;
           if (category.includes('cultur')) userCounts.cultural += 1;
@@ -62,8 +81,14 @@ export class FeatureExtractionService implements OnModuleInit {
             feedbackCounts.set(uid, { positive: 0, negative: 0 });
           }
           const userFeedback = feedbackCounts.get(uid)!;
-          if (metadata.rating > 3 || metadata.type === 'positive') userFeedback.positive += 1;
-          else if (metadata.rating <= 3 || metadata.type === 'negative') userFeedback.negative += 1;
+
+          const rawRating = metadata['rating'];
+          const rawType = metadata['type'];
+          const rating = typeof rawRating === 'number' ? rawRating : 0;
+
+          if (rating > 3 || rawType === 'positive') userFeedback.positive += 1;
+          else if ((rating > 0 && rating <= 3) || rawType === 'negative')
+            userFeedback.negative += 1;
         }
 
         // Destination popularity score
@@ -73,13 +98,14 @@ export class FeatureExtractionService implements OnModuleInit {
           }
           const dest = destinationScores.get(destinationId)!;
           // E.g., a trip_click gives +1 pointing to that destination's popularity
-          if (event.eventType === 'trip_click' || event.eventType === 'view') dest.popularity += 1;
+          if (event.eventType === 'trip_click' || event.eventType === 'view')
+            dest.popularity += 1;
           else if (event.eventType === 'save') dest.popularity += 3;
         }
       }
 
       // 3. Update feature tables
-      
+
       // Update User Interest Profiles
       for (const [uid, scores] of userCategoryCounts) {
         await prisma.userInterestProfile.upsert({
@@ -132,7 +158,9 @@ export class FeatureExtractionService implements OnModuleInit {
         });
       }
 
-      this.logger.log(`Successfully generated ML features${userId ? ` for user ${userId}` : ''}.`);
+      this.logger.log(
+        `Successfully generated ML features${userId ? ` for user ${userId}` : ''}.`,
+      );
     } catch (error) {
       this.logger.error('Error generating user features', error);
     }
