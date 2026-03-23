@@ -1,4 +1,4 @@
-import { Sparkles, Brain, Clock, TrendingUp, FlaskConical } from 'lucide-react';
+import { Sparkles, Brain, Clock, TrendingUp, FlaskConical, Cpu, Ruler, Zap } from 'lucide-react';
 import type { RecommendationItem } from '../../lib/api';
 
 // ─── Re-export so consumers only need one import ──────────────────────────────
@@ -211,6 +211,48 @@ function DebugOverlay({ item }: { item: RecommendationItem }) {
 }
 
 
+// ─── Source Indicator Chip ────────────────────────────────────────────────────
+/**
+ * Displays which recommendation engine produced this result.
+ * Always visible (not gated behind debugMode) — useful for all developers
+ * and internal testers reviewing the recommendation rollout.
+ */
+function SourceChip({ source }: { source: RecommendationItem['source'] }) {
+  if (!source) return null;
+
+  const config = {
+    ml: {
+      label: 'ML',
+      icon: <Cpu className="w-2.5 h-2.5" />,
+      className:
+        'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
+    },
+    rule_based: {
+      label: 'Rule-Based',
+      icon: <Ruler className="w-2.5 h-2.5" />,
+      className:
+        'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800',
+    },
+    hybrid: {
+      label: 'Hybrid',
+      icon: <Zap className="w-2.5 h-2.5" />,
+      className:
+        'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800',
+    },
+  } as const;
+
+  const { label, icon, className } = config[source];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 self-start px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${className}`}
+    >
+      {icon}
+      {label}
+    </span>
+  );
+}
+
 // ─── Populated Card ───────────────────────────────────────────────────────────
 function RecommendationCard({
   item,
@@ -229,11 +271,17 @@ function RecommendationCard({
           : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
       }`}
     >
-      {item.tag && (
-        <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400">
-          <TrendingUp className="w-3 h-3" />
-          {item.tag}
-        </span>
+      {/* Top row: tag + source chip */}
+      {(item.tag || item.source) && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {item.tag && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400">
+              <TrendingUp className="w-3 h-3" />
+              {item.tag}
+            </span>
+          )}
+          <SourceChip source={item.source} />
+        </div>
       )}
       <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 leading-snug group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
         {item.title}

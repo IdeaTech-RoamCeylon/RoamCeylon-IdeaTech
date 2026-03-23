@@ -13,6 +13,7 @@ import {
   getPersonalizedRecommendations,
   type EngagementEventType,
 } from "../../../lib/api";
+import { isFeatureEnabled } from "../../../lib/featureFlags";
 import { DashboardRefresh } from "../../../components/DashboardRefresh";
 import { SystemHealthMonitor } from "../../../components/SystemHealthMonitor";
 import { PersonalizedRecommendations } from "../../../components/recommendations/PersonalizedRecommendations";
@@ -38,6 +39,9 @@ const ENGAGEMENT_EVENTS: {
 const DEBUG_MODE = process.env.NEXT_PUBLIC_ANALYTICS_DEBUG === 'true';
 
 export default async function AnalyticsPage() {
+  // Evaluate feature flag — admin dashboard has no session so userId='admin'
+  const mlRecsEnabled = isFeatureEnabled('ml_recommendations_enabled', 'admin');
+
   // All data fetches run in parallel; each fails gracefully to null
   const [plannerDaily, feedbackRate, systemErrors, engagementStats, recommendationsData] =
     await Promise.all([
@@ -45,7 +49,8 @@ export default async function AnalyticsPage() {
       getFeedbackRate(),
       getSystemErrors(),
       getEngagementStats(),
-      getPersonalizedRecommendations(),
+      // Skip the fetch entirely when the flag is off — returns null instantly
+      mlRecsEnabled ? getPersonalizedRecommendations() : Promise.resolve(null),
     ]);
 
   // Aggregate stats from the Daily Planner Metrics
