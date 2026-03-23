@@ -11,8 +11,8 @@ import {
   FeedbackAggregation,
   DestinationFeedback,
 } from './planner-aggregation.service';
-import { FeedbackMappingService } from '../feedback/feedback-mapping.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { FeedbackService } from '../feedback/feedback.service';
 import { randomUUID } from 'crypto';
 
 export interface SavedTrip {
@@ -42,7 +42,7 @@ export interface PlannerFeedbackEntry {
 export class PlannerService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly feedbackMappingService: FeedbackMappingService,
+    private readonly feedbackService: FeedbackService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly aggregationService: PlannerAggregationService,
     private readonly analyticsService: AnalyticsService,
@@ -500,17 +500,6 @@ export class PlannerService {
       throw new BadRequestException(`Trip with ID ${tripId} not found.`);
     }
 
-    const feedback = await this.prisma.plannerFeedback.upsert({
-      where: {
-        unique_user_trip_feedback: {
-          userId,
-          tripId,
-        },
-      },
-      update: { feedbackValue: { rating: feedbackValue } },
-      create: { userId, tripId, feedbackValue: { rating: feedbackValue } },
-    });
-
     // Infer category using 3 sources of text (richest signal first):
     // 1. Embeddings table: real place descriptions seeded from AI planner data
     // 2. SavedTrip.itinerary: the stops/activities stored with the trip
@@ -524,11 +513,22 @@ export class PlannerService {
       `${embeddingText} ${itineraryText}`,
     );
 
-    await this.feedbackMappingService.processFeedback(
+    // Delegates to feedbackService which handles:
+    // - upsert of PlannerFeedback
+    // - cooldown check
+    // - immediate learning OR deferred queue
+    await this.feedbackService.submitFeedback(
       userId,
+      tripId,
       feedbackValue,
       category,
     );
+
+    // feedbackService already does the upsert internally,
+    // so just return the saved feedback record
+    const feedback = await this.prisma.plannerFeedback.findUnique({
+      where: { unique_user_trip_feedback: { userId, tripId } },
+    });
 
     // Fire Analytics Event: feedback_submitted
     this.analyticsService

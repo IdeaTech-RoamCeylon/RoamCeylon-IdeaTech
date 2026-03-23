@@ -138,7 +138,7 @@ export class FeedbackMappingService {
     const feedbackCount = existing.feedbackCount + 1;
 
     // Still below learning threshold → only count
-    if (feedbackCount <= this.MIN_FEEDBACK_FOR_CATEGORY_LEARNING) {
+    if (feedbackCount < this.MIN_FEEDBACK_FOR_CATEGORY_LEARNING) {
       await this.prisma.userCategoryWeight.update({
         where: { userId_category: { userId, category } },
         data: { feedbackCount },

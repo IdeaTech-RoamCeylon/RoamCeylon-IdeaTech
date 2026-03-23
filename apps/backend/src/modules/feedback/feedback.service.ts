@@ -3,6 +3,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeedbackMappingService } from './feedback-mapping.service';
+import { FeedbackQueueService } from './feedback-queue.service';
 
 @Injectable()
 export class FeedbackService {
@@ -12,6 +13,7 @@ export class FeedbackService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly feedbackMappingService: FeedbackMappingService,
+    private readonly feedbackQueueService: FeedbackQueueService,
   ) {}
 
   async submitFeedback(
@@ -25,90 +27,110 @@ export class FeedbackService {
     }
 
     const existing = await this.prisma.plannerFeedback.findUnique({
-      where: {
-        unique_user_trip_feedback: {
-          userId,
-          tripId,
-        },
-      },
+      where: { unique_user_trip_feedback: { userId, tripId } },
     });
 
     const now = new Date();
     let shouldTriggerLearning = false;
+    let shouldQueueLearning = false;
 
     if (!existing) {
-      // First submission
+      // ── First submission — always learn immediately ────────────────────────
       shouldTriggerLearning = true;
-
       this.logger.log(
-        `[Learning] First feedback submitted: user=${userId}, trip=${tripId}`,
+        `[Learning] First feedback: userId=${userId} tripId=${tripId} rating=${rating}`,
       );
     } else {
       const previousRating = this.extractRating(existing.feedbackValue);
-
       const hoursSinceLastUpdate =
         (now.getTime() - existing.updatedAt.getTime()) / (1000 * 60 * 60);
-
       const ratingChanged = previousRating !== rating;
       const cooldownPassed =
         hoursSinceLastUpdate >= this.LEARNING_COOLDOWN_HOURS;
 
-      if (ratingChanged && cooldownPassed) {
-        shouldTriggerLearning = true;
-
+      if (!ratingChanged) {
+        // ── Same rating resubmitted — no learning needed ───────────────────
         this.logger.log(
-          `[Learning] Edit accepted: user=${userId}, trip=${tripId}, prev=${previousRating}, new=${rating}`,
+          `[AntiGaming] Same rating resubmitted, skipping: userId=${userId}`,
+        );
+      } else if (cooldownPassed) {
+        // ── Rating changed AND cooldown passed — learn immediately ─────────
+        shouldTriggerLearning = true;
+        this.logger.log(
+          `[Learning] Edit accepted after cooldown: userId=${userId} ` +
+            `prev=${previousRating} new=${rating}`,
         );
       } else {
-        this.logger.warn(
-          `[AntiGaming] Learning blocked: user=${userId}, trip=${tripId}, ratingChanged=${ratingChanged}, cooldownPassed=${cooldownPassed}`,
+        // ── Rating changed but cooldown NOT passed ─────────────────────────
+        // Queue for deferred learning — don't silently drop it
+        shouldQueueLearning = true;
+        const hoursRemaining = (
+          this.LEARNING_COOLDOWN_HOURS - hoursSinceLastUpdate
+        ).toFixed(1);
+        this.logger.log(
+          `[AntiGaming] Rating changed within cooldown — queuing deferred learning: ` +
+            `userId=${userId} tripId=${tripId} ` +
+            `prev=${previousRating} new=${rating} ` +
+            `cooldownRemaining=${hoursRemaining}h`,
         );
       }
     }
 
-    // Always save latest rating
+    // ── Always save the latest rating ──────────────────────────────────────
     await this.prisma.plannerFeedback.upsert({
-      where: {
-        unique_user_trip_feedback: {
-          userId,
-          tripId,
-        },
-      },
-      create: {
-        userId,
-        tripId,
-        feedbackValue: { rating },
-      },
-      update: {
-        feedbackValue: { rating },
-        // DO NOT touch createdAt
-      },
+      where: { unique_user_trip_feedback: { userId, tripId } },
+      create: { userId, tripId, feedbackValue: { rating } },
+      update: { feedbackValue: { rating } },
     });
 
-    if (shouldTriggerLearning) {
+    // ── Trigger immediate learning ──────────────────────────────────────────
+    if (shouldTriggerLearning && category) {
       await this.feedbackMappingService.processFeedback(
         userId,
         rating,
         category,
       );
 
-      // NEW SPRINT 8 TASK: Trigger drift check asynchronously so it doesn't block the user's request
+      // Drift detection (non-blocking)
       this.checkSystemDriftWarning().catch((err) =>
-        this.logger.error('Failed to run drift detection check', err),
+        this.logger.error('Failed to run drift detection', err),
+      );
+
+      // Remove any pending queued entry for this trip since we just learned
+      // from a direct submission — no need to process it again later
+      await this.prisma.pendingFeedbackLearning
+        .delete({ where: { userId_tripId: { userId, tripId } } })
+        .catch(() => {
+          /* entry may not exist, ignore */
+        });
+    }
+
+    // ── Queue deferred learning ─────────────────────────────────────────────
+    if (shouldQueueLearning && category) {
+      await this.feedbackQueueService.queue(
+        userId,
+        tripId,
+        rating,
+        category,
+        this.LEARNING_COOLDOWN_HOURS,
       );
     }
+
+    return {
+      learned: shouldTriggerLearning,
+      queued: shouldQueueLearning,
+    };
   }
 
-  // --- NEW SPRINT 8 TASK: AI Drift Early Detection ---
-  private async checkSystemDriftWarning() {
-    // Fetch all feedback to calculate the baseline
+  // ─── Drift detection ────────────────────────────────────────────────────────
+
+  private async checkSystemDriftWarning(): Promise<void> {
     const allFeedback = await this.prisma.plannerFeedback.findMany({
       select: { feedbackValue: true },
     });
 
-    // We need a statistically significant amount of data before sounding the alarm
     const MINIMUM_FEEDBACK_COUNT = 50;
-    const DRIFT_THRESHOLD_PERCENT = 70; // X%
+    const DRIFT_THRESHOLD_PERCENT = 70;
 
     if (allFeedback.length < MINIMUM_FEEDBACK_COUNT) return;
 
@@ -119,10 +141,7 @@ export class FeedbackService {
       const rating = this.extractRating(item.feedbackValue);
       if (rating !== undefined) {
         validCount++;
-        // We consider 4 and 5 star ratings as "Positive"
-        if (rating >= 4) {
-          positiveCount++;
-        }
+        if (rating >= 4) positiveCount++;
       }
     }
 
@@ -132,8 +151,8 @@ export class FeedbackService {
 
     if (positivityRate < DRIFT_THRESHOLD_PERCENT) {
       this.logger.warn(
-        `🚨 AI DRIFT WARNING: System positivity has dropped to ${positivityRate.toFixed(1)}%! ` +
-          `Only ${positiveCount} positive ratings out of ${validCount} total.`,
+        `🚨 AI DRIFT WARNING: Positivity dropped to ${positivityRate.toFixed(1)}% ` +
+          `(${positiveCount}/${validCount})`,
       );
     }
   }
