@@ -1,22 +1,21 @@
-import { Sparkles, Brain, Clock, TrendingUp } from 'lucide-react';
+import { Sparkles, Brain, Clock, TrendingUp, FlaskConical } from 'lucide-react';
+import type { RecommendationItem } from '../../lib/api';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-export interface RecommendationItem {
-  id: string;
-  title: string;
-  description: string;
-  score?: number;       // ML confidence score 0-1
-  tag?: string;         // e.g. "Trending", "Personalized", "Popular"
-  destinationId?: string;
-}
+// ─── Re-export so consumers only need one import ──────────────────────────────
+export type { RecommendationItem };
 
 interface PersonalizedRecommendationsProps {
-  /** ML results will be wired here later. Empty array triggers skeleton. */
+  /** Items fetched from GET /recommendations/personalized */
   items?: RecommendationItem[];
-  /** Shows animated skeleton cards when true (for loading states). */
+  /** Shows animated skeleton cards when true (e.g. Suspense / loading state) */
   isLoading?: boolean;
   /** Section title override */
   title?: string;
+  /**
+   * When true, the backend returned mock data (model not yet live).
+   * Displays a small "Mock Data" badge next to the section title.
+   */
+  isMock?: boolean;
 }
 
 // ─── Skeleton Card ────────────────────────────────────────────────────────────
@@ -69,8 +68,25 @@ function RecommendationCard({ item }: { item: RecommendationItem }) {
   );
 }
 
-// ─── Empty / Coming Soon State ────────────────────────────────────────────────
-function ComingSoonState() {
+// ─── Empty state (backend responded but returned 0 items) ─────────────────────
+function EmptyState() {
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-14 gap-3 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <Brain className="w-6 h-6 text-zinc-400" />
+      </span>
+      <div className="space-y-1">
+        <p className="font-semibold text-zinc-700 dark:text-zinc-300">No recommendations yet</p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">
+          The model hasn&apos;t generated any suggestions for this user yet.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Unavailable state (fetch failed entirely) ───────────────────────────────
+function UnavailableState() {
   return (
     <div className="col-span-full flex flex-col items-center justify-center py-14 gap-4 text-center">
       <div className="relative">
@@ -80,14 +96,14 @@ function ComingSoonState() {
         </span>
       </div>
       <div className="space-y-1">
-        <p className="font-semibold text-zinc-900 dark:text-zinc-100">ML Engine Warming Up</p>
+        <p className="font-semibold text-zinc-900 dark:text-zinc-100">Recommendations unavailable</p>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">
-          Personalized recommendations will appear here once the ML pipeline is connected.
+          Could not reach the recommendation service. It will retry on the next refresh.
         </p>
       </div>
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
         <Clock className="w-3.5 h-3.5" />
-        Coming soon
+        Retrying on next refresh
       </span>
     </div>
   );
@@ -97,18 +113,21 @@ function ComingSoonState() {
 /**
  * PersonalizedRecommendations
  *
- * Displays ML-driven personalized recommendation cards on the analytics
- * dashboard. Currently renders placeholder/skeleton state — the `items` prop
- * will be populated once the ML pipeline is connected.
+ * Renders recommendation cards fetched from GET /recommendations/personalized.
+ * The backend currently returns mock data while the ML model is being trained
+ * — when isMock=true a small "Mock Data" badge is shown so developers know.
  *
- * @param items       Array of recommendation results from ML backend.
- * @param isLoading   Shows animated skeleton cards when true.
- * @param title       Optional section title override.
+ * States:
+ *  - isLoading → animated skeleton cards
+ *  - items=undefined (null fetch) → "Recommendations unavailable" graceful error
+ *  - items=[] (0 results) → "No recommendations yet"
+ *  - items=[...] → populated recommendation cards
  */
 export function PersonalizedRecommendations({
-  items = [],
+  items,
   isLoading = false,
   title = 'Personalized Recommendations',
+  isMock = false,
 }: PersonalizedRecommendationsProps) {
   const SKELETON_COUNT = 3;
 
@@ -121,7 +140,15 @@ export function PersonalizedRecommendations({
             <Sparkles className="w-5 h-5" />
           </span>
           <div>
-            <h3 className="font-semibold text-lg leading-tight">{title}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg leading-tight">{title}</h3>
+              {isMock && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                  <FlaskConical className="w-3 h-3" />
+                  Mock Data
+                </span>
+              )}
+            </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
               AI-powered suggestions tailored per user behaviour
             </p>
@@ -136,13 +163,13 @@ export function PersonalizedRecommendations({
       {/* Cards grid */}
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
-          Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))
-        ) : items.length > 0 ? (
-          items.map((item) => <RecommendationCard key={item.id} item={item} />)
+          Array.from({ length: SKELETON_COUNT }).map((_, i) => <SkeletonCard key={i} />)
+        ) : items === undefined ? (
+          <UnavailableState />
+        ) : items.length === 0 ? (
+          <EmptyState />
         ) : (
-          <ComingSoonState />
+          items.map((item) => <RecommendationCard key={item.id} item={item} />)
         )}
       </div>
     </section>

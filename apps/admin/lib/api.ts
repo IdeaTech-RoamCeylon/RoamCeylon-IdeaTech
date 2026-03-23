@@ -125,3 +125,41 @@ export async function getEngagementStats(): Promise<EngagementStatsResponse | nu
     return null;
   }
 }
+
+// ─── Personalized Recommendations ────────────────────────────────────────────
+export interface RecommendationItem {
+  id: string;
+  title: string;
+  description: string;
+  /** ML confidence score 0–1 */
+  score?: number;
+  /** Display badge, e.g. "Trending", "Personalized", "Popular" */
+  tag?: string;
+  destinationId?: string;
+}
+
+export interface PersonalizedRecommendationsResponse {
+  userId?: string;
+  generatedAt: string;
+  items: RecommendationItem[];
+  /** true when the model is live; false means mock/fallback data */
+  isMock: boolean;
+}
+
+/**
+ * Fetches personalized recommendations from the ML service.
+ * Currently returns mock data while the model is being trained.
+ * Returns null on any network/server failure.
+ */
+export async function getPersonalizedRecommendations(): Promise<PersonalizedRecommendationsResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/recommendations/personalized`, {
+      next: { revalidate: 120 }, // recommendations can be slightly staler
+    });
+    if (!res.ok) throw new Error('Failed to fetch recommendations');
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}

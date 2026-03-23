@@ -10,11 +10,13 @@ import {
   getFeedbackRate,
   getSystemErrors,
   getEngagementStats,
+  getPersonalizedRecommendations,
   type EngagementEventType,
 } from "../../../lib/api";
 import { DashboardRefresh } from "../../../components/DashboardRefresh";
 import { SystemHealthMonitor } from "../../../components/SystemHealthMonitor";
 import { PersonalizedRecommendations } from "../../../components/recommendations/PersonalizedRecommendations";
+import { AnalyticsDebugWrapper } from "../../../components/debug/AnalyticsDebugWrapper";
 
 export const revalidate = 60; // 60 seconds Cache for page level revalidation
 
@@ -32,14 +34,19 @@ const ENGAGEMENT_EVENTS: {
   { key: 'trip_rejected',      label: 'Trips Rejected',       icon: <XCircle className="w-5 h-5" />,           colorVariant: 'rose' },
 ];
 
+// Debug mode — enable with NEXT_PUBLIC_ANALYTICS_DEBUG=true in .env.local
+const DEBUG_MODE = process.env.NEXT_PUBLIC_ANALYTICS_DEBUG === 'true';
+
 export default async function AnalyticsPage() {
   // All data fetches run in parallel; each fails gracefully to null
-  const [plannerDaily, feedbackRate, systemErrors, engagementStats] = await Promise.all([
-    getPlannerDailyStats(),
-    getFeedbackRate(),
-    getSystemErrors(),
-    getEngagementStats(),
-  ]);
+  const [plannerDaily, feedbackRate, systemErrors, engagementStats, recommendationsData] =
+    await Promise.all([
+      getPlannerDailyStats(),
+      getFeedbackRate(),
+      getSystemErrors(),
+      getEngagementStats(),
+      getPersonalizedRecommendations(),
+    ]);
 
   // Aggregate stats from the Daily Planner Metrics
   const breakdown = plannerDaily?.breakdown || [];
@@ -239,7 +246,13 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* ─── Personalized Recommendations ──────────────────────────────────── */}
-      <PersonalizedRecommendations />
+      <PersonalizedRecommendations
+        items={recommendationsData?.items}
+        isMock={recommendationsData?.isMock ?? false}
+      />
+
+      {/* ─── Analytics Debug Panel (dev only) ──────────────────────────────── */}
+      {DEBUG_MODE && <AnalyticsDebugWrapper />}
     </div>
   );
 }
