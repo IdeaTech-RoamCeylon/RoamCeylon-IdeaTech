@@ -261,3 +261,17 @@ model FeedbackSummary {
 
   @@map("feedback_summary")
 }
+
+model PendingFeedbackLearning {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  tripId       String
+  rating       Int
+  category     String
+  queuedAt     DateTime @default(now())
+  processAfter DateTime
+
+  @@unique([userId, tripId])
+  @@index([processAfter])
+  @@index([userId])
+}

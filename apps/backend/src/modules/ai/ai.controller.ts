@@ -32,6 +32,7 @@ import {
   ActivityDecisionFactors,
   TripPlanDecisionLog,
 } from './decision/ai-decision-logger.service';
+import { LatencyTrackerService } from '../analytics/latency-tracker.service';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -482,6 +483,7 @@ export class AIController {
     private readonly analyticsService: AnalyticsService,
     private readonly rankingService: FeedbackRankingService,
     private readonly decisionLogger: AIDecisionLoggerService,
+    private readonly latencyTracker: LatencyTrackerService,
   ) {}
 
   @Get('health')
@@ -3005,6 +3007,17 @@ export class AIController {
 
     const endTotal = process.hrtime.bigint();
     const totalTime = Number(endTotal - startTotal) / 1_000_000;
+
+    // ── Record latency sample for P95/P99 tracking ─────────────────
+    this.latencyTracker
+      .record({
+        endpoint: '/ai/trip-plan',
+        method: 'POST',
+        durationMs: totalTime,
+        statusCode: 200,
+        userId,
+      })
+      .catch((e) => this.logger.error('Failed to record latency sample', e));
 
     if (userId)
       this.analyticsService
