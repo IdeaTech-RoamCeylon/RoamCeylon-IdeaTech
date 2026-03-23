@@ -136,6 +136,13 @@ export interface RecommendationItem {
   /** Display badge, e.g. "Trending", "Personalized", "Popular" */
   tag?: string;
   destinationId?: string;
+  /**
+   * Which engine produced this recommendation.
+   * 'ml'         → pure ML model output
+   * 'rule_based' → business logic / heuristic engine
+   * 'hybrid'     → blended ML + rule-based
+   */
+  source?: 'ml' | 'rule_based' | 'hybrid';
 
   // ─── Debug-only scoring fields ────────────────────────────────────────────
   /** Raw ML model output score 0–1 (only present when backend sends debug data) */
