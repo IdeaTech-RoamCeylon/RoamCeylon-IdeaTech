@@ -40,23 +40,108 @@ function SkeletonCard() {
 }
 
 // ─── Debug Scoring Overlay ────────────────────────────────────────────────────
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+
+/** Maps a 0–1 score to a heat colour: red → amber → green */
+function heatColor(value: number): string {
+  if (value >= 0.75) return '#22c55e'; // green-500
+  if (value >= 0.50) return '#f59e0b'; // amber-500
+  if (value >= 0.25) return '#f97316'; // orange-500
+  return '#ef4444';                    // red-500
+}
+
+/** Hex → 15% opacity rgba for backgrounds */
+function heatBg(value: number): string {
+  if (value >= 0.75) return 'rgba(34,197,94,0.12)';
+  if (value >= 0.50) return 'rgba(245,158,11,0.12)';
+  if (value >= 0.25) return 'rgba(249,115,22,0.12)';
+  return 'rgba(239,68,68,0.12)';
+}
+
+interface ScoreGaugeProps {
+  label: string;
+  value: number;
+  /** Show a ▲/▼ delta chip vs another score */
+  deltaVs?: number;
+}
+
+function ScoreGauge({ label, value, deltaVs }: ScoreGaugeProps) {
   const pct = Math.round(value * 100);
+  const color = heatColor(value);
+  const bg = heatBg(value);
+  const delta = deltaVs != null ? Math.round((value - deltaVs) * 100) : null;
+
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex justify-between items-center">
-        <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
+    <div className="flex flex-col gap-1" title={`Raw: ${value.toFixed(4)}`}>
+      {/* Label row */}
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
           {label}
         </span>
-        <span className="text-[10px] font-bold tabular-nums" style={{ color }}>
-          {pct}%
-        </span>
+        <div className="flex items-center gap-1">
+          {delta != null && (
+            <span
+              className="text-[9px] font-bold tabular-nums px-1 py-0.5 rounded"
+              style={{
+                color: delta >= 0 ? '#22c55e' : '#ef4444',
+                backgroundColor: delta >= 0 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+              }}
+            >
+              {delta >= 0 ? '▲' : '▼'}{Math.abs(delta)}
+            </span>
+          )}
+          <span
+            className="text-[11px] font-bold tabular-nums"
+            style={{ color }}
+          >
+            {pct}
+            <span className="text-[9px] font-normal text-zinc-600">%</span>
+          </span>
+        </div>
       </div>
-      <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+      {/* Track */}
+      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: bg }}>
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
+      </div>
+    </div>
+  );
+}
+
+/** Stacked bar showing ML vs rule-based contribution to the final score */
+function ContributionBar({
+  mlScore,
+  ruleBasedScore,
+}: {
+  mlScore: number;
+  ruleBasedScore: number;
+}) {
+  const total = mlScore + ruleBasedScore;
+  if (total === 0) return null;
+  const mlPct = Math.round((mlScore / total) * 100);
+  const rulePct = 100 - mlPct;
+
+  return (
+    <div className="flex flex-col gap-1 mt-1">
+      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
+        Weight split
+      </span>
+      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+        <div
+          className="h-full transition-all duration-700"
+          style={{ width: `${mlPct}%`, backgroundColor: '#818cf8' }}
+          title={`ML: ${mlPct}%`}
+        />
+        <div
+          className="h-full flex-1 transition-all duration-700"
+          style={{ backgroundColor: '#34d399' }}
+          title={`Rule-based: ${rulePct}%`}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] text-zinc-600 tabular-nums">
+        <span style={{ color: '#818cf8' }}>ML {mlPct}%</span>
+        <span style={{ color: '#34d399' }}>Rule {rulePct}%</span>
       </div>
     </div>
   );
@@ -67,41 +152,64 @@ function DebugOverlay({ item }: { item: RecommendationItem }) {
     item.mlScore != null || item.ruleBasedScore != null || item.rankPosition != null;
 
   return (
-    <div className="mt-3 pt-3 border-t border-zinc-800 font-mono">
-      {/* Rank badge */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400">
-          Debug Scores
+    <div className="mt-3 pt-3 border-t border-zinc-800 font-mono space-y-2.5">
+      {/* Header row: label + rank badge */}
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400">
+          Score Breakdown
         </span>
         {item.rankPosition != null ? (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
-            Rank #{item.rankPosition}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+            #{item.rankPosition} ranked
           </span>
         ) : (
-          <span className="text-[9px] text-zinc-600">rank —</span>
+          <span className="text-[9px] text-zinc-600 italic">rank unavailable</span>
         )}
       </div>
 
       {hasDebugData ? (
-        <div className="flex flex-col gap-1.5">
-          {item.mlScore != null && (
-            <ScoreBar label="ML Score" value={item.mlScore} color="#818cf8" />
+        <>
+          {/* Three score gauges */}
+          <div className="space-y-2">
+            {item.mlScore != null && (
+              <ScoreGauge
+                label="ML Score"
+                value={item.mlScore}
+                deltaVs={item.ruleBasedScore}
+              />
+            )}
+            {item.ruleBasedScore != null && (
+              <ScoreGauge
+                label="Rule-Based"
+                value={item.ruleBasedScore}
+                deltaVs={item.mlScore}
+              />
+            )}
+            {item.score != null && (
+              <ScoreGauge label="Final (combined)" value={item.score} />
+            )}
+          </div>
+
+          {/* Contribution bar — only when both scores present */}
+          {item.mlScore != null && item.ruleBasedScore != null && (
+            <ContributionBar mlScore={item.mlScore} ruleBasedScore={item.ruleBasedScore} />
           )}
-          {item.ruleBasedScore != null && (
-            <ScoreBar label="Rule-Based" value={item.ruleBasedScore} color="#34d399" />
-          )}
-          {item.score != null && (
-            <ScoreBar label="Final Score" value={item.score} color="#f59e0b" />
-          )}
-        </div>
+
+          <p className="text-[9px] text-zinc-600 italic">
+            Hover gauges for 4-decimal raw values
+          </p>
+        </>
       ) : (
         <p className="text-[9px] text-zinc-600 italic">
-          No debug data — backend must include mlScore / ruleBasedScore in response.
+          No debug data — backend must send{' '}
+          <span className="text-zinc-500">mlScore</span> /{' '}
+          <span className="text-zinc-500">ruleBasedScore</span> in response.
         </p>
       )}
     </div>
   );
 }
+
 
 // ─── Populated Card ───────────────────────────────────────────────────────────
 function RecommendationCard({
