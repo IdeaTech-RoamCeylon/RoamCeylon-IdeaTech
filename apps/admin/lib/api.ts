@@ -131,11 +131,19 @@ export interface RecommendationItem {
   id: string;
   title: string;
   description: string;
-  /** ML confidence score 0–1 */
+  /** Combined/final ML confidence score 0–1 (used for the public progress bar) */
   score?: number;
   /** Display badge, e.g. "Trending", "Personalized", "Popular" */
   tag?: string;
   destinationId?: string;
+
+  // ─── Debug-only scoring fields ────────────────────────────────────────────
+  /** Raw ML model output score 0–1 (only present when backend sends debug data) */
+  mlScore?: number;
+  /** Rule-based heuristic score 0–1 (business logic layer) */
+  ruleBasedScore?: number;
+  /** Final position in the ranked results list (1-indexed) */
+  rankPosition?: number;
 }
 
 export interface PersonalizedRecommendationsResponse {

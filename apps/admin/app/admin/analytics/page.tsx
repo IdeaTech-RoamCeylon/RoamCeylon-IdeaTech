@@ -249,6 +249,7 @@ export default async function AnalyticsPage() {
       <PersonalizedRecommendations
         items={recommendationsData?.items}
         isMock={recommendationsData?.isMock ?? false}
+        debugMode={DEBUG_MODE}
       />
 
       {/* ─── Analytics Debug Panel (dev only) ──────────────────────────────── */}
