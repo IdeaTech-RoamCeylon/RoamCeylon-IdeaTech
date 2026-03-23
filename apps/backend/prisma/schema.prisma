@@ -46,7 +46,7 @@ model User {
   name        String?
   createdAt   DateTime  @default(now())
   email       String?
-  updatedAt   DateTime  @default(now()) 
+  updatedAt   DateTime  @default(now())
   birthday    DateTime?
   gender      String?
   preferences Json?
@@ -72,7 +72,7 @@ model spatial_ref_sys {
 }
 
 model SavedTrip {
-  id          String    @id
+  id          String   @id
   userId      String
   name        String
   destination String
@@ -94,7 +94,7 @@ model PlannerFeedback {
   tripId        String
   feedbackValue Json
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
   @@unique([userId, tripId], name: "unique_user_trip_feedback")
   @@index([tripId])
@@ -205,3 +205,59 @@ model SystemAlert {
   @@index([resolvedAt])
 }
 
+model UserBehaviorEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id")
+  eventType String   @map("event_type")
+  itemId    String?  @map("item_id")
+  metadata  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("user_behavior_events")
+}
+
+model RecommendationLog {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id")
+  recommendationId String?  @map("recommendation_id")
+  itemId           String?  @map("item_id")
+  score            Float?
+  mlScore          Float?   @map("ml_score")
+  ruleScore        Float?   @map("rule_score")
+  finalScore       Float?   @map("final_score")
+  source           String?  @default("rule-based") @map("source")
+  clicked          Boolean? @default(false)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("recommendation_logs")
+}
+
+model UserInterestProfile {
+  userId          String   @id @map("user_id")
+  culturalScore   Int      @default(0) @map("cultural_score")
+  adventureScore  Int      @default(0) @map("adventure_score")
+  relaxationScore Int      @default(0) @map("relaxation_score")
+  timeOfDayPrefs  Json?    @map("time_of_day_prefs")
+  categoryDiversity Float? @default(0) @map("category_diversity")
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("user_interest_profile")
+}
+
+model DestinationCategoryScore {
+  destinationId   String   @id @map("destination_id")
+  category        String
+  popularityScore Float    @map("popularity_score")
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("destination_category_scores")
+}
+
+model FeedbackSummary {
+  userId           String   @id @map("user_id")
+  positiveFeedback Int      @default(0) @map("positive_feedback")
+  negativeFeedback Int      @default(0) @map("negative_feedback")
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("feedback_summary")
+}
