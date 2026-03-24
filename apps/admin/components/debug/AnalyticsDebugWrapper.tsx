@@ -3,19 +3,20 @@
 /**
  * AnalyticsDebugWrapper
  *
- * Client component that mounts useAnalyticsTracker in debug mode
- * and renders the AnalyticsDebugPanel overlay.
- *
+ * Mounts useAnalyticsTracker in debug mode and renders the AnalyticsDebugPanel.
  * Only rendered when NEXT_PUBLIC_ANALYTICS_DEBUG=true.
- * Demo events are emitted on a timer so developers see the panel
- * populate immediately without needing to interact with the page.
+ *
+ * Demo events are injected directly into the HUD log (via injectDemoEntry)
+ * so the panel is pre-populated on load — they do NOT POST to the backend
+ * and do NOT appear in the real database or engagement event counts.
+ *
+ * Real events from actual user interactions go through track() as normal.
  */
 
 import { useEffect } from 'react';
 import { useAnalyticsTracker, type EngagementEventName } from '../../hooks/useAnalyticsTracker';
 import { AnalyticsDebugPanel } from './AnalyticsDebugPanel';
 
-// Demo sequence that cycles through all tracked event types
 const DEMO_EVENTS: { event: EngagementEventName; payload: Record<string, string> }[] = [
   { event: 'trip_clicked',       payload: { tripId: 'trip_001' } },
   { event: 'destination_viewed', payload: { destinationId: 'dest_kandy' } },
@@ -25,18 +26,21 @@ const DEMO_EVENTS: { event: EngagementEventName; payload: Record<string, string>
 ];
 
 export function AnalyticsDebugWrapper() {
-  const { track, log, clearLog } = useAnalyticsTracker({ debugMode: true });
+  const { track, log, clearLog, injectDemoEntry } = useAnalyticsTracker({ debugMode: true });
 
-  // Emit one demo event every 2.5s so the panel is populated immediately
+  // Inject demo entries into the HUD only — no network calls, no DB writes
   useEffect(() => {
     let idx = 0;
     const interval = setInterval(() => {
       const { event, payload } = DEMO_EVENTS[idx % DEMO_EVENTS.length];
-      track(event, payload);
+      injectDemoEntry(event, payload); // ← HUD only, not track()
       idx++;
     }, 2500);
     return () => clearInterval(interval);
-  }, [track]);
+  }, [injectDemoEntry]);
+
+  // track is available here for real interactions wired to this component
+  void track;
 
   return <AnalyticsDebugPanel log={log} onClear={clearLog} />;
 }

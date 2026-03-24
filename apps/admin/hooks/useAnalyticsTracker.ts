@@ -143,5 +143,26 @@ export function useAnalyticsTracker({ debugMode = false }: { debugMode?: boolean
 
   const clearLog = useCallback(() => setLog([]), []);
 
-  return { track, log, clearLog };
+  /**
+   * injectDemoEntry
+   * Adds a synthetic log entry directly into the HUD with status=sent,
+   * WITHOUT calling track() or making any network request.
+   * Used by AnalyticsDebugWrapper to demo the panel without polluting the DB.
+   */
+  const injectDemoEntry = useCallback(
+    (event: EngagementEventName, payload: EngagementEventPayload = {}) => {
+      if (!debugMode) return;
+      const entry: TrackerLogEntry = {
+        id: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        event,
+        payload,
+        timestamp: Date.now(),
+        status: 'sent', // shown as sent — no real network call
+      };
+      setLog((prev) => [entry, ...prev].slice(0, MAX_LOG_SIZE));
+    },
+    [debugMode],
+  );
+
+  return { track, log, clearLog, injectDemoEntry };
 }
