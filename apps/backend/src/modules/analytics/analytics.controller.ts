@@ -1,6 +1,15 @@
 // apps/backend/src/modules/analytics/analytics.controller.ts
 
-import { Controller, Get, Post, Body, UseInterceptors, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseInterceptors,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AnalyticsService } from './analytics.service';
 import {
@@ -159,7 +168,7 @@ export class AnalyticsController {
    */
   @Post('events')
   @HttpCode(HttpStatus.ACCEPTED)
-  async trackEngagementEvent(
+  trackEngagementEvent(
     @Body() body: { event: string; timestamp?: number; [key: string]: unknown },
   ) {
     const { event, timestamp, ...payload } = body;

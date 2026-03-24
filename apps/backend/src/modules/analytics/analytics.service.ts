@@ -572,9 +572,7 @@ export class AnalyticsService {
       },
     });
 
-    const countMap = new Map(
-      grouped.map((g) => [g.eventType, g._count.id]),
-    );
+    const countMap = new Map(grouped.map((g) => [g.eventType, g._count.id]));
 
     const breakdown = EVENT_TYPES.map((et) => ({
       // Strip the 'engagement_' prefix to match the EngagementEventType union
