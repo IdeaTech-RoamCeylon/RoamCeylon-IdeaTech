@@ -4,7 +4,6 @@ import {
   Body,
   Get,
   Query,
-  BadRequestException,
 } from '@nestjs/common';
 import { MlService } from './ml.service';
 import { TrackBehaviorDto } from './dto/track-behavior.dto';
@@ -33,10 +32,7 @@ export class MlController {
   }
 
   @Get('recommendations/personalized')
-  async getPersonalizedRecommendations(@Query('userId') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.mlService.getPersonalizedRecommendations(userId);
+  async getPersonalizedRecommendations(@Query('userId') userId?: string) {
+    return this.mlService.getPersonalizedRecommendations(userId ?? 'admin');
   }
 }

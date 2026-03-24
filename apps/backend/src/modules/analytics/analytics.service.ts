@@ -518,4 +518,72 @@ export class AnalyticsService {
       trend,
     };
   }
+  /**
+   * POST /analytics/events
+   * Records a client-side engagement event (ML training signal).
+   * Stores in SystemMetric with eventType prefixed by 'engagement_'.
+   */
+  async trackEngagementEvent(
+    event: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.systemMetric.create({
+        data: {
+          eventType: `engagement_${event}`,
+          metadata: { ...payload, source: 'client_tracker' },
+        },
+      });
+    } catch (err: unknown) {
+      this.logger.error(
+        `[Analytics] Failed to record engagement event '${event}': ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      // Never throw — tracking must not surface to client
+    }
+  }
+
+  /**
+   * GET /analytics/events/summary
+   * Returns aggregated engagement event counts for the last 24 hours,
+   * broken down by the 5 canonical ML signal event types.
+   */
+  async getEngagementStats(): Promise<{
+    totalEvents: number;
+    breakdown: { eventType: string; count: number }[];
+  }> {
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const EVENT_TYPES = [
+      'engagement_trip_clicked',
+      'engagement_destination_viewed',
+      'engagement_planner_edit',
+      'engagement_trip_accepted',
+      'engagement_trip_rejected',
+    ] as const;
+
+    const grouped = await this.prisma.systemMetric.groupBy({
+      by: ['eventType'],
+      _count: { id: true },
+      where: {
+        eventType: { in: [...EVENT_TYPES] },
+        timestamp: { gte: last24h },
+      },
+    });
+
+    const countMap = new Map(
+      grouped.map((g) => [g.eventType, g._count.id]),
+    );
+
+    const breakdown = EVENT_TYPES.map((et) => ({
+      // Strip the 'engagement_' prefix to match the EngagementEventType union
+      eventType: et.replace('engagement_', ''),
+      count: countMap.get(et) ?? 0,
+    }));
+
+    const totalEvents = breakdown.reduce((sum, b) => sum + b.count, 0);
+
+    return { totalEvents, breakdown };
+  }
 }

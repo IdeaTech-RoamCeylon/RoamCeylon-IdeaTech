@@ -168,12 +168,45 @@ export interface PersonalizedRecommendationsResponse {
  */
 export async function getPersonalizedRecommendations(): Promise<PersonalizedRecommendationsResponse | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/recommendations/personalized`, {
-      next: { revalidate: 120 }, // recommendations can be slightly staler
+    const res = await fetch(`${API_BASE_URL}/api/recommendations/personalized`, {
+      next: { revalidate: 120 },
     });
     if (!res.ok) throw new Error('Failed to fetch recommendations');
     const json = await res.json();
-    return json.data;
+
+    // Backend returns: { user_id, recommendations: [{ destination_id, final_score, ml_score, rule_score, source, reason }] }
+    // Map to the RecommendationItem shape the UI expects
+    const recs: Array<{
+      destination_id: string;
+      final_score: number;
+      ml_score: number;
+      rule_score: number;
+      source: string;
+      reason: string;
+    }> = json.recommendations ?? [];
+
+    return {
+      userId: json.user_id,
+      generatedAt: new Date().toISOString(),
+      isMock: true, // backend currently uses mock rule-based data
+      items: recs.map((r, i) => ({
+        id: r.destination_id,
+        title: r.destination_id
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase()),
+        description: r.reason,
+        score: r.final_score,
+        mlScore: r.ml_score,
+        ruleBasedScore: r.rule_score,
+        rankPosition: i + 1,
+        source:
+          r.source === 'hybrid'
+            ? 'hybrid'
+            : r.source === 'rule-based'
+              ? 'rule_based'
+              : 'ml',
+      })),
+    };
   } catch {
     return null;
   }
