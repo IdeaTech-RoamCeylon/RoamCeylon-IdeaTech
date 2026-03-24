@@ -24,8 +24,11 @@ export interface TrackerLogEntry {
   event: EngagementEventName;
   payload: EngagementEventPayload;
   timestamp: number;
-  /** 'pending' → queued, 'sent' → flushed to API, 'error' → network failed */
-  status: 'pending' | 'sent' | 'error';
+  /**
+   * 'pending' → queued, 'sent' → flushed to API, 'error' → network failed
+   * 'demo'    → injected locally for HUD preview only (never hits the backend)
+   */
+  status: 'pending' | 'sent' | 'error' | 'demo';
 }
 
 // ─── Flush helpers ───────────────────────────────────────────────────────────
@@ -157,7 +160,7 @@ export function useAnalyticsTracker({ debugMode = false }: { debugMode?: boolean
         event,
         payload,
         timestamp: Date.now(),
-        status: 'sent', // shown as sent — no real network call
+        status: 'demo', // visually distinct — never sent to backend
       };
       setLog((prev) => [entry, ...prev].slice(0, MAX_LOG_SIZE));
     },

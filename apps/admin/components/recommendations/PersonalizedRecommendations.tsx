@@ -253,19 +253,24 @@ function SourceChip({ source }: { source: RecommendationItem['source'] }) {
   );
 }
 
+import { useAnalyticsTracker } from '../../hooks/useAnalyticsTracker';
+
 // ─── Populated Card ───────────────────────────────────────────────────────────
 function RecommendationCard({
   item,
   debugMode,
+  onTrack,
 }: {
   item: RecommendationItem;
   debugMode: boolean;
+  onTrack?: (id: string) => void;
 }) {
   const confidencePct = item.score != null ? Math.round(item.score * 100) : null;
 
   return (
     <div
-      className={`rounded-xl border p-5 flex flex-col gap-2 hover:shadow-md transition-all group ${
+      onClick={() => onTrack?.(item.id)}
+      className={`rounded-xl border p-5 flex flex-col gap-2 hover:shadow-md transition-all group cursor-pointer ${
         debugMode
           ? 'bg-zinc-950 border-zinc-700 hover:border-zinc-600'
           : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
@@ -310,6 +315,7 @@ function RecommendationCard({
     </div>
   );
 }
+
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState() {
@@ -361,6 +367,11 @@ export function PersonalizedRecommendations({
   debugMode = false,
 }: PersonalizedRecommendationsProps) {
   const SKELETON_COUNT = 3;
+  const { track } = useAnalyticsTracker({ debugMode });
+
+  const handleTrackInteraction = (id: string) => {
+    track('trip_clicked', { tripId: id, source: 'personalized_recommendation' });
+  };
 
   return (
     <section
@@ -418,10 +429,16 @@ export function PersonalizedRecommendations({
           <EmptyState />
         ) : (
           items.map((item) => (
-            <RecommendationCard key={item.id} item={item} debugMode={debugMode} />
+            <RecommendationCard
+              key={item.id}
+              item={item}
+              debugMode={debugMode}
+              onTrack={handleTrackInteraction}
+            />
           ))
         )}
       </div>
     </section>
   );
 }
+

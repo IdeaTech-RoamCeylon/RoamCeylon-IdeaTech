@@ -27,6 +27,14 @@ function StatusBadge({ status }: { status: TrackerLogEntry['status'] }) {
       </span>
     );
   }
+  if (status === 'demo') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-500">
+        <Circle className="w-2.5 h-2.5" />
+        demo only
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
       <XCircle className="w-2.5 h-2.5" />
@@ -52,6 +60,7 @@ export function AnalyticsDebugPanel({ log, onClear }: AnalyticsDebugPanelProps) 
   const sentCount    = log.filter(e => e.status === 'sent').length;
   const pendingCount = log.filter(e => e.status === 'pending').length;
   const errorCount   = log.filter(e => e.status === 'error').length;
+  const demoCount    = log.filter(e => e.status === 'demo').length;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 w-[420px] max-h-[560px] flex flex-col rounded-xl border border-zinc-700 bg-zinc-950/95 shadow-2xl backdrop-blur-md font-mono text-xs overflow-hidden">
@@ -69,12 +78,19 @@ export function AnalyticsDebugPanel({ log, onClear }: AnalyticsDebugPanelProps) 
                 {pendingCount} pending
               </span>
             )}
-            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
-              {sentCount} sent
-            </span>
+            {sentCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                {sentCount} sent
+              </span>
+            )}
             {errorCount > 0 && (
               <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold">
                 {errorCount} err
+              </span>
+            )}
+            {demoCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 font-bold">
+                {demoCount} demo
               </span>
             )}
           </div>
@@ -108,15 +124,18 @@ export function AnalyticsDebugPanel({ log, onClear }: AnalyticsDebugPanelProps) 
           ) : (
             <ul className="divide-y divide-zinc-800/60">
               {log.map((entry) => (
-                <li key={entry.id} className="px-4 py-2.5 hover:bg-zinc-900/60 transition-colors">
+                <li
+                  key={entry.id}
+                  className={`px-4 py-2.5 hover:bg-zinc-900/60 transition-colors ${
+                    entry.status === 'demo' ? 'opacity-50' : ''
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-1">
-                    {/* Event name chip */}
                     <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-bold text-[10px] tracking-wide">
                       {entry.event}
                     </span>
                     <StatusBadge status={entry.status} />
                   </div>
-                  {/* Timestamp */}
                   <p className="text-zinc-600 text-[10px] mb-1">
                     {new Date(entry.timestamp).toLocaleTimeString('en-US', {
                       hour: '2-digit',
@@ -125,7 +144,6 @@ export function AnalyticsDebugPanel({ log, onClear }: AnalyticsDebugPanelProps) 
                       fractionalSecondDigits: 3,
                     })}
                   </p>
-                  {/* Payload */}
                   {Object.keys(entry.payload).length > 0 && (
                     <pre className="text-[10px] text-zinc-400 bg-zinc-900 rounded p-2 overflow-x-auto leading-relaxed">
                       {JSON.stringify(entry.payload, null, 2)}
