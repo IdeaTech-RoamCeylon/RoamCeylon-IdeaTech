@@ -86,7 +86,11 @@ export class AnalyticsService {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const [events, totalEvents, recentResponseEvents, stats] =
+    // Go back 6 days from start of today to cover the full 7-day window
+    const last7DaysStart = new Date(startOfDay);
+    last7DaysStart.setDate(last7DaysStart.getDate() - 6);
+
+    const [events, totalEvents, recentResponseEvents, stats, dailyTrend] =
       await Promise.all([
         this.prisma.plannerEvent.groupBy({
           by: ['eventType'],
@@ -103,11 +107,23 @@ export class AnalyticsService {
           take: 30,
         }),
         this.prisma.$queryRaw<Array<{ avg_val: string | number }>>`
-        SELECT AVG(CAST(metadata->>'durationMs' AS numeric)) as avg_val
-        FROM "PlannerEvent"
-        WHERE "eventType" = 'planner_generated'
-          AND "timestamp" >= ${startOfDay}
-      `,
+          SELECT AVG(CAST(metadata->>'durationMs' AS numeric)) as avg_val
+          FROM "PlannerEvent"
+          WHERE "eventType" = 'planner_generated'
+            AND "timestamp" >= ${startOfDay}
+        `,
+        // ── Replaces 7 sequential awaits ──────────────────────────────────
+        // Single GROUP BY query returns all 7 days in one round-trip.
+        // ~200ms vs ~14000ms with connection_limit=1 on Nhost.
+        this.prisma.$queryRaw<Array<{ day: string; count: string | number }>>`
+          SELECT
+            TO_CHAR("timestamp", 'YYYY-MM-DD') AS day,
+            COUNT(*) AS count
+          FROM "PlannerEvent"
+          WHERE "eventType" = 'planner_generated'
+            AND "timestamp" >= ${last7DaysStart}
+          GROUP BY TO_CHAR("timestamp", 'YYYY-MM-DD')
+        `,
       ]);
 
     const statsVal = stats[0]?.avg_val;
@@ -123,24 +139,19 @@ export class AnalyticsService {
       .filter((val): val is number => typeof val === 'number')
       .reverse();
 
+    // Build the 7-day array from the single query result
+    const trendMap = new Map(
+      (dailyTrend as Array<{ day: string; count: string | number }>).map(
+        (r) => [r.day, Number(r.count)],
+      ),
+    );
+
     const last7Days: { date: string; count: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(startOfDay);
       d.setDate(d.getDate() - i);
-      const nextD = new Date(d);
-      nextD.setDate(nextD.getDate() + 1);
-
-      const count = await this.prisma.plannerEvent.count({
-        where: {
-          eventType: 'planner_generated',
-          timestamp: { gte: d, lt: nextD },
-        },
-      });
-
-      last7Days.push({
-        date: d.toISOString().split('T')[0],
-        count,
-      });
+      const dateStr = d.toISOString().split('T')[0];
+      last7Days.push({ date: dateStr, count: trendMap.get(dateStr) ?? 0 });
     }
 
     return {
@@ -517,5 +528,73 @@ export class AnalyticsService {
       },
       trend,
     };
+  }
+  /**
+   * POST /analytics/events
+   * Records a client-side engagement event (ML training signal).
+   * Stores in SystemMetric with eventType prefixed by 'engagement_'.
+   */
+  async trackEngagementEvent(
+    event: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.systemMetric.create({
+        data: {
+          eventType: `engagement_${event}`,
+          metadata: { ...payload, source: 'client_tracker' },
+        },
+      });
+    } catch (err: unknown) {
+      this.logger.error(
+        `[Analytics] Failed to record engagement event '${event}': ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      // Never throw — tracking must not surface to client
+    }
+  }
+
+  /**
+   * GET /analytics/events/summary
+   * Returns aggregated engagement event counts for the last 24 hours,
+   * broken down by the 5 canonical ML signal event types.
+   */
+  async getEngagementStats(): Promise<{
+    totalEvents: number;
+    breakdown: { eventType: string; count: number }[];
+  }> {
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const EVENT_TYPES = [
+      'engagement_trip_clicked',
+      'engagement_destination_viewed',
+      'engagement_planner_edit',
+      'engagement_trip_accepted',
+      'engagement_trip_rejected',
+      'engagement_recommendation_ignored',
+      'engagement_recommendation_saved',
+    ] as const;
+
+    const grouped = await this.prisma.systemMetric.groupBy({
+      by: ['eventType'],
+      _count: { id: true },
+      where: {
+        eventType: { in: [...EVENT_TYPES] },
+        timestamp: { gte: last24h },
+      },
+    });
+
+    const countMap = new Map(grouped.map((g) => [g.eventType, g._count.id]));
+
+    const breakdown = EVENT_TYPES.map((et) => ({
+      // Strip the 'engagement_' prefix to match the EngagementEventType union
+      eventType: et.replace('engagement_', ''),
+      count: countMap.get(et) ?? 0,
+    }));
+
+    const totalEvents = breakdown.reduce((sum, b) => sum + b.count, 0);
+
+    return { totalEvents, breakdown };
   }
 }
