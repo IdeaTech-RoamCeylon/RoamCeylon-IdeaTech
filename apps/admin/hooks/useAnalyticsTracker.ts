@@ -8,7 +8,9 @@ export type EngagementEventName =
   | 'destination_viewed'
   | 'planner_edit'
   | 'trip_accepted'
-  | 'trip_rejected';
+  | 'trip_rejected'
+  | 'recommendation_ignored'
+  | 'recommendation_saved';
 
 export interface EngagementEventPayload {
   tripId?: string;

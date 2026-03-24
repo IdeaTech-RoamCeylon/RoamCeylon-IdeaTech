@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -137,6 +137,15 @@ interface RichExplanation {
   whyThisTimeSlot?: string[];
   tips?: string[];
   hasPositiveFeedback?: boolean;
+}
+
+interface UserSignals {
+  positiveDestinations: string[];
+  categoryPrefs: CategoryPref[];
+  recentSelections: RecentSelection[];
+  avoidedCategories: string[];
+  frequentPlaces: FrequentPlace[];
+  pace?: 'relaxed' | 'moderate' | 'active';
 }
 
 interface ItineraryItemDto {
@@ -1551,13 +1560,19 @@ export class AIController {
 
   /* ==================== PERSONALIZATION (Interest + Pace + Deterministic) ==================== */
 
-  private async calculatePersonalizationBoost(
+  private calculatePersonalizationBoost(
     result: SearchResultItem,
-    userId?: string,
+    signals: UserSignals,
     preferences?: string[],
-    userPace?: 'relaxed' | 'moderate' | 'active',
-  ): Promise<number> {
-    if (!userId) return 0;
+  ): number {
+    const {
+      positiveDestinations,
+      categoryPrefs,
+      recentSelections,
+      avoidedCategories,
+      frequentPlaces,
+      pace: userPace,
+    } = signals;
 
     // CONSISTENCY LOCK: don't personalize low-quality items to maintain stable relevance-first rankings
     const baseScore = result.score || 0;
@@ -1569,23 +1584,14 @@ export class AIController {
     const resultText = `${result.title} ${result.content}`.toLowerCase();
 
     // 0) FEEDBACK INFLUENCE (capped separately)
-    try {
-      const positiveDestinations =
-        await this.tripStore.getUserPositiveFeedbackDestinations(userId);
+    const resultTitleLower = result.title.toLowerCase();
+    const hasPositiveFeedback = positiveDestinations.some(
+      (d) => d && resultTitleLower.includes(d.toLowerCase()),
+    );
 
-      const resultTitleLower = result.title.toLowerCase();
-      const hasPositiveFeedback = positiveDestinations.some(
-        (d) => d && resultTitleLower.includes(d.toLowerCase()),
-      );
-
-      if (hasPositiveFeedback) {
-        // Apply feedback boost (will be capped below)
-        feedbackBoost = 0.1; // Base feedback influence
-      }
-    } catch (error) {
-      this.logger.error(
-        `Feedback influence failed for user ${userId}: ${(error as Error).message}`,
-      );
+    if (hasPositiveFeedback) {
+      // Apply feedback boost (will be capped below)
+      feedbackBoost = 0.1; // Base feedback influence
     }
 
     // 1) INTEREST ALIGNMENT (exact / related)
@@ -1608,95 +1614,64 @@ export class AIController {
       }
     }
 
-    try {
-      // infer category for pace + behavior signals
-      const category = this.inferCategoryFromText(
-        result.title,
-        result.content,
-        preferences,
-      );
+    // infer category for pace + behavior signals
+    const category = this.inferCategoryFromText(
+      result.title,
+      result.content,
+      preferences,
+    );
 
-      // 2) PACE COMPATIBILITY
-      if (userPace) {
-        const paceKey = userPace.toUpperCase() as
-          | 'RELAXED'
-          | 'MODERATE'
-          | 'ACTIVE';
-        const paceConfig = PLANNER_CONFIG.RANKING.PACE_MODIFIERS[paceKey];
-        if (paceConfig?.PREFER_CATEGORIES.includes(category))
-          boost += paceConfig.BOOST;
-      }
+    // 2) PACE COMPATIBILITY
+    if (userPace) {
+      const paceKey = userPace.toUpperCase() as
+        | 'RELAXED'
+        | 'MODERATE'
+        | 'ACTIVE';
+      const paceConfig = PLANNER_CONFIG.RANKING.PACE_MODIFIERS[paceKey];
+      if (paceConfig?.PREFER_CATEGORIES.includes(category))
+        boost += paceConfig.BOOST;
+    }
 
-      // 3) BEHAVIORAL SIGNALS: frequent category
-      const categoryPrefs =
-        await this.tripStore.getUserCategoryPreferences(userId);
-      const matchingPref = categoryPrefs.find((p) =>
-        category.toLowerCase().includes(p.category.toLowerCase()),
-      );
-      if (matchingPref) {
-        const normalizedCount = Math.min(matchingPref.count / 10, 1);
-        boost +=
-          PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.FREQUENT_CATEGORY *
-          normalizedCount;
-      }
+    // 3) BEHAVIORAL SIGNALS: frequent category
+    const matchingPref = categoryPrefs.find((p) =>
+      category.toLowerCase().includes(p.category.toLowerCase()),
+    );
+    if (matchingPref) {
+      const normalizedCount = Math.min(matchingPref.count / 10, 1);
+      boost +=
+        PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.FREQUENT_CATEGORY *
+        normalizedCount;
+    }
 
-      const recentSelectionsRaw =
-        await this.tripStore.getRecentUserSelections?.(userId);
-
-      if (Array.isArray(recentSelectionsRaw)) {
-        const recentSelections = recentSelectionsRaw.filter(
-          (
-            s,
-          ): s is { placeId: string; category: string; timestamp: string } => {
-            if (!s || typeof s !== 'object') return false;
-
-            const o = s as Record<string, unknown>;
-
-            return (
-              typeof o['placeId'] === 'string' &&
-              typeof o['category'] === 'string' &&
-              typeof o['timestamp'] === 'string'
-            );
-          },
-        );
-
-        if (
-          recentSelections.some(
-            (s) =>
-              s.placeId === String(result.id) ||
-              s.category.toLowerCase() === category.toLowerCase(),
-          )
-        )
-          boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.RECENT_SELECTION;
-      }
-
-      // 5) AVOIDED CATEGORY (negative)
-      const avoided = await this.tripStore.getUserAvoidedCategories?.(userId);
-      if (
-        Array.isArray(avoided) &&
-        avoided
-          .map((x: string) => x.toLowerCase())
-          .includes(category.toLowerCase())
+    // 4) RECENT SELECTIONS
+    if (
+      recentSelections.some(
+        (s) =>
+          s.placeId === String(result.id) ||
+          s.category.toLowerCase() === category.toLowerCase(),
       )
-        boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.AVOIDED_CATEGORY;
+    )
+      boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.RECENT_SELECTION;
 
-      // Legacy: frequent places boost
-      const frequentPlaces = await this.tripStore.getUserFrequentPlaces(userId);
-      const isFrequentPlace = frequentPlaces.some(
-        (p) => p.placeId === String(result.id),
+    // 5) AVOIDED CATEGORY (negative)
+    if (
+      avoidedCategories
+        .map((x: string) => x.toLowerCase())
+        .includes(category.toLowerCase())
+    )
+      boost += PLANNER_CONFIG.RANKING.BEHAVIOR_WEIGHTS.AVOIDED_CATEGORY;
+
+    // Legacy: frequent places boost
+    const isFrequentPlace = frequentPlaces.some(
+      (p) => p.placeId === String(result.id),
+    );
+    if (isFrequentPlace) {
+      boost += PLANNER_CONFIG.PERSONALIZATION.PAST_INTERACTION_WEIGHT;
+    } else {
+      const hasRelatedPlace = frequentPlaces.some((p) =>
+        resultText.includes(p.placeName.toLowerCase().split(' ')[0]),
       );
-      if (isFrequentPlace) {
-        boost += PLANNER_CONFIG.PERSONALIZATION.PAST_INTERACTION_WEIGHT;
-      } else {
-        const hasRelatedPlace = frequentPlaces.some((p) =>
-          resultText.includes(p.placeName.toLowerCase().split(' ')[0]),
-        );
-        if (hasRelatedPlace) boost += 0.1;
-      }
-    } catch (error) {
-      this.logger.error(
-        `Preference-aware ranking failed for user ${userId}: ${(error as Error).message}`,
-      );
+      if (hasRelatedPlace) boost += 0.1;
     }
 
     // ⚠️ LEARNING CAP: Apply feedback influence cap (15%)
@@ -1737,71 +1712,92 @@ export class AIController {
 
     if (!userId) return baseScored;
 
-    // Get pace deterministically (single fetch)
-    let userPace: 'relaxed' | 'moderate' | 'active' | undefined;
-
-    try {
-      userPace = await this.tripStore.getUserTravelPace(userId);
-      this.logger.log(`[ranking] userId=${userId} pace=${userPace}`);
-    } catch (error) {
-      this.logger.warn(`Failed to get user pace: ${(error as Error).message}`);
-    }
-
     const t0 = performance.now();
 
-    const personalizedScored = await Promise.all(
-      baseScored.map(async (item) => {
-        const personalizationBoost = await this.calculatePersonalizationBoost(
-          item,
-          userId,
-          preferences,
-          userPace,
-        );
+    // PRE-FETCH USER SIGNALS (ONE BLOCK FOR ALL RESULTS)
+    let signals: UserSignals;
+    try {
+      const [
+        positiveDestinations,
+        categoryPrefs,
+        recentSelectionsRaw,
+        avoidedCategories,
+        frequentPlaces,
+        pace,
+      ] = await Promise.all([
+        this.tripStore.getUserPositiveFeedbackDestinations(userId),
+        this.tripStore.getUserCategoryPreferences(userId),
+        this.tripStore.getRecentUserSelections?.(userId) ?? Promise.resolve([]),
+        this.tripStore.getUserAvoidedCategories?.(userId) ??
+          Promise.resolve([]),
+        this.tripStore.getUserFrequentPlaces(userId),
+        this.tripStore.getUserTravelPace(userId),
+      ]);
 
-        // CONSISTENCY LOCK: fixed precision rounding
-        const finalScore = this.q(item.priorityScore + personalizationBoost);
-        const baseScore = item.score || 0;
+      const recentSelections = Array.isArray(recentSelectionsRaw)
+        ? (recentSelectionsRaw.filter(
+            (s) =>
+              s &&
+              typeof s === 'object' &&
+              typeof (s as Record<string, any>).placeId === 'string' &&
+              typeof (s as Record<string, any>).category === 'string',
+          ) as RecentSelection[])
+        : [];
 
-        // --- SCORE COMPONENT LOGGING REVIEW ---
-        this.logger.debug(
-          `[Score Component] Item: ${item.id} | Base Score: ${baseScore.toFixed(4)} | Personalization Influence: ${personalizationBoost.toFixed(4)} | Final Score: ${finalScore.toFixed(4)}`,
-        );
+      signals = {
+        positiveDestinations,
+        categoryPrefs,
+        recentSelections,
+        avoidedCategories,
+        frequentPlaces,
+        pace: pace as 'relaxed' | 'moderate' | 'active' | undefined,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to pre-fetch user signals: ${error}`);
+      // Fallback signals (all empty)
+      signals = {
+        positiveDestinations: [],
+        categoryPrefs: [],
+        recentSelections: [],
+        avoidedCategories: [],
+        frequentPlaces: [],
+      };
+    }
 
-        // Identify extreme imbalances
-        if (baseScore > 0 && personalizationBoost / baseScore > 0.4) {
-          this.logger.warn(
-            `[Imbalance Alert] Personalization extremely high for item ${item.id} (${((personalizationBoost / baseScore) * 100).toFixed(1)}% of base score)`,
-          );
-        }
-        // --------------------------------------
+    const personalizedScored = baseScored.map((item) => {
+      const personalizationBoost = this.calculatePersonalizationBoost(
+        item,
+        signals,
+        preferences,
+      );
 
-        // ⚠️ LEARNING CAP: Combined learning influence ceiling (feedback + preference + personalization)
-        // Ensures total learning boost cannot exceed COMBINED_LEARNING_MAX (25% of base score)
-        const maxFinal = this.q(
-          baseScore +
-            baseScore *
-              PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE,
-        );
+      // CONSISTENCY LOCK: fixed precision rounding
+      const finalScore = this.q(item.priorityScore + personalizationBoost);
+      const baseScore = item.score || 0;
 
-        const boundedFinal = Math.min(finalScore, maxFinal);
+      // ⚠️ LEARNING CAP: Combined learning influence ceiling (feedback + preference + personalization)
+      const maxFinal = this.q(
+        baseScore +
+          baseScore * PLANNER_CONFIG.CONSISTENCY.MAX_PERSONALIZATION_INFLUENCE,
+      );
 
-        return {
-          ...item,
-          priorityScore: boundedFinal,
-          rankingDetails: {
-            ...item.rankingDetails,
-            personalizationBoost: this.q(personalizationBoost),
-            userPace,
-            relevanceCeiling: maxFinal,
-          },
-        };
-      }),
-    );
+      const boundedFinal = Math.min(finalScore, maxFinal);
+
+      return {
+        ...item,
+        priorityScore: boundedFinal,
+        rankingDetails: {
+          ...item.rankingDetails,
+          personalizationBoost: this.q(personalizationBoost),
+          userPace: signals.pace,
+          relevanceCeiling: maxFinal,
+        },
+      };
+    });
 
     const t1 = performance.now();
-    const latencyPostOpt = t1 - t0;
     this.logger.log(
-      `[Performance Benchmark] Post-optimization latency for personalized scoring: ${latencyPostOpt.toFixed(2)}ms`,
+      `[Performance Benchmark] Personalized scoring (BATCHeD) took: ${(t1 - t0).toFixed(2)}ms`,
     );
 
     return personalizedScored.sort((a, b) => {

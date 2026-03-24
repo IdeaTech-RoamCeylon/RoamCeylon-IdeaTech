@@ -572,6 +572,8 @@ export class AnalyticsService {
       'engagement_planner_edit',
       'engagement_trip_accepted',
       'engagement_trip_rejected',
+      'engagement_recommendation_ignored',
+      'engagement_recommendation_saved',
     ] as const;
 
     const grouped = await this.prisma.systemMetric.groupBy({
