@@ -263,10 +263,14 @@ function RecommendationCard({
   item,
   debugMode,
   onTrack,
+  onSave,
+  onIgnore,
 }: {
   item: RecommendationItem;
   debugMode: boolean;
   onTrack?: (id: string) => void;
+  onSave?: (id: string, e: React.MouseEvent) => void;
+  onIgnore?: (id: string, e: React.MouseEvent) => void;
 }) {
   const confidencePct = item.score != null ? Math.round(item.score * 100) : null;
 
@@ -297,6 +301,22 @@ function RecommendationCard({
       <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
         {item.description}
       </p>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={(e) => onSave?.(item.id, e)}
+          className="text-[10px] font-semibold select-none px-2.5 py-1.5 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 border-zinc-200 dark:border-zinc-700 hover:border-emerald-200 dark:hover:border-emerald-800 text-zinc-600 dark:text-zinc-400 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors"
+        >
+          Save for later
+        </button>
+        <button
+          onClick={(e) => onIgnore?.(item.id, e)}
+          className="text-[10px] font-semibold select-none px-2.5 py-1.5 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 border-zinc-200 dark:border-zinc-700 hover:border-rose-200 dark:hover:border-rose-800 text-zinc-600 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-400 transition-colors"
+        >
+          Not interested
+        </button>
+      </div>
 
       {/* Public confidence bar (non-debug) */}
       {!debugMode && confidencePct != null && (
@@ -376,6 +396,16 @@ export function PersonalizedRecommendations({
     track('trip_clicked', { tripId: id, source: 'personalized_recommendation' });
   };
 
+  const handleSaveInteraction = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    track('recommendation_saved', { destinationId: id, source: 'personalized_recommendation' });
+  };
+
+  const handleIgnoreInteraction = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    track('recommendation_ignored', { destinationId: id, source: 'personalized_recommendation' });
+  };
+
   return (
     <section
       className={`rounded-xl border shadow-sm overflow-hidden ${
@@ -437,6 +467,8 @@ export function PersonalizedRecommendations({
               item={item}
               debugMode={debugMode}
               onTrack={handleTrackInteraction}
+              onSave={handleSaveInteraction}
+              onIgnore={handleIgnoreInteraction}
             />
           ))
         )}
