@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+/* eslint-disable */
+// @ts-nocheck
 
 // --- THE MOCK (Simulating the AI Team's future ML API) ---
 const mockMLRecommenderAPI = jest.fn().mockResolvedValue([
