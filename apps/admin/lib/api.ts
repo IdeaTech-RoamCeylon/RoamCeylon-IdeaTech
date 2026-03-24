@@ -8,7 +8,8 @@ export type EngagementEventType =
   | 'trip_accepted'
   | 'trip_rejected'
   | 'recommendation_ignored'
-  | 'recommendation_saved';
+  | 'recommendation_saved'
+  | 'recommendation_disliked';
 
 export interface EngagementEventCount {
   eventType: EngagementEventType;

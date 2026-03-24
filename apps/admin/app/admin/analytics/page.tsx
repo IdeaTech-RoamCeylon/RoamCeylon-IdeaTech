@@ -3,7 +3,7 @@ import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
 import {
   Map, Cpu, Star, AlertTriangle,
-  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle, EyeOff, Bookmark
+  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle, EyeOff, Bookmark, ThumbsDown
 } from 'lucide-react';
 import {
   getPlannerDailyStats,
@@ -34,6 +34,7 @@ const ENGAGEMENT_EVENTS: {
   { key: 'trip_accepted',      label: 'Trips Accepted',       icon: <CheckCircle2 className="w-5 h-5" />,      colorVariant: 'emerald' },
   { key: 'trip_rejected',      label: 'Trips Rejected',       icon: <XCircle className="w-5 h-5" />,           colorVariant: 'rose' },
   { key: 'recommendation_ignored', label: 'Recs Ignored',     icon: <EyeOff className="w-5 h-5" />,            colorVariant: 'rose' },
+  { key: 'recommendation_disliked',label: 'Recs Disliked',    icon: <ThumbsDown className="w-5 h-5" />,        colorVariant: 'rose' },
   { key: 'recommendation_saved',   label: 'Recs Saved',       icon: <Bookmark className="w-5 h-5" />,          colorVariant: 'emerald' },
 ];
 
