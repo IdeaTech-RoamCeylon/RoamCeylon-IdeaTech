@@ -260,7 +260,7 @@ function SourceChip({ source }: { source: RecommendationItem['source'] }) {
 import { useAnalyticsTracker } from '../../hooks/useAnalyticsTracker';
 
 // ─── Populated Card ───────────────────────────────────────────────────────────
-function RecommendationCard({
+const RecommendationCard = React.memo(function RecommendationCard({
   item,
   debugMode,
   onTrack,
@@ -346,7 +346,7 @@ function RecommendationCard({
       {debugMode && <DebugOverlay item={item} />}
     </div>
   );
-}
+});
 
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
@@ -412,42 +412,57 @@ export function PersonalizedRecommendations({
     setIsLoading(initialIsLoading);
   }, [initialIsLoading]);
 
-  const refreshRecommendations = useCallback(async () => {
+  const refreshRecommendations = useCallback(async (isBackground = false) => {
     try {
-      setIsLoading(true);
+      if (!isBackground) setIsLoading(true);
       const { getPersonalizedRecommendations } = await import('../../lib/api');
       const data = await getPersonalizedRecommendations();
       if (data?.items) {
-        setItems(data.items);
+        setItems(prev => {
+          if (prev && prev.length === data.items.length && prev.every((p, i) => p.id === data.items[i].id)) {
+            return prev;
+          }
+          return data.items;
+        });
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   }, []);
 
-  const handleTrackInteraction = (id: string) => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshRecommendations(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refreshRecommendations]);
+
+  const handleTrackInteraction = useCallback((id: string) => {
     track('trip_clicked', { tripId: id, source: 'personalized_recommendation' });
-  };
+  }, [track]);
 
-  const handleSaveInteraction = (id: string, e: React.MouseEvent) => {
+  const handleSaveInteraction = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setItems((prev) => prev?.filter((item) => item.id !== id));
     track('recommendation_saved', { destinationId: id, source: 'personalized_recommendation' });
-    refreshRecommendations();
-  };
+    refreshRecommendations(true);
+  }, [track, refreshRecommendations]);
 
-  const handleIgnoreInteraction = (id: string, e: React.MouseEvent) => {
+  const handleIgnoreInteraction = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setItems((prev) => prev?.filter((item) => item.id !== id));
     track('recommendation_ignored', { destinationId: id, source: 'personalized_recommendation' });
-    refreshRecommendations();
-  };
+    refreshRecommendations(true);
+  }, [track, refreshRecommendations]);
 
-  const handleDislikeInteraction = (id: string, e: React.MouseEvent) => {
+  const handleDislikeInteraction = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setItems((prev) => prev?.filter((item) => item.id !== id));
     track('recommendation_disliked', { destinationId: id, source: 'personalized_recommendation' });
-    refreshRecommendations();
-  };
+    refreshRecommendations(true);
+  }, [track, refreshRecommendations]);
 
   return (
     <section
