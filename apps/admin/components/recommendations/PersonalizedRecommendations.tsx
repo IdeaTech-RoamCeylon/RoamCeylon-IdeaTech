@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect, useCallback } from 'react';
 import { Sparkles, Brain, Clock, TrendingUp, FlaskConical, Cpu, Ruler, Zap } from 'lucide-react';
 
 import type { RecommendationItem } from '../../lib/api';
@@ -265,12 +266,14 @@ function RecommendationCard({
   onTrack,
   onSave,
   onIgnore,
+  onDislike,
 }: {
   item: RecommendationItem;
   debugMode: boolean;
   onTrack?: (id: string) => void;
   onSave?: (id: string, e: React.MouseEvent) => void;
   onIgnore?: (id: string, e: React.MouseEvent) => void;
+  onDislike?: (id: string, e: React.MouseEvent) => void;
 }) {
   const confidencePct = item.score != null ? Math.round(item.score * 100) : null;
 
@@ -315,6 +318,12 @@ function RecommendationCard({
           className="text-[10px] font-semibold select-none px-2.5 py-1.5 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 border-zinc-200 dark:border-zinc-700 hover:border-rose-200 dark:hover:border-rose-800 text-zinc-600 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-400 transition-colors"
         >
           Not interested
+        </button>
+        <button
+          onClick={(e) => onDislike?.(item.id, e)}
+          className="text-[10px] font-semibold select-none px-2.5 py-1.5 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 border-zinc-200 dark:border-zinc-700 hover:border-rose-200 dark:hover:border-rose-800 text-zinc-600 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-400 transition-colors"
+        >
+          Dislike
         </button>
       </div>
 
@@ -383,14 +392,40 @@ function UnavailableState() {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function PersonalizedRecommendations({
-  items,
-  isLoading = false,
+  items: initialItems,
+  isLoading: initialIsLoading = false,
   title = 'Personalized Recommendations',
   isMock = false,
   debugMode = false,
 }: PersonalizedRecommendationsProps) {
   const SKELETON_COUNT = 3;
   const { track } = useAnalyticsTracker({ debugMode });
+
+  const [items, setItems] = useState<RecommendationItem[] | undefined>(initialItems);
+  const [isLoading, setIsLoading] = useState(initialIsLoading);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  useEffect(() => {
+    setIsLoading(initialIsLoading);
+  }, [initialIsLoading]);
+
+  const refreshRecommendations = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { getPersonalizedRecommendations } = await import('../../lib/api');
+      const data = await getPersonalizedRecommendations();
+      if (data?.items) {
+        setItems(data.items);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const handleTrackInteraction = (id: string) => {
     track('trip_clicked', { tripId: id, source: 'personalized_recommendation' });
@@ -399,11 +434,19 @@ export function PersonalizedRecommendations({
   const handleSaveInteraction = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     track('recommendation_saved', { destinationId: id, source: 'personalized_recommendation' });
+    refreshRecommendations();
   };
 
   const handleIgnoreInteraction = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     track('recommendation_ignored', { destinationId: id, source: 'personalized_recommendation' });
+    refreshRecommendations();
+  };
+
+  const handleDislikeInteraction = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    track('recommendation_disliked', { destinationId: id, source: 'personalized_recommendation' });
+    refreshRecommendations();
   };
 
   return (
@@ -469,6 +512,7 @@ export function PersonalizedRecommendations({
               onTrack={handleTrackInteraction}
               onSave={handleSaveInteraction}
               onIgnore={handleIgnoreInteraction}
+              onDislike={handleDislikeInteraction}
             />
           ))
         )}
