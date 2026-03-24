@@ -1,4 +1,7 @@
+'use client';
+
 import { Sparkles, Brain, Clock, TrendingUp, FlaskConical, Cpu, Ruler, Zap } from 'lucide-react';
+
 import type { RecommendationItem } from '../../lib/api';
 
 // ─── Re-export so consumers only need one import ──────────────────────────────
