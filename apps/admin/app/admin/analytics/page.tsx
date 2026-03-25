@@ -3,7 +3,7 @@ import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
 import {
   Map, Cpu, Star, AlertTriangle,
-  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle,
+  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle, EyeOff, Bookmark, ThumbsDown
 } from 'lucide-react';
 import {
   getPlannerDailyStats,
@@ -16,8 +16,12 @@ import {
 import { isFeatureEnabled } from "../../../lib/featureFlags";
 import { DashboardRefresh } from "../../../components/DashboardRefresh";
 import { SystemHealthMonitor } from "../../../components/SystemHealthMonitor";
-import { PersonalizedRecommendations } from "../../../components/recommendations/PersonalizedRecommendations";
-import { AnalyticsDebugWrapper } from "../../../components/debug/AnalyticsDebugWrapper";
+import dynamic from 'next/dynamic';
+
+const PersonalizedRecommendations = dynamic(
+  () => import('../../../components/recommendations/PersonalizedRecommendations').then((mod) => mod.PersonalizedRecommendations),
+  { ssr: false, loading: () => <div className="h-48 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900 rounded-xl" /> }
+);
 
 export const revalidate = 60; // 60 seconds Cache for page level revalidation
 
@@ -33,10 +37,10 @@ const ENGAGEMENT_EVENTS: {
   { key: 'planner_edit',       label: 'Planner Edits',        icon: <PenLine className="w-5 h-5" />,           colorVariant: 'orange' },
   { key: 'trip_accepted',      label: 'Trips Accepted',       icon: <CheckCircle2 className="w-5 h-5" />,      colorVariant: 'emerald' },
   { key: 'trip_rejected',      label: 'Trips Rejected',       icon: <XCircle className="w-5 h-5" />,           colorVariant: 'rose' },
+  { key: 'recommendation_ignored', label: 'Recs Ignored',     icon: <EyeOff className="w-5 h-5" />,            colorVariant: 'rose' },
+  { key: 'recommendation_disliked',label: 'Recs Disliked',    icon: <ThumbsDown className="w-5 h-5" />,        colorVariant: 'rose' },
+  { key: 'recommendation_saved',   label: 'Recs Saved',       icon: <Bookmark className="w-5 h-5" />,          colorVariant: 'emerald' },
 ];
-
-// Debug mode — enable with NEXT_PUBLIC_ANALYTICS_DEBUG=true in .env.local
-const DEBUG_MODE = process.env.NEXT_PUBLIC_ANALYTICS_DEBUG === 'true';
 
 export default async function AnalyticsPage() {
   // Evaluate feature flag — admin dashboard has no session so userId='admin'
@@ -192,7 +196,7 @@ export default async function AnalyticsPage() {
             ML Signals
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {ENGAGEMENT_EVENTS.map(({ key, label, icon, colorVariant }) => (
             <MetricCard
               key={key}
@@ -253,12 +257,7 @@ export default async function AnalyticsPage() {
       {/* ─── Personalized Recommendations ──────────────────────────────────── */}
       <PersonalizedRecommendations
         items={recommendationsData?.items}
-        isMock={recommendationsData?.isMock ?? false}
-        debugMode={DEBUG_MODE}
       />
-
-      {/* ─── Analytics Debug Panel (dev only) ──────────────────────────────── */}
-      {DEBUG_MODE && <AnalyticsDebugWrapper />}
     </div>
   );
 }

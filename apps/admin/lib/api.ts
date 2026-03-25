@@ -8,7 +8,8 @@ export type EngagementEventType =
   | 'trip_accepted'
   | 'trip_rejected'
   | 'recommendation_ignored'
-  | 'recommendation_saved';
+  | 'recommendation_saved'
+  | 'recommendation_disliked';
 
 export interface EngagementEventCount {
   eventType: EngagementEventType;
@@ -168,10 +169,11 @@ export interface PersonalizedRecommendationsResponse {
  * Currently returns mock data while the model is being trained.
  * Returns null on any network/server failure.
  */
-export async function getPersonalizedRecommendations(): Promise<PersonalizedRecommendationsResponse | null> {
+export async function getPersonalizedRecommendations(options?: { signal?: AbortSignal }): Promise<PersonalizedRecommendationsResponse | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/recommendations/personalized`, {
       next: { revalidate: 120 },
+      signal: options?.signal,
     });
     if (!res.ok) throw new Error('Failed to fetch recommendations');
     const json = await res.json();
