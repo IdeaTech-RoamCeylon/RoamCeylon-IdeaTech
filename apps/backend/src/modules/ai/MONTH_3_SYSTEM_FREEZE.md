@@ -93,7 +93,7 @@ LEARNING_INFLUENCE_CAPS: {
   FEEDBACK_INFLUENCE_MAX: 0.15,        // 🔒 FROZEN
 
   // Hard limit: Preference override cannot exceed 20% of base score
-  PREFERENCE_OVERRIDE_MAX: 0.2,        // 🔒 FROZEN
+  PREFERENCE_OVERRIDE_MAX: 0.22,        // 🔒 FROZEN
 
   // Combined limit: Total learning influence (feedback + preferences) capped at 25%
   COMBINED_LEARNING_MAX: 0.25,         // 🔒 FROZEN

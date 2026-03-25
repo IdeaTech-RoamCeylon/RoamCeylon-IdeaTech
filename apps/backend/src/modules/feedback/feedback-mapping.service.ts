@@ -8,7 +8,7 @@ export class FeedbackMappingService {
   private readonly logger = new Logger(FeedbackMappingService.name);
 
   // CONTROLLED LEARNING CONSTANTS
-  private readonly DECAY_LAMBDA = 0.02;
+  private readonly DECAY_LAMBDA = 0.025;
   private readonly PRIOR = 2;
   private readonly CATEGORY_DELTA = 0.1;
   private readonly CATEGORY_MIN = 0.5;

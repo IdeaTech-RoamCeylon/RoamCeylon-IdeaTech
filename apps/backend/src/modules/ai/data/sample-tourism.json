@@ -192,6 +192,48 @@
       "region": "cultural_triangle"
     },
     {
+      "title": "Galle Fort Dutch Museum",
+      "description": "The Dutch Period Museum inside Galle Fort showcases colonial artifacts, furniture, and history of Dutch rule in Sri Lanka.",
+      "near": ["galle", "unawatuna"],
+      "region": "south"
+    },
+    {
+      "title": "Galle Lighthouse",
+      "description": "The Galle Lighthouse is the oldest lighthouse in Sri Lanka, located within the Galle Fort walls with panoramic ocean views.",
+      "near": ["galle", "unawatuna"],
+      "region": "south"
+    },
+    {
+      "title": "Jungle Beach",
+      "description": "Jungle Beach is a secluded cove near Unawatuna surrounded by jungle, ideal for snorkeling and escaping the crowds.",
+      "near": ["galle", "unawatuna", "hikkaduwa"],
+      "region": "south"
+    },
+    {
+      "title": "Japanese Peace Pagoda",
+      "description": "A serene Buddhist stupa on a hilltop near Unawatuna with stunning views over the Indian Ocean and surrounding coastline.",
+      "near": ["galle", "unawatuna"],
+      "region": "south"
+    },
+    {
+      "title": "Koggala Lake",
+      "description": "Koggala Lake near Galle is a scenic lagoon perfect for boat rides, birdwatching, and visiting small island temples.",
+      "near": ["galle", "hikkaduwa", "unawatuna"],
+      "region": "south"
+    },
+    {
+      "title": "Rumassala Hill",
+      "description": "Rumassala is a forested hill near Unawatuna with jungle trails, medicinal herbs, and panoramic views of Galle Bay.",
+      "near": ["galle", "unawatuna"],
+      "region": "south"
+    },
+    {
+      "title": "Hikkaduwa Coral Reef",
+      "description": "The Hikkaduwa coral reef is a protected marine sanctuary near Galle with vibrant coral gardens and sea turtles.",
+      "near": ["galle", "hikkaduwa", "bentota"],
+      "region": "south"
+    },
+    {
       "title": "Jaffna Fort",
       "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon.",
       "near": [
