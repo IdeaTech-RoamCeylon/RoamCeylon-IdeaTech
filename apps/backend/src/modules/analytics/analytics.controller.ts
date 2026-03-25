@@ -1,6 +1,15 @@
 // apps/backend/src/modules/analytics/analytics.controller.ts
 
-import { Controller, Get, UseInterceptors, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseInterceptors,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AnalyticsService } from './analytics.service';
 import {
@@ -151,5 +160,34 @@ export class AnalyticsController {
       windowHours,
     );
     return { endpoint, trend };
+  }
+  /**
+   * POST /analytics/events
+   * Receives a client-side engagement event (ML training signal).
+   * Fire-and-forget — always returns 202 Accepted, never blocks the client.
+   */
+  @Post('events')
+  @HttpCode(HttpStatus.ACCEPTED)
+  trackEngagementEvent(
+    @Body() body: { event: string; timestamp?: number; [key: string]: unknown },
+  ) {
+    const { event, timestamp, ...payload } = body;
+    // Non-blocking — errors are logged internally, never surfaced
+    void this.analyticsService.trackEngagementEvent(event ?? 'unknown', {
+      ...payload,
+      clientTimestamp: timestamp,
+    });
+    return { accepted: true };
+  }
+
+  /**
+   * GET /analytics/events/summary
+   * Returns engagement event counts for the last 24 hours,
+   * broken down by the 5 canonical ML signal event types.
+   */
+  @Get('events/summary')
+  @CacheTTL(60000) // 1 minute
+  async getEngagementStats() {
+    return this.analyticsService.getEngagementStats();
   }
 }

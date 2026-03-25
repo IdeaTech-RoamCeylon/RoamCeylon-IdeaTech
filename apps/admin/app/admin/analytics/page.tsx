@@ -3,18 +3,25 @@ import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
 import {
   Map, Cpu, Star, AlertTriangle,
-  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle,
+  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle, EyeOff, Bookmark, ThumbsDown
 } from 'lucide-react';
 import {
   getPlannerDailyStats,
   getFeedbackRate,
   getSystemErrors,
   getEngagementStats,
+  getPersonalizedRecommendations,
   type EngagementEventType,
 } from "../../../lib/api";
+import { isFeatureEnabled } from "../../../lib/featureFlags";
 import { DashboardRefresh } from "../../../components/DashboardRefresh";
 import { SystemHealthMonitor } from "../../../components/SystemHealthMonitor";
-import { PersonalizedRecommendations } from "../../../components/recommendations/PersonalizedRecommendations";
+import dynamic from 'next/dynamic';
+
+const PersonalizedRecommendations = dynamic(
+  () => import('../../../components/recommendations/PersonalizedRecommendations').then((mod) => mod.PersonalizedRecommendations),
+  { ssr: false, loading: () => <div className="h-48 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900 rounded-xl" /> }
+);
 
 export const revalidate = 60; // 60 seconds Cache for page level revalidation
 
@@ -30,16 +37,25 @@ const ENGAGEMENT_EVENTS: {
   { key: 'planner_edit',       label: 'Planner Edits',        icon: <PenLine className="w-5 h-5" />,           colorVariant: 'orange' },
   { key: 'trip_accepted',      label: 'Trips Accepted',       icon: <CheckCircle2 className="w-5 h-5" />,      colorVariant: 'emerald' },
   { key: 'trip_rejected',      label: 'Trips Rejected',       icon: <XCircle className="w-5 h-5" />,           colorVariant: 'rose' },
+  { key: 'recommendation_ignored', label: 'Recs Ignored',     icon: <EyeOff className="w-5 h-5" />,            colorVariant: 'rose' },
+  { key: 'recommendation_disliked',label: 'Recs Disliked',    icon: <ThumbsDown className="w-5 h-5" />,        colorVariant: 'rose' },
+  { key: 'recommendation_saved',   label: 'Recs Saved',       icon: <Bookmark className="w-5 h-5" />,          colorVariant: 'emerald' },
 ];
 
 export default async function AnalyticsPage() {
+  // Evaluate feature flag — admin dashboard has no session so userId='admin'
+  const mlRecsEnabled = isFeatureEnabled('ml_recommendations_enabled', 'admin');
+
   // All data fetches run in parallel; each fails gracefully to null
-  const [plannerDaily, feedbackRate, systemErrors, engagementStats] = await Promise.all([
-    getPlannerDailyStats(),
-    getFeedbackRate(),
-    getSystemErrors(),
-    getEngagementStats(),
-  ]);
+  const [plannerDaily, feedbackRate, systemErrors, engagementStats, recommendationsData] =
+    await Promise.all([
+      getPlannerDailyStats(),
+      getFeedbackRate(),
+      getSystemErrors(),
+      getEngagementStats(),
+      // Skip the fetch entirely when the flag is off — returns null instantly
+      mlRecsEnabled ? getPersonalizedRecommendations() : Promise.resolve(null),
+    ]);
 
   // Aggregate stats from the Daily Planner Metrics
   const breakdown = plannerDaily?.breakdown || [];
@@ -180,7 +196,7 @@ export default async function AnalyticsPage() {
             ML Signals
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {ENGAGEMENT_EVENTS.map(({ key, label, icon, colorVariant }) => (
             <MetricCard
               key={key}
@@ -239,7 +255,9 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* ─── Personalized Recommendations ──────────────────────────────────── */}
-      <PersonalizedRecommendations />
+      <PersonalizedRecommendations
+        items={recommendationsData?.items}
+      />
     </div>
   );
 }
