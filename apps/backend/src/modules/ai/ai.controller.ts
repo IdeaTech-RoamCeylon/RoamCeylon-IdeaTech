@@ -204,9 +204,22 @@ export class AIController {
   private readonly CONFIDENCE_THRESHOLDS = PLANNER_CONFIG.CONFIDENCE;
 
   private readonly PREFERENCE_WEIGHTS = {
-    TITLE_DIRECT_MATCH: 0.4,
-    CONTENT_DIRECT_MATCH: 0.25,
+    // Raised 0.40 → 0.42
+    // Why: Title match is the strongest preference signal — the place name
+    // literally contains the user's interest word.
+    TITLE_DIRECT_MATCH: 0.42,
+
+    // Raised 0.25 → 0.27
+    // Why: Proportional lift with title match. Content mentions of a preference
+    // are weaker signals than title, but the ratio (title/content = 1.56:1)
+    // stays the same. Keeps the scoring relationship between title and content
+    // consistent while improving overall preference responsiveness.
+    CONTENT_DIRECT_MATCH: 0.27,
+
+    // UNCHANGED — category mapping is an indirect signal, no lift needed yet
     CATEGORY_MAPPED_MATCH: 0.15,
+
+    // UNCHANGED — multi-match bonus is correctly sized at 0.2
     MULTIPLE_MATCH_BONUS: 0.2,
   };
 
@@ -758,7 +771,7 @@ export class AIController {
         if (Math.abs(diff) > this.EPS) return diff;
         return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
       })
-      .slice(0, 5)
+      .slice(0, PLANNER_CONFIG.SEARCH.MAX_RESULTS_FOR_PLANNER)
       .map((item, idx) => ({ rank: idx + 1, ...item }));
     const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
       scored,
@@ -2135,6 +2148,8 @@ export class AIController {
     return category;
   }
 
+  //   - Preference-aware bonus slots: user's preferred categories get +1 slot
+  //   - Logs category distribution for debugging
   private selectDiverseActivities(
     scoredResults: Array<SearchResultItem & { priorityScore: number }>,
     maxCount: number,
@@ -2144,9 +2159,27 @@ export class AIController {
     const categoryCount: Record<string, number> = {};
     const textSet = new Set<string>();
 
-    const maxPerCategory = Math.ceil(
+    // Base cap per category from config
+    const baseMaxPerCategory = Math.ceil(
       maxCount / PLANNER_CONFIG.DIVERSITY.CATEGORY_DIVISOR,
     );
+
+    // Build a set of user-preferred categories for bonus slot allocation
+    // e.g. preferences=["beach","nature"] → preferredCategories={"Beach","Nature"}
+    const preferredCategories = new Set<string>();
+    if (preferences?.length) {
+      for (const pref of preferences) {
+        const mapped = this.INTEREST_CATEGORY_MAP[pref.toLowerCase()];
+        if (mapped?.length) {
+          mapped.forEach((c) => preferredCategories.add(c));
+        } else {
+          // Direct match — capitalise first letter
+          preferredCategories.add(
+            pref.charAt(0).toUpperCase() + pref.slice(1).toLowerCase(),
+          );
+        }
+      }
+    }
 
     const sorted = [...scoredResults].sort((a, b) => {
       const diff = this.q(b.priorityScore) - this.q(a.priorityScore);
@@ -2160,8 +2193,7 @@ export class AIController {
     for (const result of sorted) {
       if (selected.length >= maxCount) break;
 
-      // QUALITY GATE: Enforce minimum quality threshold
-      // Never select items below MINIMUM confidence, even for diversity
+      // Quality gate — never select below minimum confidence
       if (result.score < PLANNER_CONFIG.CONFIDENCE.MINIMUM) continue;
 
       const textKey = `${result.title} ${result.content}`.toLowerCase();
@@ -2172,33 +2204,116 @@ export class AIController {
         result.content,
         preferences,
       );
+
+      // Preferred categories get a bonus slot — everything else uses base cap
+      const isPreferred = preferredCategories.has(category);
+      const maxForCategory =
+        baseMaxPerCategory +
+        (isPreferred ? PLANNER_CONFIG.DIVERSITY.PREFERRED_CATEGORY_BONUS : 0);
+
       const currentCount = categoryCount[category] || 0;
 
-      if (currentCount < maxPerCategory) {
+      if (currentCount < maxForCategory) {
         selected.push(result);
         categoryCount[category] = currentCount + 1;
         textSet.add(textKey);
       }
     }
 
+    // Log category distribution for debugging
+    this.logger.log(
+      `[Diversity] Selected pool: ${JSON.stringify(categoryCount)} ` +
+        `(${selected.length}/${maxCount} slots filled)`,
+    );
+
     return selected;
   }
 
   /* ==================== DAY PLANNING HELPERS ==================== */
 
+  //   - Per-day category cap enforced (MAX_SAME_CATEGORY_PER_DAY)
+  //   - Day 1 gets stricter cap (MAX_SAME_CATEGORY_DAY_ONE) — it's arrival day
+  //   - Overflow items from a full day are tried on the next available day
+  //     instead of being dropped — preserves total activity count
+  //   - Logs per-day distribution for debugging
+
   private allocateAcrossDays(
     activities: SearchResultItem[],
     dayCount: number,
     maxPerDay: number,
+    preferences?: string[],
   ): SearchResultItem[][] {
     const buckets: SearchResultItem[][] = Array.from(
       { length: dayCount },
       () => [],
     );
 
-    activities.forEach((item, index) => {
-      const dayIndex = index % dayCount;
-      if (buckets[dayIndex].length < maxPerDay) buckets[dayIndex].push(item);
+    // Track category counts per day separately
+    const dayCategoryCounts: Record<string, number>[] = Array.from(
+      { length: dayCount },
+      () => ({}),
+    );
+
+    for (const item of activities) {
+      const category = this.inferCategoryFromText(
+        item.title,
+        item.content,
+        preferences,
+      );
+
+      // Try to place in the ideal day first (round-robin), then overflow
+      // to the next available day that still has capacity
+      let placed = false;
+
+      for (let attempt = 0; attempt < dayCount; attempt++) {
+        const dayIndex = attempt % dayCount;
+        const bucket = buckets[dayIndex];
+        const categoryCounts = dayCategoryCounts[dayIndex];
+
+        if (bucket.length >= maxPerDay) continue;
+
+        // Day 1 (index 0) is arrival — stricter same-category cap
+        const sameCategoryCap =
+          dayIndex === 0
+            ? PLANNER_CONFIG.DIVERSITY.MAX_SAME_CATEGORY_DAY_ONE
+            : PLANNER_CONFIG.DIVERSITY.MAX_SAME_CATEGORY_PER_DAY;
+
+        const currentCategoryCount = categoryCounts[category] || 0;
+
+        if (currentCategoryCount < sameCategoryCap) {
+          bucket.push(item);
+          categoryCounts[category] = currentCategoryCount + 1;
+          placed = true;
+          break;
+        }
+      }
+
+      // If we couldn't place respecting category caps, fall back to
+      // any day that still has capacity (score quality > strict diversity)
+      if (!placed) {
+        for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
+          if (buckets[dayIndex].length < maxPerDay) {
+            buckets[dayIndex].push(item);
+            const cat = dayCategoryCounts[dayIndex][category] || 0;
+            dayCategoryCounts[dayIndex][category] = cat + 1;
+            break;
+          }
+        }
+      }
+    }
+
+    // Log per-day distribution
+    buckets.forEach((bucket, i) => {
+      const cats = bucket.map((r) =>
+        this.inferCategoryFromText(r.title, r.content, preferences),
+      );
+      const dist: Record<string, number> = {};
+      cats.forEach((c) => {
+        dist[c] = (dist[c] || 0) + 1;
+      });
+      this.logger.log(
+        `[Diversity] Day ${i + 1}: ${bucket.length} activities — ${JSON.stringify(dist)}`,
+      );
     });
 
     return buckets;
@@ -2457,6 +2572,7 @@ export class AIController {
       selectedResults,
       dayCount,
       MAX_PER_DAY,
+      preferences,
     );
 
     const dayPlans: DayPlan[] = [];
@@ -2866,6 +2982,23 @@ export class AIController {
         )
       : preferencesFromBody;
 
+    // ── Auto-fill from stored profile if no preferences provided ─────────
+    if (userId && preferences.length === 0) {
+      try {
+        const storedPrefs = await this.tripStore.getUserPreferences(userId);
+        if (storedPrefs.length > 0) {
+          preferences.push(...storedPrefs);
+          this.logger.log(
+            `[trip-plan] Auto-filled preferences from profile: [${storedPrefs.join(', ')}] for userId=${userId}`,
+          );
+        }
+      } catch (err) {
+        this.logger.warn(
+          `[trip-plan] Failed to load stored preferences: ${(err as Error).message}`,
+        );
+      }
+    }
+
     const dayCount = this.clampDayCount(startDateStr, endDateStr);
 
     // ===============================
@@ -2980,6 +3113,20 @@ export class AIController {
           `[trip-plan] saveTripVersion failed: ${(e as Error).message}`,
         );
       }
+    }
+
+    // ── Save preferences to user profile (non-blocking) ──────────────────
+    if (userId && preferences.length > 0) {
+      this.logger.log(
+        `[trip-plan] Saving preferences for userId=${userId}: [${preferences.join(', ')}]`,
+      );
+      this.tripStore
+        .saveUserPreferences(userId, preferences)
+        .catch((e) =>
+          this.logger.warn(
+            `[trip-plan] Failed to save user preferences: ${(e as Error).message}`,
+          ),
+        );
     }
 
     // ===============================

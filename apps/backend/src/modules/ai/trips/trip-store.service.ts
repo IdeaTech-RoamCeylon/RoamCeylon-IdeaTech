@@ -1,3 +1,5 @@
+// apps/backend/src/modules/ai/trips/trip-store.service.ts
+
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
@@ -130,6 +132,92 @@ export class TripStoreService {
     return [];
   }
 
+  /**
+   * Saves the user's preferences from a trip plan request.
+   * Merges with existing preferences rather than overwriting —
+   * so preferences accumulate over time across multiple trips.
+   *
+   * Stored as: { interests: ["beach", "history", "nature"] }
+   */
+  async saveUserPreferences(
+    userId: string,
+    newPreferences: string[],
+  ): Promise<void> {
+    if (!userId || !newPreferences.length) return;
+
+    try {
+      const db = await this.ensureConnected();
+
+      const res = await db.query<{ preferences: unknown }>(
+        `SELECT preferences FROM "User" WHERE id = $1::uuid LIMIT 1`,
+        [userId],
+      );
+
+      const existing = res.rows[0]?.preferences;
+      const existingInterests: string[] =
+        existing &&
+        typeof existing === 'object' &&
+        !Array.isArray(existing) &&
+        Array.isArray((existing as Record<string, unknown>)['interests'])
+          ? ((existing as Record<string, unknown>)['interests'] as string[])
+          : [];
+
+      const merged = [
+        ...existingInterests,
+        ...newPreferences.filter(
+          (p) =>
+            !existingInterests
+              .map((e) => e.toLowerCase())
+              .includes(p.toLowerCase()),
+        ),
+      ];
+
+      await db.query(
+        `UPDATE "User" SET preferences = $1::jsonb WHERE id = $2::uuid`,
+        [JSON.stringify({ interests: merged }), userId],
+      );
+
+      // Log success so you can confirm it ran
+      this.logger.log(
+        `[TripStore] Saved preferences for userId=${userId}: [${merged.join(', ')}]`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `[TripStore] saveUserPreferences failed for ${userId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Retrieves the user's stored preferences.
+   * Returns empty array if none stored yet.
+   */
+  async getUserPreferences(userId: string): Promise<string[]> {
+    if (!userId) return [];
+
+    try {
+      const db = await this.ensureConnected();
+
+      const res = await db.query<{ preferences: unknown }>(
+        `SELECT preferences FROM "User" WHERE id = $1::uuid LIMIT 1`,
+        [userId],
+      );
+
+      const prefs = res.rows[0]?.preferences;
+      if (
+        prefs &&
+        typeof prefs === 'object' &&
+        !Array.isArray(prefs) &&
+        Array.isArray((prefs as Record<string, unknown>)['interests'])
+      ) {
+        return (prefs as Record<string, unknown>)['interests'] as string[];
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
   private mapSavedTripRow(row: SavedTripRow): SavedTrip {
     return {
       id: String(row.id),
@@ -180,6 +268,20 @@ export class TripStoreService {
     return this.mapSavedTripRow(res.rows[0]);
   }
 
+  private generateTripName(destination: string, startDate: string): string {
+    if (!destination || !startDate) return 'My AI Trip';
+
+    const dest = destination.trim();
+
+    // Parse the date and format as "Mar-25"
+    const date = new Date(startDate);
+    if (Number.isNaN(date.getTime())) return `${dest} Trip`;
+
+    const month = date.toLocaleString('en-US', { month: 'short' }); // "Mar"
+    const day = date.getDate(); // 25
+
+    return `${dest} Trip ${month}-${day}`;
+  }
   async saveTripVersion(args: {
     userId: string;
     destination: string;
@@ -233,9 +335,9 @@ export class TripStoreService {
           [
             newTripId,
             args.userId,
-            'My AI Trip', // Default name
+            this.generateTripName(args.destination, args.startDate),
             args.destination,
-            new Date(startDate), // Date object for timestamp columns
+            new Date(startDate),
             new Date(endDate),
             JSON.stringify(args.preferences ?? []),
             JSON.stringify(args.planJson ?? {}),
@@ -378,7 +480,7 @@ export class TripStoreService {
         ORDER BY version_no DESC 
         LIMIT 1
       ) tv ON true
-      WHERE t."userId" = $1
+      WHERE t."userId" = $1::uuid
       ORDER BY t."updatedAt" DESC;
     `;
 
@@ -673,7 +775,7 @@ export class TripStoreService {
             -- New format: {"rating": N}
             (pf."feedbackValue"->>'rating')::int,
             -- Legacy format: bare number stored as JSON
-            CASE jsonb_typeof(pf."feedbackValue")
+            CASE jsonb_typeof(pf."feedbackValue"::jsonb)
               WHEN 'number' THEN (pf."feedbackValue"::text)::int
               ELSE NULL
             END
