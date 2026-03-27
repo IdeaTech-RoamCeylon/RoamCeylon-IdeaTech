@@ -22,7 +22,10 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "export:training": "tsx scripts/export-training-dataset.ts",
+    "generate:synthetic-dataset": "tsx scripts/generate-synthetic-training-dataset.ts",
+    "analyze:synthetic-performance": "tsx scripts/analyze-synthetic-model-performance.ts"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.1.0",
