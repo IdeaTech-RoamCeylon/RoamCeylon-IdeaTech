@@ -31,6 +31,7 @@ export type MainStackParamList = {
   AIHome: undefined;
   AIChat: undefined;
   SavedTrips: undefined;
+  AIPlannerTesting: undefined;
 };
 
 export type LocationSelection = {

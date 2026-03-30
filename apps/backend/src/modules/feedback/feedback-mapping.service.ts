@@ -9,9 +9,7 @@ export class FeedbackMappingService {
 
   // ==============================
   // CONTROLLED LEARNING CONSTANTS
-  // ==============================
-
-  private readonly DECAY_LAMBDA = 0.02;
+  private readonly DECAY_LAMBDA = 0.025;
   private readonly PRIOR = 2;
 
   private readonly CATEGORY_DELTA = 0.1;
@@ -70,6 +68,14 @@ export class FeedbackMappingService {
     let weightedPositive = 0;
     let weightedNegative = 0;
 
+    // Raw counts for display in UserFeedbackSignal.
+    // Recalculated from scratch each time to stay accurate
+    // even when old feedback is edited (upsert replaces rating).
+    // Ratings: 4-5 = positive, 1-2 = negative, 3 = neutral
+    let positiveCount = 0;
+    let negativeCount = 0;
+    let neutralCount = 0;
+
     for (const fb of feedbacks) {
       const rating = this.extractRating(fb.feedbackValue);
       if (rating === undefined) continue;
@@ -79,21 +85,45 @@ export class FeedbackMappingService {
 
       const decayWeight = Math.exp(-this.DECAY_LAMBDA * daysOld);
 
-      // Only strong signals affect trust
-      if (rating >= 4) weightedPositive += decayWeight;
-      if (rating <= 2) weightedNegative += decayWeight;
+      if (rating >= 4) {
+        weightedPositive += decayWeight;
+        positiveCount++;
+      } else if (rating <= 2) {
+        weightedNegative += decayWeight;
+        negativeCount++;
+      } else {
+        // rating === 3 → neutral
+        neutralCount++;
+      }
     }
 
     const trustScore =
       (weightedPositive + this.PRIOR) /
       (weightedPositive + weightedNegative + this.PRIOR * 2);
 
-    const safeTrust = this.clamp01(trustScore);
+    const safeTrust = Math.max(0, Math.min(trustScore, 1));
+
+    this.logger.log(
+      `[LearningMetrics] TrustScore recalculated for ${userId}: ` +
+        `positive=${positiveCount}, negative=${negativeCount}, neutral=${neutralCount}, ` +
+        `trustScore=${safeTrust.toFixed(4)}`,
+    );
 
     await this.prisma.userFeedbackSignal.upsert({
       where: { userId },
-      create: { userId, trustScore: safeTrust },
-      update: { trustScore: safeTrust },
+      create: {
+        userId,
+        trustScore: safeTrust,
+        positiveCount,
+        negativeCount,
+        neutralCount,
+      },
+      update: {
+        trustScore: safeTrust,
+        positiveCount,
+        negativeCount,
+        neutralCount,
+      },
     });
   }
 
@@ -125,8 +155,8 @@ export class FeedbackMappingService {
 
     const newFeedbackCount = existing.feedbackCount + 1;
 
-    // Still below learning threshold → count only
-    if (newFeedbackCount <= this.MIN_FEEDBACK_FOR_CATEGORY_LEARNING) {
+    // Still below learning threshold → only count
+    if (feedbackCount < this.MIN_FEEDBACK_FOR_CATEGORY_LEARNING) {
       await this.prisma.userCategoryWeight.update({
         where: { userId_category: { userId, category } },
         data: { feedbackCount: newFeedbackCount },

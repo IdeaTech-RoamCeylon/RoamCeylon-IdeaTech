@@ -1,3 +1,4 @@
+// apps/backend/src/modules/planner/planner.controller.ts
 import {
   Controller,
   Post,
@@ -10,6 +11,7 @@ import {
   Param,
   UseInterceptors,
 } from '@nestjs/common';
+
 import { PlannerService, SavedTrip } from './planner.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -48,6 +50,53 @@ export class PlannerController {
     return this.plannerService.getHistory(req.user.userId);
   }
 
+  /**
+   * Get performance metrics
+   * NOTE: Must be declared before @Get(':id') to avoid wildcard route shadowing.
+   */
+  @Get('metrics')
+  getMetrics() {
+    return this.metricsInterceptor.getPerformanceStats();
+  }
+
+  /**
+   * Get aggregated feedback for a specific trip
+   */
+  @Get('feedback/trip/:tripId')
+  async getTripFeedback(@Param('tripId') tripId: string) {
+    return this.plannerService.getFeedbackAggregation(tripId);
+  }
+
+  /**
+   * Get aggregated feedback by destination
+   */
+  @Get('feedback/destination/:destination')
+  async getDestinationFeedback(@Param('destination') destination: string) {
+    return this.plannerService.getDestinationFeedback(destination);
+  }
+
+  /**
+   * Get aggregated feedback by category
+   */
+  @Get('feedback/category/:category')
+  async getCategoryFeedback(@Param('category') category: string) {
+    return this.plannerService.getCategoryFeedback(category);
+  }
+
+  @Post('feedback')
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async submitFeedback(
+    @Req() req: RequestWithUser,
+    @Body() body: CreateFeedbackDto,
+  ): Promise<unknown> {
+    return this.plannerService.submitFeedback(
+      req.user.userId,
+      body.tripId,
+      body.feedbackRating,
+    );
+  }
+
   @Get(':id')
   async getTrip(
     @Req() req: RequestWithUser,
@@ -71,54 +120,5 @@ export class PlannerController {
     @Param('id') id: string,
   ): Promise<SavedTrip> {
     return this.plannerService.deleteTrip(req.user.userId, id);
-  }
-
-  @Post('feedback')
-  @UseGuards(UserThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  async submitFeedback(
-    @Req() req: RequestWithUser,
-    @Body() body: CreateFeedbackDto,
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.plannerService.submitFeedback(
-      req.user.userId,
-      body.tripId,
-      body.feedbackRating,
-    );
-  }
-
-  /**
-   * Get aggregated feedback for a specific trip
-   * Day 46 Task 1: Feedback Aggregation Logic
-   */
-  @Get('feedback/trip/:tripId')
-  async getTripFeedback(@Param('tripId') tripId: string) {
-    return this.plannerService.getFeedbackAggregation(tripId);
-  }
-
-  /**
-   * Get aggregated feedback by destination
-   */
-  @Get('feedback/destination/:destination')
-  async getDestinationFeedback(@Param('destination') destination: string) {
-    return this.plannerService.getDestinationFeedback(destination);
-  }
-
-  /**
-   * Get aggregated feedback by category
-   */
-  @Get('feedback/category/:category')
-  async getCategoryFeedback(@Param('category') category: string) {
-    return this.plannerService.getCategoryFeedback(category);
-  }
-
-  /**
-   * Get performance metrics
-   * Day 46 Task 3: Performance & Stability Check
-   */
-  @Get('metrics')
-  getMetrics() {
-    return this.metricsInterceptor.getPerformanceStats();
   }
 }

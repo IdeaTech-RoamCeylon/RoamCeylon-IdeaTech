@@ -72,7 +72,28 @@ export const PLANNER_CONFIG = Object.freeze({
   } as const,
 
   DIVERSITY: {
+    // ── Global selection pool ──────────────────────────────────────────
+    // Max results of the same category allowed into the selected pool.
+    // CATEGORY_DIVISOR=4 → ceil(15/4)=4 per category globally.
+    // Lower = more diverse pool, higher = allows more concentration.
     CATEGORY_DIVISOR: 4,
+
+    // ── Per-day caps ───────────────────────────────────────────────────
+    // Hard cap: max activities of the same category allowed on any single day.
+    // Prevents "4 beaches on Day 1" even if beach scores highest.
+    MAX_SAME_CATEGORY_PER_DAY: 2,
+
+    // Day 1 is arrival — relax the cap since it's a transition day
+    // and may only have 1-2 activities total anyway.
+    MAX_SAME_CATEGORY_DAY_ONE: 1,
+
+    // ── Preference bonus slots ─────────────────────────────────────────
+    // User's preferred categories get 1 extra slot in the global pool.
+    // e.g. user prefers "beach" → beach gets ceil(15/4)+1 = 5 slots
+    // instead of 4. Everything else stays at 4.
+    PREFERRED_CATEGORY_BONUS: 1,
+
+    // ── Minimum quality gate ───────────────────────────────────────────
     EMERGENCY_THRESHOLD: 0.6,
   } as const,
 
@@ -145,6 +166,7 @@ export const PLANNER_CONFIG = Object.freeze({
   SEARCH: {
     MIN_QUERY_LENGTH: 3,
     MAX_QUERY_LENGTH: 300,
+    MAX_RESULTS_FOR_PLANNER: 15, // enough to fill multi-day trips
   } as const,
 
   THRESHOLDS: {
@@ -152,6 +174,21 @@ export const PLANNER_CONFIG = Object.freeze({
     HIGH_SCORE_COMBO: 0.7,
     PARTIAL_HIGH_CONFIDENCE: 0.5,
   } as const,
+
+  LEARNING_INFLUENCE_CAPS: {
+    // Hard limit: Feedback influence cannot exceed 15% of base score
+    FEEDBACK_INFLUENCE_MAX: 0.15,
+
+    // Hard limit: Preference override cannot exceed 22% of base score
+    // RAISED from 0.20 → 0.22 (+2%)
+    PREFERENCE_OVERRIDE_MAX: 0.22,
+
+    // Combined limit stays at 0.25 — total learning influence ceiling
+    COMBINED_LEARNING_MAX: 0.25,
+
+    DESCRIPTION: 'Prevents future runaway bias from feedback loops',
+  } as const,
+
   VALIDATION: {
     VAGUE_TERMS: [
       'things',

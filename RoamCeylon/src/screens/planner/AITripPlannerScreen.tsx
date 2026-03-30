@@ -37,8 +37,8 @@ try {
   if (MAPBOX_CONFIG.accessToken) {
     MapboxGL.setAccessToken(MAPBOX_CONFIG.accessToken);
   }
-} catch (error) {
-  console.warn('Mapbox SDK not available:', error);
+} catch {
+  // Mapbox SDK unavailable — map features disabled
 }
 
 import { TripPlannerForm } from './TripPlannerForm';
@@ -226,12 +226,15 @@ const AITripPlannerScreen = () => {
       day.activities = newActivities;
       newItinerary[dayIndex] = day;
 
+      analyticsService.trackPlannerEdit(prevPlan.tripId || 'unsaved', 'reorder_activity');
+
       return {
         ...prevPlan,
         itinerary: newItinerary
       };
     });
   }, [selectedDay, setTripPlan]);
+
 
   // ...
 
@@ -295,6 +298,8 @@ const AITripPlannerScreen = () => {
 
               newItinerary[dayIndex] = day;
 
+              analyticsService.trackPlannerEdit(prevPlan.tripId || 'unsaved', 'delete_activity');
+
               return {
                 ...prevPlan,
                 itinerary: newItinerary
@@ -306,7 +311,14 @@ const AITripPlannerScreen = () => {
     );
   }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
 
+
+  const handleSelectActivity = useCallback((activity: TripActivity) => {
+    setSelectedActivity(activity);
+    analyticsService.trackDestinationViewed(activity.description); // Using description as ID for now
+  }, []);
+
   const handleSaveTrip = useCallback(async () => {
+
     if (!tripPlan) return;
 
     if (!tripName.trim()) {
@@ -334,9 +346,11 @@ const AITripPlannerScreen = () => {
         // Save new trip
         const savedTrip = await tripStorageService.saveTrip(tripNameToSave, tripPlan);
         analyticsService.logTripSaved(savedTrip.id, tripNameToSave);
+        analyticsService.trackTripAccepted(savedTrip.id);
         setIsSaving(false);
         Alert.alert('Success', 'Trip saved successfully!');
       }
+
     } catch (error) {
       setIsSaving(false);
       Alert.alert(
@@ -749,7 +763,8 @@ const AITripPlannerScreen = () => {
                         key={`${selectedDay}-${index}`}
                         id={`marker-${index}`}
                         coordinate={activity.coordinate}
-                        onSelected={() => setSelectedActivity(activity)}
+                        onSelected={() => handleSelectActivity(activity)}
+
                       >
                         <View style={styles.markerContainer}>
                           <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
@@ -771,7 +786,8 @@ const AITripPlannerScreen = () => {
                   activity={activity}
                   index={index}
                   isSelected={selectedActivity === activity}
-                  onPress={() => setSelectedActivity(activity)}
+                  onPress={() => handleSelectActivity(activity)}
+
                   onMoveUp={() => handleMoveActivity(index, 'up')}
                   onMoveDown={() => handleMoveActivity(index, 'down')}
                   onDelete={() => handleDeleteActivity(index)}

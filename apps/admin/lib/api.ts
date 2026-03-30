@@ -1,12 +1,31 @@
 // apps/admin/lib/api.ts
 
+// ─── Engagement Event Types (ML Training Signals) ─────────────────────────────
+export type EngagementEventType =
+  | 'trip_clicked'
+  | 'destination_viewed'
+  | 'planner_edit'
+  | 'trip_accepted'
+  | 'trip_rejected'
+  | 'recommendation_ignored'
+  | 'recommendation_saved'
+  | 'recommendation_disliked';
+
+export interface EngagementEventCount {
+  eventType: EngagementEventType;
+  count: number;
+}
+
+export interface EngagementStatsResponse {
+  totalEvents: number;
+  breakdown: EngagementEventCount[];
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 export interface PlannerDailyMetric {
   eventType: string;
-  _count: {
-    _all: number;
-  };
+  count: number;
 }
 
 export interface PlannerDailyStatsResponse {
@@ -35,17 +54,18 @@ export interface FeedbackRateMetric {
 }
 
 export interface SystemErrorMetric {
-  totalErrors: number;
-  errorRate: number;
+  errorCount: number;
+  totalRequests: number;
+  errorRate: string | number;
 }
 
 export async function getPlannerDailyStats(): Promise<PlannerDailyStatsResponse | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/analytics/planner/daily`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch planner stats');
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching planner daily stats:', error);
+    const json = await res.json();
+    return json.data;
+  } catch {
     return null;
   }
 }
@@ -54,9 +74,9 @@ export async function getFeedbackRate(): Promise<FeedbackRateMetric | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/analytics/feedback/rate`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch feedback rate');
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching feedback rate:', error);
+    const json = await res.json();
+    return json.data;
+  } catch {
     return null;
   }
 }
@@ -65,9 +85,133 @@ export async function getSystemErrors(): Promise<SystemErrorMetric | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/analytics/system/errors`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch system errors');
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching system errors:', error);
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fire-and-forget engagement event tracker.
+ * Safe to call from client components — never throws, never blocks.
+ */
+export function trackEngagementEvent(
+  event: EngagementEventType,
+  payload: Record<string, unknown> = {},
+): void {
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+  // Intentionally NOT awaited
+  fetch(`${API_BASE}/analytics/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event, timestamp: Date.now(), ...payload }),
+    keepalive: true,
+  }).catch(() => {
+    // Silently swallow — tracking must never surface errors to users
+  });
+}
+
+/**
+ * Fetches aggregate engagement event counts for the dashboard.
+ * Returns null on any failure (graceful degradation).
+ */
+export async function getEngagementStats(): Promise<EngagementStatsResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/analytics/events/summary`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) throw new Error('Failed to fetch engagement stats');
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Personalized Recommendations ────────────────────────────────────────────
+export interface RecommendationItem {
+  id: string;
+  title: string;
+  description: string;
+  /** Combined/final ML confidence score 0–1 (used for the public progress bar) */
+  score?: number;
+  /** Display badge, e.g. "Trending", "Personalized", "Popular" */
+  tag?: string;
+  destinationId?: string;
+  /**
+   * Which engine produced this recommendation.
+   * 'ml'         → pure ML model output
+   * 'rule_based' → business logic / heuristic engine
+   * 'hybrid'     → blended ML + rule-based
+   */
+  source?: 'ml' | 'rule_based' | 'hybrid';
+
+  // ─── Debug-only scoring fields ────────────────────────────────────────────
+  /** Raw ML model output score 0–1 (only present when backend sends debug data) */
+  mlScore?: number;
+  /** Rule-based heuristic score 0–1 (business logic layer) */
+  ruleBasedScore?: number;
+  /** Final position in the ranked results list (1-indexed) */
+  rankPosition?: number;
+}
+
+export interface PersonalizedRecommendationsResponse {
+  userId?: string;
+  generatedAt: string;
+  items: RecommendationItem[];
+  /** true when the model is live; false means mock/fallback data */
+  isMock: boolean;
+}
+
+/**
+ * Fetches personalized recommendations from the ML service.
+ * Currently returns mock data while the model is being trained.
+ * Returns null on any network/server failure.
+ */
+export async function getPersonalizedRecommendations(options?: { signal?: AbortSignal }): Promise<PersonalizedRecommendationsResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/recommendations/personalized`, {
+      next: { revalidate: 120 },
+      signal: options?.signal,
+    });
+    if (!res.ok) throw new Error('Failed to fetch recommendations');
+    const json = await res.json();
+
+    // Backend returns: { user_id, recommendations: [{ destination_id, final_score, ml_score, rule_score, source, reason }] }
+    // Map to the RecommendationItem shape the UI expects
+    const recs: Array<{
+      destination_id: string;
+      final_score: number;
+      ml_score: number;
+      rule_score: number;
+      source: string;
+      reason: string;
+    }> = json.recommendations ?? [];
+
+    return {
+      userId: json.user_id,
+      generatedAt: new Date().toISOString(),
+      isMock: true, // backend currently uses mock rule-based data
+      items: recs.map((r, i) => ({
+        id: r.destination_id,
+        title: r.destination_id
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase()),
+        description: r.reason,
+        score: r.final_score,
+        mlScore: r.ml_score,
+        ruleBasedScore: r.rule_score,
+        rankPosition: i + 1,
+        source:
+          r.source === 'hybrid'
+            ? 'hybrid'
+            : r.source === 'rule-based'
+              ? 'rule_based'
+              : 'ml',
+      })),
+    };
+  } catch {
     return null;
   }
 }

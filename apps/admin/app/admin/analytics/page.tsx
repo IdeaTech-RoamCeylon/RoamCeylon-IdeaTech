@@ -1,22 +1,65 @@
 import { MetricCard } from "../../../components/ui/MetricCard";
 import { LineChart } from "../../../components/charts/LineChart";
 import { BarChart } from "../../../components/charts/BarChart";
-import { Map, Cpu, Star, AlertTriangle } from 'lucide-react';
-import { getPlannerDailyStats, getFeedbackRate, getSystemErrors } from "../../../lib/api";
+import {
+  Map, Cpu, Star, AlertTriangle,
+  MousePointerClick, Globe, PenLine, CheckCircle2, XCircle, EyeOff, Bookmark, ThumbsDown
+} from 'lucide-react';
+import {
+  getPlannerDailyStats,
+  getFeedbackRate,
+  getSystemErrors,
+  getEngagementStats,
+  getPersonalizedRecommendations,
+  type EngagementEventType,
+} from "../../../lib/api";
+import { isFeatureEnabled } from "../../../lib/featureFlags";
 import { DashboardRefresh } from "../../../components/DashboardRefresh";
+import { SystemHealthMonitor } from "../../../components/SystemHealthMonitor";
+import dynamic from 'next/dynamic';
+
+const PersonalizedRecommendations = dynamic(
+  () => import('../../../components/recommendations/PersonalizedRecommendations').then((mod) => mod.PersonalizedRecommendations),
+  { ssr: false, loading: () => <div className="h-48 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900 rounded-xl" /> }
+);
 
 export const revalidate = 60; // 60 seconds Cache for page level revalidation
 
+// ─── Engagement event display config ─────────────────────────────────────────
+const ENGAGEMENT_EVENTS: {
+  key: EngagementEventType;
+  label: string;
+  icon: React.ReactNode;
+  colorVariant: 'blue' | 'purple' | 'emerald' | 'rose' | 'orange';
+}[] = [
+  { key: 'trip_clicked',       label: 'Trips Clicked',        icon: <MousePointerClick className="w-5 h-5" />, colorVariant: 'blue' },
+  { key: 'destination_viewed', label: 'Destinations Viewed',  icon: <Globe className="w-5 h-5" />,             colorVariant: 'purple' },
+  { key: 'planner_edit',       label: 'Planner Edits',        icon: <PenLine className="w-5 h-5" />,           colorVariant: 'orange' },
+  { key: 'trip_accepted',      label: 'Trips Accepted',       icon: <CheckCircle2 className="w-5 h-5" />,      colorVariant: 'emerald' },
+  { key: 'trip_rejected',      label: 'Trips Rejected',       icon: <XCircle className="w-5 h-5" />,           colorVariant: 'rose' },
+  { key: 'recommendation_ignored', label: 'Recs Ignored',     icon: <EyeOff className="w-5 h-5" />,            colorVariant: 'rose' },
+  { key: 'recommendation_disliked',label: 'Recs Disliked',    icon: <ThumbsDown className="w-5 h-5" />,        colorVariant: 'rose' },
+  { key: 'recommendation_saved',   label: 'Recs Saved',       icon: <Bookmark className="w-5 h-5" />,          colorVariant: 'emerald' },
+];
+
 export default async function AnalyticsPage() {
-  const [plannerDaily, feedbackRate, systemErrors] = await Promise.all([
-    getPlannerDailyStats(),
-    getFeedbackRate(),
-    getSystemErrors()
-  ]);
+  // Evaluate feature flag — admin dashboard has no session so userId='admin'
+  const mlRecsEnabled = isFeatureEnabled('ml_recommendations_enabled', 'admin');
+
+  // All data fetches run in parallel; each fails gracefully to null
+  const [plannerDaily, feedbackRate, systemErrors, engagementStats, recommendationsData] =
+    await Promise.all([
+      getPlannerDailyStats(),
+      getFeedbackRate(),
+      getSystemErrors(),
+      getEngagementStats(),
+      // Skip the fetch entirely when the flag is off — returns null instantly
+      mlRecsEnabled ? getPersonalizedRecommendations() : Promise.resolve(null),
+    ]);
 
   // Aggregate stats from the Daily Planner Metrics
   const breakdown = plannerDaily?.breakdown || [];
-  const plannerGenerated = breakdown.find(p => p.eventType === 'planner_generated')?._count._all || 0;
+  const plannerGenerated = breakdown.find(p => p.eventType === 'planner_generated')?.count || 0;
   
   // Format Response Time 
   const avgResponseMs = plannerDaily?.avgResponseTimeMs || 0;
@@ -35,19 +78,27 @@ export default async function AnalyticsPage() {
     count: stat.count
   })) || [];
 
-  // Define Thresholds
+  // Resolve counts for each engagement event from the summary breakdown
+  const engagementBreakdown = engagementStats?.breakdown || [];
+  function getEventCount(eventKey: EngagementEventType): string {
+    const found = engagementBreakdown.find(e => e.eventType === eventKey);
+    return found ? found.count.toLocaleString() : '—';
+  }
+
+  // Define Thresholds for server-side warnings list
   const ERROR_RATE_THRESHOLD = 5; // %
   const RESPONSE_TIME_THRESHOLD = 2000; // ms
   const POSITIVE_FEEDBACK_THRESHOLD = 80; // %
-  const SYSTEM_HIGH_LOAD_MS = 5000;
-
-  const isHighLoad = avgResponseMs > SYSTEM_HIGH_LOAD_MS || (systemErrors && systemErrors.errorRate > 10) || !plannerDaily;
 
   const warnings = [];
-  if (systemErrors && systemErrors.errorRate > ERROR_RATE_THRESHOLD) {
+  const parsedErrorRate = typeof systemErrors?.errorRate === 'string' 
+    ? parseFloat(systemErrors.errorRate) 
+    : (systemErrors?.errorRate || 0);
+
+  if (systemErrors && parsedErrorRate > ERROR_RATE_THRESHOLD) {
     warnings.push({
       id: 'error_rate',
-      message: `System error rate is high (${systemErrors.errorRate}%).`,
+      message: `System error rate is high (${systemErrors.errorRate}).`,
       type: 'critical'
     });
   }
@@ -72,15 +123,7 @@ export default async function AnalyticsPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-2xl font-bold tracking-tight">Overview</h2>
-            {isHighLoad && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200 dark:border-rose-900 shadow-sm transition-all">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                </span>
-                System under high load
-              </span>
-            )}
+            <SystemHealthMonitor />
           </div>
           <p className="text-zinc-500 dark:text-zinc-400 mt-1">
             Track user engagement and platform metrics.
@@ -113,7 +156,7 @@ export default async function AnalyticsPage() {
         </div>
       )}
 
-      {/* Metric Cards */}
+      {/* Core Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Planner Requests (Today)"
@@ -136,11 +179,34 @@ export default async function AnalyticsPage() {
         />
         <MetricCard
           title="System Errors (24h)"
-          value={systemErrors?.totalErrors?.toString() || '0'}
+          value={systemErrors?.errorCount?.toString() || '0'}
           icon={<AlertTriangle className="w-5 h-5" />}
-          trend={systemErrors ? { value: systemErrors.errorRate, label: "error rate" } : undefined}
+          trend={systemErrors ? { value: parsedErrorRate, label: "error rate" } : undefined}
           colorVariant="rose"
         />
+      </div>
+
+      {/* ─── Engagement Events — ML Training Signals ───────────────────────── */}
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            Engagement Events
+          </h3>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+            ML Signals
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {ENGAGEMENT_EVENTS.map(({ key, label, icon, colorVariant }) => (
+            <MetricCard
+              key={key}
+              title={label}
+              value={getEventCount(key)}
+              icon={icon}
+              colorVariant={colorVariant}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Charts Section */}
@@ -187,6 +253,11 @@ export default async function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Personalized Recommendations ──────────────────────────────────── */}
+      <PersonalizedRecommendations
+        items={recommendationsData?.items}
+      />
     </div>
   );
 }

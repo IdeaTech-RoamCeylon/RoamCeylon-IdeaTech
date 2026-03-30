@@ -1,28 +1,25 @@
-// modules/feedback/feedback.module.ts
+// apps/backend/src/modules/feedback/feedback.module.ts
 
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma/prisma.module';
 import { FeedbackService } from './feedback.service';
 import { FeedbackMappingService } from './feedback-mapping.service';
-import { RankingService } from './ranking.service';
-import { BiasMonitorService } from './bias-monitor.service';
-import { AggregationValidatorService } from './aggregation-validator.service';
+import { FeedbackQueueService } from './feedback-queue.service';
+import { FeedbackRankingService } from './ranking.service';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
   providers: [
     FeedbackService,
     FeedbackMappingService,
-    RankingService,
-    BiasMonitorService,
-    AggregationValidatorService,
+    FeedbackQueueService,
+    FeedbackRankingService,
   ],
   exports: [
     FeedbackService,
     FeedbackMappingService,
-    RankingService,
-    BiasMonitorService,
-    AggregationValidatorService,
+    FeedbackQueueService,
+    FeedbackRankingService,
   ],
 })
 export class FeedbackModule {}

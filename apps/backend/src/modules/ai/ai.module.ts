@@ -8,12 +8,15 @@ import { SearchService } from './retrieval/search.service';
 import { TripStoreService } from './trips/trip-store.service';
 import { PlannerModule } from '../planner/planner.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { FeedbackModule } from '../feedback/feedback.module';
+import { AIDecisionLoggerService } from './decision/ai-decision-logger.service';
 
 @Module({
   imports: [
     ConfigModule,
     PlannerModule,
     AnalyticsModule,
+    FeedbackModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 seconds
@@ -22,6 +25,12 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     ]),
   ],
   controllers: [AIController],
-  providers: [AIService, EmbeddingService, SearchService, TripStoreService],
+  providers: [
+    AIService,
+    EmbeddingService,
+    SearchService,
+    TripStoreService,
+    AIDecisionLoggerService,
+  ],
 })
 export class AIModule {}
