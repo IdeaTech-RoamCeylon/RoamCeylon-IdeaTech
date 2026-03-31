@@ -3,6 +3,7 @@ import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateOtpDto } from './dto/create-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 
 @Controller('auth')
 // @UseGuards(ThrottlerGuard)
@@ -34,5 +35,14 @@ export class AuthController {
       verifyOtpDto.phoneNumber,
       verifyOtpDto.otp,
     );
+  }
+
+  @Post('google')
+  async googleSignIn(@Body() googleAuthDto: GoogleAuthDto): Promise<{
+    accessToken: string;
+    user: { id: string; email: string; name: string; googleId: string };
+  }> {
+    this.logger.log('Auth google-signin triggered');
+    return this.authService.googleSignIn(googleAuthDto.idToken);
   }
 }

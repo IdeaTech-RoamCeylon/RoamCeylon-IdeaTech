@@ -1,13 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
+  private googleClient: OAuth2Client;
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   sendOtp(_phoneNumber: string): { message: string } {
@@ -45,5 +54,62 @@ export class AuthService {
         phoneNumber: user.phoneNumber,
       },
     };
+  }
+
+  async googleSignIn(idToken: string): Promise<{
+    accessToken: string;
+    user: { id: string; email: string; name: string; googleId: string };
+  }> {
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new UnauthorizedException('Invalid Google token');
+      }
+
+      const { sub: googleId, email, name, picture: profilePicture } = payload;
+
+      if (!email || !googleId) {
+        throw new UnauthorizedException('Missing required data from Google');
+      }
+
+      // Upsert user by googleId
+      const user = await this.prisma.user.upsert({
+        where: { googleId },
+        update: {
+          email,
+          name,
+          profilePicture,
+          authProvider: 'google',
+        },
+        create: {
+          googleId,
+          email,
+          name,
+          profilePicture,
+          authProvider: 'google',
+        },
+      });
+
+      // Payload for JWT
+      const jwtPayload = { username: email, sub: user.id };
+
+      return {
+        accessToken: this.jwtService.sign(jwtPayload),
+        user: {
+          id: user.id,
+          email: user.email!,
+          name: user.name!,
+          googleId: user.googleId!,
+        },
+      };
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      throw new UnauthorizedException('Authentication failed');
+    }
   }
 }

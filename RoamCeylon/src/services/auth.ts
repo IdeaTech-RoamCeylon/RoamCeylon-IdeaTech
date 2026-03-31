@@ -124,6 +124,40 @@ export const verifyOtp = async (
   }
 };
 
+export const googleSignIn = async (
+  idToken: string
+): Promise<{ accessToken: string; user: { id: string; email: string; name: string } }> => {
+  try {
+    const response = await apiService.post<ApiResponse<{ accessToken: string; user: { id: string; email: string; name: string } }>>('/auth/google', {
+      idToken,
+    });
+
+    const accessToken = response.data?.accessToken;
+
+    if (!accessToken) {
+      logger.error('Google Sign-In response missing token:', response);
+      throw new Error('No access token received from server');
+    }
+
+    // Store token and user ID if verification successful
+    await storeAuthToken(accessToken);
+
+    const user = response.data?.user;
+
+    if (user?.id) {
+      await storeUserId(user.id);
+    }
+
+    return {
+      accessToken,
+      user: user!
+    };
+  } catch (error) {
+    logger.error('Google Sign-In error:', error);
+    throw error;
+  }
+};
+
 export const getMe = async (): Promise<UserProfile> => {
   try {
     const response = await apiService.get<ApiResponse<UserProfile>>('/users/me');
