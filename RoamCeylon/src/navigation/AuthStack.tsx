@@ -6,6 +6,7 @@ import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import PhoneEntryScreen from '../screens/auth/PhoneEntryScreen';
 import OTPScreen from '../screens/auth/OTPScreen';
 import ProfileSetupScreen from '../screens/auth/ProfileSetupScreen';
+import GoogleSignInScreen from '../screens/auth/GoogleSignInScreen';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
@@ -22,6 +23,7 @@ const AuthStack = () => {
       <Stack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+      <Stack.Screen name="GoogleSignIn" component={GoogleSignInScreen} />
     </Stack.Navigator>
   );
 };

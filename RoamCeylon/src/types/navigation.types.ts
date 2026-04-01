@@ -6,6 +6,7 @@ export type AuthStackParamList = {
   PhoneEntry: undefined;
   OTP: { phoneNumber: string };
   ProfileSetup: undefined;
+  GoogleSignIn: undefined;
 };
 
 export type MainStackParamList = {

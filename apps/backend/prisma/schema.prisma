@@ -41,15 +41,18 @@ model SystemMetadata {
 }
 
 model User {
-  id          String    @id @default(uuid())
-  phoneNumber String    @unique @map("phone")
-  name        String?
-  createdAt   DateTime  @default(now())
-  email       String?
-  updatedAt   DateTime  @default(now())
-  birthday    DateTime?
-  gender      String?
-  preferences Json?
+  id           String    @id @default(uuid())
+  phoneNumber  String?   @unique @map("phone")
+  name         String?
+  createdAt    DateTime  @default(now())
+  email        String?
+  updatedAt    DateTime  @default(now()) @updatedAt
+  birthday     DateTime?
+  gender       String?
+  preferences  Json?
+  googleId     String?   @unique @map("google_id")
+  authProvider String?   @default("phone") @map("auth_provider")
+  profilePicture String? @map("profile_picture")
 }
 
 model embeddings {
