@@ -10,8 +10,14 @@ import * as NavigationBar from 'expo-navigation-bar';
 const { width } = Dimensions.get('window');
 
 const SplashScreen = () => {
-  // No navigation needed as there is no button
-  const navigation = useNavigation();
+  // Use try-catch to safely handle cases where SplashScreen is rendered outside a NavigationContainer
+  // (like during the initial auth loading state in RootNavigator)
+  let navigation: any;
+  try {
+    navigation = useNavigation();
+  } catch (e) {
+    navigation = null;
+  }
   
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -34,20 +40,22 @@ const SplashScreen = () => {
         <Text style={styles.title}>Roam Ceylon</Text>
         <Text style={styles.subtitle}>Unlock the Wonders of Sri Lanka</Text>
         
+        {navigation && (
           <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('Welcome' as never)}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#16a669', '#b8e36f']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.buttonGradient}
+            style={styles.button}
+            onPress={() => navigation.navigate('Welcome' as never)}
+            activeOpacity={0.8}
           >
-            <Text style={styles.buttonText}>Get Started</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#16a669', '#b8e36f']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.buttonText}>Get Started</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Replace require(...) with the path to your actual skyline image */}
