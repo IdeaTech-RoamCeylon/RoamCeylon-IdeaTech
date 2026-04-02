@@ -97,19 +97,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    fontSize: 38,
+    fontSize: 42,
     fontWeight: 'bold',
     // A dark teal color sampled from the text in the image
-    color: '#1B7F6B',
+    color: '#197d6e',
+    marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    // A slightly darker, grayish-teal color
-    color: '#3E5047',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#72c59d',
     marginTop: 5,
     textAlign: 'center',
-    fontWeight: '600',
   },
   skyline: {
     position: 'absolute',

@@ -4,15 +4,16 @@ import { createStackNavigator } from '@react-navigation/stack';
 import AuthStack from './AuthStack';
 import MainStack from './MainStack';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import SplashScreen from '../screens/auth/SplashScreen';
 
 const RootStack = createStackNavigator();
 
 const Navigation = () => {
   const { isAuthenticated, isLoading, isProfileComplete } = useAuth();
 
+  // Show splash while checking stored auth token — prevents white flash on startup
   if (isLoading) {
-    // You can replace this with a loading screen component
-    return null;
+    return <SplashScreen />;
   }
 
   return (
