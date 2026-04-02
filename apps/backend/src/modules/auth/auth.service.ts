@@ -51,7 +51,7 @@ export class AuthService {
       user: {
         id: user.id,
 
-        phoneNumber: user.phoneNumber,
+        phoneNumber: user.phoneNumber ?? '',
       },
     };
   }
