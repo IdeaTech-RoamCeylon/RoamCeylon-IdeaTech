@@ -15,6 +15,9 @@ export class AuthService {
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
+      // Empty string is required for native serverAuthCode flow (not browser-based OAuth)
+      '',
     );
   }
 
@@ -56,13 +59,21 @@ export class AuthService {
     };
   }
 
-  async googleSignIn(idToken: string): Promise<{
+  async googleSignIn(code: string): Promise<{
     accessToken: string;
     user: { id: string; email: string; name: string; googleId: string };
   }> {
     try {
+      // Exchange authorization code for tokens
+      const { tokens } = await this.googleClient.getToken(code);
+
+      if (!tokens.id_token) {
+        throw new UnauthorizedException('No ID token received from Google');
+      }
+
+      // Verify the ID token
       const ticket = await this.googleClient.verifyIdToken({
-        idToken,
+        idToken: tokens.id_token,
         audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
       });
 

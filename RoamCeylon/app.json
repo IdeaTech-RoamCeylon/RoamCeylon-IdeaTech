@@ -2,7 +2,7 @@
   "expo": {
     "name": "RoamCeylon",
     "slug": "RoamCeylon",
-    "scheme": "roamceylon",
+    "scheme": ["roamceylon", "com.googleusercontent.apps.770657770767-g6o1grdjcfsohh7cg8dp6qabst4kf7nf"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/RoamCeylon.png",
@@ -40,6 +40,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "@react-native-google-signin/google-signin",
       [
         "@rnmapbox/maps",
         {

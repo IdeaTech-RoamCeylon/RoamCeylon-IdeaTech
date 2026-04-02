@@ -43,6 +43,6 @@ export class AuthController {
     user: { id: string; email: string; name: string; googleId: string };
   }> {
     this.logger.log('Auth google-signin triggered');
-    return this.authService.googleSignIn(googleAuthDto.idToken);
+    return this.authService.googleSignIn(googleAuthDto.code);
   }
 }

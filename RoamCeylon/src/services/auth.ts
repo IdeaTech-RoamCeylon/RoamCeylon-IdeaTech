@@ -125,11 +125,11 @@ export const verifyOtp = async (
 };
 
 export const googleSignIn = async (
-  idToken: string
+  code: string
 ): Promise<{ accessToken: string; user: { id: string; email: string; name: string } }> => {
   try {
     const response = await apiService.post<ApiResponse<{ accessToken: string; user: { id: string; email: string; name: string } }>>('/auth/google', {
-      idToken,
+      code,
     });
 
     const accessToken = response.data?.accessToken;
@@ -157,6 +157,7 @@ export const googleSignIn = async (
     throw error;
   }
 };
+
 
 export const getMe = async (): Promise<UserProfile> => {
   try {
