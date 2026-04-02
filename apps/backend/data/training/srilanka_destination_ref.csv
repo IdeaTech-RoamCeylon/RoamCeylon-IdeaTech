@@ -1,0 +1,101 @@
+dest_id,destination,primary_category,secondary_category,base_appeal,trip_count,booked_users,weighted_engagement,review_count,popularity_score,bayesian_avg_rating,Sightseeing_score,Culture_score,History_score,Nature_score,Beach_score,Adventure_score,Relaxation_score
+dest_1,Sigiriya Rock Fortress,History,Sightseeing,0.96,29,4,49.5,8,0.8286,4.8,0.9,0.72,0.96,0.55,0.0,0.0,0.0
+dest_2,Temple of the Tooth (Kandy),Culture,History,0.95,24,2,40.0,7,0.7583,4.66,0.75,0.95,0.88,0.0,0.0,0.0,0.4
+dest_3,Galle Fort,History,Sightseeing,0.93,29,1,46.0,8,0.8104,4.85,0.88,0.7,0.93,0.0,0.0,0.0,0.52
+dest_4,Yala National Park,Nature,Adventure,0.92,40,9,75.5,14,0.9606,4.62,0.72,0.0,0.0,0.92,0.0,0.85,0.0
+dest_5,Unawatuna Beach,Beach,Relaxation,0.88,32,4,54.0,7,0.8299,4.63,0.45,0.0,0.0,0.0,0.88,0.5,0.82
+dest_6,Ella Rock,Adventure,Nature,0.87,32,6,50.0,9,0.8138,4.56,0.75,0.0,0.0,0.82,0.0,0.87,0.4
+dest_7,Mirissa Beach,Beach,Relaxation,0.89,23,3,36.0,7,0.7177,4.61,0.55,0.0,0.0,0.0,0.89,0.62,0.84
+dest_8,Anuradhapura Sacred City,History,Culture,0.91,29,4,54.5,8,0.8232,4.76,0.75,0.86,0.91,0.38,0.0,0.0,0.0
+dest_9,Horton Plains National Park,Nature,Adventure,0.85,20,2,30.5,4,0.6621,4.46,0.7,0.0,0.0,0.85,0.0,0.8,0.35
+dest_10,Nuwara Eliya Tea Estates,Sightseeing,Nature,0.84,26,3,47.0,8,0.7476,4.47,0.84,0.45,0.0,0.78,0.0,0.0,0.65
+dest_11,Polonnaruwa Ancient City,History,Culture,0.9,27,5,56.5,11,0.8067,4.65,0.78,0.82,0.9,0.4,0.0,0.0,0.0
+dest_12,Arugam Bay,Adventure,Beach,0.86,34,4,52.0,7,0.8314,4.59,0.48,0.0,0.0,0.0,0.84,0.86,0.65
+dest_13,Sinharaja Rainforest,Nature,Adventure,0.88,23,5,37.5,5,0.7187,4.63,0.55,0.0,0.0,0.88,0.0,0.75,0.0
+dest_14,Nine Arches Bridge Ella,Sightseeing,Nature,0.83,27,3,40.0,4,0.7328,4.46,0.83,0.0,0.0,0.68,0.0,0.45,0.0
+dest_15,Dambulla Cave Temple,Culture,History,0.89,27,6,51.5,10,0.7875,4.57,0.8,0.89,0.85,0.0,0.0,0.0,0.0
+dest_16,Hikkaduwa Beach,Beach,Adventure,0.85,32,4,55.0,8,0.8191,4.53,0.6,0.0,0.0,0.0,0.85,0.78,0.55
+dest_17,Adams Peak (Sri Pada),Adventure,Culture,0.87,27,7,59.0,14,0.8004,4.57,0.55,0.8,0.65,0.62,0.0,0.87,0.0
+dest_18,Pinnawala Elephant Orphanage,Sightseeing,Nature,0.82,25,4,40.0,6,0.7164,4.53,0.82,0.45,0.0,0.7,0.0,0.0,0.0
+dest_19,Trincomalee Beach,Beach,Nature,0.84,24,3,39.5,7,0.719,4.68,0.0,0.0,0.0,0.65,0.84,0.55,0.72
+dest_20,Udawalawe National Park,Nature,Sightseeing,0.83,24,3,34.0,5,0.6944,4.46,0.78,0.0,0.0,0.83,0.0,0.65,0.0
+dest_21,Kandy Lake & Peradeniya Gardens,Sightseeing,Relaxation,0.8,34,3,55.0,8,0.8121,4.38,0.8,0.52,0.0,0.68,0.0,0.0,0.75
+dest_22,Bentota Beach,Beach,Relaxation,0.86,36,6,64.5,12,0.8766,4.49,0.42,0.0,0.0,0.0,0.86,0.58,0.82
+dest_23,Minneriya National Park,Nature,Sightseeing,0.84,24,4,34.0,5,0.6973,4.44,0.8,0.0,0.0,0.84,0.0,0.62,0.0
+dest_24,Colombo National Museum,Culture,History,0.75,21,4,41.5,8,0.6604,4.35,0.6,0.75,0.72,0.0,0.0,0.0,0.0
+dest_25,Gangaramaya Temple Colombo,Culture,Sightseeing,0.78,27,3,45.5,8,0.7292,4.44,0.72,0.78,0.55,0.0,0.0,0.0,0.0
+dest_26,Knuckles Mountain Range,Nature,Adventure,0.82,32,6,52.0,8,0.8018,4.57,0.6,0.0,0.0,0.82,0.0,0.78,0.45
+dest_27,Wilpattu National Park,Nature,Adventure,0.8,21,5,38.5,7,0.6739,4.48,0.58,0.0,0.0,0.8,0.0,0.74,0.0
+dest_28,Nilaveli Beach,Beach,Relaxation,0.81,27,5,44.5,7,0.7383,4.48,0.0,0.0,0.0,0.55,0.81,0.48,0.76
+dest_29,Ravana Falls,Sightseeing,Nature,0.79,29,2,38.0,5,0.7285,4.46,0.79,0.0,0.0,0.72,0.0,0.5,0.0
+dest_30,Kitulgala White Water Rafting,Adventure,Nature,0.83,19,2,39.0,8,0.6704,4.47,0.48,0.0,0.0,0.7,0.0,0.83,0.0
+dest_31,Negombo Beach & Fish Market,Beach,Culture,0.76,31,8,56.0,9,0.7761,4.31,0.45,0.65,0.0,0.0,0.76,0.0,0.6
+dest_32,Pigeon Island Marine Sanctuary,Adventure,Beach,0.84,27,4,45.5,7,0.7511,4.47,0.58,0.0,0.0,0.72,0.78,0.84,0.0
+dest_33,Jaffna Fort,History,Culture,0.77,20,4,42.0,7,0.6613,4.35,0.62,0.68,0.77,0.0,0.0,0.0,0.0
+dest_34,Nainativu Island Temple,Culture,Sightseeing,0.74,33,4,60.5,9,0.7982,4.38,0.65,0.74,0.52,0.42,0.0,0.0,0.0
+dest_35,Weligama Bay,Beach,Relaxation,0.82,23,1,31.0,4,0.6766,4.5,0.55,0.0,0.0,0.0,0.82,0.6,0.76
+dest_36,Mihintale Buddhist Site,History,Culture,0.8,25,3,43.5,8,0.7198,4.57,0.68,0.74,0.8,0.42,0.0,0.0,0.0
+dest_37,Ruwanwelisaya Stupa,Culture,History,0.83,27,5,40.5,6,0.7344,4.47,0.7,0.83,0.78,0.0,0.0,0.0,0.0
+dest_38,Gregory Lake Nuwara Eliya,Relaxation,Sightseeing,0.75,24,3,42.0,7,0.6843,4.35,0.7,0.0,0.0,0.58,0.0,0.35,0.75
+dest_39,Ambuluwawa Tower,Sightseeing,Adventure,0.72,28,3,41.0,6,0.702,4.38,0.72,0.0,0.0,0.55,0.0,0.65,0.0
+dest_40,Turtle Beach Kosgoda,Sightseeing,Beach,0.73,30,5,48.5,7,0.7425,4.45,0.73,0.0,0.0,0.65,0.55,0.0,0.0
+dest_41,Gal Oya National Park,Nature,Adventure,0.78,29,5,48.5,9,0.7489,4.33,0.52,0.0,0.0,0.78,0.0,0.7,0.0
+dest_42,Tangalle Beach,Beach,Relaxation,0.8,21,2,36.5,7,0.6686,4.48,0.42,0.0,0.0,0.5,0.8,0.0,0.76
+dest_43,Kataragama Sacred Town,Culture,History,0.79,35,6,66.5,10,0.849,4.46,0.65,0.79,0.72,0.0,0.0,0.0,0.0
+dest_44,Batticaloa Lagoon,Nature,Relaxation,0.71,18,1,30.0,4,0.5908,4.26,0.52,0.38,0.0,0.71,0.0,0.0,0.65
+dest_45,Kalpitiya Kite Surfing,Adventure,Beach,0.8,38,5,63.0,10,0.8678,4.53,0.48,0.0,0.0,0.6,0.72,0.8,0.0
+dest_46,Velgam Vehera Temple,History,Culture,0.68,28,2,41.0,5,0.685,4.28,0.0,0.62,0.68,0.45,0.0,0.0,0.0
+dest_47,Little Adams Peak,Adventure,Sightseeing,0.78,32,5,52.0,7,0.7863,4.52,0.72,0.0,0.0,0.65,0.0,0.78,0.0
+dest_48,Beruwala Beach,Beach,Relaxation,0.74,27,4,42.5,8,0.7031,4.3,0.38,0.45,0.0,0.0,0.74,0.0,0.7
+dest_49,Ritigala Ruins,History,Nature,0.7,35,4,56.0,9,0.7815,4.19,0.45,0.0,0.7,0.65,0.0,0.52,0.0
+dest_50,Dikwella Beach,Beach,Relaxation,0.72,26,6,55.5,9,0.7221,4.27,0.4,0.0,0.0,0.0,0.72,0.0,0.68
+dest_51,Talalla Beach,Beach,Relaxation,0.71,32,5,55.0,8,0.7629,4.29,0.35,0.0,0.0,0.48,0.71,0.0,0.66
+dest_52,Kirinda Beach & Temple,Beach,Culture,0.69,27,3,50.0,10,0.7025,4.2,0.45,0.6,0.52,0.0,0.69,0.0,0.0
+dest_53,Maduru Oya National Park,Nature,Adventure,0.67,26,4,42.0,7,0.6704,4.32,0.0,0.0,0.38,0.67,0.0,0.6,0.0
+dest_54,Sri Lanka Gem Museum Ratnapura,Culture,Sightseeing,0.65,25,5,45.5,6,0.6624,4.23,0.62,0.65,0.42,0.0,0.0,0.0,0.0
+dest_55,Bundala National Park,Nature,Sightseeing,0.72,26,5,54.5,11,0.7198,4.28,0.65,0.0,0.0,0.72,0.0,0.45,0.0
+dest_56,Kalutara Gangatilaka Vihara,Culture,History,0.68,35,5,50.0,8,0.7632,4.34,0.55,0.68,0.62,0.0,0.0,0.0,0.38
+dest_57,Uppuveli Beach,Beach,Relaxation,0.75,27,7,57.5,9,0.7478,4.35,0.0,0.0,0.0,0.4,0.75,0.48,0.7
+dest_58,Passikudah Beach,Beach,Relaxation,0.77,36,5,66.5,14,0.8513,4.52,0.55,0.0,0.0,0.0,0.77,0.45,0.72
+dest_59,Mulkirigala Rock Temple,History,Culture,0.71,27,5,46.5,10,0.7008,4.22,0.58,0.65,0.71,0.42,0.0,0.0,0.0
+dest_60,Mannar Fort,History,Sightseeing,0.64,35,3,58.5,10,0.7693,4.26,0.58,0.42,0.64,0.45,0.0,0.0,0.0
+dest_61,Wasgamuwa National Park,Nature,Adventure,0.7,28,3,46.5,7,0.7048,4.22,0.48,0.0,0.0,0.7,0.0,0.62,0.0
+dest_62,Lover's Leap Waterfall,Sightseeing,Nature,0.68,24,5,57.5,13,0.6993,4.3,0.68,0.0,0.0,0.62,0.0,0.48,0.0
+dest_63,Kanneliya Rainforest,Nature,Adventure,0.71,27,6,47.0,9,0.7033,4.26,0.5,0.0,0.0,0.71,0.0,0.65,0.0
+dest_64,Colombo Pettah Market,Culture,Sightseeing,0.7,24,6,41.5,7,0.6654,4.35,0.65,0.7,0.42,0.0,0.0,0.0,0.0
+dest_65,Koggala Lake,Nature,Relaxation,0.73,21,4,36.0,6,0.6395,4.37,0.58,0.0,0.0,0.73,0.0,0.38,0.65
+dest_66,Kelaniya Raja Maha Vihara,Culture,History,0.74,36,6,68.5,14,0.8407,4.34,0.6,0.74,0.68,0.0,0.0,0.0,0.0
+dest_67,Dutch Reformed Church Galle,History,Sightseeing,0.72,30,5,46.5,7,0.7295,4.31,0.65,0.5,0.72,0.0,0.0,0.0,0.0
+dest_68,Matara Fort,History,Culture,0.69,31,5,59.5,11,0.7606,4.3,0.52,0.55,0.69,0.0,0.0,0.0,0.0
+dest_69,Lunuganga Estate Garden,Sightseeing,Relaxation,0.7,20,4,36.5,7,0.6204,4.29,0.7,0.55,0.0,0.0,0.0,0.0,0.65
+dest_70,Dehiwala Zoo Colombo,Sightseeing,Nature,0.65,26,5,41.5,6,0.6599,4.25,0.65,0.38,0.0,0.58,0.0,0.0,0.0
+dest_71,Cliffs of Hiriketiya,Adventure,Beach,0.76,31,3,43.5,6,0.749,4.51,0.55,0.0,0.0,0.0,0.72,0.76,0.48
+dest_72,Aluvihare Rock Temple,History,Culture,0.66,32,10,70.5,14,0.7838,4.2,0.5,0.6,0.66,0.0,0.0,0.0,0.0
+dest_73,Baker's Falls Horton Plains,Nature,Sightseeing,0.74,32,6,60.5,11,0.7928,4.45,0.68,0.0,0.0,0.74,0.0,0.52,0.0
+dest_74,Bambaragala Rock,Adventure,Nature,0.69,31,4,61.0,10,0.7631,4.25,0.48,0.0,0.0,0.62,0.0,0.69,0.0
+dest_75,Dondra Head Lighthouse,Sightseeing,History,0.65,25,6,60.5,13,0.7016,4.21,0.65,0.0,0.55,0.42,0.0,0.0,0.0
+dest_76,Koneswaram Temple Trincomalee,Culture,History,0.76,37,5,61.5,11,0.8399,4.45,0.65,0.76,0.7,0.42,0.0,0.0,0.0
+dest_77,Marble Beach Trincomalee,Beach,Relaxation,0.74,26,1,39.0,7,0.6917,4.48,0.38,0.0,0.0,0.48,0.74,0.0,0.68
+dest_78,Nuwara Eliya Post Office,Sightseeing,History,0.6,31,5,55.0,11,0.7115,4.11,0.6,0.38,0.55,0.0,0.0,0.0,0.0
+dest_79,Bogoda Wooden Bridge,History,Sightseeing,0.62,38,6,74.5,13,0.8248,4.18,0.55,0.0,0.62,0.4,0.0,0.0,0.0
+dest_80,Muthiyangana Raja Maha Vihara,Culture,History,0.63,24,4,44.0,7,0.641,4.13,0.45,0.63,0.58,0.0,0.0,0.0,0.0
+dest_81,Matale Aluviharaya Caves,History,Culture,0.67,18,1,23.0,3,0.56,4.32,0.52,0.6,0.67,0.35,0.0,0.0,0.0
+dest_82,Kumana National Park,Nature,Adventure,0.69,29,3,46.5,8,0.7106,4.28,0.5,0.0,0.0,0.69,0.0,0.6,0.0
+dest_83,Kuda Ravana Falls,Sightseeing,Nature,0.66,30,4,59.5,11,0.742,4.28,0.66,0.0,0.0,0.6,0.0,0.42,0.0
+dest_84,Haputale Lipton's Seat,Sightseeing,Nature,0.77,28,3,46.0,9,0.7331,4.39,0.77,0.4,0.0,0.72,0.0,0.0,0.55
+dest_85,Dambadeniya Fort,History,Sightseeing,0.61,25,3,43.5,7,0.6374,4.04,0.55,0.38,0.61,0.0,0.0,0.0,0.0
+dest_86,Weherahena Temple,Culture,Sightseeing,0.64,24,2,37.5,5,0.629,4.19,0.58,0.64,0.42,0.0,0.0,0.0,0.0
+dest_87,Wewurukannala Vihara,Culture,Sightseeing,0.63,38,5,58.0,8,0.7815,4.08,0.57,0.63,0.4,0.0,0.0,0.0,0.0
+dest_88,Handunugoda Tea Museum,Culture,Sightseeing,0.65,29,6,51.0,9,0.7055,4.18,0.6,0.65,0.35,0.45,0.0,0.0,0.0
+dest_89,Gal Viharaya Polonnaruwa,History,Culture,0.85,23,3,36.5,4,0.7017,4.5,0.78,0.8,0.85,0.0,0.0,0.0,0.0
+dest_90,Aukana Buddha Statue,Culture,History,0.8,25,3,40.5,8,0.7062,4.38,0.7,0.8,0.74,0.0,0.0,0.0,0.0
+dest_91,Hatton Tea Country,Nature,Relaxation,0.76,25,5,50.5,8,0.7205,4.44,0.62,0.42,0.0,0.76,0.0,0.0,0.7
+dest_92,Bambarakanda Falls,Nature,Adventure,0.75,33,4,58.0,9,0.7983,4.49,0.68,0.0,0.0,0.75,0.0,0.58,0.0
+dest_93,Lankathilaka Vihara,Culture,History,0.72,29,3,44.0,8,0.7145,4.28,0.6,0.72,0.66,0.38,0.0,0.0,0.0
+dest_94,Dutch Museum Colombo,History,Culture,0.63,22,3,36.5,4,0.6049,4.09,0.48,0.58,0.63,0.0,0.0,0.0,0.0
+dest_95,Wellawatte Beach Colombo,Beach,Relaxation,0.58,25,5,46.5,10,0.6343,4.02,0.35,0.0,0.0,0.0,0.58,0.0,0.52
+dest_96,Belihuloya Adventure Camp,Adventure,Nature,0.71,32,8,68.0,13,0.7964,4.26,0.38,0.0,0.0,0.65,0.0,0.71,0.5
+dest_97,Medawachchiya Tank,Nature,Relaxation,0.57,27,1,34.0,6,0.6127,4.02,0.0,0.0,0.38,0.57,0.0,0.0,0.5
+dest_98,Vijithapura Wewa,Nature,History,0.55,30,4,44.5,7,0.6572,4.06,0.35,0.0,0.48,0.55,0.0,0.0,0.0
+dest_99,Polonnaruwa Museum,History,Culture,0.74,24,1,26.0,2,0.6372,4.31,0.62,0.68,0.74,0.0,0.0,0.0,0.0
+dest_100,Kalawewa Tank,History,Nature,0.58,26,3,39.0,6,0.6249,4.12,0.42,0.0,0.58,0.52,0.0,0.0,0.0
