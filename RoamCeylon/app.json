@@ -5,7 +5,7 @@
     "scheme": "roamceylon",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/RoamCeylon.png",
+    "icon": "./assets/RoamCeylon.jpeg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
