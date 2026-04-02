@@ -40,12 +40,7 @@ const WelcomeScreen = () => {
   }, []);
 
   return (
-    <LinearGradient
-      colors={[ '#a0face', '#bbf5d9','#d8f19e','#efea70','#efea70']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <View style={styles.contentContainer}>
         <Image
           source={require('../../../assets/Roam Ceylon Logo.png')}
@@ -72,7 +67,7 @@ const WelcomeScreen = () => {
         source={require('../../../assets/Skyline.png')} // Placeholder for the bottom skyline
         style={styles.skyline}
       />}
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -81,6 +76,7 @@ const styles = StyleSheet.create({
     flex: 1,
     // Ensure elements are positioned correctly relative to the container
     position: 'relative',
+    backgroundColor: '#ffffff',
   },
   contentContainer: {
     flex: 1,

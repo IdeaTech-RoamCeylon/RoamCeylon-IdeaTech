@@ -19,12 +19,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   showLogo = true
 }) => {
   return (
-    <LinearGradient
-          colors={['#c8f4df', '#dcf5e9', '#edf6f2']}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 0, y: 0 }}
-          style={styles.container}
-        >
+    <View style={styles.container}>
     <View style={styles.container}>
       {showLogo && (
         <View style={styles.logoContainer}>
@@ -43,7 +38,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       </View>
     </View>
     <Image source={require('../../assets/Skyline.png')} style={styles.skyline} />
-  </LinearGradient>
+  </View>
   );
 };
 
@@ -53,6 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 20,
+    backgroundColor: '#ffffff',
   },
   logoContainer: {
     alignItems: 'center',

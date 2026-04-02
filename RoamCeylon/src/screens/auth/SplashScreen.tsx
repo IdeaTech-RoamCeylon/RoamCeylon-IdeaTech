@@ -22,7 +22,7 @@ const SplashScreen = () => {
   return (
     <LinearGradient
       // Approximate colors from the image's gradient
-      colors={[ '#a0face', '#bbf5d9','#d8f19e','#efea70','#efea70']}
+      colors={[ '#f2f1d0','#eaf4e2', '#e9f6eb','#e9f6f0','#f9f9f9','#ffffff']}
       style={styles.container}
     >
       <View style={styles.contentContainer}>

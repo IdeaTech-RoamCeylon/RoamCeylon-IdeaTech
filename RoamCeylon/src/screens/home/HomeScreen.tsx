@@ -141,10 +141,7 @@ const HomeScreen = () => {
   );
 
   return (
-    <LinearGradient
-      colors={['#edfaea', '#d5f2ce', '#b6e9ab']}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <FlatList
         data={NAV_ITEMS}
         renderItem={renderItem}
@@ -187,13 +184,14 @@ const HomeScreen = () => {
       >
         <MaterialCommunityIcons name="test-tube" size={20} color="#FFFFFF" />
       </TouchableOpacity>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#ffffff',
   },
   list: {
     flex: 1,
@@ -257,8 +255,10 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   card: {
-    
     width: '48%',
+    borderWidth: 1,
+    borderColor: '#6bc69a', 
+    borderRadius: 15,
   },
   cardText: {
     fontSize: 12,
@@ -323,6 +323,8 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 8,
     shadowColor: '#d2f9f6',
+    borderWidth: 1,
+    borderColor: '#b7b7b7ff', 
     margin: 10,
     marginTop: 115,
     elevation: 4,

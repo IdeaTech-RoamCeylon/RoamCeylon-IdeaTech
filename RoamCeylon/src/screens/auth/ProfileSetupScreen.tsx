@@ -65,12 +65,7 @@ const ProfileSetupScreen = () => {
   };
 
   return (
-    <LinearGradient
-      colors={['#99f0c6', '#dcf5e9', '#edf6f2']}
-      start={{ x: 0, y: 1 }}
-      end={{ x: 0, y: 0 }}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <View style={styles.container}>
         <View style={styles.logoContainer}>
           <Image 
@@ -80,12 +75,14 @@ const ProfileSetupScreen = () => {
           <View style={{alignItems: 'flex-start', left: 30}}>
             <Text style={styles.welcomeText}>Welcome to </Text>
             <Text style={styles.welcomeSubText}>RoamCeylon!</Text>
+            <Text style={styles.welcomeSubSubText}>Profile Setup</Text>
           </View>
         </View>
           
         <View style={{alignItems: 'center', marginBottom: 30, marginTop: 275}}>
-          <Text style={styles.title}>Complete Your Profile</Text>
-          <Text style={styles.subtitle}>Please provide your name and email to continue.</Text>
+          <View style={styles.profileIconContainer}>
+            <MaterialCommunityIcons name="account-outline" size={85} color="#2a734f" />
+          </View>
         </View>
         <Input
           placeholder="Full Name"
@@ -155,17 +152,29 @@ const ProfileSetupScreen = () => {
           style={styles.button}
         />
       </View>
-    </LinearGradient>
+    </View>
     );
   };
 
 const styles = StyleSheet.create({
+  profileIconContainer: {
+    width: 130,
+    marginTop: 30,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 2,
+    borderColor: '#bcebc5',
+    backgroundColor: '#f4fbfc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     padding: 20,
     // Remove centering so content flows from top left
     alignItems: 'center',
     justifyContent: 'flex-start',
+    backgroundColor: '#ffffff',
   },
   logoContainer: {
     position: 'absolute',
@@ -194,13 +203,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   welcomeText: {
+    fontWeight: 'bold',
     fontSize: 20,
     color: '#333',
     textAlign: 'left',
   },
   welcomeSubText: {
+    fontWeight: 'bold',
     fontSize: 20,
-    color: '#333',
+    color: '#c4a2a2',
+    textAlign: 'left',
+  },
+  welcomeSubSubText: {
+    fontWeight: 'bold', 
+    marginTop: 10, 
+    fontSize: 25,
+    color: '#2a734f',
     textAlign: 'left',
   },
   button: {
