@@ -1,5 +1,19 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
-import { checkAuthStatus, storeAuthToken, removeAuthToken, getMe, UserProfile } from '../services/auth';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
+import * as SecureStore from 'expo-secure-store';
+import {
+  storeAuthToken,
+  removeAuthToken,
+  getMe,
+  UserProfile,
+} from '../services/auth';
+import { nhost } from '../config/nhostClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -21,13 +35,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
-  // Memoize refreshUser to prevent recreation
+  // Memoize refreshUser to prevent recreation.
   const refreshUser = useCallback(async () => {
     try {
       const userData = await getMe();
       setUser(userData);
-      
-      // Check if profile is complete (has name and email)
       const profileComplete = !!(userData?.name && userData?.email);
       setIsProfileComplete(profileComplete);
     } catch (error) {
@@ -37,63 +49,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Memoize updateUserProfile to prevent recreation
   const updateUserProfile = useCallback((userData: UserProfile) => {
     setUser(userData);
     const profileComplete = !!(userData?.name && userData?.email);
     setIsProfileComplete(profileComplete);
   }, []);
 
-  // Memoize login to prevent recreation
-  const login = useCallback(async (token: string) => {
-    await storeAuthToken(token);
-    setIsAuthenticated(true);
-    
-    // Fetch user profile after login
-    await refreshUser();
-  }, [refreshUser]);
+  /**
+   * Called after a successful Nhost sign-in (Google or SMS OTP).
+   * The Nhost access token has already been stored in SecureStore before
+   * this is called (by GoogleSignInScreen / OTPScreen), so the API
+   * interceptor will pick it up automatically.
+   */
+  const login = useCallback(
+    async (token: string) => {
+      await storeAuthToken(token);
+      setIsAuthenticated(true);
+      await refreshUser();
+    },
+    [refreshUser],
+  );
 
-  // Memoize logout to prevent recreation
+  /**
+   * Signs the user out of both Nhost and the local app state.
+   * Uses the stored refresh token to invalidate the session server-side.
+   */
   const logout = useCallback(async () => {
-    await removeAuthToken();
-    setIsAuthenticated(false);
-    setUser(null);
-    setIsProfileComplete(false);
+    try {
+      const refreshToken = await SecureStore.getItemAsync('nhostRefreshToken');
+      // Sign out from Nhost — invalidates the session server-side.
+      await nhost.auth.signOut(
+        refreshToken ? { refreshToken } : {},
+      );
+    } catch (err) {
+      // Non-fatal: even if Nhost sign-out fails, clear local state.
+      console.warn('Nhost sign-out error (ignored):', err);
+    } finally {
+      await removeAuthToken();
+      await SecureStore.deleteItemAsync('nhostRefreshToken');
+      setIsAuthenticated(false);
+      setUser(null);
+      setIsProfileComplete(false);
+    }
   }, []);
 
   useEffect(() => {
-    // Check auth status on app start
+    // On app start, check if a stored auth token still exists.
     const checkAuth = async () => {
-      const authStatus = await checkAuthStatus();
-      setIsAuthenticated(authStatus);
-      
-      // If authenticated, fetch user profile
-      if (authStatus) {
-        await refreshUser();
+      try {
+        const token = await SecureStore.getItemAsync('authToken');
+        if (token) {
+          setIsAuthenticated(true);
+          await refreshUser();
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
     checkAuth();
   }, [refreshUser]);
 
-  // Memoize context value to prevent unnecessary re-renders
-  const contextValue = useMemo(() => ({
-    isAuthenticated,
-    isLoading,
-    user,
-    isProfileComplete,
-    setUser,
-    updateUserProfile,
-    login,
-    logout,
-    refreshUser,
-  }), [isAuthenticated, isLoading, user, isProfileComplete, updateUserProfile, login, logout, refreshUser]);
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      isLoading,
+      user,
+      isProfileComplete,
+      setUser,
+      updateUserProfile,
+      login,
+      logout,
+      refreshUser,
+    }),
+    [isAuthenticated, isLoading, user, isProfileComplete, updateUserProfile, login, logout, refreshUser],
+  );
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 

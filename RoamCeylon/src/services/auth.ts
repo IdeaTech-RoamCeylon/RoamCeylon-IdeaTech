@@ -2,24 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { apiService } from './api';
 import { logger } from '../utils/logger';
 
-// Types
-export interface OTPResponse {
-  success: boolean;
-  message: string;
-  sessionId?: string;
-}
-
-export interface VerifyOTPResponse {
-  success: boolean;
-  message: string;
-  token?: string;
-  accessToken?: string;
-  user?: {
-    id: string;
-    phoneNumber: string;
-    name?: string;
-  };
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UserProfile {
   id: string;
@@ -33,7 +16,20 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
-// Token management
+/** Standard wrapper used by the NestJS backend on all API responses. */
+export interface ApiResponse<T> {
+  statusCode: number;
+  success: boolean;
+  timestamp: string;
+  path: string;
+  data: T;
+  meta?: any;
+}
+
+// ─── Token management (SecureStore) ───────────────────────────────────────────
+// The stored `authToken` is the Nhost access token after sign-in.
+// The API interceptor in api.ts reads it to set Authorization headers.
+
 export const storeAuthToken = async (token: string): Promise<void> => {
   await SecureStore.setItemAsync('authToken', token);
 };
@@ -58,106 +54,12 @@ export const removeUserId = async (): Promise<void> => {
   await SecureStore.deleteItemAsync('userId');
 };
 
-
-// Auth API functions
-export const sendOtp = async (phoneNumber: string): Promise<OTPResponse> => {
-  try {
-    // Placeholder implementation - replace with actual API endpoint
-    const response = await apiService.post<OTPResponse>('/auth/send-otp', {
-      phoneNumber,
-    });
-    return response;
-  } catch (error) {
-    logger.error('Send OTP error:', error);
-    throw error;
-  }
+export const checkAuthStatus = async (): Promise<boolean> => {
+  const token = await getAuthToken();
+  return !!token;
 };
 
-// Backend response wrapper structure
-export interface ApiResponse<T> {
-  statusCode: number;
-  success: boolean;
-  timestamp: string;
-  path: string;
-  data: T;
-  meta?: any;
-}
-
-export const verifyOtp = async (
-  phoneNumber: string,
-  otp: string
-): Promise<{ accessToken: string; user: { id: string; phoneNumber: string } }> => {
-  try {
-    // Backend returns wrapped response: { data: { accessToken: "...", user: {...} }, success: true, ... }
-    const response = await apiService.post<ApiResponse<{ accessToken: string; user: { id: string; phoneNumber: string } }>>('/auth/verify-otp', {
-      phoneNumber,
-      otp,
-    });
-
-    const accessToken = response.data?.accessToken;
-
-    if (!accessToken) {
-      logger.error('Verify OTP response missing token:', response);
-      throw new Error('No access token received from server');
-    }
-
-    // Store token and user ID if verification successful
-    await storeAuthToken(accessToken);
-
-    const user = response.data?.user || {
-      id: '',
-      phoneNumber: phoneNumber
-    };
-
-    // Persist userId so API interceptor can attach x-user-id header
-    if (user.id) {
-      await storeUserId(user.id);
-    }
-
-    return {
-      accessToken,
-      user
-    };
-  } catch (error) {
-    logger.error('Verify OTP error:', error);
-    throw error;
-  }
-};
-
-export const googleSignIn = async (
-  code: string
-): Promise<{ accessToken: string; user: { id: string; email: string; name: string } }> => {
-  try {
-    const response = await apiService.post<ApiResponse<{ accessToken: string; user: { id: string; email: string; name: string } }>>('/auth/google', {
-      code,
-    });
-
-    const accessToken = response.data?.accessToken;
-
-    if (!accessToken) {
-      logger.error('Google Sign-In response missing token:', response);
-      throw new Error('No access token received from server');
-    }
-
-    // Store token and user ID if verification successful
-    await storeAuthToken(accessToken);
-
-    const user = response.data?.user;
-
-    if (user?.id) {
-      await storeUserId(user.id);
-    }
-
-    return {
-      accessToken,
-      user: user!
-    };
-  } catch (error) {
-    logger.error('Google Sign-In error:', error);
-    throw error;
-  }
-};
-
+// ─── User profile API (still calls NestJS — protected by Nhost JWT guard) ────
 
 export const getMe = async (): Promise<UserProfile> => {
   try {
@@ -169,23 +71,11 @@ export const getMe = async (): Promise<UserProfile> => {
   }
 };
 
-export const logout = async (): Promise<void> => {
-  try {
-    await removeAuthToken();
-    await removeUserId();
-    // Additional logout logic (clear cache, reset state, etc.)
-  } catch (error) {
-    logger.error('Logout error:', error);
-    throw error;
-  }
-};
-
-
 export const updateProfile = async (
   name: string,
   email: string,
   birthday?: Date,
-  gender?: string
+  gender?: string,
 ): Promise<UserProfile> => {
   try {
     const response = await apiService.patch<ApiResponse<UserProfile>>('/users/me', {
@@ -201,7 +91,18 @@ export const updateProfile = async (
   }
 };
 
-export const checkAuthStatus = async (): Promise<boolean> => {
-  const token = await getAuthToken();
-  return !!token;
+/**
+ * Local logout helper.
+ * NOTE: The full sign-out (including Nhost session invalidation) is handled in
+ * AuthContext.logout() using nhost.auth.signOut(). This function is kept only
+ * for utility — prefer AuthContext.logout() in components.
+ */
+export const logout = async (): Promise<void> => {
+  try {
+    await removeAuthToken();
+    await removeUserId();
+  } catch (error) {
+    logger.error('Logout error:', error);
+    throw error;
+  }
 };

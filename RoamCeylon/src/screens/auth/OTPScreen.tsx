@@ -4,11 +4,13 @@ import { Button } from '../../components';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../types';
-import { verifyOtp } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
 import { showToast } from '../../utils/toast';
 import { AuthLayout } from '../../components/AuthLayout';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as SecureStore from 'expo-secure-store';
+import { nhost } from '../../config/nhostClient';
+
 
 type OTPScreenRouteProp = RouteProp<AuthStackParamList, 'OTP'>;
 type OTPScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'OTP'>;
@@ -62,17 +64,34 @@ const OTPScreen = () => {
 
     setLoading(true);
     try {
-      const response = await verifyOtp(phoneNumber, otpString);
-      
-      // Call login to store token and fetch user profile
-      await login(response.accessToken);
-      
+      // Verify the SMS OTP directly with Nhost — no backend call needed.
+      // v4 SDK: response.body.session contains accessToken on success;
+      // errors are thrown as FetchError.
+      const response = await nhost.auth.verifySignInPasswordlessSms({
+        phoneNumber,
+        otp: otpString,
+      });
+
+      const session = response.body.session;
+      if (!session?.accessToken) {
+        throw new Error('No session received from Nhost.');
+      }
+
+      // Store Nhost access token so the API interceptor can attach it
+      // as Bearer token on all NestJS requests.
+      await SecureStore.setItemAsync('authToken', session.accessToken);
+      if (session.refreshToken) {
+        await SecureStore.setItemAsync('nhostRefreshToken', session.refreshToken);
+      }
+
+      // Notify AuthContext — sets isAuthenticated = true and fetches user profile.
+      await login(session.accessToken);
+
       showToast.success('OTP verified successfully!', 'Success');
-      
-      // Navigate to ProfileSetupScreen
-      // The RootNavigator will keep user in AuthStack until profile is complete
+
+      // Navigate to ProfileSetupScreen.
       navigation.navigate('ProfileSetup');
-      
+
     } catch (error: any) {
       console.error('Failed to verify OTP:', error);
       showToast.apiError(error, 'Invalid OTP. Please try again.');

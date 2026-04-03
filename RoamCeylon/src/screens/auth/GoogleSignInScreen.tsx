@@ -6,21 +6,22 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { googleSignIn } from '../../services/auth';
 import { LinearGradient } from 'expo-linear-gradient';
+import { nhost } from '../../config/nhostClient';
+import * as SecureStore from 'expo-secure-store';
 
-// Configure Google Sign-In once when the module loads.
-// webClientId is required for the backend token exchange (server-side OAuth).
-// androidClientId is optional here since we're using webClientId for auth.
+// Configure Google Sign-In.
+// webClientId must match the Web Application OAuth client in Google Cloud Console.
+// offlineAccess is NOT required — the new flow sends the idToken directly to
+// Nhost (signInIdToken) instead of exchanging a serverAuthCode on the backend.
 GoogleSignin.configure({
-  webClientId: '770657770767-jm7n3tpra4ll777imp2ced5k8keehc4d.apps.googleusercontent.com',
-  offlineAccess: true, // Enables serverAuthCode for backend token exchange
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
   scopes: ['profile', 'email'],
 });
 
 const GoogleSignInScreen = () => {
   const navigation = useNavigation();
-  const { login } = useAuth();
+  const { login, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,26 +34,65 @@ const GoogleSignInScreen = () => {
 
       const userInfo = await GoogleSignin.signIn();
 
-      console.log('Google Sign-In result:', JSON.stringify(userInfo, null, 2));
 
-      // serverAuthCode is the authorization code for backend exchange.
-      const serverAuthCode = userInfo.data?.serverAuthCode;
 
-      if (!serverAuthCode) {
-        throw new Error('No server auth code received from Google. Make sure offlineAccess is enabled.');
+      // idToken is what Nhost /signin/idtoken expects for native Google auth.
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) {
+        throw new Error('No ID token received from Google Sign-In.');
       }
 
-      console.log('Server Auth Code received, exchanging with backend...');
+      console.log('ID Token received — authenticating with Nhost...');
 
-      const { accessToken } = await googleSignIn(serverAuthCode);
-      await login(accessToken);
-      // Navigation to Home is handled by AuthContext (isAuthenticated change)
+      // Authenticate against Nhost Hasura Auth using the Google ID token.
+      // On success: response.body.session contains accessToken + refreshToken.
+      // On failure: FetchError is thrown (caught below).
+      const response = await nhost.auth.signInIdToken({
+        provider: 'google',
+        idToken,
+      });
+
+      const session = response.body.session;
+
+      if (!session?.accessToken) {
+        throw new Error('No access token in Nhost response.');
+      }
+
+      console.log('Nhost authentication successful.');
+
+      // Persist the Nhost access token so the existing API interceptor
+      // can attach it as "Authorization: Bearer <token>" to NestJS requests.
+      await SecureStore.setItemAsync('authToken', session.accessToken);
+
+      // Persist refresh token for future silent re-authentication.
+      if (session.refreshToken) {
+        await SecureStore.setItemAsync('nhostRefreshToken', session.refreshToken);
+      }
+
+      // Notify AuthContext — sets isAuthenticated = true and fetches the
+      // user profile from NestJS via the stored Nhost access token.
+      await login(session.accessToken);
+
+      // Now that the backend profile is auto-created, sync Google User Info 
+      // up to it so that `isProfileComplete` evaluates to true!
+      const userName = userInfo.data?.user?.name;
+      const userEmail = userInfo.data?.user?.email;
+
+      if (userName && userEmail) {
+        try {
+          const { updateProfile } = require('../../services/auth');
+          await updateProfile(userName, userEmail);
+          
+          await refreshUser();
+        } catch (updateErr) {
+          console.warn('Failed to auto-sync Google profile to backend:', updateErr);
+        }
+      }
 
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
 
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // User cancelled — go back silently
         if (navigation.canGoBack()) navigation.goBack();
         return;
       } else if (error.code === statusCodes.IN_PROGRESS) {
@@ -60,7 +100,10 @@ const GoogleSignInScreen = () => {
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         Alert.alert('Error', 'Google Play Services are not available on this device.');
       } else {
-        Alert.alert('Sign In Error', error.message || 'Something went wrong with Google Sign-In.');
+        Alert.alert(
+          'Sign In Error',
+          error.message || 'Something went wrong with Google Sign-In.',
+        );
       }
 
       if (navigation.canGoBack()) navigation.goBack();

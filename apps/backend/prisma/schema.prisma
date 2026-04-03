@@ -6,7 +6,6 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
   extensions = [citext(schema: "public"), postgis, vector]
 }
 
@@ -41,18 +40,18 @@ model SystemMetadata {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  phoneNumber  String?   @unique @map("phone")
-  name         String?
-  createdAt    DateTime  @default(now())
-  email        String?
-  updatedAt    DateTime  @default(now()) @updatedAt
-  birthday     DateTime?
-  gender       String?
-  preferences  Json?
-  googleId     String?   @unique @map("google_id")
-  authProvider String?   @default("phone") @map("auth_provider")
-  profilePicture String? @map("profile_picture")
+  id             String    @id @default(uuid())
+  phoneNumber    String?   @unique @map("phone")
+  name           String?
+  createdAt      DateTime  @default(now())
+  email          String?
+  updatedAt      DateTime  @default(now()) @updatedAt
+  birthday       DateTime?
+  gender         String?
+  preferences    Json?
+  authProvider   String?   @default("phone") @map("auth_provider")
+  googleId       String?   @unique @map("google_id")
+  profilePicture String?   @map("profile_picture")
 }
 
 model embeddings {
@@ -75,7 +74,6 @@ model spatial_ref_sys {
 }
 
 model SavedTrip {
-  id          String   @id
   userId      String
   name        String
   destination String
@@ -85,6 +83,7 @@ model SavedTrip {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   preferences Json?
+  id          String   @id
 
   @@index([userId, createdAt])
   @@index([destination])
@@ -92,11 +91,11 @@ model SavedTrip {
 }
 
 model PlannerFeedback {
-  id            Int      @id @default(autoincrement())
   userId        String
   tripId        String
-  feedbackValue Json
   createdAt     DateTime @default(now())
+  feedbackValue Json
+  id            Int      @id @default(autoincrement())
   updatedAt     DateTime @default(now()) @updatedAt
 
   @@unique([userId, tripId], name: "unique_user_trip_feedback")
@@ -214,7 +213,7 @@ model UserBehaviorEvent {
   eventType String   @map("event_type")
   itemId    String?  @map("item_id")
   metadata  Json?    @default("{}")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("user_behavior_events")
 }
@@ -230,19 +229,19 @@ model RecommendationLog {
   finalScore       Float?   @map("final_score")
   source           String?  @default("rule-based") @map("source")
   clicked          Boolean? @default(false)
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("recommendation_logs")
 }
 
 model UserInterestProfile {
-  userId          String   @id @map("user_id")
-  culturalScore   Int      @default(0) @map("cultural_score")
-  adventureScore  Int      @default(0) @map("adventure_score")
-  relaxationScore Int      @default(0) @map("relaxation_score")
-  timeOfDayPrefs  Json?    @map("time_of_day_prefs")
-  categoryDiversity Float? @default(0) @map("category_diversity")
-  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  userId            String   @id @map("user_id")
+  culturalScore     Int      @default(0) @map("cultural_score")
+  adventureScore    Int      @default(0) @map("adventure_score")
+  relaxationScore   Int      @default(0) @map("relaxation_score")
+  timeOfDayPrefs    Json?    @map("time_of_day_prefs")
+  categoryDiversity Float?   @default(0) @map("category_diversity")
+  updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("user_interest_profile")
 }
@@ -251,7 +250,7 @@ model DestinationCategoryScore {
   destinationId   String   @id @map("destination_id")
   category        String
   popularityScore Float    @map("popularity_score")
-  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("destination_category_scores")
 }
@@ -260,7 +259,7 @@ model FeedbackSummary {
   userId           String   @id @map("user_id")
   positiveFeedback Int      @default(0) @map("positive_feedback")
   negativeFeedback Int      @default(0) @map("negative_feedback")
-  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("feedback_summary")
 }

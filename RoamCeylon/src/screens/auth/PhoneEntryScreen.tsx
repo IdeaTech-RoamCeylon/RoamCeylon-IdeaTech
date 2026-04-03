@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
-import { sendOtp } from '../../services/auth';
 import { showToast } from '../../utils/toast';
 import { Button, Input } from '../../components';
 import { AuthLayout } from '../../components/AuthLayout';
 import * as NavigationBar from 'expo-navigation-bar';
+import { nhost } from '../../config/nhostClient';
+
 
 const PhoneEntryScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
@@ -31,7 +32,10 @@ const PhoneEntryScreen = () => {
     setError('');
     setLoading(true);
     try {
-      await sendOtp(phoneNumber);
+      // Nhost sends the OTP SMS via Hasura Auth — no backend call needed.
+      // v4 SDK: success returns FetchResponse<OKResponse>; errors throw FetchError.
+      await nhost.auth.signInPasswordlessSms({ phoneNumber });
+
       showToast.success('Verification code sent!', 'Success');
       navigation.navigate('OTP', { phoneNumber });
     } catch (error: any) {
