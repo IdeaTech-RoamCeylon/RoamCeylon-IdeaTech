@@ -12,7 +12,9 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "prestart:dev": "node scripts/free-port.js 3001",
     "start:dev": "nest start --watch",
+    "prestart:debug": "node scripts/free-port.js 3001",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -26,7 +28,8 @@
     "export:training": "tsx scripts/export-training-dataset.ts",
     "generate:synthetic-dataset": "tsx scripts/generate-synthetic-training-dataset.ts",
     "analyze:synthetic-performance": "tsx scripts/analyze-synthetic-model-performance.ts",
-    "tune:hyperparameters": "python scripts/tune_hyperparameters.py"
+    "tune:hyperparameters": "python scripts/tune_hyperparameters.py",
+    "analyze:hybrid-stability-feedback": "npx tsx scripts/hybrid-ranking-feedback-analysis.ts"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.1.0",
