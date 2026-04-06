@@ -25,7 +25,8 @@
     "postinstall": "prisma generate",
     "export:training": "tsx scripts/export-training-dataset.ts",
     "generate:synthetic-dataset": "tsx scripts/generate-synthetic-training-dataset.ts",
-    "analyze:synthetic-performance": "tsx scripts/analyze-synthetic-model-performance.ts"
+    "analyze:synthetic-performance": "tsx scripts/analyze-synthetic-model-performance.ts",
+    "tune:hyperparameters": "python scripts/tune_hyperparameters.py"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.1.0",
