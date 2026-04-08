@@ -89,10 +89,10 @@ export class MlService {
       }
 
       const ruleScore = ruleRec.score;
-      // Day 62 - Task 1: Hybrid Ranking Weight Adjustment -> Rule-Based 60%, ML 40%
-      // Day 63 - Task 2: Fallback to rule-based if ML scoring failed or returned 0
+      // Day 64 - Task 3: Improve Hybrid Balance -> ML weight slightly ↑
+      // Adjusted weights: Rule-Based 60% (0.6), ML 40% (0.4)
       const useMl = mlScore > 0;
-      const finalScore = useMl ? ruleScore * 0.6 + mlScore * 0.4 : ruleScore;
+      const finalScore = useMl ? (ruleScore * 0.6) + (mlScore * 0.4) : ruleScore;
       const source = useMl ? 'hybrid' : 'rule-based';
 
       return {
