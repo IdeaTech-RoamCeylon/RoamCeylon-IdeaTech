@@ -29,13 +29,18 @@
     "generate:synthetic-dataset": "tsx scripts/generate-synthetic-training-dataset.ts",
     "analyze:synthetic-performance": "tsx scripts/analyze-synthetic-model-performance.ts",
     "tune:hyperparameters": "python scripts/tune_hyperparameters.py",
-    "analyze:hybrid-stability-feedback": "npx tsx scripts/hybrid-ranking-feedback-analysis.ts"
+    "analyze:hybrid-stability-feedback": "npx tsx scripts/hybrid-ranking-feedback-analysis.ts",
+    "collect:training-data": "npx tsx scripts/collect-training-data.ts",
+    "retrain:model-v2": "python scripts/retrain_model_v2.py",
+    "compare:model-versions": "npx tsx scripts/compare-model-versions.ts",
+    "ml:full-pipeline": "npm run collect:training-data && npm run retrain:model-v2 && npm run compare:model-versions"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",

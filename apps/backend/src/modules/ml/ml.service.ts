@@ -92,7 +92,7 @@ export class MlService {
       // Day 64 - Task 3: Improve Hybrid Balance -> ML weight slightly ↑
       // Adjusted weights: Rule-Based 60% (0.6), ML 40% (0.4)
       const useMl = mlScore > 0;
-      const finalScore = useMl ? (ruleScore * 0.6) + (mlScore * 0.4) : ruleScore;
+      const finalScore = useMl ? ruleScore * 0.6 + mlScore * 0.4 : ruleScore;
       const source = useMl ? 'hybrid' : 'rule-based';
 
       return {
