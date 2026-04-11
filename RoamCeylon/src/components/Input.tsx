@@ -11,6 +11,8 @@ export interface InputProps extends TextInputProps {
   disabled?: boolean;
   containerStyle?: ViewStyle;
   icon?: React.ReactNode;
+  /** Optional icon rendered on the right side (e.g. show/hide password toggle) */
+  rightIcon?: React.ReactNode;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -22,6 +24,7 @@ const Input: React.FC<InputProps> = ({
   style,
   containerStyle,
   icon,
+  rightIcon,
   ...props
 }) => {
   return (
@@ -32,6 +35,7 @@ const Input: React.FC<InputProps> = ({
           style={[
             styles.input,
             icon ? styles.inputWithIcon : null,
+            rightIcon ? styles.inputWithRightIcon : null,
             error ? styles.inputError : null,
             disabled ? styles.inputDisabled : null,
             style,
@@ -43,6 +47,7 @@ const Input: React.FC<InputProps> = ({
           editable={!disabled}
           {...props}
         />
+        {rightIcon && <View style={styles.rightIconContainer}>{rightIcon}</View>}
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
@@ -66,6 +71,11 @@ const styles = StyleSheet.create({
     left: 15,
     zIndex: 1,
   },
+  rightIconContainer: {
+    position: 'absolute',
+    right: 15,
+    zIndex: 1,
+  },
   input: {
     width: '100%',
     height: 50,
@@ -79,6 +89,9 @@ const styles = StyleSheet.create({
   },
   inputWithIcon: {
     paddingLeft: 50,
+  },
+  inputWithRightIcon: {
+    paddingRight: 50,
   },
   inputError: {
     borderColor: '#dc3545',
