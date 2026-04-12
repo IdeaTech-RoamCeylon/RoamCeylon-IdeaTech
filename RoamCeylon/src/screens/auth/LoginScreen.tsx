@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Platform,
   KeyboardAvoidingView,
@@ -13,7 +14,6 @@ import {
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
 import { showToast } from '../../utils/toast';
-import { Input } from '../../components';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SecureStore from 'expo-secure-store';
@@ -26,6 +26,7 @@ const { width } = Dimensions.get('window');
 const LoginScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const { login } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -77,7 +78,6 @@ const LoginScreen = () => {
       }
 
       await login(session.accessToken);
-      // RootNavigator will auto-navigate to Main when isAuthenticated becomes true
     } catch (error: any) {
       console.error('Login error:', error);
       const msg = error?.message || 'Invalid email or password. Please try again.';
@@ -89,276 +89,353 @@ const LoginScreen = () => {
 
   const handleForgotPassword = () => {
     showToast.info('Password reset link will be sent to your email.', 'Forgot Password');
-    // TODO: implement nhost.auth.resetPassword({ email }) when needed
+  };
+
+  const renderInputCard = (
+    label: string,
+    placeholder: string,
+    value: string,
+    onChangeText: (text: string) => void,
+    iconName: keyof typeof MaterialCommunityIcons.glyphMap,
+    errorKey: string,
+    isSecure?: boolean,
+    showSecure?: boolean,
+    onToggleSecure?: () => void,
+    keyboardType: any = 'default',
+    autoCapitalize: any = 'words'
+  ) => {
+    return (
+      <View style={styles.inputSection}>
+        <Text style={styles.inputLabel}>{label}</Text>
+        <View style={[styles.inputWrapper, errors[errorKey] ? styles.inputError : null]}>
+          <MaterialCommunityIcons name={iconName} size={20} color="#9E9E9E" style={styles.leftIcon} />
+          <TextInput
+            style={styles.textInput}
+            placeholder={placeholder}
+            placeholderTextColor="#C4C4C4"
+            value={value}
+            onChangeText={(t) => {
+              onChangeText(t);
+              if (errors[errorKey]) setErrors((e) => ({ ...e, [errorKey]: '' }));
+            }}
+            secureTextEntry={isSecure && !showSecure}
+            keyboardType={keyboardType}
+            autoCapitalize={autoCapitalize}
+            editable={!loading}
+          />
+          {isSecure && onToggleSecure && (
+             <TouchableOpacity style={styles.rightIconContainer} onPress={onToggleSecure}>
+               <MaterialCommunityIcons name={showSecure ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9E9E9E" />
+             </TouchableOpacity>
+          )}
+        </View>
+        {errors[errorKey] ? <Text style={styles.errorText}>{errors[errorKey]}</Text> : null}
+      </View>
+    );
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
+    <View style={styles.pageBackground}>
+      <KeyboardAvoidingView
         style={styles.flex}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-          />
-          <View style={styles.headerText}>
-            <Text style={styles.welcomeText}>Welcome Back</Text>
-            <Text style={styles.welcomeSubText}>Sign in to continue</Text>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header section */}
+          <View style={styles.header}>
+            <View style={styles.logoCircle}>
+              <MaterialCommunityIcons name="earth" size={32} color="#075A1A" />
+              <View style={styles.magnifyOverlay}>
+                <MaterialCommunityIcons name="magnify" size={16} color="#075A1A" />
+              </View>
+            </View>
+            <Text style={styles.brandText}>Roam Ceylon</Text>
+            <Text style={styles.welcomeSubText}>Welcome back, traveler!</Text>
           </View>
-        </View>
 
-        {/* Form Card */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Sign In</Text>
-          <Text style={styles.formSubtitle}>Enter your credentials to access your account</Text>
-
-          {/* Email */}
-          <Input
-            placeholder="Email Address"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: '' })); }}
-            icon={<MaterialCommunityIcons name="email" size={22} color="#4A9B7F" />}
-            error={errors.email}
-            disabled={loading}
-          />
-
-          {/* Password */}
-          <Input
-            placeholder="Password"
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: '' })); }}
-            icon={<MaterialCommunityIcons name="lock" size={22} color="#4A9B7F" />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
-                <MaterialCommunityIcons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={22}
-                  color="#888"
-                />
-              </TouchableOpacity>
-            }
-            error={errors.password}
-            disabled={loading}
-          />
-
-          {/* Forgot Password */}
-          <TouchableOpacity
-            style={styles.forgotRow}
-            onPress={handleForgotPassword}
-          >
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          {/* Sign In Button */}
-          <TouchableOpacity
-            style={[styles.signInWrapper, loading && styles.disabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#16a669', '#b8e36f']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.signInButton}
-            >
-              <Text style={styles.signInButtonText}>
-                {loading ? 'Signing In...' : 'Sign In'}
-              </Text>
-              {!loading && (
-                <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+          {/* Form Card */}
+          <View style={styles.card}>
+            <View style={styles.formGroup}>
+              {/* Email */}
+              {renderInputCard(
+                'EMAIL ADDRESS',
+                'explorer@island.com',
+                email,
+                setEmail,
+                'email-outline',
+                'email',
+                false,
+                false,
+                undefined,
+                'email-address',
+                'none'
               )}
-            </LinearGradient>
-          </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
+              {/* Password */}
+              {renderInputCard(
+                'PASSWORD',
+                '••••••••',
+                password,
+                setPassword,
+                'lock-outline',
+                'password',
+                true,
+                showPassword,
+                () => setShowPassword(!showPassword)
+              )}
+            </View>
+
+            {/* Forgot Password */}
+            <TouchableOpacity style={styles.forgotRow} onPress={handleForgotPassword}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            {/* Log In Button */}
+            <TouchableOpacity
+              style={[styles.signInWrapper, loading && styles.disabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#FFDF59', '#FFC83C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.signInButton}
+              >
+                <Text style={styles.signInButtonText}>
+                  {loading ? 'Logging in...' : 'Log in'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR EXPLORE WITH</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Options - Google Only */}
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={() => navigation.navigate('GoogleSignIn')}
+              activeOpacity={0.85}
+            >
+              <Image 
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} 
+                style={styles.googleIcon} 
+              />
+              <Text style={styles.googleButtonText}>Google</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Google Sign-In */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => navigation.navigate('GoogleSignIn')}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="google" size={22} color="#EA4335" />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Register Link */}
+          <View style={styles.registerRow}>
+            <Text style={styles.registerText}>New to the island? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerLink}>Start your journey</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Register Link */}
-        <View style={styles.registerRow}>
-          <Text style={styles.registerText}>Don't have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}> Create Account</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Skyline */}
-        <Image
-          source={require('../../../assets/Skyline.png')}
-          style={styles.skyline}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#ffffff' },
+  pageBackground: { 
+    flex: 1, 
+    backgroundColor: '#F9F9F9', // Subtle off-white to match the design bg
+  },
+  flex: { flex: 1 },
   scrollContent: {
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+    minHeight: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 200,
   },
   header: {
-    width: '100%',
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 10,
+    marginBottom: 30,
   },
-  logo: {
-    width: width * 0.22,
-    height: width * 0.22,
-    resizeMode: 'contain',
+  logoCircle: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#95F28A',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    position: 'relative',
   },
-  headerText: { marginLeft: 12 },
-  welcomeText: {
-    fontSize: 22,
+  magnifyOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    right: 10,
+    backgroundColor: '#95F28A',
+    borderRadius: 8,
+  },
+  brandText: {
+    fontSize: 34,
     fontWeight: '800',
     color: '#1a1a1a',
+    letterSpacing: -0.5,
   },
   welcomeSubText: {
-    fontSize: 15,
-    color: '#4A9B7F',
+    fontSize: 16,
+    color: '#666666',
+    marginTop: 6,
     fontWeight: '500',
-    marginTop: 2,
   },
-  formCard: {
-    width: '92%',
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 20,
-    marginTop: 10,
-    shadowColor: '#16a669',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#f0faf5',
+  card: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: 40,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 3,
   },
-  formTitle: {
-    fontSize: 18,
+  formGroup: {
+    gap: 20,
+  },
+  inputSection: {
+    marginBottom: 0,
+  },
+  inputLabel: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    color: '#554A3B', // Brownish gray matching design
+    letterSpacing: 0.8,
+    marginBottom: 8,
   },
-  formSubtitle: {
-    fontSize: 13,
-    color: '#888',
-    marginBottom: 18,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F4F4F4',
+    borderRadius: 12,
+    height: 54,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  inputError: {
+    borderColor: '#dc3545',
+  },
+  leftIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+    height: '100%',
+  },
+  rightIconContainer: {
+    marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 12,
+    marginTop: 4,
   },
   forgotRow: {
     alignSelf: 'flex-end',
-    marginBottom: 10,
-    marginTop: 4,
+    marginTop: 15,
+    marginBottom: 20,
   },
   forgotText: {
-    fontSize: 13,
-    color: '#16a669',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#135029', // Dark green like the image
+    fontWeight: '700',
   },
   signInWrapper: {
     width: '100%',
-    borderRadius: 30,
+    borderRadius: 28,
     overflow: 'hidden',
-    marginTop: 6,
+    shadowColor: '#FFD23F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   signInButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: '100%',
+    height: 56,
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
+    alignItems: 'center',
   },
   signInButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    color: '#ffffff',
   },
-  disabled: { opacity: 0.6 },
+  disabled: {
+    opacity: 0.6,
+  },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 22,
-    marginBottom: 16,
-    gap: 10,
+    marginTop: 30,
+    marginBottom: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e8e8e8',
+    backgroundColor: '#EAEAEA',
   },
   dividerText: {
-    fontSize: 13,
-    color: '#aaa',
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#9E9E9E',
+    fontWeight: '600',
+    letterSpacing: 1,
+    paddingHorizontal: 15,
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    borderWidth: 1.5,
-    borderColor: '#e8e8e8',
-    borderRadius: 30,
-    paddingVertical: 14,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#F4F4F4',
+    borderRadius: 14,
+    width: '50%',
+    alignSelf: 'center',
+    height: 50,
+  },
+  googleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 10,
   },
   googleButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: '#494034',
   },
   registerRow: {
     flexDirection: 'row',
-    marginTop: 20,
-    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 30,
   },
   registerText: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 15,
+    color: '#666666',
   },
   registerLink: {
-    fontSize: 14,
-    color: '#16a669',
+    fontSize: 15,
     fontWeight: '700',
-  },
-  skyline: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    height: 180,
-    resizeMode: 'stretch',
-    opacity: 0.12,
+    color: '#9E7F47',
   },
 });
 
