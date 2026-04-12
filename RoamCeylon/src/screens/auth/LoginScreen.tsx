@@ -14,6 +14,7 @@ import {
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
 import { showToast } from '../../utils/toast';
+import { Input } from '../../components';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SecureStore from 'expo-secure-store';
@@ -25,7 +26,7 @@ const { width } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
-  const { login } = useAuth();
+  const { login, isProfileComplete } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,7 +78,16 @@ const LoginScreen = () => {
         await SecureStore.setItemAsync('nhostRefreshToken', session.refreshToken);
       }
 
+      // Notify AuthContext — sets isAuthenticated = true and fetches user profile.
       await login(session.accessToken);
+
+      // If the profile is still incomplete after login (e.g. account created
+      // outside the full registration flow), take the user to ProfileSetup
+      // so they can fill in the missing details.
+      if (!isProfileComplete) {
+        navigation.navigate('ProfileSetup');
+      }
+      // If profile IS complete, RootNavigator auto-switches to MainStack.
     } catch (error: any) {
       console.error('Login error:', error);
       const msg = error?.message || 'Invalid email or password. Please try again.';
@@ -256,10 +266,10 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   scrollContent: {
-    paddingVertical: 50,
+    paddingTop: 50,
+    paddingBottom: 120, // Massive bottom padding to accommodate any keyboard pushing
     paddingHorizontal: 20,
-    minHeight: '100%',
-    justifyContent: 'center',
+    flexGrow: 1,
     alignItems: 'center',
   },
   header: {

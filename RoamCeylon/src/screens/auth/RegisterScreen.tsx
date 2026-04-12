@@ -94,8 +94,8 @@ const RegisterScreen = () => {
     if (!gender) e.gender = 'Please select a gender';
     if (!password) {
       e.password = 'Password is required';
-    } else if (password.length < 8) {
-      e.password = 'Password must be at least 8 characters';
+    } else if (password.length < 9) {
+      e.password = 'Password must be at least 9 characters';
     }
     if (!confirmPassword) {
       e.confirmPassword = 'Please confirm your password';
@@ -459,10 +459,10 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   scrollContent: {
-    paddingVertical: 50,
+    paddingTop: 50,
+    paddingBottom: 200, // Massive bottom padding to accommodate any keyboard pushing
     paddingHorizontal: 20,
-    minHeight: '100%',
-    justifyContent: 'center',
+    flexGrow: 1,
   },
   card: {
     width: '100%',
