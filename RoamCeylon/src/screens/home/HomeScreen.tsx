@@ -1,71 +1,179 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, Platform } from 'react-native';
-import { Card } from '../../components';
+import React, { useCallback } from 'react';
+import {
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
 
-interface NavItem {
+type GreetingPeriod = 'Morning' | 'Afternoon' | 'Evening';
+
+interface EssentialItem {
   id: string;
-  image: any;
-  description: string;
+  label: string;
+  icon: string;
+  iconColor: string;
+  iconBackground: string;
+  cardBackground: string;
   route: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
+interface FooterItem {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  route?: string;
+  action?: 'alerts';
+}
+
+const ESSENTIAL_ITEMS: EssentialItem[] = [
   {
-    id: '1',
-    image: require('../../assets/Ride-Transport.png'),
-    description: 'Ride and transport',
+    id: 'transport',
+    label: 'Ride and Transport',
+    icon: 'bus',
+    iconColor: '#A84E0D',
+    iconBackground: '#FDE8A8',
+    cardBackground: '#FFF4D7',
     route: 'Transport',
   },
   {
-    id: '2',
-    image: require('../../assets/Hotel-Stays.png'),
-    description: 'Hotel and Stays',
-    route: 'Hotels',
+    id: 'stays',
+    label: 'Hotel & Stays',
+    icon: 'office-building',
+    iconColor: '#1A6A3B',
+    iconBackground: '#D8F6E2',
+    cardBackground: '#EFFBF1',
+    route: 'Explore',
   },
   {
-    id: '3',
-    image: require('../../assets/Food-Restaurents.png'),
-    description: 'Food and Restaurants',
+    id: 'marketplace',
+    label: 'Market Place',
+    icon: 'shopping-outline',
+    iconColor: '#125D8D',
+    iconBackground: '#DDEEFF',
+    cardBackground: '#F0F7FF',
     route: 'Marketplace',
   },
   {
-    id: '4',
-    image: require('../../assets/Activities-TouristSpots.png'),
-    description: 'Activities and Tourist Spots',
+    id: 'activities',
+    label: 'Activities & Tourist Spots',
+    icon: 'terrain',
+    iconColor: '#B14B17',
+    iconBackground: '#FDE5CA',
+    cardBackground: '#FFF2E5',
     route: 'Explore',
   },
 ];
 
-// Memoized navigation card component
-interface NavCardProps {
-  item: NavItem;
+const FOOTER_ITEMS: FooterItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    icon: 'home',
+    route: 'Home',
+  },
+  {
+    id: 'explore',
+    label: 'Explore',
+    icon: 'compass-outline',
+    route: 'Explore',
+  },
+  {
+    id: 'alerts',
+    label: 'Alerts',
+    icon: 'notifications-outline',
+    action: 'alerts',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: 'settings-outline',
+    route: 'Profile',
+  },
+];
+
+const HERO_IMAGE = require('../../assets/Homepage.png');
+const TRENDING_IMAGE = require('../../assets/Trending.png');
+
+const getGreetingPeriod = (date: Date): GreetingPeriod => {
+  const hour = date.getHours();
+
+  if (hour < 12) {
+    return 'Morning';
+  }
+
+  if (hour < 17) {
+    return 'Afternoon';
+  }
+
+  return 'Evening';
+};
+
+interface EssentialCardProps {
+  item: EssentialItem;
   onPress: (route: string) => void;
 }
 
-const NavCard = React.memo<NavCardProps>(({ item, onPress }) => {
+const EssentialCard = React.memo<EssentialCardProps>(({ item, onPress }) => {
   const handlePress = useCallback(() => {
     onPress(item.route);
   }, [item.route, onPress]);
 
   return (
-    <Card style={styles.card} onPress={handlePress}>
-      <Image source={item.image} style={styles.cardImage} />
-      <Text style={styles.cardText}>{item.description}</Text>
-    </Card>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={handlePress}
+      style={[styles.essentialCard, { backgroundColor: item.cardBackground }]}
+    >
+      <View style={[styles.essentialIconWrap, { backgroundColor: item.iconBackground }]}> 
+        <MaterialCommunityIcons name={item.icon as any} size={34} color={item.iconColor} />
+      </View>
+      <Text style={[styles.essentialLabel, { color: item.iconColor }]}>{item.label}</Text>
+    </TouchableOpacity>
   );
 });
 
-NavCard.displayName = 'NavCard';
+EssentialCard.displayName = 'EssentialCard';
+
+interface FooterTabProps {
+  item: FooterItem;
+  isActive: boolean;
+  onPress: (item: FooterItem) => void;
+}
+
+const FooterTab = React.memo<FooterTabProps>(({ item, isActive, onPress }) => {
+  const handlePress = useCallback(() => {
+    onPress(item);
+  }, [item, onPress]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={handlePress}
+      style={[styles.footerTab, isActive && styles.footerTabActive]}
+    >
+      <Ionicons name={item.icon} size={22} color={isActive ? '#141414' : '#7B7B7B'} />
+      <Text style={[styles.footerText, isActive && styles.footerTextActive]}>{item.label}</Text>
+    </TouchableOpacity>
+  );
+});
+
+FooterTab.displayName = 'FooterTab';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
-  const userName = user?.name || 'Traveler'; // Retrieve actual user name from auth context
+  const userName = user?.name || 'Traveler';
+  const greetingMessage = `Hi ${userName}, Good ${getGreetingPeriod(new Date())}!`;
 
   const handleNavigate = useCallback(
     (route: string) => {
@@ -74,58 +182,57 @@ const HomeScreen = () => {
     [navigation]
   );
 
-  const keyExtractor = useCallback((item: NavItem) => item.id, []);
+  const handleFooterPress = useCallback(
+    (item: FooterItem) => {
+      if (item.action === 'alerts') {
+        Alert.alert('Alerts', 'Notifications center coming soon.');
+        return;
+      }
 
-  const renderItem = useCallback(
-    ({ item }: { item: NavItem }) => <NavCard item={item} onPress={handleNavigate} />,
+      if (item.route) {
+        handleNavigate(item.route);
+      }
+    },
     [handleNavigate]
   );
 
-  const ListHeaderComponent = useMemo(
-    () => (
-      <View>
-        <View>
-          <LinearGradient
-            colors={['#fee578', '#f7df75','#fbe992']}
-            style={styles.header}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.title}>RoamCeylon</Text>
-            <Text style={styles.subtitle}>Hi {userName}</Text>
-            <Text style={styles.subtitle}>Sri Lanka Welcomes You</Text>
-            <TouchableOpacity 
-              style={styles.profileIconContainer}
-              onPress={() => handleNavigate('Profile')}
-            >
-              <Ionicons name="person" size={24} color="black" />
-            </TouchableOpacity>
-          </LinearGradient>
-          <View style={styles.searchSection}>
-            <View style={styles.searchRow}>
-              <TouchableOpacity style={styles.searchIconBubble}>
-                <Ionicons name="search" size={24} color="#1B7F6B" />
-              </TouchableOpacity>
-              <View style={styles.searchInputContainer}>
-                <TextInput
-                  placeholder="Your Destination"
-                  placeholderTextColor="#000000"
-                  style={styles.searchInput}
-                />
-              </View>
+  const currentFooterLabel = 'Home';
+
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.topGreetingCard}>
+          <Text style={styles.greetingText}>{greetingMessage}</Text>
+        </View>
+
+        <View style={styles.searchSection}>
+          <View style={styles.searchRow}>
+            <View style={styles.searchIconBubble}>
+              <Ionicons name="search" size={22} color="#9B7B4A" />
+            </View>
+            <View style={styles.searchInputContainer}>
+              <TextInput
+                placeholder="Your Destination"
+                placeholderTextColor="#C7A97B"
+                style={styles.searchInput}
+              />
             </View>
           </View>
-          <Image source={require('../../../assets/Skyline.png')} style={styles.skylineImage} />
         </View>
+
         <View style={styles.aiCard}>
-          <View style={styles.aiCardHeader}>
-            <MaterialCommunityIcons name="brain" size={24} color="#F59E0B" />
-            <Text style={styles.aicardTitle}>AI Powered Full Trip Planning</Text>
+          <View style={styles.aiBadge}>
+            <MaterialCommunityIcons name="star" size={12} color="#0F1B10" />
+            <Text style={styles.aiBadgeText}>AI TRAVEL ASSISTANT</Text>
           </View>
-          <Text style={styles.aiCardSubtitle}>Easy, instant travel planning with AI</Text>
-          <TouchableOpacity onPress={() => handleNavigate('AITripPlanner') as never}>
+          <Text style={styles.aiTitle}>AI Powered Full Trip Planning</Text>
+          <Text style={styles.aiDescription}>
+            Personalize your Sri Lankan escape. Our AI analyzes thousands of routes,
+            stays, and secret spots to craft your perfect journey in seconds.
+          </Text>
+          <TouchableOpacity activeOpacity={0.9} onPress={() => handleNavigate('AITripPlanner')}>
             <LinearGradient
-              colors={['#FFDE59', '#FFBD0C']}
+              colors={['#FFD94D', '#FFD13A']}
               style={styles.aiButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -134,56 +241,60 @@ const HomeScreen = () => {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-        <Text style={styles.helptext}>Explore Our Essentials</Text>
-      </View>
-    ),
-    [userName, handleNavigate]
-  );
 
-  return (
-    <View style={styles.container}>
-      <FlatList
-        data={NAV_ITEMS}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        numColumns={2}
-        contentContainerStyle={styles.gridContent}
-        columnWrapperStyle={styles.columnWrapper}
-        ListHeaderComponent={ListHeaderComponent}
-        ListHeaderComponentStyle={styles.headerWrapper}
-        showsVerticalScrollIndicator={false}
-        style={styles.list}
-      />
-      
+        <Image source={HERO_IMAGE} style={styles.heroImage} />
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionEyebrow}>CURATED SELECTION</Text>
+          <Text style={styles.sectionTitle}>Our Explore Essentials Individually</Text>
+        </View>
+
+        <View style={styles.essentialsGrid}>
+          {ESSENTIAL_ITEMS.map((item) => (
+            <EssentialCard key={item.id} item={item} onPress={handleNavigate} />
+          ))}
+        </View>
+
+        <View style={styles.trendingCard}>
+          <Image source={TRENDING_IMAGE} style={styles.trendingImage} />
+          <LinearGradient
+            colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.9)']}
+            style={styles.trendingOverlay}
+          />
+          <View style={styles.trendingContent}>
+            <View style={styles.trendingBadge}>
+              <Text style={styles.trendingBadgeText}>TRENDING</Text>
+            </View>
+            <Text style={styles.trendingTitle}>The Golden Fortress</Text>
+            <Text style={styles.trendingSubtitle}>
+              Explore the heights of Sigiriya this season.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.ecoCard}>
+          <Text style={styles.ecoTitle}>Eco-Tourism at its Finest</Text>
+          <Text style={styles.ecoDescription}>
+            We partner with local communities to ensure your visit supports
+            sustainable development in the pearl of the Indian Ocean.
+          </Text>
+          <TouchableOpacity activeOpacity={0.85} style={styles.ecoLink}>
+            <Text style={styles.ecoLinkText}>Learn about our mission</Text>
+            <Ionicons name="arrow-forward" size={18} color="#9A7300" />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerItem}>
-          <Ionicons name="home" size={24} color="#000" />
-          <Text style={styles.footerText}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.footerItem}>
-          <Ionicons name="list" size={24} color="#000" />
-          <Text style={styles.footerText}>Activities</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.footerItem}>
-          <Ionicons name="notifications" size={24} color="#000" />
-          <Text style={styles.footerText}>Notification</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.footerItem}>
-          <Ionicons name="settings" size={24} color="#000" />
-          <Text style={styles.footerText}>Settings</Text>
-        </TouchableOpacity>
+        {FOOTER_ITEMS.map((item) => (
+          <FooterTab
+            key={item.id}
+            item={item}
+            isActive={item.label === currentFooterLabel}
+            onPress={handleFooterPress}
+          />
+        ))}
       </View>
-
-      {/* Internal AI Testing Button - Dev Only */}
-      <TouchableOpacity
-        style={styles.devTestButton}
-        onPress={() => handleNavigate('AIPlannerTesting')}
-      >
-        <MaterialCommunityIcons name="test-tube" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -191,209 +302,309 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FBFAF6',
   },
-  list: {
-    flex: 1,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 124,
   },
-  headerWrapper: {
-    marginHorizontal: -10,
-    marginTop: -10,
-    marginBottom: 0,
+  topGreetingCard: {
+    marginTop: 30,
+    backgroundColor: '#FFD26B',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 16,
   },
-  gradientContainer: {
-    paddingBottom: 20,
-  },
-  header: {
-    backgroundColor: '#197d6e',
-    padding: 20,
-    paddingTop: 35,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  profileIconContainer: {
-    width: 35,
-    height: 35,
-    backgroundColor: '#FCD34D', // Yellow
-    borderRadius: 22.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    right: 20,
-    bottom: 40,
-    borderWidth: 2,
-    borderColor: '#156150',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#030101',
-  },
-  cardImage: {
-    width: 80,
-    height: 80,
-    marginBottom: 0,
-    resizeMode: 'contain',
-    alignSelf: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#030101',
-    marginTop: 5,
-  },
-  helptext: {
-    marginTop: 0,
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  gridContent: {
-    padding: 10,
-  },
-  columnWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 0,
-  },
-  card: {
-    width: '48%',
-    borderWidth: 1,
-    borderColor: '#6bc69a', 
-    borderRadius: 15,
-  },
-  cardText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+  greetingText: {
+    color: '#343434',
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
   searchSection: {
-    paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 10,
-    position: 'relative',
-    zIndex: 1,
+    marginBottom: 18,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 10,
+    gap: 12,
   },
   searchIconBubble: {
     width: 40,
     height: 40,
-    backgroundColor: '#fff',
-    borderRadius: 22.5,
+    backgroundColor: '#FFF8F0',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    elevation: 2,
   },
   searchInputContainer: {
     flex: 1,
-    marginLeft: 15,
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    height: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    height: 48,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    elevation: 3,
+    paddingHorizontal: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    elevation: 2,
   },
   searchInput: {
     fontSize: 16,
-    color: '#D88A8A',
-    textAlign: 'center',
-  },
-  skylineImage: {
-    position: 'absolute',
-    top:210,
-    width: '100%',
-    height: 100,
-    opacity: 0.15
+    color: '#7F6A51',
+    textAlign: 'left',
   },
   aiCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 10,
-    marginVertical: 8,
-    shadowColor: '#d2f9f6',
-    borderWidth: 1,
-    borderColor: '#b7b7b7ff', 
-    margin: 10,
-    marginTop: 115,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    padding: 20,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 22,
     elevation: 4,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
   },
-  aicardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  aiCardHeader: {
+  aiBadge: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 6,
+    backgroundColor: '#8CF27F',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginBottom: 18,
   },
-  aiCardSubtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 16,
-    marginLeft: 30,
+  aiBadgeText: {
+    fontSize: 11,
+    letterSpacing: 1.2,
+    fontWeight: '800',
+    color: '#132014',
+  },
+  aiTitle: {
+    fontSize: 32,
+    lineHeight: 38,
+    color: '#1B1B1B',
+    fontWeight: '800',
+    letterSpacing: -0.7,
+    marginBottom: 18,
+  },
+  aiDescription: {
+    fontSize: 17,
+    lineHeight: 26,
+    color: '#5F5F5F',
+    marginBottom: 22,
   },
   aiButton: {
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 0,
+    shadowColor: '#B98E0A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 4,
   },
   aiButtonText: {
-    color: '#222',
-    fontWeight: 'bold',
+    color: '#222222',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  heroImage: {
+    width: '100%',
+    height: 335,
+    borderRadius: 40,
+    marginBottom: 26,
+    resizeMode: 'cover',
+  },
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2.4,
+    color: '#1A7A1B',
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: '#222222',
+    letterSpacing: -0.35,
+  },
+  essentialsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 22,
+  },
+  essentialCard: {
+    width: '48.3%',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(24, 24, 24, 0.04)',
+    alignItems: 'center',
+  },
+  essentialIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  essentialLabel: {
+    fontSize: 15,
+    lineHeight: 20,
+    textAlign: 'center',
+    fontWeight: '800',
+  },
+  trendingCard: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    minHeight: 420,
+    marginBottom: 18,
+    backgroundColor: '#111111',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.14,
+    shadowRadius: 26,
+    elevation: 6,
+  },
+  trendingImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  trendingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  trendingContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    paddingTop: 260,
+  },
+  trendingBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#A87C00',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginBottom: 14,
+  },
+  trendingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    letterSpacing: 0.8,
+    fontWeight: '800',
+  },
+  trendingTitle: {
+    color: '#FFFFFF',
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    marginBottom: 8,
+  },
+  trendingSubtitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 18,
+    lineHeight: 25,
+    maxWidth: 340,
+  },
+  ecoCard: {
+    backgroundColor: '#FFF1B8',
+    borderRadius: 32,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  ecoTitle: {
+    color: '#121212',
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 18,
+    maxWidth: 260,
+  },
+  ecoDescription: {
+    color: '#4F4633',
     fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  ecoLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ecoLinkText: {
+    color: '#9A7300',
+    fontSize: 16,
+    fontWeight: '700',
   },
   footer: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: Platform.OS === 'ios' ? 10 : 8,
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     paddingHorizontal: 10,
-    paddingBottom: Platform.OS === 'android' ? 20 : 15,
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  footerItem: {
+  footerTab: {
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
+    gap: 4,
+    paddingVertical: 8,
+  },
+  footerTabActive: {
+    backgroundColor: '#FFE06B',
   },
   footerText: {
-    fontSize: 10,
-    color: '#000',
-    marginTop: 4,
-    fontWeight: '500',
+    fontSize: 11,
+    color: '#7B7B7B',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
-  devTestButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  footerTextActive: {
+    color: '#151515',
   },
 });
 
