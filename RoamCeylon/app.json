@@ -2,14 +2,14 @@
   "expo": {
     "name": "RoamCeylon",
     "slug": "RoamCeylon",
-    "scheme": "roamceylon",
+    "scheme": ["roamceylon", "com.googleusercontent.apps.770657770767-g6o1grdjcfsohh7cg8dp6qabst4kf7nf"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/RoamCeylon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/RoamCeylon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -31,9 +31,7 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "INTERNET",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "INTERNET"
       ],
       "package": "com.anonymous.RoamCeylon"
     },
@@ -42,6 +40,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "@react-native-google-signin/google-signin",
       [
         "@rnmapbox/maps",
         {

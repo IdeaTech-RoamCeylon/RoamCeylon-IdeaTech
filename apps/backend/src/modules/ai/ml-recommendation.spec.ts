@@ -69,4 +69,21 @@ describe('QA Validation: ML Recommendation Engine', () => {
       expect(Number.isNaN(item.coordinates.latitude)).toBe(false);
     });
   });
+
+  it('should return stable rankings across multiple identical requests', async () => {
+    // 1. Fire the same request 3 times
+    const requestArgs = { userId: 'user-1', limit: 5 };
+    const result1 = await mockMLRecommenderAPI(requestArgs);
+    const result2 = await mockMLRecommenderAPI(requestArgs);
+    const result3 = await mockMLRecommenderAPI(requestArgs);
+
+    // 2. Extract just the IDs to compare the order
+    const order1 = result1.map(item => item.id);
+    const order2 = result2.map(item => item.id);
+    const order3 = result3.map(item => item.id);
+
+    // 3. Assert that the AI model isn't wildly hallucinating different orders
+    expect(order1).toEqual(order2);
+    expect(order2).toEqual(order3);
+  });
 });

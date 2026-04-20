@@ -11,13 +11,20 @@ export class UsersService {
 
   async getMe(userId: string) {
     // TODO: Run 'npx prisma generate' to update types. Casting to any temporarily.
-    const user = (await this.prisma.user.findUnique({
+    let user = (await this.prisma.user.findUnique({
       where: { id: userId },
     })) as any;
 
     if (!user) {
-      this.logger.warn(`User found for ID: ${userId}`);
-      throw new NotFoundException('User not found');
+      this.logger.log(
+        `Auto-creating missing public.User profile for Nhost ID: ${userId}`,
+      );
+      user = (await this.prisma.user.create({
+        data: {
+          id: userId,
+          authProvider: 'nhost',
+        },
+      })) as any;
     }
 
     return {

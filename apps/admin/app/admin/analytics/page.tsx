@@ -16,12 +16,8 @@ import {
 import { isFeatureEnabled } from "../../../lib/featureFlags";
 import { DashboardRefresh } from "../../../components/DashboardRefresh";
 import { SystemHealthMonitor } from "../../../components/SystemHealthMonitor";
-import dynamic from 'next/dynamic';
+import { PersonalizedRecommendations } from "../../../components/recommendations/PersonalizedRecommendations";
 
-const PersonalizedRecommendations = dynamic(
-  () => import('../../../components/recommendations/PersonalizedRecommendations').then((mod) => mod.PersonalizedRecommendations),
-  { ssr: false, loading: () => <div className="h-48 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900 rounded-xl" /> }
-);
 
 export const revalidate = 60; // 60 seconds Cache for page level revalidation
 

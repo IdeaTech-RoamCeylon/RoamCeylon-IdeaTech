@@ -3,8 +3,8 @@
 export type AuthStackParamList = {
   Splash: undefined;
   Welcome: undefined;
-  PhoneEntry: undefined;
-  OTP: { phoneNumber: string };
+  Register: undefined;
+  Login: undefined;
   ProfileSetup: undefined;
   GoogleSignIn: undefined;
 };
