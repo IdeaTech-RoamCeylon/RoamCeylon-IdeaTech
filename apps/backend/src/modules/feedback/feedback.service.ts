@@ -4,6 +4,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeedbackMappingService } from './feedback-mapping.service';
 import { FeedbackQueueService } from './feedback-queue.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class FeedbackService {
@@ -14,6 +15,7 @@ export class FeedbackService {
     private readonly prisma: PrismaService,
     private readonly feedbackMappingService: FeedbackMappingService,
     private readonly feedbackQueueService: FeedbackQueueService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async submitFeedback(
@@ -83,7 +85,31 @@ export class FeedbackService {
       update: { feedbackValue: { rating } },
     });
 
-    // ── Trigger immediate learning ──────────────────────────────────────────
+    // ── Resolve destination from SavedTrip for the event payload ───────────
+    let destination: string | undefined;
+    try {
+      const savedTrip = await this.prisma.savedTrip.findUnique({
+        where: { id: tripId },
+        select: { destination: true },
+      });
+      destination = savedTrip?.destination ?? undefined;
+    } catch {
+      // destination stays undefined — IncrementalLearningService handles this gracefully
+    }
+
+    // ── Emit feedback.submitted ────────────────────────────────────────────
+    // Two listeners react to this event:
+    //   1. RecommendationUpdateService → WebSocket broadcast (existing)
+    //   2. IncrementalLearningService  → ML feature update   (new)
+    this.eventEmitter.emit('feedback.submitted', {
+      userId,
+      tripId,
+      feedbackValue: rating, // numeric 1–5
+      destination, // resolved from SavedTrip above
+      category, // passed in from planner.service inferCategoryFromDestination()
+    });
+
+    // ── Trigger immediate rule-based learning ──────────────────────────────
     if (shouldTriggerLearning && category) {
       await this.feedbackMappingService.processFeedback(
         userId,
@@ -121,8 +147,6 @@ export class FeedbackService {
       queued: shouldQueueLearning,
     };
   }
-
-  // ─── Drift detection ────────────────────────────────────────────────────────
 
   private async checkSystemDriftWarning(): Promise<void> {
     const allFeedback = await this.prisma.plannerFeedback.findMany({
