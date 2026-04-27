@@ -2,6 +2,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
 
 @Injectable()
 export class FeedbackMappingService {
@@ -14,8 +15,11 @@ export class FeedbackMappingService {
   private readonly CATEGORY_MIN = 0.5;
   private readonly CATEGORY_MAX = 2;
   private readonly MIN_FEEDBACK_FOR_CATEGORY_LEARNING = 3;
-
-  constructor(private readonly prisma: PrismaService) {}
+  
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly boundsEnforcer: BoundsEnforcerService,
+  ) {}
 
   async processFeedback(
     userId: string,
@@ -83,7 +87,7 @@ export class FeedbackMappingService {
       (weightedPositive + this.PRIOR) /
       (weightedPositive + weightedNegative + this.PRIOR * 2);
 
-    const safeTrust = Math.max(0, Math.min(trustScore, 1));
+    const safeTrust = this.boundsEnforcer.enforceTrustScore(trustScore, userId);
 
     this.logger.log(
       `[LearningMetrics] TrustScore recalculated for ${userId}: ` +
@@ -156,10 +160,7 @@ export class FeedbackMappingService {
 
     const newWeightRaw = existing.weight + delta;
 
-    const newWeight = Math.max(
-      this.CATEGORY_MIN,
-      Math.min(newWeightRaw, this.CATEGORY_MAX),
-    );
+    const newWeight = this.boundsEnforcer.enforceCategoryWeight(newWeightRaw, userId, category);
 
     await this.prisma.userCategoryWeight.update({
       where: { userId_category: { userId, category } },

@@ -10,6 +10,7 @@ import { PlannerModule } from '../planner/planner.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { FeedbackModule } from '../feedback/feedback.module';
 import { AIDecisionLoggerService } from './decision/ai-decision-logger.service';
+import { BoundsEnforcerService } from './bounds-enforcer.service';
 
 @Module({
   imports: [
@@ -31,6 +32,10 @@ import { AIDecisionLoggerService } from './decision/ai-decision-logger.service';
     SearchService,
     TripStoreService,
     AIDecisionLoggerService,
+    BoundsEnforcerService,
+  ],
+  exports: [
+    BoundsEnforcerService, 
   ],
 })
 export class AIModule {}

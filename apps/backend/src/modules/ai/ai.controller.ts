@@ -1,3 +1,5 @@
+﻿// apps/backend/src/modules/ai/ai.controller.ts
+
 import {
   Controller,
   Get,
@@ -33,6 +35,7 @@ import {
   TripPlanDecisionLog,
 } from './decision/ai-decision-logger.service';
 import { LatencyTrackerService } from '../analytics/latency-tracker.service';
+import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -506,6 +509,7 @@ export class AIController {
     private readonly rankingService: FeedbackRankingService,
     private readonly decisionLogger: AIDecisionLoggerService,
     private readonly latencyTracker: LatencyTrackerService,
+    private readonly boundsEnforcer: BoundsEnforcerService,
   ) {}
 
   @Get('health')
@@ -890,6 +894,15 @@ export class AIController {
       dimension: embedding.length,
       min: Math.min(...embedding),
       max: Math.max(...embedding),
+    };
+  }
+
+  @Get('bounds/status')
+  getBoundsStatus() {
+    return {
+      message:   'Active safe recommendation bounds',
+      bounds:    this.boundsEnforcer.getActiveBounds(),
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -2788,6 +2801,10 @@ export class AIController {
       ella: 'hill_country',
       yala: 'safari_south',
       udawalawe: 'safari_south',
+      kataragama: 'uva',
+      monaragala: 'uva',
+      buttala: 'uva',
+      tissamaharama: 'safari_south',
     };
 
     return map[dest];

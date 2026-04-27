@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
+// apps/backend/src/modules/ml/ml.service.ts
+
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrackBehaviorDto } from './dto/track-behavior.dto';
@@ -6,12 +7,14 @@ import {
   MlPredictionService,
   MLPredictionResponse,
 } from './services/mlPrediction.service';
+import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
 
 @Injectable()
 export class MlService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mlPredictionService: MlPredictionService,
+    private readonly boundsEnforcer: BoundsEnforcerService,
   ) {}
 
   async trackBehavior(dto: TrackBehaviorDto) {
@@ -92,8 +95,29 @@ export class MlService {
       // Day 64 - Task 3: Improve Hybrid Balance -> ML weight slightly ↑
       // Adjusted weights: Rule-Based 60% (0.6), ML 40% (0.4)
       const useMl = mlScore > 0;
-      const finalScore = useMl ? ruleScore * 0.6 + mlScore * 0.4 : ruleScore;
-      const source = useMl ? 'hybrid' : 'rule-based';
+      let finalScore: number;
+      let source: string;
+ 
+      if (useMl) {
+        // Enforce ML influence bounds before blending
+        const bounded = this.boundsEnforcer.enforceHybridScore({
+          ruleScore,
+          mlScore,
+          mlWeight:   0.4,
+          ruleWeight: 0.6,
+        });
+        finalScore = bounded.finalScore;
+        source     = bounded.cappedByBound ? 'hybrid-capped' : 'hybrid';
+      } else {
+        finalScore = ruleScore;
+        source     = 'rule-based';
+      }
+ 
+      // Hard clamp on final score as last line of defense
+      finalScore = this.boundsEnforcer.enforceFinalScore(
+        finalScore,
+        `recommendations:${ruleRec.item_id}`,
+      );
 
       return {
         destination_id: ruleRec.item_id,
