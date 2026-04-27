@@ -234,12 +234,54 @@
       "region": "south"
     },
     {
-      "title": "Jaffna Fort",
-      "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon.",
+      "title": "Kataragama Sacred City",
+      "description": "Kataragama is a multi-religious sacred town in southern Sri Lanka, home to the famous Kataragama Devalaya shrine, Buddhist dagobas, and the Menik Ganga river used for ritual bathing. It is revered by Buddhists, Hindus, Muslims, and indigenous Veddas.",
       "near": [
-        "jaffna"
+        "kataragama",
+        "yala",
+        "tissamaharama",
+        "buttala",
+        "monaragala"
       ],
-      "region": "north"
-    }
+      "region": "uva"
+    },
+    {
+      "title": "Pinnawala Elephant Orphanage",
+      "description": "Pinnawala Elephant Orphanage is a world-famous sanctuary that rescues and rehabilitates orphaned wild elephants. Visitors can watch elephants bathing in the Maha Oya river and interact with the largest captive elephant herd in the world.",
+      "near": [
+        "pinnawala",
+        "kegalle",
+        "kandy"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Ambuluwawa Tower",
+      "description": "Ambuluwawa Tower is a unique spiral biodiversity complex and tower located in Gampola, offering panoramic views of four provinces. The site features a multi-religious center, forest trails, and diverse flora and fauna.",
+      "near": [
+        "gampola",
+        "kandy",
+        "nuwara eliya"
+      ],
+      "region": "kandy"
+   },
+   {
+    "title": "Knuckles Mountain Range",
+    "description": "The Knuckles Mountain Range is a UNESCO World Heritage listed mountain range in central Sri Lanka, known for its dramatic peaks, cloud forests, waterfalls, diverse wildlife, and challenging trekking trails.",
+    "near": [
+      "kandy",
+      "matale",
+      "ella"
+    ],
+    "region": "kandy"
+   },
+   {
+     "title": "Jaffna Fort",
+     "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon.",
+     "near": [
+      "jaffna"
+     ],
+     "region": "north"
+   }
   ]
 }

@@ -2,6 +2,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
 
 @Injectable()
 export class FeedbackRankingService {
@@ -18,7 +19,10 @@ export class FeedbackRankingService {
   private readonly MAX_PERSONALIZATION_FACTOR = 1.5; // +50%
   private readonly MIN_PERSONALIZATION_FACTOR = 0.7; // -30%
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly boundsEnforcer: BoundsEnforcerService,
+  ) {}
 
   // ==================================================
   // PERSONALIZATION METRICS FOR EXPLANATIONS
@@ -49,6 +53,11 @@ export class FeedbackRankingService {
     // Bounded Trust Multiplier
     const trustMultiplier = this.TRUST_MIN + this.TRUST_RANGE * effectiveTrust;
 
+    const safeTrustMultiplier = this.boundsEnforcer.enforceTrustMultiplier(
+      trustMultiplier,
+      userId,
+    );
+
     this.logger.log(
       `[LearningMetrics] Ranking Start: userId=${userId}, trustScore=${trustScore.toFixed(
         4,
@@ -64,7 +73,7 @@ export class FeedbackRankingService {
     return {
       trustScore,
       confidence,
-      trustMultiplier,
+      trustMultiplier: safeTrustMultiplier,
       categoryMultiplier,
       feedbackCount: totalFeedback,
     };

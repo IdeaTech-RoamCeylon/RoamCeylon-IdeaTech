@@ -9,9 +9,16 @@ import { RecommendationUpdateService } from './services/recommendationUpdate.ser
 import { RecommendationUpdateController } from './controllers/recommendationUpdate.controller';
 import { RecommendationGateway } from '../../gateways/recommendation.gateway';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { IncrementalLearningService } from './services/incremental-learning.service';
+import { AIModule } from '../ai/ai.module';
 
 @Module({
-  imports: [PrismaModule, AnalyticsModule, EventEmitterModule.forRoot()],
+  imports: [
+    PrismaModule,
+    AnalyticsModule,
+    EventEmitterModule.forRoot(),
+    AIModule,
+  ],
   controllers: [MlController, RecommendationUpdateController],
   providers: [
     MlService,
@@ -19,6 +26,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     MlPredictionService,
     RecommendationUpdateService,
     RecommendationGateway,
+    IncrementalLearningService,
   ],
   exports: [
     MlService,
@@ -26,6 +34,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     MlPredictionService,
     RecommendationUpdateService,
     RecommendationGateway,
+    IncrementalLearningService,
   ],
 })
 export class MlModule {}

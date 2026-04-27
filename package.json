@@ -29,6 +29,7 @@
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/config": "^4.0.2",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/platform-socket.io": "^11.1.9",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.9",
