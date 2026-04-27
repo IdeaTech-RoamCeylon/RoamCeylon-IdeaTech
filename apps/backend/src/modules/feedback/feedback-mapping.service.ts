@@ -15,7 +15,7 @@ export class FeedbackMappingService {
   private readonly CATEGORY_MIN = 0.5;
   private readonly CATEGORY_MAX = 2;
   private readonly MIN_FEEDBACK_FOR_CATEGORY_LEARNING = 3;
-  
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly boundsEnforcer: BoundsEnforcerService,
@@ -160,7 +160,11 @@ export class FeedbackMappingService {
 
     const newWeightRaw = existing.weight + delta;
 
-    const newWeight = this.boundsEnforcer.enforceCategoryWeight(newWeightRaw, userId, category);
+    const newWeight = this.boundsEnforcer.enforceCategoryWeight(
+      newWeightRaw,
+      userId,
+      category,
+    );
 
     await this.prisma.userCategoryWeight.update({
       where: { userId_category: { userId, category } },

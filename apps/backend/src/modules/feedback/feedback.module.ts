@@ -9,10 +9,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { AIModule } from '../ai/ai.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    AIModule,  
-  ],
+  imports: [PrismaModule, AIModule],
   providers: [
     FeedbackService,
     FeedbackMappingService,

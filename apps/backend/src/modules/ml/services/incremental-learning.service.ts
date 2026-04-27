@@ -257,13 +257,31 @@ export class IncrementalLearningService {
         },
       })) as UserInterestProfileSafe | null;
 
-      const safeCulturalDelta   = this.boundsEnforcer.enforceSessionDelta(userId, 'cultural',   dims.cultural   * delta);
-      const safeAdventureDelta  = this.boundsEnforcer.enforceSessionDelta(userId, 'adventure',  dims.adventure  * delta);
-      const safeRelaxationDelta = this.boundsEnforcer.enforceSessionDelta(userId, 'relaxation', dims.relaxation * delta);
+      const safeCulturalDelta = this.boundsEnforcer.enforceSessionDelta(
+        userId,
+        'cultural',
+        dims.cultural * delta,
+      );
+      const safeAdventureDelta = this.boundsEnforcer.enforceSessionDelta(
+        userId,
+        'adventure',
+        dims.adventure * delta,
+      );
+      const safeRelaxationDelta = this.boundsEnforcer.enforceSessionDelta(
+        userId,
+        'relaxation',
+        dims.relaxation * delta,
+      );
 
-      const newCultural   = this.clamp((existing?.culturalScore   ?? 0) + safeCulturalDelta);
-      const newAdventure  = this.clamp((existing?.adventureScore  ?? 0) + safeAdventureDelta);
-      const newRelaxation = this.clamp((existing?.relaxationScore ?? 0) + safeRelaxationDelta);
+      const newCultural = this.clamp(
+        (existing?.culturalScore ?? 0) + safeCulturalDelta,
+      );
+      const newAdventure = this.clamp(
+        (existing?.adventureScore ?? 0) + safeAdventureDelta,
+      );
+      const newRelaxation = this.clamp(
+        (existing?.relaxationScore ?? 0) + safeRelaxationDelta,
+      );
 
       await this.prisma.userInterestProfile.upsert({
         where: { userId },
@@ -458,7 +476,7 @@ export class IncrementalLearningService {
       this.logger.error(
         `[IncrementalLearning] refreshAllUserFeatures failed for ${userId}: ${(err as Error).message}`,
       );
-    }finally {
+    } finally {
       this.boundsEnforcer.clearSessionDeltas(userId);
     }
   }

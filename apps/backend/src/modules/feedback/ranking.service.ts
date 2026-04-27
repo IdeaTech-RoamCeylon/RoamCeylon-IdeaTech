@@ -51,11 +51,12 @@ export class FeedbackRankingService {
     const effectiveTrust = trustScore * confidence;
 
     // Bounded Trust Multiplier
-    const trustMultiplier =
-      this.TRUST_MIN + this.TRUST_RANGE * effectiveTrust;
+    const trustMultiplier = this.TRUST_MIN + this.TRUST_RANGE * effectiveTrust;
 
-    const safeTrustMultiplier =
-      this.boundsEnforcer.enforceTrustMultiplier(trustMultiplier, userId);
+    const safeTrustMultiplier = this.boundsEnforcer.enforceTrustMultiplier(
+      trustMultiplier,
+      userId,
+    );
 
     this.logger.log(
       `[LearningMetrics] Ranking Start: userId=${userId}, trustScore=${trustScore.toFixed(
@@ -72,7 +73,7 @@ export class FeedbackRankingService {
     return {
       trustScore,
       confidence,
-      trustMultiplier: safeTrustMultiplier, 
+      trustMultiplier: safeTrustMultiplier,
       categoryMultiplier,
       feedbackCount: totalFeedback,
     };

@@ -9,6 +9,8 @@ import {
 } from './services/mlPrediction.service';
 import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
 
+type RecommendationSource = 'hybrid' | 'hybrid-capped' | 'rule-based';
+
 @Injectable()
 export class MlService {
   constructor(
@@ -19,7 +21,7 @@ export class MlService {
 
   async trackBehavior(dto: TrackBehaviorDto) {
     try {
-      const event = await (this.prisma as any).userBehaviorEvent.create({
+      const event = await this.prisma.userBehaviorEvent.create({
         data: {
           userId: dto.user_id,
           eventType: dto.event_type,
@@ -27,6 +29,7 @@ export class MlService {
           metadata: dto.metadata || {},
         },
       });
+
       return { success: true, eventId: event.id };
     } catch {
       throw new InternalServerErrorException('Failed to track behavior event');
@@ -34,7 +37,7 @@ export class MlService {
   }
 
   async getPersonalizedRecommendations(userId: string) {
-    // 1. Get rule-based recommendations
+    // 1. Get rule-based recommendations (baseline)
     const ruleRecommendations = [
       {
         item_id: 'trip_001',
@@ -59,12 +62,12 @@ export class MlService {
 
     let mlResults: MLPredictionResponse | null = null;
 
-    // Controlled Rollout System (Day 63 - Task 1)
-    // 20% of users get ML recommendations
+    // Controlled Rollout System - 20% of users get ML recommendations
     const userHash = [...userId].reduce(
       (acc, char) => acc + char.charCodeAt(0),
       0,
     );
+
     const isMlEnabled = userHash % 10 < 2;
 
     if (isMlEnabled) {
@@ -84,35 +87,40 @@ export class MlService {
     // 3. Build Hybrid Score
     const finalRecommendations = ruleRecommendations.map((ruleRec) => {
       let mlScore = 0;
-      if (mlResults?.recommendations) {
-        const match = mlResults.recommendations.find(
-          (m) => m.destination_id === ruleRec.item_id,
-        );
-        if (match) mlScore = match.ml_score;
+
+      const match = mlResults?.recommendations?.find(
+        (m) => m.destination_id === ruleRec.item_id,
+      );
+
+      if (match) {
+        mlScore = match.ml_score;
       }
 
       const ruleScore = ruleRec.score;
-      // Day 64 - Task 3: Improve Hybrid Balance -> ML weight slightly ↑
+
+      // Improve Hybrid Balance -> ML weight slightly ↑
       // Adjusted weights: Rule-Based 60% (0.6), ML 40% (0.4)
       const useMl = mlScore > 0;
+
       let finalScore: number;
-      let source: string;
- 
+      let source: RecommendationSource;
+
       if (useMl) {
         // Enforce ML influence bounds before blending
         const bounded = this.boundsEnforcer.enforceHybridScore({
           ruleScore,
           mlScore,
-          mlWeight:   0.4,
+          mlWeight: 0.4,
           ruleWeight: 0.6,
         });
+
         finalScore = bounded.finalScore;
-        source     = bounded.cappedByBound ? 'hybrid-capped' : 'hybrid';
+        source = bounded.cappedByBound ? 'hybrid-capped' : 'hybrid';
       } else {
         finalScore = ruleScore;
-        source     = 'rule-based';
+        source = 'rule-based';
       }
- 
+
       // Hard clamp on final score as last line of defense
       finalScore = this.boundsEnforcer.enforceFinalScore(
         finalScore,
@@ -136,7 +144,7 @@ export class MlService {
     try {
       await Promise.all(
         finalRecommendations.map((rec) =>
-          (this.prisma as any).recommendationLog.create({
+          this.prisma.recommendationLog.create({
             data: {
               userId,
               itemId: rec.destination_id,
@@ -144,7 +152,7 @@ export class MlService {
               mlScore: rec.ml_score,
               ruleScore: rec.rule_score,
               finalScore: rec.final_score,
-              source: rec.source as any,
+              source: rec.source,
             },
           }),
         ),

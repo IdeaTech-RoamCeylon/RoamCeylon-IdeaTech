@@ -26,33 +26,33 @@ import { SAFE_BOUNDS, describeBounds } from './safe-recommendation-bounds';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface HybridScoreInput {
-  ruleScore:  number;
-  mlScore:    number;
-  mlWeight:   number;   // fraction — e.g. 0.4 for 40% ML
-  ruleWeight: number;   // fraction — e.g. 0.6 for 60% rule
+  ruleScore: number;
+  mlScore: number;
+  mlWeight: number; // fraction — e.g. 0.4 for 40% ML
+  ruleWeight: number; // fraction — e.g. 0.6 for 60% rule
 }
 
 export interface HybridScoreResult {
-  finalScore:      number;
-  mlApplied:       boolean;
-  mlWeightUsed:    number;
-  cappedByBound:   boolean;
+  finalScore: number;
+  mlApplied: boolean;
+  mlWeightUsed: number;
+  cappedByBound: boolean;
   violationReason: string | null;
 }
 
 export interface RelevanceCheckResult {
-  passes:       boolean;
-  score:        number;
-  reason:       string | null;
+  passes: boolean;
+  score: number;
+  reason: string | null;
   confidenceLevel: 'High' | 'Medium' | 'Low';
 }
 
 export interface BoundViolation {
-  field:    string;
-  input:    number;
-  clamped:  number;
-  bound:    number;
-  direction:'above' | 'below';
+  field: string;
+  input: number;
+  clamped: number;
+  bound: number;
+  direction: 'above' | 'below';
 }
 
 @Injectable()
@@ -61,11 +61,14 @@ export class BoundsEnforcerService {
 
   // Per-session delta tracker for incremental learning
   // Key: userId, Value: { cultural, adventure, relaxation }
-  private readonly sessionDeltas = new Map<string, {
-    cultural:   number;
-    adventure:  number;
-    relaxation: number;
-  }>();
+  private readonly sessionDeltas = new Map<
+    string,
+    {
+      cultural: number;
+      adventure: number;
+      relaxation: number;
+    }
+  >();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 1. ML INFLUENCE — Hybrid Score Enforcement
@@ -98,25 +101,37 @@ export class BoundsEnforcerService {
    *   Capped final = 0.50 + 0.10 = 0.60
    */
   enforceHybridScore(input: HybridScoreInput): HybridScoreResult {
-    const { ruleScore, mlScore, mlWeight, ruleWeight } = input;
+    const { ruleScore, mlScore, mlWeight } = input;
 
     // Clamp inputs first
-    const safeRule  = this.clamp(ruleScore, SAFE_BOUNDS.SCORE.FLOOR, SAFE_BOUNDS.SCORE.CEILING);
-    const safeMl    = this.clamp(mlScore,   SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE, SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE);
-    const safeMlW   = this.clamp(mlWeight,  0, SAFE_BOUNDS.ML.MAX_HYBRID_WEIGHT);
+    const safeRule = this.clamp(
+      ruleScore,
+      SAFE_BOUNDS.SCORE.FLOOR,
+      SAFE_BOUNDS.SCORE.CEILING,
+    );
+    const safeMl = this.clamp(
+      mlScore,
+      SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE,
+      SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE,
+    );
+    const safeMlW = this.clamp(mlWeight, 0, SAFE_BOUNDS.ML.MAX_HYBRID_WEIGHT);
     const safeRuleW = Math.max(0, 1 - safeMlW);
 
     // Don't apply ML boost if base rule score is too low
     if (safeRule < SAFE_BOUNDS.ML.MIN_BASE_FOR_ML_BOOST) {
       this.logger.debug(
         `[SafeBounds] ML boost skipped: ruleScore=${safeRule.toFixed(3)} below ` +
-        `MIN_BASE_FOR_ML_BOOST=${SAFE_BOUNDS.ML.MIN_BASE_FOR_ML_BOOST}`,
+          `MIN_BASE_FOR_ML_BOOST=${SAFE_BOUNDS.ML.MIN_BASE_FOR_ML_BOOST}`,
       );
       return {
-        finalScore:      this.clamp(safeRule, SAFE_BOUNDS.SCORE.FLOOR, SAFE_BOUNDS.SCORE.CEILING),
-        mlApplied:       false,
-        mlWeightUsed:    0,
-        cappedByBound:   false,
+        finalScore: this.clamp(
+          safeRule,
+          SAFE_BOUNDS.SCORE.FLOOR,
+          SAFE_BOUNDS.SCORE.CEILING,
+        ),
+        mlApplied: false,
+        mlWeightUsed: 0,
+        cappedByBound: false,
         violationReason: null,
       };
     }
@@ -125,17 +140,21 @@ export class BoundsEnforcerService {
     const naiveBlend = safeRule * safeRuleW + safeMl * safeMlW;
 
     // ML shift from rule baseline
-    const mlShift         = naiveBlend - safeRule;
+    const mlShift = naiveBlend - safeRule;
     const maxAllowedShift = safeRule * SAFE_BOUNDS.ML.MAX_SHIFT_FRACTION;
 
     if (mlShift <= maxAllowedShift) {
       // Within bounds — use naive blend
-      const finalScore = this.clamp(naiveBlend, SAFE_BOUNDS.SCORE.FLOOR, SAFE_BOUNDS.SCORE.CEILING);
+      const finalScore = this.clamp(
+        naiveBlend,
+        SAFE_BOUNDS.SCORE.FLOOR,
+        SAFE_BOUNDS.SCORE.CEILING,
+      );
       return {
         finalScore,
-        mlApplied:       true,
-        mlWeightUsed:    safeMlW,
-        cappedByBound:   false,
+        mlApplied: true,
+        mlWeightUsed: safeMlW,
+        cappedByBound: false,
         violationReason: null,
       };
     }
@@ -155,10 +174,10 @@ export class BoundsEnforcerService {
     this.logger.warn(`[SafeBounds] ML influence capped: ${reason}`);
 
     return {
-      finalScore:      cappedFinal,
-      mlApplied:       true,
-      mlWeightUsed:    safeMlW,
-      cappedByBound:   true,
+      finalScore: cappedFinal,
+      mlApplied: true,
+      mlWeightUsed: safeMlW,
+      cappedByBound: true,
       violationReason: reason,
     };
   }
@@ -181,7 +200,7 @@ export class BoundsEnforcerService {
     if (clamped !== raw) {
       this.logger.warn(
         `[SafeBounds] ml_score clamped for dest=${destinationId}: ` +
-        `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
+          `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
       );
     }
 
@@ -206,7 +225,7 @@ export class BoundsEnforcerService {
     if (clamped !== raw) {
       this.logger.warn(
         `[SafeBounds] trustScore clamped for userId=${userId}: ` +
-        `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
+          `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
       );
     }
 
@@ -228,7 +247,7 @@ export class BoundsEnforcerService {
     if (clamped !== raw) {
       this.logger.warn(
         `[SafeBounds] categoryWeight clamped for userId=${userId} category=${category}: ` +
-        `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
+          `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
       );
     }
 
@@ -249,7 +268,7 @@ export class BoundsEnforcerService {
     if (clamped !== raw) {
       this.logger.warn(
         `[SafeBounds] trustMultiplier clamped for userId=${userId}: ` +
-        `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
+          `${raw.toFixed(4)} → ${clamped.toFixed(4)}`,
       );
     }
 
@@ -285,7 +304,7 @@ export class BoundsEnforcerService {
     if (!passes) {
       this.logger.debug(
         `[SafeBounds] Relevance threshold FAILED for "${title}": ` +
-        `score=${score.toFixed(4)} < MIN=${SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY}`,
+          `score=${score.toFixed(4)} < MIN=${SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY}`,
       );
     }
 
@@ -308,20 +327,21 @@ export class BoundsEnforcerService {
    */
   validatePlanQuality(activities: Array<{ score: number }>): {
     isQualityPlan: boolean;
-    avgScore:      number;
+    avgScore: number;
     qualityFraction: number;
-    warning:       string | null;
+    warning: string | null;
   } {
     if (!activities.length) {
       return {
-        isQualityPlan:   false,
-        avgScore:        0,
+        isQualityPlan: false,
+        avgScore: 0,
         qualityFraction: 0,
-        warning:         'No activities to evaluate',
+        warning: 'No activities to evaluate',
       };
     }
 
-    const avgScore = activities.reduce((sum, a) => sum + a.score, 0) / activities.length;
+    const avgScore =
+      activities.reduce((sum, a) => sum + a.score, 0) / activities.length;
 
     const qualityCount = activities.filter(
       (a) => a.score >= SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY,
@@ -329,7 +349,7 @@ export class BoundsEnforcerService {
     const qualityFraction = qualityCount / activities.length;
 
     const isQualityPlan =
-      avgScore        >= SAFE_BOUNDS.RELEVANCE.AVG_SCORE_LOW_QUALITY_THRESHOLD &&
+      avgScore >= SAFE_BOUNDS.RELEVANCE.AVG_SCORE_LOW_QUALITY_THRESHOLD &&
       qualityFraction >= SAFE_BOUNDS.RELEVANCE.MIN_QUALITY_ACTIVITY_FRACTION;
 
     const warning = isQualityPlan
@@ -364,12 +384,16 @@ export class BoundsEnforcerService {
     proposedDelta: number,
   ): number {
     if (!this.sessionDeltas.has(userId)) {
-      this.sessionDeltas.set(userId, { cultural: 0, adventure: 0, relaxation: 0 });
+      this.sessionDeltas.set(userId, {
+        cultural: 0,
+        adventure: 0,
+        relaxation: 0,
+      });
     }
 
-    const session   = this.sessionDeltas.get(userId)!;
-    const current   = session[dimension];
-    const maxDelta  = SAFE_BOUNDS.INCREMENTAL.MAX_SESSION_DELTA_PER_DIMENSION;
+    const session = this.sessionDeltas.get(userId)!;
+    const current = session[dimension];
+    const maxDelta = SAFE_BOUNDS.INCREMENTAL.MAX_SESSION_DELTA_PER_DIMENSION;
 
     // How much room remains in this session for this dimension
     const remaining = maxDelta - Math.abs(current);
@@ -377,15 +401,16 @@ export class BoundsEnforcerService {
     if (remaining <= 0) {
       this.logger.warn(
         `[SafeBounds] Session delta cap reached for userId=${userId} ` +
-        `dimension=${dimension}: cumulative=${current.toFixed(3)} cap=${maxDelta}`,
+          `dimension=${dimension}: cumulative=${current.toFixed(3)} cap=${maxDelta}`,
       );
       return 0; // No more delta allowed this session
     }
 
     // Clamp proposed delta to remaining room
-    const safeDelta = proposedDelta >= 0
-      ? Math.min(proposedDelta, remaining)
-      : Math.max(proposedDelta, -remaining);
+    const safeDelta =
+      proposedDelta >= 0
+        ? Math.min(proposedDelta, remaining)
+        : Math.max(proposedDelta, -remaining);
 
     // Accumulate
     session[dimension] += safeDelta;
@@ -393,8 +418,8 @@ export class BoundsEnforcerService {
     if (safeDelta !== proposedDelta) {
       this.logger.warn(
         `[SafeBounds] Session delta reduced for userId=${userId} ` +
-        `dimension=${dimension}: ${proposedDelta.toFixed(4)} → ${safeDelta.toFixed(4)} ` +
-        `(cumulative=${session[dimension].toFixed(3)})`,
+          `dimension=${dimension}: ${proposedDelta.toFixed(4)} → ${safeDelta.toFixed(4)} ` +
+          `(cumulative=${session[dimension].toFixed(3)})`,
       );
     }
 
@@ -407,7 +432,9 @@ export class BoundsEnforcerService {
    */
   clearSessionDeltas(userId: string): void {
     this.sessionDeltas.delete(userId);
-    this.logger.debug(`[SafeBounds] Session deltas cleared for userId=${userId}`);
+    this.logger.debug(
+      `[SafeBounds] Session deltas cleared for userId=${userId}`,
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -422,12 +449,16 @@ export class BoundsEnforcerService {
    * and ranking.service.ts.
    */
   enforceFinalScore(score: number, context: string): number {
-    const clamped = this.clamp(score, SAFE_BOUNDS.SCORE.FLOOR, SAFE_BOUNDS.SCORE.CEILING);
+    const clamped = this.clamp(
+      score,
+      SAFE_BOUNDS.SCORE.FLOOR,
+      SAFE_BOUNDS.SCORE.CEILING,
+    );
 
     if (clamped !== score) {
       this.logger.warn(
         `[SafeBounds] Final score clamped [${context}]: ` +
-        `${score.toFixed(4)} → ${clamped.toFixed(4)}`,
+          `${score.toFixed(4)} → ${clamped.toFixed(4)}`,
       );
     }
 
@@ -450,7 +481,14 @@ export class BoundsEnforcerService {
    * Validates a set of scores against all bounds and returns any violations.
    * Useful for testing and monitoring.
    */
-  auditScores(scores: Array<{ id: string; score: number; mlScore?: number; ruleScore?: number }>): {
+  auditScores(
+    scores: Array<{
+      id: string;
+      score: number;
+      mlScore?: number;
+      ruleScore?: number;
+    }>,
+  ): {
     violations: BoundViolation[];
     summary: string;
   } {
@@ -460,19 +498,19 @@ export class BoundsEnforcerService {
       // Check final score bounds
       if (item.score < SAFE_BOUNDS.SCORE.FLOOR) {
         violations.push({
-          field:     `score[${item.id}]`,
-          input:     item.score,
-          clamped:   SAFE_BOUNDS.SCORE.FLOOR,
-          bound:     SAFE_BOUNDS.SCORE.FLOOR,
+          field: `score[${item.id}]`,
+          input: item.score,
+          clamped: SAFE_BOUNDS.SCORE.FLOOR,
+          bound: SAFE_BOUNDS.SCORE.FLOOR,
           direction: 'below',
         });
       }
       if (item.score > SAFE_BOUNDS.SCORE.CEILING) {
         violations.push({
-          field:     `score[${item.id}]`,
-          input:     item.score,
-          clamped:   SAFE_BOUNDS.SCORE.CEILING,
-          bound:     SAFE_BOUNDS.SCORE.CEILING,
+          field: `score[${item.id}]`,
+          input: item.score,
+          clamped: SAFE_BOUNDS.SCORE.CEILING,
+          bound: SAFE_BOUNDS.SCORE.CEILING,
           direction: 'above',
         });
       }
@@ -481,19 +519,19 @@ export class BoundsEnforcerService {
       if (item.mlScore !== undefined) {
         if (item.mlScore < SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE) {
           violations.push({
-            field:     `mlScore[${item.id}]`,
-            input:     item.mlScore,
-            clamped:   SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE,
-            bound:     SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE,
+            field: `mlScore[${item.id}]`,
+            input: item.mlScore,
+            clamped: SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE,
+            bound: SAFE_BOUNDS.ML.MIN_OUTPUT_SCORE,
             direction: 'below',
           });
         }
         if (item.mlScore > SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE) {
           violations.push({
-            field:     `mlScore[${item.id}]`,
-            input:     item.mlScore,
-            clamped:   SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE,
-            bound:     SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE,
+            field: `mlScore[${item.id}]`,
+            input: item.mlScore,
+            clamped: SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE,
+            bound: SAFE_BOUNDS.ML.MAX_OUTPUT_SCORE,
             direction: 'above',
           });
         }
@@ -502,10 +540,10 @@ export class BoundsEnforcerService {
       // Check relevance threshold
       if (item.score < SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY) {
         violations.push({
-          field:     `relevance[${item.id}]`,
-          input:     item.score,
-          clamped:   SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY,
-          bound:     SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY,
+          field: `relevance[${item.id}]`,
+          input: item.score,
+          clamped: SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY,
+          bound: SAFE_BOUNDS.RELEVANCE.MIN_SCORE_FOR_ITINERARY,
           direction: 'below',
         });
       }
@@ -513,9 +551,10 @@ export class BoundsEnforcerService {
 
     return {
       violations,
-      summary: violations.length === 0
-        ? `All ${scores.length} scores within safe bounds`
-        : `${violations.length} bound violation(s) detected across ${scores.length} scores`,
+      summary:
+        violations.length === 0
+          ? `All ${scores.length} scores within safe bounds`
+          : `${violations.length} bound violation(s) detected across ${scores.length} scores`,
     };
   }
 

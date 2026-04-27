@@ -34,8 +34,6 @@ import { BoundsEnforcerService } from './bounds-enforcer.service';
     AIDecisionLoggerService,
     BoundsEnforcerService,
   ],
-  exports: [
-    BoundsEnforcerService, 
-  ],
+  exports: [BoundsEnforcerService],
 })
 export class AIModule {}

@@ -17,7 +17,7 @@ import { AIModule } from '../ai/ai.module';
     PrismaModule,
     AnalyticsModule,
     EventEmitterModule.forRoot(),
-    AIModule, 
+    AIModule,
   ],
   controllers: [MlController, RecommendationUpdateController],
   providers: [

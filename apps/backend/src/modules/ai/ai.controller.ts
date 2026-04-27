@@ -900,8 +900,8 @@ export class AIController {
   @Get('bounds/status')
   getBoundsStatus() {
     return {
-      message:   'Active safe recommendation bounds',
-      bounds:    this.boundsEnforcer.getActiveBounds(),
+      message: 'Active safe recommendation bounds',
+      bounds: this.boundsEnforcer.getActiveBounds(),
       timestamp: new Date().toISOString(),
     };
   }
