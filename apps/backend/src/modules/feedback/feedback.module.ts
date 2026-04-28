@@ -6,9 +6,10 @@ import { FeedbackMappingService } from './feedback-mapping.service';
 import { FeedbackQueueService } from './feedback-queue.service';
 import { FeedbackRankingService } from './ranking.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { AIModule } from '../ai/ai.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AIModule],
   providers: [
     FeedbackService,
     FeedbackMappingService,
