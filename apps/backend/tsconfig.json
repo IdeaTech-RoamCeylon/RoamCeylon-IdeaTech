@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "rootDir": "./src",   
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "isolatedModules": true,
@@ -20,6 +21,9 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+
+    "types": ["jest", "node"]
+  },
+  "include": ["src", "test", "**/*.spec.ts", "**/*.test.ts"]
 }

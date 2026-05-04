@@ -1,0 +1,148 @@
+{
+  "version": "v2",
+  "created_at": "2026-05-03T21:47:04.666630",
+  "model_type": "HistGradientBoostingClassifier",
+  "dataset": "smote_balanced_dataset.csv",
+  "features": [
+    "recency_weight",
+    "interest_sightseeing",
+    "interest_culture",
+    "interest_history",
+    "interest_nature",
+    "interest_beach",
+    "interest_adventure",
+    "interest_relaxation",
+    "interest_strength",
+    "booking_rate",
+    "save_rate",
+    "exploration_rate",
+    "conversion_rate",
+    "travel_pace_preference",
+    "category_loyalty_score",
+    "user_unique_dests",
+    "user_active_days",
+    "feedback_positivity_rate",
+    "fb_rate_sightseeing",
+    "fb_rate_culture",
+    "fb_rate_history",
+    "fb_rate_nature",
+    "fb_rate_beach",
+    "fb_rate_adventure",
+    "dest_feedback_rate",
+    "dest_pos_feedback_count",
+    "dest_total_feedback",
+    "cat_usage_share_sightseeing",
+    "cat_usage_share_culture",
+    "cat_usage_share_history",
+    "cat_usage_share_nature",
+    "cat_usage_share_beach",
+    "cat_usage_share_adventure",
+    "cat_recency_sightseeing",
+    "cat_recency_culture",
+    "cat_recency_history",
+    "cat_recency_nature",
+    "cat_recency_beach",
+    "cat_recency_adventure",
+    "aggregate_feedback_rating",
+    "booked_users_norm",
+    "weighted_engagement_norm",
+    "Sightseeing_dest_score",
+    "Culture_dest_score",
+    "History_dest_score",
+    "Nature_dest_score",
+    "Beach_dest_score",
+    "Adventure_dest_score",
+    "Relaxation_dest_score",
+    "click_frequency",
+    "user_item_affinity",
+    "category_diversity",
+    "trust_score",
+    "user_total_feedback_count"
+  ],
+  "feature_count": 54,
+  "leakage_removed": [
+    "event_weight"
+  ],
+  "decision_threshold": 0.65,
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "max_iter": 500,
+    "max_depth": 7,
+    "l2_regularization": 0.1,
+    "early_stopping": true
+  },
+  "cv_metrics": {
+    "precision": 0.8479965723259957,
+    "recall": 0.7233351162660097,
+    "f1": 0.7802994606839158,
+    "auc": 0.9083009750488593
+  },
+  "cv_folds": [
+    {
+      "precision": 0.8138957816377171,
+      "recall": 0.7488584474885844,
+      "f1": 0.7800237812128419,
+      "auc": 0.8952910326114469
+    },
+    {
+      "precision": 0.8238482384823849,
+      "recall": 0.7255369928400954,
+      "f1": 0.7715736040609137,
+      "auc": 0.9048113542883259
+    },
+    {
+      "precision": 0.859375,
+      "recall": 0.717391304347826,
+      "f1": 0.7819905213270142,
+      "auc": 0.9099400650142219
+    },
+    {
+      "precision": 0.8723404255319149,
+      "recall": 0.70995670995671,
+      "f1": 0.7828162291169452,
+      "auc": 0.9151576123407108
+    },
+    {
+      "precision": 0.8705234159779615,
+      "recall": 0.7149321266968326,
+      "f1": 0.7850931677018633,
+      "auc": 0.9163048109895907
+    }
+  ],
+  "evaluation": {
+    "threshold_0.5": {
+      "precision": 0.9499113475177305,
+      "recall": 0.9648806843764071,
+      "f1": 0.9573375027920482,
+      "auc": 0.9908369233875571,
+      "prediction_rate": 0.5078793336334985,
+      "confusion_matrix": [
+        [
+          2108,
+          113
+        ],
+        [
+          78,
+          2143
+        ]
+      ]
+    },
+    "threshold_0.65": {
+      "precision": 0.9814724524622136,
+      "recall": 0.9063484916704188,
+      "f1": 0.9424157303370787,
+      "auc": 0.9908369233875571,
+      "prediction_rate": 0.46172895092300764,
+      "confusion_matrix": [
+        [
+          2183,
+          38
+        ],
+        [
+          208,
+          2013
+        ]
+      ]
+    }
+  }
+}

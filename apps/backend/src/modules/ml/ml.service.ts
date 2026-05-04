@@ -140,6 +140,16 @@ export class MlService {
     // Sort descending by final score
     finalRecommendations.sort((a, b) => b.final_score - a.final_score);
 
+    // ── Filter by minimum score threshold ────────────────────────────────
+    const RECOMMENDATION_THRESHOLD = 0.65; // raised from implicit 0 — reduces over-recommendation
+    const filtered = finalRecommendations.filter(
+      (rec) => rec.final_score >= RECOMMENDATION_THRESHOLD,
+    );
+
+    // Return filtered if we have results, otherwise fall back to top 3 unfiltered
+    const recommendations =
+      filtered.length > 0 ? filtered : finalRecommendations.slice(0, 3);
+
     // 4. Log the recommendations shown to the user
     try {
       await Promise.all(
@@ -163,7 +173,7 @@ export class MlService {
 
     return {
       user_id: userId,
-      recommendations: finalRecommendations,
+      recommendations: recommendations,
     };
   }
 }

@@ -1,0 +1,15 @@
+{
+  "best_params": {
+    "model__min_samples_leaf": 50,
+    "model__max_leaf_nodes": 15,
+    "model__max_iter": 200,
+    "model__max_depth": 7,
+    "model__learning_rate": 0.1,
+    "model__l2_regularization": 0.21544346900318845
+  },
+  "best_cv_auc": 0.8876070183720415,
+  "validation_auc": 0.9196123089381517,
+  "validation_ap": 0.9023293803285528,
+  "num_features": 54,
+  "num_rows": 4442
+}
