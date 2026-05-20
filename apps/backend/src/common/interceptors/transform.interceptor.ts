@@ -7,13 +7,14 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export interface Response<T> {
+export interface ApiResponse<T> {
   statusCode: number;
   success: true;
   timestamp: string;
   path: string;
+  requestId?: string;
   data: T;
-  meta?: any;
+  meta?: Record<string, unknown>;
 }
 
 interface HttpServerResponse {
@@ -21,43 +22,59 @@ interface HttpServerResponse {
 }
 interface HttpServerRequest {
   url: string;
+  requestId?: string;
 }
 
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<
   T,
-  Response<T>
+  ApiResponse<T>
 > {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Observable<Response<T>> {
+  ): Observable<ApiResponse<T>> {
     const ctx = context.switchToHttp();
     const request = ctx.getRequest<HttpServerRequest>();
     const response = ctx.getResponse<HttpServerResponse>();
 
     return next.handle().pipe(
       map((data: unknown) => {
-        // Handle pagination metadata if present in data
         let finalData = data as T;
-        let meta: unknown = undefined;
+        let meta: Record<string, unknown> | undefined = undefined;
 
+        // Unwrap { data, meta } envelopes emitted by paginated endpoints
         if (data && typeof data === 'object' && !Array.isArray(data)) {
           const dataObj = data as Record<string, unknown>;
           if ('data' in dataObj && 'meta' in dataObj) {
             finalData = dataObj.data as T;
-            meta = dataObj.meta;
+            // Only include meta if it has actual keys (no empty objects)
+            const rawMeta = dataObj.meta as Record<string, unknown> | undefined;
+            if (rawMeta && Object.keys(rawMeta).length > 0) {
+              meta = rawMeta;
+            }
           }
         }
 
-        return {
+        const envelope: ApiResponse<T> = {
           statusCode: response.statusCode,
           success: true,
           timestamp: new Date().toISOString(),
           path: request.url,
           data: finalData,
-          meta,
         };
+
+        // Attach requestId if RequestIdInterceptor set it
+        if (request.requestId) {
+          envelope.requestId = request.requestId;
+        }
+
+        // Only include meta if non-empty
+        if (meta !== undefined) {
+          envelope.meta = meta;
+        }
+
+        return envelope;
       }),
     );
   }
