@@ -2,6 +2,15 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { RetryService } from './retry.service';
+
+// Derived types — always in sync with the Prisma schema, no manual duplication
+type UserInterestProfileRow = Awaited<
+  ReturnType<PrismaService['userInterestProfile']['findUnique']>
+>;
+type DestinationCategoryScoreRow = Awaited<
+  ReturnType<PrismaService['destinationCategoryScore']['findMany']>
+>[number];
 
 export interface MLPredictionRequest {
   user_id: string;
@@ -40,7 +49,10 @@ export class MlPredictionService {
 
   private readonly CACHE_TTL_MS = 60 * 60 * 1000;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly retryService: RetryService,
+  ) {}
 
   // SAFE getter (fixes unsafe access in IncrementalLearningService)
   getCache(): Map<string, { data: MLPredictionResponse; timestamp: number }> {
@@ -66,10 +78,19 @@ export class MlPredictionService {
       return cached.data;
     }
 
-    // Fetch user profile if needed
-    const userProfile = await this.prisma.userInterestProfile.findUnique({
-      where: { userId: user_id },
-    });
+    // [Day 66 / Task 1] Fetch user profile with retry for transient DB errors
+    const userProfile =
+      await this.retryService.withRetry<UserInterestProfileRow>(
+        () =>
+          this.prisma.userInterestProfile.findUnique({
+            where: { userId: user_id },
+          }),
+        {
+          maxAttempts: 3,
+          baseDelayMs: 100,
+          label: 'userInterestProfile.findUnique',
+        },
+      );
 
     if (!features) {
       if (!userProfile) {
@@ -87,9 +108,20 @@ export class MlPredictionService {
     // Fetch destination popularity (FIXED: no any)
     const ids = destinations.map((d) => d.id);
 
-    const popularities = await this.prisma.destinationCategoryScore.findMany({
-      where: { destinationId: { in: ids } },
-    });
+    // [Day 66 / Task 1] Fetch destination popularity with retry
+    const popularities = await this.retryService.withRetry<
+      DestinationCategoryScoreRow[]
+    >(
+      () =>
+        this.prisma.destinationCategoryScore.findMany({
+          where: { destinationId: { in: ids } },
+        }),
+      {
+        maxAttempts: 3,
+        baseDelayMs: 100,
+        label: 'destinationCategoryScore.findMany',
+      },
+    );
 
     const popularityMap = new Map<string, number>(
       popularities.map((p) => [p.destinationId, p.popularityScore]),

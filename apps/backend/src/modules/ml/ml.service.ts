@@ -13,10 +13,16 @@ import {
 } from './services/mlPrediction.service';
 import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { RecommendationCacheService } from './services/recommendation-cache.service';
+import { CircuitBreakerService } from './services/circuit-breaker.service';
 import * as os from 'os';
 import * as process from 'process';
 
 type RecommendationSource = 'hybrid' | 'hybrid-capped' | 'rule-based';
+
+// ─── Circuit breaker names ───────────────────────────────────────────────────
+const CB_ML_PREDICTION = 'ml-prediction';
+const CB_RECOMMENDATION_CACHE = 'recommendation-cache';
 
 @Injectable()
 export class MlService {
@@ -27,7 +33,11 @@ export class MlService {
     private readonly mlPredictionService: MlPredictionService,
     private readonly boundsEnforcer: BoundsEnforcerService,
     private readonly analyticsService: AnalyticsService,
+    private readonly recommendationCache: RecommendationCacheService,
+    private readonly circuitBreaker: CircuitBreakerService,
   ) {}
+
+  // ── Track Behavior ──────────────────────────────────────────────────────────
 
   async trackBehavior(dto: TrackBehaviorDto) {
     try {
@@ -46,12 +56,22 @@ export class MlService {
     }
   }
 
+  // ── Personalized Recommendations ─────────────────────────────────────────────
+
   async getPersonalizedRecommendations(userId: string) {
-    // Read system metrics
+    // ─ [Day 65 / Task 2] Check recommendation cache first ───────────────────
+    const cached = this.safeGetRecommendationCache(userId);
+    if (cached) {
+      this.logger.debug(
+        `[Recommendations] Cache HIT for userId=${userId} — returning early`,
+      );
+      return cached;
+    }
+
+    // ─ System metrics (non-blocking fire-and-forget) ─────────────────────────
     const cpuLoad = os.loadavg()[0];
     const memoryMb = process.memoryUsage().rss / (1024 * 1024);
 
-    // Log warning if CPU load is dangerously high
     const cpuCores = os.cpus().length;
     if (cpuLoad > cpuCores) {
       this.logger.warn(
@@ -59,7 +79,7 @@ export class MlService {
       );
     }
 
-    // Record system metric event in background (non-blocking)
+    // [Day 65 / Task 1] Fire-and-forget analytics — never blocks the response
     this.analyticsService
       .recordEvent('system', 'ml_recommendations_served', userId, {
         cpuLoad,
@@ -71,7 +91,7 @@ export class MlService {
         );
       });
 
-    // 1. Get rule-based recommendations (baseline)
+    // ─ Rule-based recommendations (baseline) ────────────────────────────────
     const ruleRecommendations = [
       {
         item_id: 'trip_001',
@@ -87,38 +107,44 @@ export class MlService {
       },
     ];
 
-    // 2. Fetch ML properties for destinations
-    // Fallback categories for mock
     const destinationsInput = ruleRecommendations.map((r) => ({
       id: r.item_id,
       category: r.item_id === 'trip_001' ? 'cultural' : 'mixed',
     }));
 
-    let mlResults: MLPredictionResponse | null = null;
-
-    // Controlled Rollout System - 50% of users get ML recommendations
+    // ─ Controlled Rollout (50%) + Circuit Breaker ────────────────────────────
     const userHash = [...userId].reduce(
       (acc, char) => acc + char.charCodeAt(0),
       0,
     );
-
     const isMlEnabled = userHash % 10 < 5;
 
-    if (isMlEnabled) {
+    let mlResults: MLPredictionResponse | null = null;
+
+    if (isMlEnabled && !this.circuitBreaker.isOpen(CB_ML_PREDICTION)) {
       try {
         mlResults = await this.mlPredictionService.getMLRecommendations({
           user_id: userId,
           destinations: destinationsInput,
         });
+        // [Day 66 / Task 3] Record ML success to potentially close circuit
+        this.circuitBreaker.recordSuccess(CB_ML_PREDICTION);
       } catch (error) {
-        console.error(
-          'ML service failed, falling back to rule-based ONLY',
-          error,
+        // [Day 66 / Task 3] Record failure — circuit opens after 5 consecutive
+        this.circuitBreaker.recordFailure(CB_ML_PREDICTION);
+        this.logger.warn(
+          `ML prediction failed for userId=${userId}, falling back to rule-based. ` +
+            `Circuit: ${this.circuitBreaker.getState(CB_ML_PREDICTION).state}. ` +
+            `Error: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+    } else if (isMlEnabled && this.circuitBreaker.isOpen(CB_ML_PREDICTION)) {
+      this.logger.warn(
+        `[CircuitBreaker] ML prediction circuit OPEN for userId=${userId} — using rule-based fallback`,
+      );
     }
 
-    // 3. Build Hybrid Score
+    // ─ Build Hybrid Score ────────────────────────────────────────────────────
     const finalRecommendations = ruleRecommendations.map((ruleRec) => {
       let mlScore = 0;
 
@@ -131,16 +157,12 @@ export class MlService {
       }
 
       const ruleScore = ruleRec.score;
-
-      // Improve Hybrid Balance -> ML weight slightly ↑
-      // Adjusted weights: Rule-Based 60% (0.6), ML 40% (0.4)
       const useMl = mlScore > 0;
 
       let finalScore: number;
       let source: RecommendationSource;
 
       if (useMl) {
-        // Enforce ML influence bounds before blending
         const bounded = this.boundsEnforcer.enforceHybridScore({
           ruleScore,
           mlScore,
@@ -155,7 +177,6 @@ export class MlService {
         source = 'rule-based';
       }
 
-      // Hard clamp on final score as last line of defense
       finalScore = this.boundsEnforcer.enforceFinalScore(
         finalScore,
         `recommendations:${ruleRec.item_id}`,
@@ -174,40 +195,93 @@ export class MlService {
     // Sort descending by final score
     finalRecommendations.sort((a, b) => b.final_score - a.final_score);
 
-    // ── Filter by minimum score threshold ────────────────────────────────
-    const RECOMMENDATION_THRESHOLD = 0.65; // raised from implicit 0 — reduces over-recommendation
+    // Filter by minimum score threshold
+    const RECOMMENDATION_THRESHOLD = 0.65;
     const filtered = finalRecommendations.filter(
       (rec) => rec.final_score >= RECOMMENDATION_THRESHOLD,
     );
 
-    // Return filtered if we have results, otherwise fall back to top 3 unfiltered
     const recommendations =
       filtered.length > 0 ? filtered : finalRecommendations.slice(0, 3);
 
-    // 4. Log the recommendations shown to the user
-    try {
-      await Promise.all(
-        finalRecommendations.map((rec) =>
-          this.prisma.recommendationLog.create({
-            data: {
-              userId,
-              itemId: rec.destination_id,
-              score: rec.final_score,
-              mlScore: rec.ml_score,
-              ruleScore: rec.rule_score,
-              finalScore: rec.final_score,
-              source: rec.source,
-            },
-          }),
-        ),
-      );
-    } catch (error) {
-      console.error('Failed to log recommendations:', error);
-    }
+    // ─ [Day 66 / Task 2] Batch recommendation log write — non-blocking ───────
+    // Uses createMany (single DB round trip) + fire-and-forget
+    setImmediate(() => {
+      this.prisma.recommendationLog
+        .createMany({
+          data: finalRecommendations.map((rec) => ({
+            userId,
+            itemId: rec.destination_id,
+            score: rec.final_score,
+            mlScore: rec.ml_score,
+            ruleScore: rec.rule_score,
+            finalScore: rec.final_score,
+            source: rec.source,
+          })),
+          skipDuplicates: true,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            `Failed to log recommendations: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
+    });
 
-    return {
+    const result = {
       user_id: userId,
-      recommendations: recommendations,
+      recommendations,
     };
+
+    // ─ [Day 65 / Task 2] Populate recommendation cache ──────────────────────
+    this.safeSetRecommendationCache(userId, result);
+
+    return result;
+  }
+
+  // ── Cache invalidation (called by IncrementalLearningService) ────────────────
+
+  invalidateRecommendationCache(userId: string): void {
+    this.recommendationCache.invalidate(userId);
+  }
+
+  // ── Private cache helpers (circuit-breaker guarded) ──────────────────────────
+
+  private safeGetRecommendationCache(
+    userId: string,
+  ): ReturnType<typeof this.recommendationCache.getRecommendation> {
+    if (this.circuitBreaker.isOpen(CB_RECOMMENDATION_CACHE)) {
+      return null;
+    }
+    try {
+      const result = this.recommendationCache.getRecommendation(userId);
+      if (result !== null) {
+        this.circuitBreaker.recordSuccess(CB_RECOMMENDATION_CACHE);
+      }
+      return result;
+    } catch (err) {
+      this.circuitBreaker.recordFailure(CB_RECOMMENDATION_CACHE);
+      this.logger.warn(
+        `[Cache] getRecommendation() error for userId=${userId}: ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  private safeSetRecommendationCache(
+    userId: string,
+    data: { user_id: string; recommendations: unknown[] },
+  ): void {
+    try {
+      this.recommendationCache.setRecommendation(
+        userId,
+        data as Parameters<
+          typeof this.recommendationCache.setRecommendation
+        >[1],
+      );
+    } catch (err) {
+      this.logger.warn(
+        `[Cache] setRecommendation() error for userId=${userId}: ${(err as Error).message}`,
+      );
+    }
   }
 }

@@ -7,6 +7,8 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MlPredictionService } from './mlPrediction.service';
 import { BoundsEnforcerService } from '../../ai/bounds-enforcer.service';
+import { BackgroundQueueService } from './background-queue.service';
+import { RecommendationCacheService } from './recommendation-cache.service';
 
 describe('IncrementalLearningService', () => {
   let service: IncrementalLearningService;
@@ -59,6 +61,32 @@ describe('IncrementalLearningService', () => {
               .fn()
               .mockImplementation((userId, dim, delta) => delta),
             clearSessionDeltas: jest.fn(),
+          },
+        },
+        {
+          provide: BackgroundQueueService,
+          useValue: {
+            registerHandler: jest.fn(),
+            enqueue: jest.fn().mockReturnValue(true),
+            getQueueStats: jest.fn().mockReturnValue({
+              pending: 0,
+              active: 0,
+              completed: 0,
+              failed: 0,
+              totalEnqueued: 0,
+              maxConcurrent: 3,
+            }),
+          },
+        },
+        {
+          provide: RecommendationCacheService,
+          useValue: {
+            invalidate: jest.fn(),
+            getRecommendation: jest.fn().mockReturnValue(null),
+            setRecommendation: jest.fn(),
+            getProfile: jest.fn().mockReturnValue(null),
+            setProfile: jest.fn(),
+            getCacheStats: jest.fn().mockReturnValue({}),
           },
         },
       ],
@@ -195,11 +223,8 @@ describe('IncrementalLearningService', () => {
   });
 
   describe('maybeRefreshAllFeatures & refreshAllUserFeatures', () => {
-    it('should trigger full refresh if feedback count is a multiple of 5', async () => {
+    it('should enqueue a feature-update task when feedback count is a multiple of 5', async () => {
       jest.spyOn(prisma.plannerFeedback, 'count').mockResolvedValue(5);
-      const refreshSpy = jest
-        .spyOn(service, 'refreshAllUserFeatures')
-        .mockResolvedValue(undefined);
 
       const event: FeedbackSubmittedEvent = {
         userId: 'user-123',
@@ -209,7 +234,16 @@ describe('IncrementalLearningService', () => {
 
       await service.onFeedbackSubmitted(event);
 
-      expect(refreshSpy).toHaveBeenCalledWith('user-123');
+      // Since Day 65 Task 3, full refresh goes through the background queue
+      // rather than being called directly — so we verify enqueue was called
+      // with the correct task type and payload.
+      const backgroundQueueMock = (
+        service as unknown as { backgroundQueue: { enqueue: jest.Mock } }
+      ).backgroundQueue;
+      expect(backgroundQueueMock.enqueue).toHaveBeenCalledWith(
+        'feature-update',
+        { userId: 'user-123' },
+      );
     });
 
     it('should not trigger full refresh if feedback count is not a multiple of 5', async () => {

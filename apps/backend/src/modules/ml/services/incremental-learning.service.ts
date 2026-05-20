@@ -20,11 +20,13 @@
 //             3. Update DestinationCategoryScore popularity signal
 //             4. Trigger refreshAllUserFeatures() if user hits 5/10/15... feedbacks
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MlPredictionService } from './mlPrediction.service';
 import { BoundsEnforcerService } from '../../ai/bounds-enforcer.service';
+import { BackgroundQueueService } from './background-queue.service';
+import { RecommendationCacheService } from './recommendation-cache.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -150,14 +152,29 @@ const DESTINATION_DIMENSION_MAP: Array<{
 ];
 
 @Injectable()
-export class IncrementalLearningService {
+export class IncrementalLearningService implements OnModuleInit {
   private readonly logger = new Logger(IncrementalLearningService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly mlPredictionService: MlPredictionService,
     private readonly boundsEnforcer: BoundsEnforcerService,
+    private readonly backgroundQueue: BackgroundQueueService,
+    private readonly recommendationCache: RecommendationCacheService,
   ) {}
+
+  // Register background task handler on module init
+  onModuleInit(): void {
+    this.backgroundQueue.registerHandler(
+      'feature-update',
+      async (payload: Record<string, unknown>) => {
+        const userId = payload['userId'];
+        if (typeof userId === 'string') {
+          await this.refreshAllUserFeatures(userId);
+        }
+      },
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EVENT LISTENER
@@ -179,6 +196,8 @@ export class IncrementalLearningService {
     try {
       await Promise.allSettled([
         Promise.resolve(this.invalidatePredictionCache(userId)),
+        // [Day 65 / Task 2] Also invalidate the recommendation result cache
+        Promise.resolve(this.recommendationCache.invalidate(userId)),
         this.updateInterestProfile(
           userId,
           category,
@@ -372,10 +391,22 @@ export class IncrementalLearningService {
 
       this.logger.log(
         `[IncrementalLearning] Threshold hit at ${count} feedbacks — ` +
-          `triggering full feature refresh for userId=${userId}`,
+          `queuing full feature refresh for userId=${userId}`,
       );
 
-      await this.refreshAllUserFeatures(userId);
+      // [Day 65 / Task 3] Enqueue heavy feature refresh in background queue
+      // so the feedback HTTP handler can return immediately without waiting.
+      const enqueued = this.backgroundQueue.enqueue('feature-update', {
+        userId,
+      });
+
+      if (!enqueued) {
+        // Queue full — run synchronously as a safe fallback
+        this.logger.warn(
+          `[IncrementalLearning] Background queue full — running refresh synchronously for userId=${userId}`,
+        );
+        await this.refreshAllUserFeatures(userId);
+      }
     } catch (err) {
       this.logger.warn(
         `[IncrementalLearning] maybeRefreshAllFeatures failed for ${userId}: ${(err as Error).message}`,
