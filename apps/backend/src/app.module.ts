@@ -21,6 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { LatencyTrackingInterceptor } from './common/interceptors/latency-tracking.interceptor';
 import { LatencyTrackerService } from './modules/analytics/latency-tracker.service';
 import { MlModule } from './modules/ml/ml.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { MlModule } from './modules/ml/ml.module';
     AnalyticsModule,
     AlertsModule,
     MlModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

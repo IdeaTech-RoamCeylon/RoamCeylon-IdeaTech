@@ -12,27 +12,66 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d roam_ceylon"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   backend:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/roam_ceylon
       REDIS_URL: redis://redis:6379
+      NODE_ENV: development
+      PORT: 3001
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./apps/backend:/app
       - /app/node_modules
+
+  # Production-grade backend (multi-stage build, non-root, health checked)
+  backend-prod:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./apps/backend/.env.production.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/roam_ceylon
+      NODE_ENV: production
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    profiles:
+      - production
 
 volumes:
   postgres_data:
