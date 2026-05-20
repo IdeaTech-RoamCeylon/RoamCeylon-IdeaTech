@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ModelRetrainingService, RetrainingStatus } from './model-retraining.service';
+import { ModelRetrainingService } from './model-retraining.service';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import { EventEmitter } from 'events';
@@ -49,7 +49,7 @@ describe('ModelRetrainingService', () => {
     mockSpawn.mockImplementation(() => {
       const proc = new MockChildProcess();
       mockProcesses.push(proc);
-      
+
       // Delay resolution of close event to simulate async run
       setTimeout(() => {
         proc.emit('close', 0);
@@ -72,17 +72,25 @@ describe('ModelRetrainingService', () => {
     expect(status.state).toBe('success');
     expect(status.endTime).toBeDefined();
     expect(status.elapsedTimeMs).toBeGreaterThanOrEqual(0);
-    expect(status.logs).toContain('[Step 1/3] Collecting training data from live database...');
-    expect(status.logs).toContain('[Step 2/3] Training Model v2 (HistGradientBoostingClassifier)...');
-    expect(status.logs).toContain('[Step 3/3] Evaluating and comparing model versions...');
-    expect(status.logs).toContain('[Retraining] Pipeline completed successfully!');
+    expect(status.logs).toContain(
+      '[Step 1/3] Collecting training data from live database...',
+    );
+    expect(status.logs).toContain(
+      '[Step 2/3] Training Model v2 (HistGradientBoostingClassifier)...',
+    );
+    expect(status.logs).toContain(
+      '[Step 3/3] Evaluating and comparing model versions...',
+    );
+    expect(status.logs).toContain(
+      '[Retraining] Pipeline completed successfully!',
+    );
     expect(mockSpawn).toHaveBeenCalledTimes(3);
   });
 
   it('should fail and log error if any step in the pipeline fails', async () => {
     mockSpawn.mockImplementation(() => {
       const proc = new MockChildProcess();
-      
+
       // Simulating step 1 failure
       setTimeout(() => {
         proc.emit('close', 1); // Non-zero exit code
@@ -99,7 +107,9 @@ describe('ModelRetrainingService', () => {
     const status = service.getStatus();
     expect(status.state).toBe('failed');
     expect(status.error).toBe('Command failed with exit code 1');
-    expect(status.logs).toContain('[ERROR] Retraining failed: Command failed with exit code 1');
+    expect(status.logs).toContain(
+      '[ERROR] Retraining failed: Command failed with exit code 1',
+    );
     expect(mockSpawn).toHaveBeenCalledTimes(1); // Fails on first command
   });
 
@@ -122,10 +132,12 @@ describe('ModelRetrainingService', () => {
 
     const statusAfter = service.getStatus();
     expect(statusAfter.state).toBe('failed');
-    expect(statusAfter.error).toContain('Retraining was manually cancelled by the administrator.');
+    expect(statusAfter.error).toContain(
+      'Retraining was manually cancelled by the administrator.',
+    );
   });
 
-  it('should not allow starting retraining if already in progress', async () => {
+  it('should not allow starting retraining if already in progress', () => {
     mockSpawn.mockImplementation(() => {
       // Just keep running indefinitely for this test
       return new MockChildProcess();

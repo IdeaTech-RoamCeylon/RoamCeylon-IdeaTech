@@ -41,4 +41,3 @@ import { AIModule } from '../ai/ai.module';
   ],
 })
 export class MlModule {}
-

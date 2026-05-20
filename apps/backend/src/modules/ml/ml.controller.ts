@@ -134,11 +134,12 @@ export class MlController {
    * POST /api/ml/retrain
    */
   @Post('ml/retrain')
-  async triggerRetraining() {
+  triggerRetraining() {
     this.modelRetrainingService.triggerRetraining();
     return {
       success: true,
-      message: 'Model retraining pipeline triggered successfully in the background.',
+      message:
+        'Model retraining pipeline triggered successfully in the background.',
       timestamp: new Date().toISOString(),
     };
   }
@@ -149,7 +150,7 @@ export class MlController {
    * GET /api/ml/retrain/status
    */
   @Get('ml/retrain/status')
-  async getRetrainingStatus() {
+  getRetrainingStatus() {
     return this.modelRetrainingService.getStatus();
   }
 
@@ -159,7 +160,7 @@ export class MlController {
    * POST /api/ml/retrain/cancel
    */
   @Post('ml/retrain/cancel')
-  async cancelRetraining() {
+  cancelRetraining() {
     this.modelRetrainingService.cancelRetraining();
     return {
       success: true,

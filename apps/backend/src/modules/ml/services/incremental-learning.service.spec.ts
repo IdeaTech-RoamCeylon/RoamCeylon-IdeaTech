@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return */
 import { Test, TestingModule } from '@nestjs/testing';
-import { IncrementalLearningService, FeedbackSubmittedEvent } from './incremental-learning.service';
+import {
+  IncrementalLearningService,
+  FeedbackSubmittedEvent,
+} from './incremental-learning.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MlPredictionService } from './mlPrediction.service';
 import { BoundsEnforcerService } from '../../ai/bounds-enforcer.service';
@@ -7,8 +11,6 @@ import { BoundsEnforcerService } from '../../ai/bounds-enforcer.service';
 describe('IncrementalLearningService', () => {
   let service: IncrementalLearningService;
   let prisma: PrismaService;
-  let mlPredictionService: MlPredictionService;
-  let boundsEnforcer: BoundsEnforcerService;
   let mockCache: Map<string, any>;
 
   beforeEach(async () => {
@@ -53,17 +55,19 @@ describe('IncrementalLearningService', () => {
         {
           provide: BoundsEnforcerService,
           useValue: {
-            enforceSessionDelta: jest.fn().mockImplementation((userId, dim, delta) => delta),
+            enforceSessionDelta: jest
+              .fn()
+              .mockImplementation((userId, dim, delta) => delta),
             clearSessionDeltas: jest.fn(),
           },
         },
       ],
     }).compile();
 
-    service = module.get<IncrementalLearningService>(IncrementalLearningService);
+    service = module.get<IncrementalLearningService>(
+      IncrementalLearningService,
+    );
     prisma = module.get<PrismaService>(PrismaService);
-    mlPredictionService = module.get<MlPredictionService>(MlPredictionService);
-    boundsEnforcer = module.get<BoundsEnforcerService>(BoundsEnforcerService);
   });
 
   afterEach(() => {
@@ -107,7 +111,7 @@ describe('IncrementalLearningService', () => {
 
       expect(upsertSpy).toHaveBeenCalled();
       const upsertArgs = upsertSpy.mock.calls[0][0] as any;
-      
+
       // Beach maps to { cultural: 0.0, adventure: 0.1, relaxation: 0.9 }
       // Rating 5 is positive -> delta = 0.05
       // Expected new relaxationScore = 1.0 + 0.9 * 0.05 = 1.045
@@ -193,7 +197,9 @@ describe('IncrementalLearningService', () => {
   describe('maybeRefreshAllFeatures & refreshAllUserFeatures', () => {
     it('should trigger full refresh if feedback count is a multiple of 5', async () => {
       jest.spyOn(prisma.plannerFeedback, 'count').mockResolvedValue(5);
-      const refreshSpy = jest.spyOn(service, 'refreshAllUserFeatures').mockResolvedValue(undefined);
+      const refreshSpy = jest
+        .spyOn(service, 'refreshAllUserFeatures')
+        .mockResolvedValue(undefined);
 
       const event: FeedbackSubmittedEvent = {
         userId: 'user-123',
@@ -208,7 +214,9 @@ describe('IncrementalLearningService', () => {
 
     it('should not trigger full refresh if feedback count is not a multiple of 5', async () => {
       jest.spyOn(prisma.plannerFeedback, 'count').mockResolvedValue(6);
-      const refreshSpy = jest.spyOn(service, 'refreshAllUserFeatures').mockResolvedValue(undefined);
+      const refreshSpy = jest
+        .spyOn(service, 'refreshAllUserFeatures')
+        .mockResolvedValue(undefined);
 
       const event: FeedbackSubmittedEvent = {
         userId: 'user-123',
@@ -233,8 +241,12 @@ describe('IncrementalLearningService', () => {
         { id: 'trip-2', destination: 'Galle' }, // Galle -> Relaxation: 1.0
       ];
 
-      jest.spyOn(prisma.plannerFeedback, 'findMany').mockResolvedValue(historicFeedbacks as any);
-      jest.spyOn(prisma.savedTrip, 'findMany').mockResolvedValue(savedTrips as any);
+      jest
+        .spyOn(prisma.plannerFeedback, 'findMany')
+        .mockResolvedValue(historicFeedbacks as any);
+      jest
+        .spyOn(prisma.savedTrip, 'findMany')
+        .mockResolvedValue(savedTrips as any);
 
       const upsertSpy = jest.spyOn(prisma.userInterestProfile, 'upsert');
 

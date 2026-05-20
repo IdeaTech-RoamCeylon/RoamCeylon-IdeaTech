@@ -1,6 +1,10 @@
 // apps/backend/src/modules/ml/ml.service.ts
 
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrackBehaviorDto } from './dto/track-behavior.dto';
 import {
@@ -50,16 +54,22 @@ export class MlService {
     // Log warning if CPU load is dangerously high
     const cpuCores = os.cpus().length;
     if (cpuLoad > cpuCores) {
-      this.logger.warn(`Dangerously high CPU load detected: ${cpuLoad.toFixed(2)} (Cores: ${cpuCores})`);
+      this.logger.warn(
+        `Dangerously high CPU load detected: ${cpuLoad.toFixed(2)} (Cores: ${cpuCores})`,
+      );
     }
 
     // Record system metric event in background (non-blocking)
-    this.analyticsService.recordEvent('system', 'ml_recommendations_served', userId, {
-      cpuLoad,
-      memoryMb,
-    }).catch(err => {
-      this.logger.error(`Failed to record system metrics: ${err.message}`);
-    });
+    this.analyticsService
+      .recordEvent('system', 'ml_recommendations_served', userId, {
+        cpuLoad,
+        memoryMb,
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Failed to record system metrics: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
 
     // 1. Get rule-based recommendations (baseline)
     const ruleRecommendations = [
