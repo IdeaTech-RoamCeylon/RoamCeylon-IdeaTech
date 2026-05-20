@@ -10,6 +10,7 @@ import { RecommendationUpdateController } from './controllers/recommendationUpda
 import { RecommendationGateway } from '../../gateways/recommendation.gateway';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { IncrementalLearningService } from './services/incremental-learning.service';
+import { ModelRetrainingService } from './services/model-retraining.service';
 import { AIModule } from '../ai/ai.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { AIModule } from '../ai/ai.module';
     RecommendationUpdateService,
     RecommendationGateway,
     IncrementalLearningService,
+    ModelRetrainingService,
   ],
   exports: [
     MlService,
@@ -35,6 +37,8 @@ import { AIModule } from '../ai/ai.module';
     RecommendationUpdateService,
     RecommendationGateway,
     IncrementalLearningService,
+    ModelRetrainingService,
   ],
 })
 export class MlModule {}
+

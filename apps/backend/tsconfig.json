@@ -25,5 +25,5 @@
 
     "types": ["jest", "node"]
   },
-  "include": ["src", "test", "**/*.spec.ts", "**/*.test.ts"]
+  "include": ["src/**/*"]
 }

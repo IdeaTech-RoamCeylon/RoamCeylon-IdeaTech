@@ -10,6 +10,7 @@ import {
 import { LatencyTrackerService } from '../analytics/latency-tracker.service';
 import { IncrementalLearningService } from './services/incremental-learning.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ModelRetrainingService } from './services/model-retraining.service';
 
 @Controller('api')
 export class MlController {
@@ -19,6 +20,7 @@ export class MlController {
     private readonly latencyTracker: LatencyTrackerService,
     private readonly incrementalLearning: IncrementalLearningService,
     private readonly prisma: PrismaService,
+    private readonly modelRetrainingService: ModelRetrainingService,
   ) {}
 
   // ── Existing endpoints (unchanged) ────────────────────────────────────────
@@ -120,6 +122,48 @@ export class MlController {
       currentProfile: profile ?? {
         message: 'No profile yet — submit feedback to create one',
       },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // ── Model Retraining endpoints (new) ──────────────────────────────────────
+
+  /**
+   * Triggers the background model retraining pipeline.
+   *
+   * POST /api/ml/retrain
+   */
+  @Post('ml/retrain')
+  async triggerRetraining() {
+    this.modelRetrainingService.triggerRetraining();
+    return {
+      success: true,
+      message: 'Model retraining pipeline triggered successfully in the background.',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Returns the current retraining pipeline status, logs, and comparison report.
+   *
+   * GET /api/ml/retrain/status
+   */
+  @Get('ml/retrain/status')
+  async getRetrainingStatus() {
+    return this.modelRetrainingService.getStatus();
+  }
+
+  /**
+   * Manually cancels the running model retraining pipeline.
+   *
+   * POST /api/ml/retrain/cancel
+   */
+  @Post('ml/retrain/cancel')
+  async cancelRetraining() {
+    this.modelRetrainingService.cancelRetraining();
+    return {
+      success: true,
+      message: 'Model retraining cancellation signal sent.',
       timestamp: new Date().toISOString(),
     };
   }

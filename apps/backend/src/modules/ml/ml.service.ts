@@ -1,6 +1,6 @@
 // apps/backend/src/modules/ml/ml.service.ts
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrackBehaviorDto } from './dto/track-behavior.dto';
 import {
@@ -8,15 +8,21 @@ import {
   MLPredictionResponse,
 } from './services/mlPrediction.service';
 import { BoundsEnforcerService } from '../ai/bounds-enforcer.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+import * as os from 'os';
+import * as process from 'process';
 
 type RecommendationSource = 'hybrid' | 'hybrid-capped' | 'rule-based';
 
 @Injectable()
 export class MlService {
+  private readonly logger = new Logger(MlService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mlPredictionService: MlPredictionService,
     private readonly boundsEnforcer: BoundsEnforcerService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async trackBehavior(dto: TrackBehaviorDto) {
@@ -37,6 +43,24 @@ export class MlService {
   }
 
   async getPersonalizedRecommendations(userId: string) {
+    // Read system metrics
+    const cpuLoad = os.loadavg()[0];
+    const memoryMb = process.memoryUsage().rss / (1024 * 1024);
+
+    // Log warning if CPU load is dangerously high
+    const cpuCores = os.cpus().length;
+    if (cpuLoad > cpuCores) {
+      this.logger.warn(`Dangerously high CPU load detected: ${cpuLoad.toFixed(2)} (Cores: ${cpuCores})`);
+    }
+
+    // Record system metric event in background (non-blocking)
+    this.analyticsService.recordEvent('system', 'ml_recommendations_served', userId, {
+      cpuLoad,
+      memoryMb,
+    }).catch(err => {
+      this.logger.error(`Failed to record system metrics: ${err.message}`);
+    });
+
     // 1. Get rule-based recommendations (baseline)
     const ruleRecommendations = [
       {
@@ -62,13 +86,13 @@ export class MlService {
 
     let mlResults: MLPredictionResponse | null = null;
 
-    // Controlled Rollout System - 20% of users get ML recommendations
+    // Controlled Rollout System - 50% of users get ML recommendations
     const userHash = [...userId].reduce(
       (acc, char) => acc + char.charCodeAt(0),
       0,
     );
 
-    const isMlEnabled = userHash % 10 < 2;
+    const isMlEnabled = userHash % 10 < 5;
 
     if (isMlEnabled) {
       try {
