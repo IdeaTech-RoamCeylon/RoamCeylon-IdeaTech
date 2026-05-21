@@ -9,6 +9,29 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { Request } from 'express';
 
+// ─── Error code mapping ───────────────────────────────────────────────────────
+
+const HTTP_ERROR_CODES: Record<number, string> = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  405: 'METHOD_NOT_ALLOWED',
+  408: 'REQUEST_TIMEOUT',
+  409: 'CONFLICT',
+  410: 'GONE',
+  422: 'UNPROCESSABLE_ENTITY',
+  429: 'TOO_MANY_REQUESTS',
+  500: 'INTERNAL_SERVER_ERROR',
+  502: 'BAD_GATEWAY',
+  503: 'SERVICE_UNAVAILABLE',
+  504: 'GATEWAY_TIMEOUT',
+};
+
+function toErrorCode(status: number): string {
+  return HTTP_ERROR_CODES[status] ?? `HTTP_ERROR_${status}`;
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exceptions');
@@ -32,28 +55,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
   /**
    * Sanitize request body by redacting sensitive fields
    */
-
-  private sanitizeObject(obj: any): any {
+  private sanitizeObject(obj: unknown): unknown {
     if (!obj || typeof obj !== 'object') return obj;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const sanitized = { ...obj };
+    const sanitized = { ...(obj as Record<string, unknown>) };
 
     for (const key in sanitized) {
       const lowerKey = key.toLowerCase();
 
-      // Check if key matches sensitive field patterns
       const isSensitive = this.sensitiveFields.some((field) =>
         lowerKey.includes(field.toLowerCase()),
       );
 
       if (isSensitive) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sanitized[key] = '***REDACTED***';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       } else if (typeof sanitized[key] === 'object') {
-        // Recursively sanitize nested objects
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         sanitized[key] = this.sanitizeObject(sanitized[key]);
       }
     }
@@ -62,7 +78,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   /**
-   * Generate a simple request ID for tracing
+   * Generate a simple request ID for tracing (fallback if RequestIdInterceptor
+   * hasn't set one on the request object yet)
    */
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -71,8 +88,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<Request>();
-    const requestId = this.generateRequestId();
+    const request = ctx.getRequest<Request & { requestId?: string }>();
+
+    // Prefer the ID set by RequestIdInterceptor; fall back to generating one
+    const requestId = request.requestId ?? this.generateRequestId();
 
     const httpStatus =
       exception instanceof HttpException
@@ -91,24 +110,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? (exceptionResponse as Record<string, unknown>).message
         : exceptionResponse;
 
+    const errorCode = toErrorCode(httpStatus);
+
     const responseBody = {
+      // Consistent envelope — matches TransformInterceptor shape
+      success: false,
       error: true,
       statusCode: httpStatus,
+      errorCode,
       timestamp: new Date().toISOString(),
       path: httpAdapter.getRequestUrl(request) as string,
       method: request.method,
-      message: message,
-      requestId: requestId,
+      message,
+      requestId,
     };
 
-    // Enhanced logging with more context and sensitive data sanitization
     const logContext = `${request.method} ${request.url}`;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const sanitizedBody = this.sanitizeObject(request.body);
 
-    if (httpStatus === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
+    if (httpStatus >= 500) {
+      // Always log 5xx with full stack trace
       this.logger.error(
-        `[${logContext}] [${requestId}] Critical Error: ${String(message)}`,
+        `[${logContext}] [${requestId}] [${errorCode}] Critical Error: ${String(message)}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
       this.logger.debug(
@@ -116,14 +139,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     } else if (httpStatus >= 400) {
       this.logger.warn(
-        `[${logContext}] [${requestId}] Client Error (${httpStatus}): ${String(message)}`,
+        `[${logContext}] [${requestId}] [${errorCode}] Client Error (${httpStatus}): ${String(message)}`,
       );
-      // Only log request body for client errors in debug mode
-      if (httpStatus >= 400 && httpStatus < 500) {
-        this.logger.debug(
-          `[${requestId}] Request body (sanitized): ${JSON.stringify(sanitizedBody)}`,
-        );
-      }
+      this.logger.debug(
+        `[${requestId}] Request body (sanitized): ${JSON.stringify(sanitizedBody)}`,
+      );
     }
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);

@@ -1,4 +1,6 @@
-import { forwardRef, Module } from '@nestjs/common';
+// apps/backend/src/modules/ai/ai.module.ts
+
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AIController } from './ai.controller';

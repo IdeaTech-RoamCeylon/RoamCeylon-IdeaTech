@@ -1779,7 +1779,9 @@ export class AIController {
         pace: pace as 'relaxed' | 'moderate' | 'active' | undefined,
       };
     } catch (error) {
-      this.logger.error(`Failed to pre-fetch user signals: ${error}`);
+      this.logger.error(
+        `Failed to pre-fetch user signals: ${(error as Error).message}`,
+      );
       // Fallback signals (all empty)
       signals = {
         positiveDestinations: [],

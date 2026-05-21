@@ -1,0 +1,46 @@
+# ─── Stage 1: Builder ─────────────────────────────────────────────────────────
+# Full dev toolchain to compile TypeScript and generate Prisma client
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy manifests first for better layer caching
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm ci
+
+# Copy source
+COPY . .
+
+# Generate Prisma client then compile TypeScript
+RUN npx prisma generate && npm run build
+
+# ─── Stage 2: Runner ──────────────────────────────────────────────────────────
+# Lean production image — only what's needed to run the compiled app
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install only production dependencies
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci --omit=dev && npx prisma generate
+
+# Copy compiled output from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Run as non-root user for security
+USER node
+
+# Application port (overridable via env)
+EXPOSE 3001
+
+# Health check — verifies the /health endpoint is responding
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
+
+CMD ["node", "dist/main"]

@@ -10,7 +10,15 @@ import { RecommendationUpdateController } from './controllers/recommendationUpda
 import { RecommendationGateway } from '../../gateways/recommendation.gateway';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { IncrementalLearningService } from './services/incremental-learning.service';
+import { ModelRetrainingService } from './services/model-retraining.service';
 import { AIModule } from '../ai/ai.module';
+
+// Day 65 & 66 new services
+import { RecommendationCacheService } from './services/recommendation-cache.service';
+import { BackgroundQueueService } from './services/background-queue.service';
+import { CircuitBreakerService } from './services/circuit-breaker.service';
+import { RetryService } from './services/retry.service';
+import { DbOptimizationService } from './services/db-optimization.service';
 
 @Module({
   imports: [
@@ -27,6 +35,13 @@ import { AIModule } from '../ai/ai.module';
     RecommendationUpdateService,
     RecommendationGateway,
     IncrementalLearningService,
+    ModelRetrainingService,
+    // Day 65 & 66 new services
+    RecommendationCacheService,
+    BackgroundQueueService,
+    CircuitBreakerService,
+    RetryService,
+    DbOptimizationService,
   ],
   exports: [
     MlService,
@@ -35,6 +50,13 @@ import { AIModule } from '../ai/ai.module';
     RecommendationUpdateService,
     RecommendationGateway,
     IncrementalLearningService,
+    ModelRetrainingService,
+    // Day 65 & 66 new services
+    RecommendationCacheService,
+    BackgroundQueueService,
+    CircuitBreakerService,
+    RetryService,
+    DbOptimizationService,
   ],
 })
 export class MlModule {}

@@ -67,20 +67,16 @@ export class FeedbackQueueService {
         `\n` +
           `┌─────────────────────────────────────────────────────┐\n` +
           `│  🔄 QUEUE ENTRY OVERWRITTEN (rating changed again)  │\n` +
-          `├─────────────────────────────────────────────────────┤\n` +
-          `│  userId   : ${userId}  │\n` +
-          `│  tripId   : ${tripId}  │\n` +
-          `│  category : ${category.padEnd(10)}                           │\n` +
-          `│  old rating : ${existing.rating} → new rating : ${rating} ${ratingLabel.padEnd(12)}    │\n` +
-          `│  processAfter : ${processAfter.toISOString()}  │\n` +
-          `│  ⚠️  Previous queued rating discarded                │\n` +
+          `│  userId   : ${userId}                               │\n` +
+          `│  tripId   : ${tripId}                               │\n` +
+          `│  category : ${category}                             │\n` +
+          `│  old → new rating : ${existing.rating} → ${rating}  │\n` +
           `└─────────────────────────────────────────────────────┘`,
       );
     } else {
       // New entry added to queue
       this.logger.log(
-        `\n` +
-          `┌─────────────────────────────────────────────────────┐\n` +
+        `\n┌─────────────────────────────────────────────────────┐\n` +
           `│  📥 QUEUED FOR DEFERRED LEARNING                    │\n` +
           `├─────────────────────────────────────────────────────┤\n` +
           `│  userId   : ${userId}  │\n` +
@@ -94,101 +90,66 @@ export class FeedbackQueueService {
     }
   }
 
-  // ─── Scheduled processor ────────────────────────────────────────────────────
-
-  /**
-   * Runs every hour and processes all queue entries whose cooldown has expired.
-   *
-   * For each expired entry:
-   * 1. Calls processFeedback() to update CategoryWeight + TrustScore
-   * 2. Deletes the processed entry from the queue
-   *
-   * Processes in batches of 50 to avoid long-running transactions.
-   */
-  @Cron(CronExpression.EVERY_HOUR)
+  // ─────────────────────────────────────────────
+  // CRON PROCESSOR (ENV SAFE FIX)
+  // ─────────────────────────────────────────────
+  @Cron(CronExpression.EVERY_HOUR, {
+    name: 'feedback-queue-processor',
+    disabled: process.env.NODE_ENV === 'test', // 🔥 KEY FIX
+  })
   async processExpiredQueue(): Promise<void> {
-    const now = new Date();
+    try {
+      const now = new Date();
 
-    const expired = await this.prisma.pendingFeedbackLearning.findMany({
-      where: { processAfter: { lte: now } },
-      orderBy: { processAfter: 'asc' },
-      take: 50, // batch size — prevents overloading on backlog
-    });
+      const expired = await this.prisma.pendingFeedbackLearning.findMany({
+        where: { processAfter: { lte: now } },
+        orderBy: { processAfter: 'asc' },
+        take: 50,
+      });
 
-    if (expired.length === 0) return;
+      if (!expired?.length) return;
 
-    this.logger.log(
-      `\n` +
-        `┌─────────────────────────────────────────────────────┐\n` +
-        `│  ⏰ DEFERRED LEARNING QUEUE — PROCESSING            │\n` +
-        `│  ${expired.length} entries ready to learn from               │\n` +
-        `└─────────────────────────────────────────────────────┘`,
-    );
+      this.logger.log(
+        `\n┌─────────────────────────────────────────────────────┐\n` +
+          `│  ⏰ PROCESSING QUEUE                                │\n` +
+          `│  entries: ${expired.length}                          │\n` +
+          `└─────────────────────────────────────────────────────┘`,
+      );
 
-    let processed = 0;
-    let failed = 0;
+      let processed = 0;
+      let failed = 0;
 
-    for (const entry of expired) {
-      const ratingLabel =
-        entry.rating >= 4
-          ? '⭐ Positive'
-          : entry.rating <= 2
-            ? '👎 Negative'
-            : '😐 Neutral';
-      const waitedMs = Date.now() - entry.queuedAt.getTime();
-      const waitedHours = (waitedMs / (1000 * 60 * 60)).toFixed(1);
+      for (const entry of expired) {
+        try {
+          await this.feedbackMappingService.processFeedback(
+            entry.userId,
+            entry.rating,
+            entry.category,
+          );
 
-      try {
-        // Apply deferred learning
-        await this.feedbackMappingService.processFeedback(
-          entry.userId,
-          entry.rating,
-          entry.category,
-        );
+          await this.prisma.pendingFeedbackLearning.delete({
+            where: { id: entry.id },
+          });
 
-        // Remove from queue after successful processing
-        await this.prisma.pendingFeedbackLearning.delete({
-          where: { id: entry.id },
-        });
+          processed++;
+        } catch (err) {
+          failed++;
 
-        processed++;
-
-        this.logger.log(
-          `\n` +
-            `┌─────────────────────────────────────────────────────┐\n` +
-            `│  ✅ DEFERRED LEARNING APPLIED                        │\n` +
-            `├─────────────────────────────────────────────────────┤\n` +
-            `│  userId   : ${entry.userId}  │\n` +
-            `│  category : ${entry.category.padEnd(10)}                           │\n` +
-            `│  rating   : ${entry.rating} ${ratingLabel.padEnd(20)}              │\n` +
-            `│  waited   : ${waitedHours}h since queued                     │\n` +
-            `│  CategoryWeight + TrustScore updated ✅              │\n` +
-            `└─────────────────────────────────────────────────────┘`,
-        );
-      } catch (err) {
-        failed++;
-        this.logger.error(
-          `\n` +
-            `┌─────────────────────────────────────────────────────┐\n` +
-            `│  ❌ DEFERRED LEARNING FAILED — will retry next hour  │\n` +
-            `├─────────────────────────────────────────────────────┤\n` +
-            `│  entry id : ${entry.id}                                  │\n` +
-            `│  userId   : ${entry.userId}  │\n` +
-            `│  error    : ${(err as Error).message.substring(0, 40).padEnd(40)}  │\n` +
-            `└─────────────────────────────────────────────────────┘`,
-        );
-        // Don't delete on failure — will retry next hour
+          this.logger.error(
+            `Queue failed id=${entry.id} error=${(err as Error).message}`,
+          );
+        }
       }
-    }
 
-    this.logger.log(
-      `\n` +
-        `┌─────────────────────────────────────────────────────┐\n` +
-        `│  📊 QUEUE BATCH COMPLETE                            │\n` +
-        `│  ✅ processed : ${String(processed).padEnd(3)}                              │\n` +
-        `│  ❌ failed    : ${String(failed).padEnd(3)} (will retry next hour)     │\n` +
-        `└─────────────────────────────────────────────────────┘`,
-    );
+      this.logger.log(
+        `Queue complete → processed=${processed}, failed=${failed}`,
+      );
+    } catch (err) {
+      // NEVER crash cron or Jest
+      this.logger.error(
+        `processExpiredQueue crashed: ${(err as Error).message}`,
+      );
+    }
   }
 
   // ─── Manual trigger (for testing / admin) ───────────────────────────────────

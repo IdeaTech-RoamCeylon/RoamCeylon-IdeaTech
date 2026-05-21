@@ -1,6 +1,6 @@
 // apps/backend/src/modules/feedback/feedback.module.ts
 
-import { forwardRef, Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { FeedbackService } from './feedback.service';
 import { FeedbackMappingService } from './feedback-mapping.service';
 import { FeedbackQueueService } from './feedback-queue.service';
