@@ -1,132 +1,210 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useCallback } from 'react';
+import {
+  Image,
+  ImageSourcePropType,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { MainStackParamList, Category } from '../../types';
-import marketplaceApi from '../../services/marketplaceApi';
-import { useApiFetch } from '../../hooks';
-import { LoadingState, ErrorState } from '../../components';
+import { Ionicons } from '@expo/vector-icons';
+import { MainStackParamList } from '../../types';
 
 type MarketplaceNavigationProp = StackNavigationProp<MainStackParamList, 'Marketplace'>;
 
-// Memoize category icons outside component to prevent recreation
-const CATEGORY_ICONS: Record<string, string> = {
-  'Electronics': '📱',
-  'Souvenirs': '🎁',
-  'Food': '🍽️',
-  'Textiles': '🧵',
-  'Tea & Coffee': '☕',
-  'Spices': '🌶️',
-  'Handicrafts': '🎨',
-  'Gemstones': '💎',
-  'Coconut Products': '🥥',
-};
+const FILTER_TABS = ['Best Sellers', 'Tea', 'Gifts', 'Spices'];
 
-// Separate category card component for better memoization
-interface CategoryCardProps {
-  category: Category;
-  onPress: (category: Category) => void;
+interface MarketplaceItem {
+  id: string;
+  title: string;
+  category: string;
+  rating: string;
+  price: string;
+  image: ImageSourcePropType;
+  featured?: boolean;
 }
 
-const CategoryCard = React.memo<CategoryCardProps>(({ category, onPress }) => {
-  const handlePress = useCallback(() => {
-    onPress(category);
-  }, [category, onPress]);
+const MARKETPLACE_ITEMS: MarketplaceItem[] = [
+  {
+    id: 'tea-collection',
+    title: 'Artisan Silver Tips Tea Collection',
+    category: 'CURATION PICK',
+    rating: '4.9',
+    price: '$45.00',
+    image: require('../../assets/TEA.png'),
+    featured: true,
+  },
+  {
+    id: 'ves-muhunu-mask',
+    title: 'Vibrant Ves Muhunu Mask',
+    category: 'HANDICRAFTS',
+    rating: '4.8',
+    price: '$72.00',
+    image: require('../../assets/mask.png'),
+  },
+  {
+    id: 'cinnamon-sticks',
+    title: 'True Ceylon Cinnamon Sticks',
+    category: 'SPICES',
+    rating: '5.0',
+    price: '$18.50',
+    image: require('../../assets/cinnamon.png'),
+  },
+  {
+    id: 'ebony-elephant',
+    title: 'Handcrafted Ebony Elephant',
+    category: 'SOUVENIRS',
+    rating: '4.7',
+    price: '$120.00',
+    image: require('../../assets/elephant.png'),
+  },
+  {
+    id: 'dumbara-scarf',
+    title: 'Dumbara Weave Cotton Scarf',
+    category: 'TEXTILES',
+    rating: '4.6',
+    price: '$34.00',
+    image: require('../../assets/scarf.png'),
+  },
+];
+
+const noop = () => {};
+
+interface ProductCardProps {
+  item: MarketplaceItem;
+}
+
+const ProductCard = React.memo<ProductCardProps>(({ item }) => {
+  if (item.featured) {
+    return (
+      <View style={styles.featuredCard}>
+        <Image source={item.image} style={styles.featuredImage} resizeMode="cover" />
+        <View style={styles.featuredBody}>
+          <View style={styles.metaRow}>
+            <Text style={styles.categoryLabel}>{item.category}</Text>
+            <View style={styles.ratingPill}>
+              <Text style={styles.ratingStar}>★</Text>
+              <Text style={styles.ratingValue}>{item.rating}</Text>
+            </View>
+          </View>
+          <Text style={styles.featuredTitle}>{item.title}</Text>
+          <View style={styles.featuredFooter}>
+            <Text style={styles.featuredPrice}>{item.price}</Text>
+            <TouchableOpacity activeOpacity={1} style={styles.addToCartButton} onPress={noop}>
+              <Ionicons name="cart-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.addToCartText}>Add to Cart</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={handlePress}
-    >
-      <Text style={styles.categoryIcon}>
-        {CATEGORY_ICONS[category.name] || '📦'}
-      </Text>
-      <Text style={styles.categoryName}>{category.name}</Text>
-    </TouchableOpacity>
+    <View style={styles.productCard}>
+      <Image source={item.image} style={styles.productImage} resizeMode="cover" />
+      <View style={styles.productBody}>
+        <View style={styles.productMetaRow}>
+          <Text style={styles.productCategory}>{item.category}</Text>
+          <Text style={styles.productRating}>★ {item.rating}</Text>
+        </View>
+        <Text style={styles.productTitle}>{item.title}</Text>
+        <View style={styles.productFooter}>
+          <Text style={styles.productPrice}>{item.price}</Text>
+          <TouchableOpacity activeOpacity={1} style={styles.cartCircle} onPress={noop}>
+            <Ionicons name="cart-outline" size={18} color="#8F7400" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 });
 
-CategoryCard.displayName = 'CategoryCard';
+ProductCard.displayName = 'ProductCard';
 
 const MarketplaceHomeScreen = () => {
   const navigation = useNavigation<MarketplaceNavigationProp>();
-  
-  // Use custom hook for API fetching - eliminates manual state management
-  const { data: categories, loading, error, refetch } = useApiFetch(
-    marketplaceApi.getCategories,
-    { showErrorToast: true, errorMessage: 'Failed to load categories. Please try again.' }
-  );
 
-  const handleCategoryPress = useCallback((category: Category) => {
-    navigation.navigate('MarketplaceCategory', { 
-      categoryId: category.id,
-      categoryName: category.name 
-    });
+  const handleBackToHome = useCallback(() => {
+    navigation.navigate('Home');
   }, [navigation]);
-
-  // Memoize keyExtractor to prevent recreation
-  const keyExtractor = useCallback((item: Category) => item.id.toString(), []);
-
-  // Memoize renderItem to prevent recreation
-  const renderCategoryItem = useCallback(({ item }: { item: Category }) => (
-    <CategoryCard category={item} onPress={handleCategoryPress} />
-  ), [handleCategoryPress]);
-
-  // Memoize numColumns calculation
-  const numColumns = 3;
-
-  const ListHeaderComponent = useMemo(() => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Shop by Category</Text>
-    </View>
-  ), []);
-
-  const ListEmptyComponent = useMemo(() => {
-    if (loading) {
-      return <LoadingState message="Loading categories..." />;
-    }
-    
-    if (error) {
-      return <ErrorState message={error} onRetry={refetch} />;
-    }
-
-    return null;
-  }, [loading, error, refetch]);
-
-  const ListFooterComponent = useMemo(() => {
-    if (!loading && !error) {
-      return (
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>🛍️</Text>
-          <Text style={styles.placeholderTitle}>Product Listings Coming Soon</Text>
-          <Text style={styles.placeholderSubtitle}>
-            Browse and shop for authentic Sri Lankan products from local artisans
-          </Text>
-        </View>
-      );
-    }
-    return null;
-  }, [loading, error]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Marketplace</Text>
-        <Text style={styles.subtitle}>Shop authentic Sri Lankan products</Text>
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
+          <Ionicons name="arrow-back" size={24} color="#5A5140" />
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>Marketplace</Text>
+        <View style={styles.topBarSpacer} />
       </View>
 
-      <FlatList
-        data={categories || []}
-        renderItem={renderCategoryItem}
-        keyExtractor={keyExtractor}
-        numColumns={numColumns}
-        contentContainerStyle={styles.content}
-        ListHeaderComponent={ListHeaderComponent}
-        ListEmptyComponent={ListEmptyComponent}
-        ListFooterComponent={ListFooterComponent}
-        columnWrapperStyle={styles.columnWrapper}
-        showsVerticalScrollIndicator={false}
-      />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>Local Treasures & Souvenirs</Text>
+          <Text style={styles.heroSubtitle}>
+            Discover the soul of Sri Lanka through handcrafted artifacts, world-class tea, and
+            unique keepsakes.
+          </Text>
+        </View>
+
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={22} color="#6A6153" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for treasures..."
+            placeholderTextColor="#A39A8C"
+            editable={false}
+            pointerEvents="none"
+          />
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {FILTER_TABS.map((tab, index) => (
+            <TouchableOpacity
+              key={tab}
+              activeOpacity={1}
+              onPress={noop}
+              style={[styles.chip, index === 0 && styles.activeChip]}
+            >
+              <Text style={[styles.chipText, index === 0 && styles.activeChipText]}>{tab}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={styles.cardsSection}>
+          {MARKETPLACE_ITEMS.map((item) => (
+            <ProductCard key={item.id} item={item} />
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.bottomNav}>
+        <View style={styles.bottomTab}>
+          <Ionicons name="home-outline" size={18} color="#8B8B8B" />
+          <Text style={styles.bottomTabText}>HOME</Text>
+        </View>
+        <View style={[styles.bottomTab, styles.bottomTabActive]}>
+          <Ionicons name="compass" size={18} color="#222" />
+          <Text style={[styles.bottomTabText, styles.bottomTabTextActive]}>EXPLORE</Text>
+        </View>
+        <View style={styles.bottomTab}>
+          <Ionicons name="notifications-outline" size={18} color="#8B8B8B" />
+          <Text style={styles.bottomTabText}>ALERTS</Text>
+        </View>
+        <View style={styles.bottomTab}>
+          <Ionicons name="settings-outline" size={18} color="#8B8B8B" />
+          <Text style={styles.bottomTabText}>SETTINGS</Text>
+        </View>
+      </View>
     </View>
   );
 };
@@ -134,86 +212,278 @@ const MarketplaceHomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F3F3F3',
   },
-  header: {
-    backgroundColor: '#FF6B35',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#fff',
-    marginTop: 5,
-    opacity: 0.9,
-  },
-  content: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  columnWrapper: {
-    justifyContent: 'space-between',
-  },
-  categoryCard: {
-    width: '31%',
-    backgroundColor: '#fff',
-    marginBottom: 10,
-    padding: 15,
-    borderRadius: 12,
+  topBar: {
+    backgroundColor: '#FFFFFF',
+    height: 98,
+    paddingTop: 28,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E5DF',
   },
-  categoryIcon: {
-    fontSize: 36,
-    marginBottom: 8,
+  backButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  categoryName: {
-    fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
+  topBarTitle: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#4A4031',
+    letterSpacing: -0.6,
+  },
+  topBarSpacer: {
+    width: 28,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  heroSection: {
+    paddingHorizontal: 24,
+    paddingTop: 22,
+  },
+  heroTitle: {
+    fontSize: 40,
+    lineHeight: 36,
+    letterSpacing: -1.1,
+    fontWeight: '800',
+    color: '#1E2227',
+  },
+  heroSubtitle: {
+    marginTop: 18,
+    fontSize: 18,
+    lineHeight: 29,
+    color: '#534C42',
+    maxWidth: 360,
+  },
+  searchBox: {
+    marginHorizontal: 24,
+    marginTop: 26,
+    backgroundColor: '#F7F6F4',
+    borderRadius: 16,
+    minHeight: 40,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchInput: {
+    marginLeft: 12,
+    flex: 1,
+    fontSize: 16,
+    color: '#766F64',
+    fontWeight: '500',
+  },
+  filterRow: {
+    paddingHorizontal: 24,
+    gap: 12,
+    marginTop: 22,
+    paddingBottom: 8,
+  },
+  chip: {
+    backgroundColor: '#E4E4E4',
+    borderRadius: 999,
+    paddingVertical: 16,
+    paddingHorizontal: 26,
+  },
+  activeChip: {
+    backgroundColor: '#77E978',
+  },
+  chipText: {
+    fontSize: 16,
+    color: '#51493E',
     fontWeight: '600',
   },
-  placeholder: {
-    backgroundColor: '#fff',
-    padding: 40,
-    borderRadius: 15,
+  activeChipText: {
+    color: '#165925',
+  },
+  cardsSection: {
+    marginTop: 12,
+    paddingHorizontal: 24,
+    gap: 22,
+  },
+  featuredCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  featuredImage: {
+    width: '100%',
+    height: 246,
+  },
+  featuredBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
   },
-  placeholderText: {
-    fontSize: 64,
-    marginBottom: 20,
+  categoryLabel: {
+    fontSize: 12,
+    color: '#0F7D36',
+    fontWeight: '700',
+    letterSpacing: 1.6,
   },
-  placeholderTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8E9BC',
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    gap: 5,
   },
-  placeholderSubtitle: {
+  ratingStar: {
+    color: '#E4AC00',
     fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
+  },
+  ratingValue: {
+    color: '#6B5621',
+    fontWeight: '700',
+    fontSize: 24,
+  },
+  featuredTitle: {
+    marginTop: 10,
+    fontSize: 30,
+    lineHeight: 36,
+    color: '#212429',
+    fontWeight: '700',
+    letterSpacing: -0.8,
+  },
+  featuredFooter: {
+    marginTop: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  featuredPrice: {
+    fontSize: 30,
+    color: '#202226',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  addToCartButton: {
+    backgroundColor: '#F4CF47',
+    borderRadius: 999,
+    minHeight: 52,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addToCartText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  productCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  productImage: {
+    width: '100%',
+    height: 300,
+  },
+  productBody: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  productMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  productCategory: {
+    color: '#9A9A9A',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+  },
+  productRating: {
+    color: '#5B5A58',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  productTitle: {
+    marginTop: 10,
+    color: '#212429',
+    fontSize: 20,
+    lineHeight: 42,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+  },
+  productFooter: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  productPrice: {
+    color: '#212429',
+    fontSize: 42,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  cartCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F1F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E9E9E9',
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+  },
+  bottomTab: {
+    minWidth: 70,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  bottomTabActive: {
+    backgroundColor: '#F2D658',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+  },
+  bottomTabText: {
+    fontSize: 10,
+    color: '#8B8B8B',
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  bottomTabTextActive: {
+    color: '#232323',
   },
 });
 

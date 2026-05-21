@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AIController } from './ai.controller';
@@ -17,7 +17,7 @@ import { BoundsEnforcerService } from './bounds-enforcer.service';
     ConfigModule,
     PlannerModule,
     AnalyticsModule,
-    FeedbackModule,
+    forwardRef(() => FeedbackModule),
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 seconds

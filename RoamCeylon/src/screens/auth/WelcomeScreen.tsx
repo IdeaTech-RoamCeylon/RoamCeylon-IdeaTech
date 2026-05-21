@@ -83,7 +83,6 @@ const WelcomeScreen = () => {
             iconName="email"
             colors={['#0f7a50', '#14a065']}
           />
-          <GoogleButton onPress={() => navigation.navigate('GoogleSignIn' as never)} />
         </View>
       </View>
       <Image

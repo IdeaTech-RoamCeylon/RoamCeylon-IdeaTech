@@ -1,6 +1,6 @@
 // apps/backend/src/modules/feedback/feedback.module.ts
 
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { FeedbackService } from './feedback.service';
 import { FeedbackMappingService } from './feedback-mapping.service';
 import { FeedbackQueueService } from './feedback-queue.service';
@@ -9,7 +9,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { AIModule } from '../ai/ai.module';
 
 @Module({
-  imports: [PrismaModule, AIModule],
+  imports: [PrismaModule, forwardRef(() => AIModule)],
   providers: [
     FeedbackService,
     FeedbackMappingService,
