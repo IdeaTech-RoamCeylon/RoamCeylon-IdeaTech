@@ -82,7 +82,7 @@ export class LatencyTrackingInterceptor implements NestInterceptor {
           err != null &&
           typeof err === 'object' &&
           'status' in err &&
-          typeof (err as { status: unknown }).status === 'number'
+          typeof err.status === 'number'
             ? (err as { status: number }).status
             : 500;
 

@@ -184,7 +184,7 @@ export class FeedbackService {
   private extractRating(raw: unknown): number | undefined {
     if (typeof raw === 'number') return raw;
     if (raw && typeof raw === 'object' && 'rating' in raw) {
-      const { rating } = raw as { rating: unknown };
+      const { rating } = raw;
       if (typeof rating === 'number') return rating;
     }
     return undefined;

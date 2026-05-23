@@ -46,12 +46,6 @@ interface CategoryDelta {
   relaxation: number; // maps to UserInterestProfile.relaxationScore
 }
 
-type UserInterestProfileSafe = {
-  culturalScore: number;
-  adventureScore: number;
-  relaxationScore: number;
-};
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DELTA_POSITIVE = 0.05; // rating >= 4
@@ -267,14 +261,14 @@ export class IncrementalLearningService implements OnModuleInit {
         ? this.mapCategoryToDimensions(category)
         : this.mapDestinationToDimensions(destination ?? '');
 
-      const existing = (await this.prisma.userInterestProfile.findUnique({
+      const existing = await this.prisma.userInterestProfile.findUnique({
         where: { userId },
         select: {
           culturalScore: true,
           adventureScore: true,
           relaxationScore: true,
         },
-      })) as UserInterestProfileSafe | null;
+      });
 
       const safeCulturalDelta = this.boundsEnforcer.enforceSessionDelta(
         userId,
@@ -579,7 +573,7 @@ export class IncrementalLearningService implements OnModuleInit {
   private extractRating(raw: unknown): number | undefined {
     if (typeof raw === 'number') return raw;
     if (raw && typeof raw === 'object' && 'rating' in raw) {
-      const r = (raw as { rating: unknown }).rating;
+      const r = raw.rating;
       if (typeof r === 'number') return r;
     }
     return undefined;

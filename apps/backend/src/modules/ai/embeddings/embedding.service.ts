@@ -178,7 +178,7 @@ export class EmbeddingService {
       // Deterministic seeding: stable IDs every time
       await client.query(`TRUNCATE TABLE embeddings RESTART IDENTITY`);
 
-      const dataset = parseTourismSamples(rawTourismData as unknown);
+      const dataset = parseTourismSamples(rawTourismData);
 
       // Deterministic order
       dataset.sort((a, b) => this.collator.compare(a.title, b.title));

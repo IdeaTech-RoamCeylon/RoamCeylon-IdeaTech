@@ -126,7 +126,7 @@ export class PlannerService {
       )
       .catch((e) => console.error('Failed to record trip_saved event', e));
 
-    return result as SavedTrip;
+    return result;
   }
 
   async getTrip(userId: string, tripId: string): Promise<SavedTrip | null> {

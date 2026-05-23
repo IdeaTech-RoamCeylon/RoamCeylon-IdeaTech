@@ -1,4 +1,4 @@
-﻿// apps/backend/src/modules/ai/ai.controller.ts
+// apps/backend/src/modules/ai/ai.controller.ts
 
 import {
   Controller,
@@ -110,7 +110,7 @@ type ItineraryCategory =
   | 'Adventure'
   | 'Relaxation';
 
-type ConfidenceLevel = 'High' | 'Medium' | 'Low';
+export type ConfidenceLevel = 'High' | 'Medium' | 'Low';
 
 type ServiceError = { message: string };
 
@@ -385,7 +385,7 @@ export class AIController {
       typeof v === 'object' &&
       v !== null &&
       'message' in v &&
-      typeof (v as { message: unknown }).message === 'string'
+      typeof v.message === 'string'
     );
   }
 
@@ -969,7 +969,7 @@ export class AIController {
     ctx: ExplanationContext,
   ): RichExplanation {
     const score = result.score ?? 0;
-    const confidence = (result.confidence ?? 'Low') as ConfidenceLevel;
+    const confidence = result.confidence ?? 'Low';
     const { matched } = this.extractMatchedPreferences(result, ctx.preferences);
 
     const energyScore =
@@ -1776,7 +1776,7 @@ export class AIController {
         recentSelections,
         avoidedCategories,
         frequentPlaces,
-        pace: pace as 'relaxed' | 'moderate' | 'active' | undefined,
+        pace: pace,
       };
     } catch (error) {
       this.logger.error(
