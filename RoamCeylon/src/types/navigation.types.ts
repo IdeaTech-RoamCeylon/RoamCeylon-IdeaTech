@@ -7,6 +7,7 @@ export type AuthStackParamList = {
   Login: undefined;
   ProfileSetup: undefined;
   GoogleSignIn: undefined;
+  EmailVerification: { email: string };
 };
 
 export type MainStackParamList = {

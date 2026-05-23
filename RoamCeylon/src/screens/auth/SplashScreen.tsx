@@ -47,7 +47,7 @@ const SplashScreen = () => {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#16a669', '#b8e36f']}
+              colors={['#060908', '#3d3d3d']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}

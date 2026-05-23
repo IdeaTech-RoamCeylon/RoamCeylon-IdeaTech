@@ -8,6 +8,8 @@ import {MaterialCommunityIcons} from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';  
+import { nhost } from '../../config/nhostClient';
+import * as SecureStore from 'expo-secure-store';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +27,44 @@ const ProfileSetupScreen = () => {
       NavigationBar.setVisibilityAsync('hidden');
       NavigationBar.setBehaviorAsync('inset-swipe');
     }
+  }, []);
+
+  // Pre-fill profile details from SecureStore or Nhost (entered during registration)
+  useEffect(() => {
+    const loadFields = async () => {
+      // 1. Try to load from local SecureStore temp data
+      const tempRegDataStr = await SecureStore.getItemAsync('tempRegistrationData');
+      if (tempRegDataStr) {
+        try {
+          const tempRegData = JSON.parse(tempRegDataStr);
+          if (tempRegData.name) setName(tempRegData.name);
+          if (tempRegData.email) setEmail(tempRegData.email);
+          if (tempRegData.birthday) setBirthday(new Date(tempRegData.birthday));
+          if (tempRegData.gender) setGender(tempRegData.gender);
+          return; // Successfully loaded from SecureStore
+        } catch (e) {
+          console.error('Failed to parse temp registration data in ProfileSetupScreen:', e);
+        }
+      }
+
+      // 2. Fallback to Nhost user object if SecureStore data wasn't found
+      const nhostUser = nhost.auth.getUser();
+      if (nhostUser) {
+        if (nhostUser.displayName) {
+          setName(nhostUser.displayName);
+        }
+        if (nhostUser.email) {
+          setEmail(nhostUser.email);
+        }
+        if (nhostUser.metadata?.birthday) {
+          setBirthday(new Date(nhostUser.metadata.birthday as string));
+        }
+        if (nhostUser.metadata?.gender) {
+          setGender(nhostUser.metadata.gender as string);
+        }
+      }
+    };
+    loadFields();
   }, []);
 
   const handleComplete = async () => {

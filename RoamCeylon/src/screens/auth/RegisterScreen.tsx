@@ -17,9 +17,8 @@ import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import * as SecureStore from 'expo-secure-store';
-import { useAuth } from '../../context/AuthContext';
-import { updateProfile } from '../../services/auth';
 import { nhost } from '../../config/nhostClient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -29,7 +28,6 @@ type Gender = typeof GENDERS[number];
 
 const RegisterScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
-  const { login, refreshUser } = useAuth();
 
   // ── Form fields ────────────────────────────────────────────
   const [name, setName] = useState('');
@@ -113,46 +111,51 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      // Step 1: Create account in Nhost Hasura Auth.
-      await nhost.auth.signUpEmailPassword({
+      // Create account in Nhost Hasura Auth.
+      // With "Require Verified Emails" enabled in Nhost, the user will
+      // receive a verification link at their email address.
+      // They cannot sign in until the email is verified.
+      const signUpResponse = await nhost.auth.signUpEmailPassword({
         email: email.trim().toLowerCase(),
         password,
         options: {
           displayName: name.trim(),
-          metadata: { phoneNumber: phoneNumber.trim() },
+          metadata: {
+            phoneNumber: phoneNumber.trim(),
+            birthday: birthday?.toISOString(),
+            gender,
+          },
         },
       });
 
-      // Step 2: Immediately sign in to get an access token.
-      const signInResponse = await nhost.auth.signInEmailPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      const session = signInResponse.body?.session;
-      if (!session?.accessToken) {
+      // Check for signup errors returned by Nhost
+      if (signUpResponse.body?.error) {
         throw new Error(
-          'Account created but sign-in failed. Please try logging in manually.',
+          signUpResponse.body.error.message || 'Registration failed. Please try again.',
         );
       }
 
-      // Step 3: Persist tokens & notify AuthContext.
-      await SecureStore.setItemAsync('authToken', session.accessToken);
-      if (session.refreshToken) {
-        await SecureStore.setItemAsync('nhostRefreshToken', session.refreshToken);
-      }
-      await login(session.accessToken);
-
-      // Step 4: Save required profile parts to NestJS backend
-      await updateProfile(
-        name.trim(),
-        email.trim().toLowerCase(),
-        birthday,
+      // Temporarily store the registration details locally so they can be synced
+      // to the NestJS database when the user successfully logs in after verification.
+      const tempData = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phoneNumber: phoneNumber.trim(),
+        birthday: birthday?.toISOString(),
         gender,
-      );
-      await refreshUser();
+      };
+      await SecureStore.setItemAsync('tempRegistrationData', JSON.stringify(tempData));
 
-      showToast.success('Welcome to RoamCeylon! 🎉', 'Account Created');
+      // Navigate to the verification screen so the user knows
+      // to check their inbox before logging in.
+      navigation.navigate('EmailVerification', {
+        email: email.trim().toLowerCase(),
+      });
+
+      showToast.success(
+        'Please check your email to verify your account.',
+        'Account Created',
+      );
     } catch (error: any) {
       console.error('Registration error:', error);
       showToast.error(
@@ -192,13 +195,13 @@ const RegisterScreen = () => {
               if (errors[errorKey]) setErrors((e) => ({ ...e, [errorKey]: '' }));
             }}
             secureTextEntry={isSecure && !showSecure}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
+            keyboardType={isSecure ? 'default' : keyboardType}
+            autoCapitalize={isSecure ? 'none' : autoCapitalize}
             editable={!loading}
           />
           {isSecure && onToggleSecure ? (
              <TouchableOpacity style={styles.iconContainer} onPress={onToggleSecure}>
-               <MaterialCommunityIcons name={showSecure ? 'eye-off-outline' : iconName} size={20} color="#9E9E9E" />
+               <MaterialCommunityIcons name={showSecure ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
              </TouchableOpacity>
           ) : (
              <View style={styles.iconContainer}>
@@ -367,10 +370,12 @@ const RegisterScreen = () => {
                         if (errors.password) setErrors((e) => ({ ...e, password: '' }));
                       }}
                       secureTextEntry={!showPassword}
+                      keyboardType="default"
+                      autoCapitalize="none"
                       editable={!loading}
                     />
                     <TouchableOpacity style={styles.iconContainer} onPress={() => setShowPassword(!showPassword)}>
-                      <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'lock-outline'} size={20} color="#9E9E9E" />
+                      <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
                     </TouchableOpacity>
                   </View>
                   {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}

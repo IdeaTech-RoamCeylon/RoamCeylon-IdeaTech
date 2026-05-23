@@ -16,8 +16,23 @@ const Navigation = () => {
     return <SplashScreen />;
   }
 
+  // Deep link configuration: maps roamceylon://verify-email → Auth/Login
+  // so tapping the Nhost verification email link opens the app at Login.
+  const linking = {
+    prefixes: ['roamceylon://'],
+    config: {
+      screens: {
+        Auth: {
+          screens: {
+            Login: 'verify-email',
+          },
+        },
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <RootStack.Navigator 
         screenOptions={{ 
           headerShown: false,

@@ -79,19 +79,41 @@ const LoginScreen = () => {
       }
 
       // Notify AuthContext — sets isAuthenticated = true and fetches user profile.
-      await login(session.accessToken);
+      const loginResult = await login(session.accessToken, session.user);
 
       // If the profile is still incomplete after login (e.g. account created
       // outside the full registration flow), take the user to ProfileSetup
       // so they can fill in the missing details.
-      if (!isProfileComplete) {
+      if (!loginResult.isProfileComplete) {
         navigation.navigate('ProfileSetup');
       }
       // If profile IS complete, RootNavigator auto-switches to MainStack.
     } catch (error: any) {
       console.error('Login error:', error);
-      const msg = error?.message || 'Invalid email or password. Please try again.';
-      showToast.error(msg, 'Login Failed');
+      const msg =
+        error?.message ||
+        (error?.body as any)?.error?.message ||
+        'Invalid email or password. Please try again.';
+
+      // Nhost returns an error when the email is not yet verified.
+      // Detect this and redirect to the verification screen.
+      const isUnverified =
+        typeof msg === 'string' &&
+        (msg.toLowerCase().includes('unverified') ||
+         msg.toLowerCase().includes('email is not verified') ||
+         msg.toLowerCase().includes('verify'));
+
+      if (isUnverified) {
+        showToast.info(
+          'Please verify your email before logging in.',
+          'Email Not Verified',
+        );
+        navigation.navigate('EmailVerification', {
+          email: email.trim().toLowerCase(),
+        });
+      } else {
+        showToast.error(msg, 'Login Failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -129,13 +151,13 @@ const LoginScreen = () => {
               if (errors[errorKey]) setErrors((e) => ({ ...e, [errorKey]: '' }));
             }}
             secureTextEntry={isSecure && !showSecure}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
+            keyboardType={isSecure ? 'default' : keyboardType}
+            autoCapitalize={isSecure ? 'none' : autoCapitalize}
             editable={!loading}
           />
           {isSecure && onToggleSecure && (
              <TouchableOpacity style={styles.rightIconContainer} onPress={onToggleSecure}>
-               <MaterialCommunityIcons name={showSecure ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9E9E9E" />
+               <MaterialCommunityIcons name={showSecure ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
              </TouchableOpacity>
           )}
         </View>
