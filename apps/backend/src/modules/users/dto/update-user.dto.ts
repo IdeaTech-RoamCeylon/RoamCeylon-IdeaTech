@@ -62,4 +62,9 @@ export class UpdateUserDto {
     message: 'Gender must be one of: Male, Female, Other',
   })
   gender?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20, { message: 'Phone number must be less than 20 characters' })
+  phoneNumber?: string;
 }

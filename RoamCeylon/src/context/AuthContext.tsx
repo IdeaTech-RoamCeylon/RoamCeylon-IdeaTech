@@ -12,6 +12,7 @@ import {
   removeAuthToken,
   getMe,
   UserProfile,
+  updateProfile,
 } from '../services/auth';
 import { nhost } from '../config/nhostClient';
 
@@ -22,9 +23,9 @@ interface AuthContextType {
   isProfileComplete: boolean;
   setUser: (user: UserProfile | null) => void;
   updateUserProfile: (userData: UserProfile) => void;
-  login: (token: string) => Promise<void>;
+  login: (token: string, nhostUser?: any) => Promise<{ isProfileComplete: boolean }>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: (nhostUserArg?: any) => Promise<{ isProfileComplete: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,16 +37,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   // Memoize refreshUser to prevent recreation.
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (nhostUserArg?: any) => {
     try {
-      const userData = await getMe();
+      let userData = await getMe();
+      let profileComplete = !!(userData?.name && userData?.email);
+
+      // If the NestJS profile is missing any details, try to sync it from either
+      // 1. Temporary registration data stored in SecureStore
+      // 2. Nhost's authenticated user details (passed directly or fetched from client)
+      const needsSync = !userData?.name || !userData?.email || !userData?.phoneNumber || !userData?.birthday || !userData?.gender;
+      if (needsSync) {
+        const tempRegDataStr = await SecureStore.getItemAsync('tempRegistrationData');
+        if (tempRegDataStr) {
+          try {
+            const tempRegData = JSON.parse(tempRegDataStr);
+            if (tempRegData?.name && tempRegData?.email) {
+              const birthdayDate = tempRegData.birthday ? new Date(tempRegData.birthday) : undefined;
+              userData = await updateProfile(
+                tempRegData.name,
+                tempRegData.email,
+                birthdayDate,
+                tempRegData.gender,
+                tempRegData.phoneNumber
+              );
+              profileComplete = !!(userData?.name && userData?.email);
+              
+              // Clear the temporary registration data after successful sync
+              await SecureStore.deleteItemAsync('tempRegistrationData');
+            }
+          } catch (e) {
+            console.error('Failed to parse temp registration data:', e);
+          }
+        }
+
+        // Fallback to Nhost user object if SecureStore data wasn't found or failed
+        // (or if we still need to sync details like phoneNumber for existing users)
+        const stillNeedsSync = !userData?.name || !userData?.email || !userData?.phoneNumber || !userData?.birthday || !userData?.gender;
+        if (stillNeedsSync) {
+          const nhostUser = nhostUserArg || nhost.auth.getUser();
+          if (nhostUser?.displayName && nhostUser?.email) {
+            const birthdayStr = nhostUser.metadata?.birthday as string | undefined;
+            const birthdayDate = birthdayStr ? new Date(birthdayStr) : undefined;
+            const gender = nhostUser.metadata?.gender as string | undefined;
+            const phone = nhostUser.metadata?.phoneNumber as string | undefined;
+
+            // Auto-sync profile to NestJS backend
+            userData = await updateProfile(
+              nhostUser.displayName,
+              nhostUser.email,
+              birthdayDate,
+              gender,
+              phone
+            );
+            profileComplete = !!(userData?.name && userData?.email);
+          }
+        }
+      }
+
       setUser(userData);
-      const profileComplete = !!(userData?.name && userData?.email);
       setIsProfileComplete(profileComplete);
+      return { isProfileComplete: profileComplete };
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
       setUser(null);
       setIsProfileComplete(false);
+      return { isProfileComplete: false };
     }
   }, []);
 
@@ -62,10 +118,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * interceptor will pick it up automatically.
    */
   const login = useCallback(
-    async (token: string) => {
+    async (token: string, nhostUser?: any) => {
       await storeAuthToken(token);
       setIsAuthenticated(true);
-      await refreshUser();
+      return await refreshUser(nhostUser);
     },
     [refreshUser],
   );

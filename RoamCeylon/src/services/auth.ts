@@ -76,6 +76,7 @@ export const updateProfile = async (
   email: string,
   birthday?: Date,
   gender?: string,
+  phoneNumber?: string,
 ): Promise<UserProfile> => {
   try {
     const response = await apiService.patch<ApiResponse<UserProfile>>('/users/me', {
@@ -83,6 +84,7 @@ export const updateProfile = async (
       email,
       birthday: birthday?.toISOString(),
       gender,
+      phoneNumber,
     });
     return response.data;
   } catch (error) {
