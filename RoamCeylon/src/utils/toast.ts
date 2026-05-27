@@ -82,13 +82,8 @@ export const showToast = {
       
       // Handle specific status codes
       if (status === 401) {
-        Toast.show({
-          type: 'error',
-          text1: 'Unauthorized',
-          text2: message,
-          position: 'top',
-          visibilityTime: 4000,
-        });
+        // Suppress displaying toast for 401 unauthorized to prevent confusing the user on startup/session expiration.
+        return;
       } else if (status === 404) {
         Toast.show({
           type: 'error',

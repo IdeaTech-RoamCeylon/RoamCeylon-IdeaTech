@@ -129,12 +129,13 @@ const RegisterScreen = () => {
             isLocal,
           },
         },
-      });
+      }) as any;
 
       // Check for signup errors returned by Nhost
-      if (signUpResponse.body?.error) {
+      const authError = signUpResponse.error || signUpResponse.body?.error;
+      if (authError) {
         throw new Error(
-          signUpResponse.body.error.message || 'Registration failed. Please try again.',
+          authError.message || 'Registration failed. Please try again.',
         );
       }
 

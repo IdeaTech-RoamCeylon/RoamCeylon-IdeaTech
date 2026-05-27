@@ -3,7 +3,6 @@ import * as SecureStore from 'expo-secure-store';
 import { showToast } from '../utils/toast';
 import { CONFIG } from '../config';
 import { logger } from '../utils/logger';
-import { getUserId } from './auth';
 
 class ApiService {
   private client: AxiosInstance;
@@ -25,7 +24,7 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`;
         }
         // Attach userId as header for controllers that use optional-auth pattern
-        const userId = await getUserId();
+        const userId = await SecureStore.getItemAsync('userId');
         if (userId) {
           config.headers['x-user-id'] = userId;
         }
@@ -45,8 +44,10 @@ class ApiService {
       async error => {
         logger.error('API Error:', error);
 
-        // Show global error toast
-        showToast.apiError(error);
+        // Show global error toast (suppressed for 401 to prevent confusing toast on app startup/session expiration)
+        if (error.response?.status !== 401) {
+          showToast.apiError(error);
+        }
 
         if (error.response?.status === 401) {
           // Token expired or invalid - handle logout
