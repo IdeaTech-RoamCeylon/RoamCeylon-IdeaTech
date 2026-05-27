@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileScreen = () => {
+  const navigation = useNavigation();
   const { logout, user, isLoading } = useAuth();
 
   const handleLogout = async () => {
@@ -86,6 +88,10 @@ const ProfileScreen = () => {
 
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuText}>❤️ Favorites</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Emergency' as never)}>
+          <Text style={styles.menuText}>🚨 Emergency</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>

@@ -16,6 +16,7 @@ import AIWelcomeScreen from '../screens/planner/AIWelcomeScreen';
 import AIHomeScreen from '../screens/planner/AIHomeScreen';
 import AIChatScreen from '../screens/planner/AIChat';
 import AIPlannerTestingScreen from '../screens/planner/AIPlannerTestingScreen';
+import EmergencyScreen from '../screens/emergency/EmergencyScreen';
 
 const Stack = createStackNavigator<MainStackParamList>();
 
@@ -42,6 +43,7 @@ const MainStack = () => {
             <Stack.Screen name="AITripPlanner" component={AITripPlannerScreen} />
             <Stack.Screen name="SavedTrips" component={SavedTripsScreen} />
             <Stack.Screen name="AIPlannerTesting" component={AIPlannerTestingScreen} />
+            <Stack.Screen name="Emergency" component={EmergencyScreen} />
         </Stack.Navigator>
     );
 };
