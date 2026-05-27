@@ -4,13 +4,13 @@ import {
   IsString,
   IsDateString,
   IsIn,
+  IsBoolean,
   MaxLength,
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
 
 // Custom validator to ensure birthday is in the past and reasonable
-
 function IsValidBirthday(validationOptions?: ValidationOptions) {
   return function (object: any, propertyName: string) {
     registerDecorator({
@@ -27,9 +27,6 @@ function IsValidBirthday(validationOptions?: ValidationOptions) {
           const today = new Date();
           const minDate = new Date();
           minDate.setFullYear(today.getFullYear() - 120); // Max age 120 years
-
-          // Birthday must be in the past and within reasonable range
-
           return birthday < today && birthday > minDate;
         },
         defaultMessage() {
@@ -67,4 +64,8 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(20, { message: 'Phone number must be less than 20 characters' })
   phoneNumber?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'isLocal must be a boolean value' })
+  isLocal?: boolean;
 }

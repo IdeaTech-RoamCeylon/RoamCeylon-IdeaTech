@@ -29,15 +29,13 @@ export class UsersService {
 
     return {
       id: user.id,
-
       phoneNumber: user.phoneNumber,
       name: user.name,
-
       email: user.email,
       birthday: user.birthday,
       gender: user.gender,
+      isLocal: user.isLocal,
       createdAt: user.createdAt,
-
       updatedAt: user.updatedAt,
     };
   }
@@ -58,15 +56,13 @@ export class UsersService {
 
       return {
         id: user.id,
-
         phoneNumber: user.phoneNumber,
         name: user.name,
-
         email: user.email,
         birthday: user.birthday,
         gender: user.gender,
+        isLocal: user.isLocal,
         createdAt: user.createdAt,
-
         updatedAt: user.updatedAt,
       };
     } catch (error) {

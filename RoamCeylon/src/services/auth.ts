@@ -11,6 +11,7 @@ export interface UserProfile {
   email?: string;
   birthday?: string; // Format: YYYY-MM-DD or ISO date string
   gender?: 'Male' | 'Female' | 'Other';
+  isLocal?: boolean;
   profilePicture?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -77,6 +78,7 @@ export const updateProfile = async (
   birthday?: Date,
   gender?: string,
   phoneNumber?: string,
+  isLocal?: boolean,
 ): Promise<UserProfile> => {
   try {
     const response = await apiService.patch<ApiResponse<UserProfile>>('/users/me', {
@@ -85,6 +87,7 @@ export const updateProfile = async (
       birthday: birthday?.toISOString(),
       gender,
       phoneNumber,
+      isLocal,
     });
     return response.data;
   } catch (error) {

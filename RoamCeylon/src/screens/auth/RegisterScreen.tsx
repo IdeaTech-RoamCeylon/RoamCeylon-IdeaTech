@@ -35,6 +35,7 @@ const RegisterScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [birthday, setBirthday] = useState<Date | undefined>(undefined);
   const [gender, setGender] = useState<Gender | undefined>(undefined);
+  const [isLocal, setIsLocal] = useState<boolean | undefined>(undefined);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -90,6 +91,7 @@ const RegisterScreen = () => {
     }
     if (!birthday) e.birthday = 'Birthday is required';
     if (!gender) e.gender = 'Please select a gender';
+    if (isLocal === undefined) e.isLocal = 'Please select your visitor type';
     if (!password) {
       e.password = 'Password is required';
     } else if (password.length < 9) {
@@ -124,6 +126,7 @@ const RegisterScreen = () => {
             phoneNumber: phoneNumber.trim(),
             birthday: birthday?.toISOString(),
             gender,
+            isLocal,
           },
         },
       });
@@ -143,6 +146,7 @@ const RegisterScreen = () => {
         phoneNumber: phoneNumber.trim(),
         birthday: birthday?.toISOString(),
         gender,
+        isLocal,
       };
       await SecureStore.setItemAsync('tempRegistrationData', JSON.stringify(tempData));
 
@@ -355,6 +359,35 @@ const RegisterScreen = () => {
                     })}
                   </View>
                   {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
+                </View>
+
+                {/* Visitor Type */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>I AM A</Text>
+                  <View style={styles.genderButtonsContainer}>
+                    {([{ label: '🇱🇰  Local', value: true }, { label: '✈️  Foreigner', value: false }] as const).map(({ label, value }) => {
+                      const isActive = isLocal === value;
+                      return (
+                        <TouchableOpacity
+                          key={label}
+                          style={[
+                            styles.genderBtnNew,
+                            isActive ? styles.genderBtnActiveNew : styles.genderBtnInactiveNew,
+                          ]}
+                          onPress={() => { setIsLocal(value); setErrors((e) => ({ ...e, isLocal: '' })); }}
+                          disabled={loading}
+                        >
+                          <Text style={[
+                            styles.genderBtnTextNew,
+                            isActive ? styles.genderBtnTextActiveNew : styles.genderBtnTextInactiveNew,
+                          ]}>
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {errors.isLocal ? <Text style={styles.errorText}>{errors.isLocal}</Text> : null}
                 </View>
 
                 <View style={styles.inputSection}>

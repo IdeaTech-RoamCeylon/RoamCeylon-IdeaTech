@@ -58,7 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 tempRegData.email,
                 birthdayDate,
                 tempRegData.gender,
-                tempRegData.phoneNumber
+                tempRegData.phoneNumber,
+                tempRegData.isLocal,
               );
               profileComplete = !!(userData?.name && userData?.email);
               
@@ -81,13 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const gender = nhostUser.metadata?.gender as string | undefined;
             const phone = nhostUser.metadata?.phoneNumber as string | undefined;
 
+            const isLocal = nhostUser.metadata?.isLocal as boolean | undefined;
+
             // Auto-sync profile to NestJS backend
             userData = await updateProfile(
               nhostUser.displayName,
               nhostUser.email,
               birthdayDate,
               gender,
-              phone
+              phone,
+              isLocal,
             );
             profileComplete = !!(userData?.name && userData?.email);
           }
