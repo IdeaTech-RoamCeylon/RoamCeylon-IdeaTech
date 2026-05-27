@@ -4,6 +4,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AIController } from './ai.controller';
+import { ChatNlpController } from './controllers/chat-nlp.controller';
 import { AIService } from './ai.service';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { SearchService } from './retrieval/search.service';
@@ -27,7 +28,7 @@ import { BoundsEnforcerService } from './bounds-enforcer.service';
       },
     ]),
   ],
-  controllers: [AIController],
+  controllers: [AIController, ChatNlpController],
   providers: [
     AIService,
     EmbeddingService,

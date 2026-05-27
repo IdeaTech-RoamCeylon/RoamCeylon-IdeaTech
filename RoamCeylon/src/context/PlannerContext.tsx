@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, ReactNode } from 'react';
-import { TripPlanResponse } from '../services/aiService';
+import { TripPlanResponse, TripPlanRequest } from '../services/aiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
@@ -8,6 +8,15 @@ const STORAGE_KEYS = {
   CURRENT_TRIP_ID: 'planner_current_trip_id',
   IS_EDITING: 'planner_is_editing',
 };
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  type?: 'text' | 'summaryCard';
+  tripData?: Partial<TripPlanRequest>;
+}
 
 interface PlannerContextProps {
   query: {
@@ -32,6 +41,10 @@ interface PlannerContextProps {
   isEditing: boolean;
   startEditing: (tripId: string) => void;
   stopEditing: () => void;
+  chatMessages: ChatMessage[];
+  setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+  chatParams: Partial<TripPlanRequest>;
+  setChatParams: React.Dispatch<React.SetStateAction<Partial<TripPlanRequest>>>;
 }
 
 const PlannerContext = createContext<PlannerContextProps | undefined>(undefined);
@@ -47,6 +60,8 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
   const [tripPlan, setTripPlan] = useState<TripPlanResponse | null>(null);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatParams, setChatParams] = useState<Partial<TripPlanRequest>>({});
 
   // Load state from storage on mount
   useEffect(() => {
@@ -160,6 +175,8 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
       setTripPlan(null);
       setCurrentTripId(null);
       setIsEditing(false);
+      setChatMessages([]);
+      setChatParams({});
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.QUERY, 
         STORAGE_KEYS.TRIP_PLAN,
@@ -194,8 +211,12 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
       isEditing,
       startEditing,
       stopEditing,
+      chatMessages,
+      setChatMessages,
+      chatParams,
+      setChatParams,
     }),
-    [query, tripPlan, clearPlanner, currentTripId, isEditing, startEditing, stopEditing]
+    [query, tripPlan, clearPlanner, currentTripId, isEditing, startEditing, stopEditing, chatMessages, chatParams]
   );
 
   return (

@@ -2,6 +2,8 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { EXPLANATION_VALIDATION_RULES } from './prompts/planner.prompt';
 import { DayDto } from './dto/update-trip.dto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { z } from 'zod';
 
 @Injectable()
 export class AIService {
@@ -128,5 +130,80 @@ export class AIService {
 
     // Limit length
     return cleaned.length > 120 ? cleaned.substring(0, 117) + '...' : cleaned;
+  }
+
+  async extractTripParameters(
+    message: string,
+    currentParams: Record<string, unknown>,
+  ) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new BadRequestException('GEMINI_API_KEY is not configured.');
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+    });
+
+    const prompt = `You are a conversational travel assistant for Sri Lanka.
+Current trip parameters: ${JSON.stringify(currentParams)}.
+User message: "${message}".
+
+Your task is to extract 5 parameters for a trip to Sri Lanka:
+1. destination (string)
+2. duration (string, e.g. "5 days")
+3. pax (string, number of people)
+4. budget (string, "Low", "Medium", "High", "Luxury")
+5. interests (array of strings)
+
+Analyze the user message and update the current parameters.
+If any parameter is still missing (null), generate a friendly, natural conversational reply asking for ONE missing parameter.
+If all 5 parameters are collected (not null), set isComplete to true and generate a friendly closing reply (e.g. "Perfect, I have all the details! Generating your plan now.").
+
+Return ONLY a JSON object with this exact structure (no markdown tags):
+{
+  "isComplete": boolean,
+  "reply": string,
+  "extractedData": {
+    "destination": string | null,
+    "duration": string | null,
+    "pax": string | null,
+    "budget": string | null,
+    "interests": string[] | null
+  }
+}`;
+
+    const ExtractedDataSchema = z.object({
+      isComplete: z.boolean(),
+      reply: z.string(),
+      extractedData: z.object({
+        destination: z.string().nullable(),
+        duration: z.string().nullable(),
+        pax: z.string().nullable(),
+        budget: z.string().nullable(),
+        interests: z.array(z.string()).nullable(),
+      }),
+    });
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const cleanedText = text
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      const parsedJson = JSON.parse(cleanedText) as unknown;
+      const validatedData = ExtractedDataSchema.parse(parsedJson);
+      return validatedData;
+    } catch (error) {
+      console.error('Gemini extraction failed:', error);
+      return {
+        isComplete: false,
+        reply:
+          "I'm having a little trouble understanding that. Could you rephrase your last message?",
+        extractedData: currentParams,
+      };
+    }
   }
 }

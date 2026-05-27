@@ -6,6 +6,7 @@ export interface TripPlanRequest {
   duration: string; // e.g., '3 days'
   budget: string; // e.g., 'Medium', 'Low', 'High'
   interests?: string[];
+  pax?: string; // Number of people traveling
   // Saved Trip Context integration
   useSavedContext?: boolean; // default true
   mode?: 'new' | 'refine'; // default 'refine'

@@ -41,13 +41,13 @@ try {
   // Mapbox SDK unavailable — map features disabled
 }
 
-import { TripPlannerForm } from './TripPlannerForm';
+// Removed TripPlannerForm import
 
 type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITripPlanner'>;
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
-  const { query, setQuery, tripPlan, setTripPlan, currentTripId, setCurrentTripId, isEditing, stopEditing } = usePlannerContext();
+  const { query, setQuery, tripPlan, setTripPlan, currentTripId, setCurrentTripId, isEditing, stopEditing, setChatMessages } = usePlannerContext();
   const networkStatus = useNetworkStatus();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +57,6 @@ const AITripPlannerScreen = () => {
   const [selectedActivity, setSelectedActivity] = useState<TripActivity | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [tripName, setTripName] = useState('');
-  const [useSavedContext, setUseSavedContext] = useState(true);
   const [showContextInfo, setShowContextInfo] = useState(false);
 
   // Feedback State
@@ -94,111 +93,7 @@ const AITripPlannerScreen = () => {
     }
   }, [tripPlan]);
 
-  // Memoize budgets array to prevent recreation
-  const budgets = useMemo(() => ['Low', 'Medium', 'High', 'Luxury'], []);
 
-  // Memoize updateQuery to prevent recreation
-  const updateQuery = useCallback((key: keyof typeof query, value: string | string[]) => {
-    setQuery(prev => ({ ...prev, [key]: value }));
-  }, [setQuery]);
-
-  const handleGeneratePlan = useCallback(async () => {
-    if (!query.destination || !query.duration) {
-      Alert.alert('Missing Info', 'Please enter both destination and duration.');
-      return;
-    }
-
-    // Check network connectivity
-    if (!networkStatus.isConnected) {
-      setError('No internet connection. Please check your network and try again.');
-      return;
-    }
-
-    // Prevent double-clicks by checking if already loading
-    if (isLoading) {
-      return;
-    }
-
-    // Helper function to proceed with generation
-    const proceedWithGeneration = async () => {
-      setIsLoading(true);
-      setError(null);
-      setTripPlan(null);
-      stopEditing(); // Clear editing state when generating a new plan
-
-      // Reset feedback state so the new plan starts with a clean slate
-      setFeedbackState('none');
-      setIsFeedbackSubmitted(false);
-      setSelectedReasons([]);
-
-      try {
-        // Include saved context parameters
-        const requestWithContext = {
-          ...query,
-          useSavedContext: useSavedContext,
-          mode: useSavedContext ? ('refine' as const) : ('new' as const),
-        };
-        const plan = await aiService.generateTripPlan(requestWithContext);
-
-        if (isMounted.current) {
-          setTripPlan(plan);
-
-          // Store the backend-assigned tripId so feedback can be linked to this trip
-          if (plan.tripId) {
-            setCurrentTripId(plan.tripId);
-          }
-
-          // Show context info if used saved context
-          if (plan.usedSavedContext) {
-            setShowContextInfo(true);
-            // Clear existing timeout if any
-            if (contextInfoTimeout.current) clearTimeout(contextInfoTimeout.current);
-            // Set new timeout
-            contextInfoTimeout.current = setTimeout(() => {
-              if (isMounted.current) setShowContextInfo(false);
-            }, 5000);
-          }
-
-          // Log analytics event
-          analyticsService.logPlanGenerated(
-            plan.destination,
-            plan.duration,
-            plan.budget
-          );
-        }
-      } catch (error) {
-        if (isMounted.current) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          setError(`Failed to generate trip plan: ${errorMessage}`);
-          console.error('[AITripPlannerScreen] Error generating plan:', error);
-        }
-      } finally {
-        if (isMounted.current) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Warn if overwriting existing plan (not in editing mode)
-    if (tripPlan && !isEditing) {
-      Alert.alert(
-        'Generate New Plan?',
-        'This will replace your current trip plan. Continue?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Generate',
-            onPress: proceedWithGeneration,
-            style: 'destructive'
-          }
-        ]
-      );
-      return;
-    }
-
-    // Proceed directly if no existing plan or in editing mode
-    await proceedWithGeneration();
-  }, [query, networkStatus.isConnected, setTripPlan, tripPlan, isEditing, useSavedContext, stopEditing, isLoading]);
 
   const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
     if (!tripPlan) return;
@@ -535,42 +430,11 @@ const AITripPlannerScreen = () => {
 
       <View style={styles.content}>
         {!tripPlan ? (
-          <>
-            {/* Saved Context Toggle */}
-            <View style={styles.contextToggleCard}>
-              <View style={styles.contextToggleHeader}>
-                <Text style={styles.contextToggleIcon}>🔄</Text>
-                <View style={styles.contextToggleTextContainer}>
-                  <Text style={styles.contextToggleTitle}>Use Previous Trip Context</Text>
-                  <Text style={styles.contextToggleSubtitle}>
-                    {useSavedContext
-                      ? 'Building on your last trip preferences'
-                      : 'Starting fresh with a new trip'}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[styles.contextToggleButton, useSavedContext && styles.contextToggleButtonActive]}
-                onPress={() => setUseSavedContext(!useSavedContext)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.contextToggleButtonText, useSavedContext && styles.contextToggleButtonTextActive]}>
-                  {useSavedContext ? 'ON' : 'OFF'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TripPlannerForm
-              query={query}
-              updateQuery={updateQuery}
-              isLoading={isLoading}
-              onGenerate={handleGeneratePlan}
-              isConnected={networkStatus.isConnected}
-              budgets={budgets}
-              error={error}
-            />
-          </>
-        ) : tripPlan ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+             <ActivityIndicator size="large" color="#0066CC" />
+             <Text style={{ marginTop: 20, color: '#666' }}>Loading your plan...</Text>
+          </View>
+        ) : (
           <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
             {/* Context Info Banner */}
             {showContextInfo && tripPlan.usedSavedContext && (
@@ -783,7 +647,7 @@ const AITripPlannerScreen = () => {
             {/* Spacer for floating buttons */}
             <View style={{ height: 100 }} />
           </Animated.View>
-        ) : null}
+        )}
       </View>
 
       {/* Floating Action Buttons */}
@@ -800,9 +664,20 @@ const AITripPlannerScreen = () => {
           <TouchableOpacity
             style={styles.floatingRegenerateButton}
             onPress={() => {
-              setTripPlan(null);
-              stopEditing();
-              setUseSavedContext(true); // Keep context on by default to refine
+              setChatMessages(prev => {
+                const withoutSummary = prev.filter(m => m.type !== 'summaryCard');
+                return [
+                  ...withoutSummary,
+                  {
+                    id: Date.now().toString(),
+                    text: "What would you like to change about this plan?",
+                    sender: 'ai',
+                    timestamp: new Date(),
+                    type: 'text',
+                  }
+                ];
+              });
+              navigation.navigate('AIChat');
             }}
           >
             <Text style={styles.floatingRegenerateIcon}>✨</Text>
