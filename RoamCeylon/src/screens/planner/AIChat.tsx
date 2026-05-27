@@ -35,7 +35,10 @@ const AIChatScreen = () => {
         chatMessages: messages, 
         setChatMessages: setMessages, 
         chatParams: tripParams, 
-        setChatParams: setTripParams 
+        setChatParams: setTripParams,
+        chatSessionId,
+        setChatSessionId,
+        setCurrentTripId,
     } = usePlannerContext();
     const flatListRef = useRef<FlatList>(null);
 
@@ -112,13 +115,18 @@ const AIChatScreen = () => {
             const response: any = await Promise.race([
                 apiService.post('/ai/chat/extract', {
                     userMessage: userInput,
-                    existingParams: tripParams
+                    existingParams: tripParams,
+                    sessionId: chatSessionId,
                 }),
                 timeoutPromise
             ]);
 
-            const { isComplete, reply, extractedData } = response.data;
+            const { isComplete, reply, extractedData, sessionId } = response.data;
             
+            if (sessionId && sessionId !== chatSessionId) {
+                setChatSessionId(sessionId);
+            }
+
             // Remove "Thinking..."
             removeMessage(thinkingId);
 
@@ -307,6 +315,30 @@ const AIChatScreen = () => {
     const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
         if (item.type === 'summaryCard') {
             return renderSummaryCard(item);
+        }
+
+        if (item.type === 'planLink' && item.planLinkData) {
+            return (
+                <View style={[styles.messageRow, styles.messageRowAI]}>
+                    <View style={styles.avatarContainer}>
+                        <Image source={require('../../assets/AI_Avatar.png')} style={styles.avatar} resizeMode="contain" />
+                    </View>
+                    <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: '#F0F8FF', borderColor: '#0066CC', borderWidth: 1 }]}>
+                        <Text style={[styles.messageText, styles.aiText, { fontWeight: 'bold', marginBottom: 8 }]}>
+                            🗺️ Your Trip Plan to {item.planLinkData.destination} is ready!
+                        </Text>
+                        <TouchableOpacity 
+                            style={{ backgroundColor: '#0066CC', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, alignItems: 'center' }}
+                            onPress={() => {
+                                setCurrentTripId(item.planLinkData!.tripId);
+                                navigation.navigate('AITripPlanner' as never);
+                            }}
+                        >
+                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>View Generated Plan</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            );
         }
 
         const isUser = item.sender === 'user';

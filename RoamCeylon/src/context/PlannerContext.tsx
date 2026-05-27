@@ -14,8 +14,9 @@ export interface ChatMessage {
   text: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  type?: 'text' | 'summaryCard';
+  type?: 'text' | 'summaryCard' | 'planLink';
   tripData?: Partial<TripPlanRequest>;
+  planLinkData?: { tripId: string, destination: string };
 }
 
 interface PlannerContextProps {
@@ -45,6 +46,8 @@ interface PlannerContextProps {
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   chatParams: Partial<TripPlanRequest>;
   setChatParams: React.Dispatch<React.SetStateAction<Partial<TripPlanRequest>>>;
+  chatSessionId: string | null;
+  setChatSessionId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 const PlannerContext = createContext<PlannerContextProps | undefined>(undefined);
@@ -62,6 +65,7 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatParams, setChatParams] = useState<Partial<TripPlanRequest>>({});
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
 
   // Load state from storage on mount
   useEffect(() => {
@@ -177,6 +181,7 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
       setIsEditing(false);
       setChatMessages([]);
       setChatParams({});
+      setChatSessionId(null);
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.QUERY, 
         STORAGE_KEYS.TRIP_PLAN,
@@ -215,8 +220,10 @@ export const PlannerProvider = ({ children }: { children: ReactNode }) => {
       setChatMessages,
       chatParams,
       setChatParams,
+      chatSessionId,
+      setChatSessionId,
     }),
-    [query, tripPlan, clearPlanner, currentTripId, isEditing, startEditing, stopEditing, chatMessages, chatParams]
+    [query, tripPlan, clearPlanner, currentTripId, isEditing, startEditing, stopEditing, chatMessages, chatParams, chatSessionId]
   );
 
   return (

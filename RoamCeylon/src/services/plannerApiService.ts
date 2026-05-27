@@ -20,6 +20,7 @@ export interface SaveTripRequest {
   startDate: string;
   endDate: string;
   itinerary: TripPlanResponse;
+  chatSessionId?: string;
 }
 
 // Frontend types (for compatibility with existing UI)
@@ -45,7 +46,7 @@ export const plannerApiService = {
   /**
    * Save a new trip to the backend
    */
-  async saveTrip(name: string, tripPlan: TripPlanResponse): Promise<SavedTrip> {
+  async saveTrip(name: string, tripPlan: TripPlanResponse, chatSessionId?: string | null): Promise<SavedTrip> {
     try {
       // Calculate start and end dates from duration
       const startDate = new Date();
@@ -59,6 +60,7 @@ export const plannerApiService = {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         itinerary: tripPlan,
+        chatSessionId: chatSessionId || undefined,
       };
 
       const response = await apiService.post<{ data: BackendSavedTrip }>('/planner/save', request);

@@ -47,7 +47,7 @@ type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITr
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
-  const { query, setQuery, tripPlan, setTripPlan, currentTripId, setCurrentTripId, isEditing, stopEditing, setChatMessages } = usePlannerContext();
+  const { query, setQuery, tripPlan, setTripPlan, currentTripId, setCurrentTripId, isEditing, stopEditing, setChatMessages, chatSessionId } = usePlannerContext();
   const networkStatus = useNetworkStatus();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -239,7 +239,7 @@ const AITripPlannerScreen = () => {
         Alert.alert('Success', 'Trip updated successfully!');
       } else {
         // Save new trip
-        const savedTrip = await tripStorageService.saveTrip(tripNameToSave, tripPlan);
+        const savedTrip = await tripStorageService.saveTrip(tripNameToSave, tripPlan, chatSessionId);
         analyticsService.logTripSaved(savedTrip.id, tripNameToSave);
         analyticsService.trackTripAccepted(savedTrip.id);
         setIsSaving(false);
@@ -253,7 +253,7 @@ const AITripPlannerScreen = () => {
         isEditing ? 'Failed to update trip. Please try again.' : 'Failed to save trip. Please try again.'
       );
     }
-  }, [tripPlan, tripName, isEditing, currentTripId]);
+  }, [tripPlan, tripName, isEditing, currentTripId, chatSessionId]);
 
   // Load trip name and persisted feedback when entering editing mode
   useEffect(() => {

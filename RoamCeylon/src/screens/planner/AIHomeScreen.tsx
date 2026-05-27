@@ -1,35 +1,52 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-
-const STATIC_CHAT_HISTORY = [
-    {
-        id: '1',
-        title: 'Hotel Search',
-        subtitle: 'Best boutique stays in Gall...',
-        image: require('../../assets/bentota.png'),
-    },
-    {
-        id: '2',
-        title: 'Train Schedule',
-        subtitle: 'Ella to Kandy first-class...',
-        image: require('../../assets/TEA.png'),
-    },
-    {
-        id: '3',
-        title: 'Culinary Tour',
-        subtitle: 'Authentic seafood curry...',
-        image: require('../../assets/Food-Restaurents.png'),
-    },
-];
+import { tripStorageService, SavedTrip } from '../../services/tripStorageService';
+import { usePlannerContext } from '../../context/PlannerContext';
 
 const AIHomeScreen = () => {
     const navigation = useNavigation();
     const { user } = useAuth();
     const userName = user?.name || 'Traveler';
+    const { setTripPlan, setQuery, startEditing } = usePlannerContext();
+    const [recentTrips, setRecentTrips] = useState<SavedTrip[]>([]);
+    const [isLoadingTrips, setIsLoadingTrips] = useState(true);
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchTrips = async () => {
+                setIsLoadingTrips(true);
+                try {
+                    const result = await tripStorageService.getSavedTrips();
+                    const trips = Array.isArray(result) ? result : result.data;
+                    // Filter to valid trips and show top 3
+                    const validTrips = trips.filter(t => t?.tripPlan?.itinerary);
+                    setRecentTrips(validTrips.slice(0, 3));
+                } catch (error) {
+                    console.error('Failed to load trips', error);
+                } finally {
+                    setIsLoadingTrips(false);
+                }
+            };
+            fetchTrips();
+        }, [])
+    );
+
+    const handleLoadTrip = useCallback((trip: SavedTrip) => {
+        if (!trip?.tripPlan) return;
+        setTripPlan(trip.tripPlan);
+        setQuery(prev => ({
+            ...prev,
+            destination: trip.tripPlan.destination || '',
+            duration: trip.tripPlan.duration || '1',
+            budget: trip.tripPlan.budget || 'Medium',
+        }));
+        startEditing(trip.id);
+        navigation.navigate('AITripPlanner' as never);
+    }, [navigation, setTripPlan, setQuery, startEditing]);
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -74,28 +91,40 @@ const AIHomeScreen = () => {
                 {/* Chat History Header */}
                 <View style={styles.historyHeader}>
                     <Text style={styles.historySectionTitle}>CHAT HISTORY</Text>
-                    <TouchableOpacity activeOpacity={0.6}>
-                        <Text style={styles.clearAllText}>CLEAR ALL</Text>
-                    </TouchableOpacity>
+                    {recentTrips.length > 0 && (
+                        <TouchableOpacity activeOpacity={0.6} onPress={() => navigation.navigate('SavedTrips' as never)}>
+                            <Text style={styles.clearAllText}>VIEW ALL</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Chat History Cards */}
                 <View style={styles.historyList}>
-                    {STATIC_CHAT_HISTORY.map((item) => (
-                        <TouchableOpacity 
-                            key={item.id} 
-                            style={styles.historyCard}
-                            activeOpacity={0.7}
-                            onPress={() => navigation.navigate('AIChat' as never)}
-                        >
-                            <Image source={item.image} style={styles.historyImage} />
-                            <View style={styles.historyContent}>
-                                <Text style={styles.historyTitle}>{item.title}</Text>
-                                <Text style={styles.historySubtitle}>{item.subtitle}</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color="#C7C7CC" style={styles.historyChevron} />
-                        </TouchableOpacity>
-                    ))}
+                    {isLoadingTrips ? (
+                        <ActivityIndicator size="small" color="#8A6B3E" style={{ marginVertical: 20 }} />
+                    ) : recentTrips.length === 0 ? (
+                        <View style={{ alignItems: 'center', padding: 20 }}>
+                            <Text style={{ color: '#666', fontSize: 16 }}>There are no trips created yet.</Text>
+                        </View>
+                    ) : (
+                        recentTrips.map((item) => (
+                            <TouchableOpacity 
+                                key={item.id} 
+                                style={styles.historyCard}
+                                activeOpacity={0.7}
+                                onPress={() => handleLoadTrip(item)}
+                            >
+                                <View style={[styles.historyImage, { backgroundColor: '#e3f2fd', alignItems: 'center', justifyContent: 'center' }]}>
+                                    <Text style={{ fontSize: 24 }}>🗺️</Text>
+                                </View>
+                                <View style={styles.historyContent}>
+                                    <Text style={styles.historyTitle}>{item.name}</Text>
+                                    <Text style={styles.historySubtitle}>{item.tripPlan.destination}</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={18} color="#C7C7CC" style={styles.historyChevron} />
+                            </TouchableOpacity>
+                        ))
+                    )}
                 </View>
             </ScrollView>
 

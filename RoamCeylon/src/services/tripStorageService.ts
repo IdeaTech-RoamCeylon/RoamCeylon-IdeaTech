@@ -63,10 +63,10 @@ class TripStorageService {
   /**
    * Save a new trip (to backend or local storage)
    */
-  async saveTrip(name: string, tripPlan: TripPlanResponse): Promise<SavedTrip> {
+  async saveTrip(name: string, tripPlan: TripPlanResponse, chatSessionId?: string | null): Promise<SavedTrip> {
     if (this.useBackend) {
       try {
-        const savedTrip = await plannerApiService.saveTrip(name, tripPlan);
+        const savedTrip = await plannerApiService.saveTrip(name, tripPlan, chatSessionId);
         // Also save locally as backup
         await this.saveLocalTrip(savedTrip);
         return savedTrip;

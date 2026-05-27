@@ -8,11 +8,13 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
 import { tripStorageService, SavedTrip } from '../../services/tripStorageService';
+import { apiService } from '../../services/api';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { EmptyState } from '../../components';
 
@@ -20,8 +22,9 @@ type SavedTripsNavigationProp = StackNavigationProp<MainStackParamList, 'AITripP
 
 const SavedTripsScreen = () => {
   const navigation = useNavigation<SavedTripsNavigationProp>();
-  const { setTripPlan, setQuery, startEditing } = usePlannerContext();
+  const { setTripPlan, setQuery, startEditing, setChatMessages, setChatSessionId } = usePlannerContext();
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [chatSessions, setChatSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -34,17 +37,63 @@ const SavedTripsScreen = () => {
   const loadTrips = async () => {
     setIsLoading(true);
     try {
-      const result = await tripStorageService.getSavedTrips();
-      // getSavedTrips may return paginated or plain array — normalize
-      const trips = Array.isArray(result) ? result : result.data;
+      const [tripsResult, chatsResult] = await Promise.all([
+        tripStorageService.getSavedTrips(),
+        apiService.get('/ai/chat/history').catch(() => ({ data: [] })) as Promise<any>
+      ]);
+      
+      const trips = Array.isArray(tripsResult) ? tripsResult : tripsResult.data;
       setSavedTrips(trips);
+      setChatSessions((chatsResult as any).data || []);
     } catch (error) {
-      console.error('Error loading trips:', error);
+      console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load saved trips');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleLoadChat = useCallback(async (sessionId: string) => {
+    try {
+      const response = await apiService.get(`/ai/chat/history/${sessionId}`) as any;
+      const msgs = response.data.map((m: any) => {
+        if (m.sender === 'user') {
+          return {
+            id: m.id,
+            text: m.content,
+            sender: 'user',
+            timestamp: new Date(m.createdAt),
+            type: 'text'
+          };
+        } else {
+          if (m.content.type === 'planLink') {
+            return {
+              id: m.id,
+              text: '',
+              sender: 'ai',
+              timestamp: new Date(m.createdAt),
+              type: 'planLink',
+              planLinkData: { tripId: m.content.tripId, destination: m.content.destination }
+            };
+          }
+          return {
+            id: m.id,
+            text: m.content.reply,
+            sender: 'ai',
+            timestamp: new Date(m.createdAt),
+            type: 'text',
+            tripData: m.content.extractedData
+          };
+        }
+      });
+      setChatMessages(msgs);
+      setChatSessionId(sessionId);
+      navigation.navigate('AIChat' as never);
+    } catch (error) {
+      console.error('Error loading chat:', error);
+      Alert.alert('Error', 'Failed to load chat history');
+    }
+  }, [navigation, setChatMessages, setChatSessionId]);
 
   const handleLoadTrip = useCallback((trip: SavedTrip) => {
     // Validate trip data before loading
@@ -249,6 +298,32 @@ const SavedTripsScreen = () => {
             windowSize={5}
             initialNumToRender={10}
             updateCellsBatchingPeriod={50}
+            ListHeaderComponent={
+              chatSessions.length > 0 ? (
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 }}>Recent Chats</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {chatSessions.map((session) => (
+                      <TouchableOpacity 
+                        key={session.id} 
+                        style={styles.chatCard}
+                        onPress={() => handleLoadChat(session.id)}
+                      >
+                        <Text style={styles.chatIcon}>💬</Text>
+                        <View>
+                          <Text style={styles.chatTitle}>
+                            {session.tripPlans?.[0]?.destination || 'New Plan'}
+                          </Text>
+                          <Text style={styles.chatDate}>
+                            {new Date(session.updatedAt).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null
+            }
           />
         )}
       </View>
@@ -398,6 +473,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0066CC',
     fontWeight: '600',
+  },
+  chatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 12,
+    marginRight: 12,
+    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  chatIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  chatTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  chatDate: {
+    fontSize: 12,
+    color: '#888',
   },
 });
 

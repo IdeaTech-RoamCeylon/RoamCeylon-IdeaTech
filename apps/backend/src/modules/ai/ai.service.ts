@@ -1,13 +1,22 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { EXPLANATION_VALIDATION_RULES } from './prompts/planner.prompt';
 import { DayDto } from './dto/update-trip.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 
+import { PrismaService } from '../../prisma/prisma.service';
+
 @Injectable()
 export class AIService {
-  constructor(private readonly embeddingService: EmbeddingService) {}
+  constructor(
+    private readonly embeddingService: EmbeddingService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async seedEmbeddingsFromAiPlanner(): Promise<void> {
     await this.embeddingService.seedEmbeddings();
@@ -135,6 +144,8 @@ export class AIService {
   async extractTripParameters(
     message: string,
     currentParams: Record<string, unknown>,
+    userId: string,
+    sessionId?: string,
   ) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -186,7 +197,24 @@ Return ONLY a JSON object with this exact structure (no markdown tags):
       }),
     });
 
+    let currentSessionId = sessionId;
+
     try {
+      if (!currentSessionId) {
+        const session = await this.prisma.chatSession.create({
+          data: { userId },
+        });
+        currentSessionId = session.id;
+      }
+
+      await this.prisma.message.create({
+        data: {
+          sessionId: currentSessionId,
+          sender: 'user',
+          content: message,
+        },
+      });
+
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       const cleanedText = text
@@ -195,15 +223,69 @@ Return ONLY a JSON object with this exact structure (no markdown tags):
         .trim();
       const parsedJson = JSON.parse(cleanedText) as unknown;
       const validatedData = ExtractedDataSchema.parse(parsedJson);
-      return validatedData;
+
+      await this.prisma.message.create({
+        data: {
+          sessionId: currentSessionId,
+          sender: 'ai',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          content: validatedData as any,
+        },
+      });
+
+      return { ...validatedData, sessionId: currentSessionId };
     } catch (error) {
       console.error('Gemini extraction failed:', error);
-      return {
+
+      const fallbackReply = {
         isComplete: false,
         reply:
           "I'm having a little trouble understanding that. Could you rephrase your last message?",
         extractedData: currentParams,
       };
+
+      if (currentSessionId) {
+        await this.prisma.message
+          .create({
+            data: {
+              sessionId: currentSessionId,
+              sender: 'ai',
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              content: fallbackReply as any,
+            },
+          })
+          .catch((e) => console.error('Failed to save fallback msg', e));
+      }
+
+      return { ...fallbackReply, sessionId: currentSessionId };
     }
+  }
+
+  async getChatSessions(userId: string) {
+    return this.prisma.chatSession.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      include: {
+        tripPlans: {
+          select: { id: true, name: true, destination: true },
+        },
+      },
+    });
+  }
+
+  async getChatMessages(userId: string, sessionId: string) {
+    const session = await this.prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session || session.userId !== userId) {
+      throw new NotFoundException('Chat session not found');
+    }
+
+    return this.prisma.message.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 }

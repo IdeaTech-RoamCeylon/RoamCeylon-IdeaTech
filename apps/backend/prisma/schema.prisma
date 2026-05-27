@@ -86,9 +86,12 @@ model SavedTrip {
   updatedAt   DateTime @updatedAt
   preferences Json?
   id          String   @id
+  chatSessionId String?  @map("chat_session_id")
+  chatSession   ChatSession? @relation(fields: [chatSessionId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([destination])
+  @@index([chatSessionId])
   @@map("SavedTrip")
 }
 
@@ -290,4 +293,29 @@ model MarketPlace {
   review      Decimal  @db.Decimal(2, 1)
   image_url   String
   created_at  DateTime @db.Timestamp(6)
+}
+
+model ChatSession {
+  id        String      @id @default(uuid())
+  userId    String      @map("user_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  tripPlans SavedTrip[]
+  messages  Message[]
+
+  @@index([userId])
+  @@map("ChatSession")
+}
+
+model Message {
+  id        String      @id @default(uuid())
+  sessionId String      @map("session_id")
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender    String      // 'user' | 'ai'
+  content   Json        // stores the message text, type, and any extracted data
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("Message")
 }

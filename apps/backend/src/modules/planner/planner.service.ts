@@ -95,8 +95,23 @@ export class PlannerService {
         endDate: new Date(tripData.endDate),
         itinerary: tripData.itinerary as object,
         preferences: normalizedPrefs,
+        chatSessionId: tripData.chatSessionId || undefined,
       },
     });
+
+    if (tripData.chatSessionId) {
+      await this.prisma.message.create({
+        data: {
+          sessionId: tripData.chatSessionId,
+          sender: 'ai',
+          content: {
+            type: 'planLink',
+            tripId: result.id,
+            destination: result.destination,
+          } as any,
+        },
+      });
+    }
 
     // Validating & Storing User History (Day 40 Task)
     try {

@@ -106,4 +106,8 @@ export class CreateTripDto {
   @ValidateNested()
   @Type(() => TripPreferencesDto)
   preferences?: TripPreferencesDto;
+
+  @IsOptional()
+  @IsString()
+  chatSessionId?: string;
 }
