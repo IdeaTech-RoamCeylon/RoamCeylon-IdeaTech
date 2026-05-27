@@ -120,7 +120,7 @@ const LoginScreen = () => {
   };
 
   const handleForgotPassword = () => {
-    showToast.info('Password reset link will be sent to your email.', 'Forgot Password');
+    navigation.navigate('PasswordReset');
   };
 
   const renderInputCard = (

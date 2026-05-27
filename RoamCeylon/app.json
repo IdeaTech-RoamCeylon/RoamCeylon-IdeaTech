@@ -33,7 +33,19 @@
         "ACCESS_COARSE_LOCATION",
         "INTERNET"
       ],
-      "package": "com.anonymous.RoamCeylon"
+      "package": "com.anonymous.RoamCeylon",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "roamceylon"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

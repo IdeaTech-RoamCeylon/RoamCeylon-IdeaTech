@@ -8,6 +8,9 @@ export type AuthStackParamList = {
   ProfileSetup: undefined;
   GoogleSignIn: undefined;
   EmailVerification: { email: string };
+  PasswordReset: undefined;
+  LinkSent: { email: string };
+  EnterNewPassword: { refreshToken?: string; type?: string } | undefined;
 };
 
 export type MainStackParamList = {

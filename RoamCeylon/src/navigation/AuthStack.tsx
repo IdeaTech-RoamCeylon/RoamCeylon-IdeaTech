@@ -8,6 +8,9 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import ProfileSetupScreen from '../screens/auth/ProfileSetupScreen';
 import GoogleSignInScreen from '../screens/auth/GoogleSignInScreen';
 import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
+import PasswordResetScreen from '../screens/auth/PasswordResetScreen';
+import LinkSentScreen from '../screens/auth/LinkSentScreen';
+import EnterNewPasswordScreen from '../screens/auth/EnterNewPasswordScreen';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
@@ -26,6 +29,9 @@ const AuthStack = () => {
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
       <Stack.Screen name="GoogleSignIn" component={GoogleSignInScreen} />
       <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
+      <Stack.Screen name="PasswordReset" component={PasswordResetScreen} />
+      <Stack.Screen name="LinkSent" component={LinkSentScreen} />
+      <Stack.Screen name="EnterNewPassword" component={EnterNewPasswordScreen} />
     </Stack.Navigator>
   );
 };

@@ -18,13 +18,20 @@ const Navigation = () => {
 
   // Deep link configuration: maps roamceylon://verify-email → Auth/Login
   // so tapping the Nhost verification email link opens the app at Login.
-  const linking = {
+  const linking: any = {
     prefixes: ['roamceylon://'],
     config: {
       screens: {
         Auth: {
           screens: {
             Login: 'verify-email',
+            EnterNewPassword: {
+              path: 'reset-password',
+              parse: {
+                refreshToken: (refreshToken: string) => refreshToken,
+                type: (type: string) => type,
+              },
+            },
           },
         },
       },
