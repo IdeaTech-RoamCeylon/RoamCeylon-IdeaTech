@@ -230,7 +230,7 @@ const HomeScreen = () => {
             Personalize your Sri Lankan escape. Our AI analyzes thousands of routes,
             stays, and secret spots to craft your perfect journey in seconds.
           </Text>
-          <TouchableOpacity activeOpacity={0.9} onPress={() => handleNavigate('AITripPlanner')}>
+          <TouchableOpacity activeOpacity={0.9} onPress={() => handleNavigate('AIWelcome')}>
             <LinearGradient
               colors={['#FFD94D', '#FFD13A']}
               style={styles.aiButton}
