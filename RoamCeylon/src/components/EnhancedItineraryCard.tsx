@@ -17,7 +17,6 @@ interface EnhancedItineraryCardProps {
 }
 
 const getCategoryIcon = (category?: string, description?: string): string => {
-  // Use category from backend if available
   if (category) {
     switch (category.toLowerCase()) {
       case 'culture': return '🏛️';
@@ -32,7 +31,6 @@ const getCategoryIcon = (category?: string, description?: string): string => {
     }
   }
   
-  // Fallback to description-based detection
   if (!description) return '📍';
   const lower = description.toLowerCase();
   if (lower.includes('breakfast') || lower.includes('lunch') || lower.includes('dinner') || lower.includes('food') || lower.includes('restaurant') || lower.includes('cafe')) {
@@ -103,8 +101,12 @@ const getMockDuration = (description: string): string => {
   return '1-2 hrs';
 };
 
-const getMockRating = (): number => {
-  return 4 + Math.random(); // Random rating between 4.0 and 5.0
+const getMockTime = (index: number): string => {
+  const startHour = 8 + (index * 2); // Start at 8 AM, add 2 hours per activity
+  if (startHour < 12) return `${startHour < 10 ? '0' : ''}${startHour}:00 AM`;
+  if (startHour === 12) return `12:00 PM`;
+  const pmHour = startHour - 12;
+  return `${pmHour < 10 ? '0' : ''}${pmHour}:00 PM`;
 };
 
 const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
@@ -121,185 +123,210 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
   const icon = getCategoryIcon(activity.category, activity.description);
   const cost = getMockCost(activity.description);
   const duration = getMockDuration(activity.description);
-  const rating = getMockRating();
+  const time = getMockTime(index);
   
   const hasPreferences = activity.matchedPreferences && activity.matchedPreferences.length > 0;
   const hasTips = activity.tips && activity.tips.length > 0;
 
   return (
-    <TouchableOpacity
-      style={[styles.container, isSelected && styles.selectedContainer]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.header}>
-        <View style={styles.iconBadge}>
-          <Text style={styles.icon}>{icon}</Text>
-        </View>
-        <View style={styles.headerContent}>
-          <View style={styles.titleRow}>
-            <Text style={styles.index}>#{index + 1}</Text>
-            <View style={styles.ratingContainer}>
-              <Text style={styles.ratingStar}>⭐</Text>
-              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-              {activity.confidenceScore && (
-                <ConfidenceIndicator level={activity.confidenceScore} compact />
-              )}
-            </View>
-          </View>
+    <View style={styles.timelineRow}>
+      {/* Timeline Indicator */}
+      <View style={styles.timelineIndicatorContainer}>
+        <View style={styles.timelineDotHalo}>
+          <View style={styles.timelineDot} />
         </View>
       </View>
 
-      <Text style={styles.description}>{activity.description}</Text>
-
-      {activity.hasPositiveFeedback && (
-        <View style={styles.positiveFeedbackContainer}>
-          <Text style={styles.positiveFeedbackIcon}>✨</Text>
-          <Text style={styles.positiveFeedbackText}>Based on your positive history</Text>
-        </View>
-      )}
-
-      {hasPreferences && (
-        <View style={styles.preferencesContainer}>
-          <Text style={styles.preferencesLabel}>Matches your interests:</Text>
-          <View style={styles.preferencesTags}>
-            {activity.matchedPreferences!.map((pref) => (
-              <PreferenceTag key={pref} preference={pref} variant="compact" />
-            ))}
+      {/* Card Content */}
+      <TouchableOpacity
+        style={[styles.cardContainer, isSelected && styles.selectedContainer]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.timeLabel}>
+            <Text style={styles.timeText}>{time}</Text>
           </View>
+          <Text style={styles.categoryIcon}>{icon}</Text>
         </View>
-      )}
 
-      <View style={styles.metaContainer}>
-        <View style={styles.metaItem}>
-          <Text style={styles.metaIcon}>💰</Text>
-          <Text style={styles.metaText}>${cost}</Text>
-        </View>
-        <View style={styles.metaItem}>
-          <Text style={styles.metaIcon}>⏱️</Text>
-          <Text style={styles.metaText}>{duration}</Text>
-        </View>
-        {activity.coordinate && (
+        <Text style={styles.titleText}>{activity.description}</Text>
+
+        <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Text style={styles.metaIcon}>📍</Text>
-            <Text style={styles.metaText}>On Map</Text>
+            <Text style={styles.metaIcon}>💰</Text>
+            <Text style={styles.metaText}>${cost}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={styles.metaIcon}>⏱️</Text>
+            <Text style={styles.metaText}>{duration}</Text>
+          </View>
+          {activity.confidenceScore && (
+             <View style={styles.metaItem}>
+                <ConfidenceIndicator level={activity.confidenceScore} compact />
+             </View>
+          )}
+        </View>
+
+        {activity.hasPositiveFeedback && (
+          <View style={styles.positiveFeedbackContainer}>
+            <Text style={styles.positiveFeedbackIcon}>✨</Text>
+            <Text style={styles.positiveFeedbackText}>Based on your positive history</Text>
           </View>
         )}
-      </View>
 
-      {hasTips && (
-        <View style={styles.tipsContainer}>
-          <Text style={styles.tipsIcon}>💡</Text>
-          <Text style={styles.tipsText}>{activity.tips![0]}</Text>
-        </View>
-      )}
+        {hasPreferences && (
+          <View style={styles.preferencesContainer}>
+            <View style={styles.preferencesTags}>
+              {activity.matchedPreferences!.map((pref) => (
+                <PreferenceTag key={pref} preference={pref} variant="compact" />
+              ))}
+            </View>
+          </View>
+        )}
 
-      {(onMoveUp || onMoveDown || onDelete) && (
-        <View style={styles.actions}>
-          {onMoveUp && (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                !canMoveUp && styles.actionButtonDisabled,
-              ]}
-              onPress={onMoveUp}
-              disabled={!canMoveUp}
-            >
-              <Text style={styles.actionText}>↑</Text>
-            </TouchableOpacity>
-          )}
-          {onMoveDown && (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                !canMoveDown && styles.actionButtonDisabled,
-              ]}
-              onPress={onMoveDown}
-              disabled={!canMoveDown}
-            >
-              <Text style={styles.actionText}>↓</Text>
-            </TouchableOpacity>
-          )}
-          {onDelete && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
-              onPress={onDelete}
-            >
-              <Text style={styles.deleteText}>🗑️</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </TouchableOpacity>
+        {hasTips && (
+          <View style={styles.tipsContainer}>
+            <Text style={styles.tipsIcon}>💡</Text>
+            <Text style={styles.tipsText}>{activity.tips![0]}</Text>
+          </View>
+        )}
+
+        {(onMoveUp || onMoveDown || onDelete) && (
+          <View style={styles.actions}>
+            {onMoveUp && (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  !canMoveUp && styles.actionButtonDisabled,
+                ]}
+                onPress={onMoveUp}
+                disabled={!canMoveUp}
+              >
+                <Text style={styles.actionText}>↑</Text>
+              </TouchableOpacity>
+            )}
+            {onMoveDown && (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  !canMoveDown && styles.actionButtonDisabled,
+                ]}
+                onPress={onMoveDown}
+                disabled={!canMoveDown}
+              >
+                <Text style={styles.actionText}>↓</Text>
+              </TouchableOpacity>
+            )}
+            {onDelete && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={onDelete}
+              >
+                <Text style={styles.deleteText}>🗑️</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#f0f0f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  selectedContainer: {
-    borderColor: '#0066CC',
-    backgroundColor: '#f0f7ff',
-  },
-  header: {
+  timelineRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
+    position: 'relative',
   },
-  iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f8f9fa',
+  timelineIndicatorContainer: {
+    width: 40,
+    alignItems: 'center',
+    paddingTop: 15,
+  },
+  timelineDotHalo: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFF8E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  icon: {
-    fontSize: 24,
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFC107',
   },
-  headerContent: {
+  cardContainer: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  titleRow: {
+  selectedContainer: {
+    borderColor: '#FFC107',
+    backgroundColor: '#FFFDF5',
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  index: {
+  timeLabel: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  timeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#555',
+  },
+  categoryIcon: {
+    fontSize: 20,
+  },
+  titleText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0066CC',
+    fontWeight: '800',
+    color: '#222',
+    lineHeight: 22,
+    marginBottom: 12,
   },
-  ratingContainer: {
+  metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
     alignItems: 'center',
   },
-  ratingStar: {
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+    marginBottom: 5,
+  },
+  metaIcon: {
     fontSize: 14,
     marginRight: 4,
   },
-  ratingText: {
-    fontSize: 14,
+  metaText: {
+    fontSize: 13,
+    color: '#666',
     fontWeight: '600',
-    color: '#333',
-  },
-  description: {
-    fontSize: 15,
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: 12,
   },
   positiveFeedbackContainer: {
     flexDirection: 'row',
@@ -320,65 +347,8 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontWeight: '600',
   },
-  metaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15,
-    marginBottom: 5,
-  },
-  metaIcon: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  actionButtonDisabled: {
-    opacity: 0.3,
-  },
-  actionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  deleteButton: {
-    backgroundColor: '#ffe6e6',
-  },
-  deleteText: {
-    fontSize: 16,
-  },
   preferencesContainer: {
     marginBottom: 12,
-  },
-  preferencesLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 6,
-    fontWeight: '500',
   },
   preferencesTags: {
     flexDirection: 'row',
@@ -402,6 +372,37 @@ const styles = StyleSheet.create({
     color: '#5D4037',
     fontStyle: 'italic',
     lineHeight: 18,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  actionButtonDisabled: {
+    opacity: 0.3,
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  deleteButton: {
+    backgroundColor: '#ffe6e6',
+  },
+  deleteText: {
+    fontSize: 14,
   },
 });
 

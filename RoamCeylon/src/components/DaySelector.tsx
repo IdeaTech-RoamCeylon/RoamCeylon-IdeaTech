@@ -42,37 +42,32 @@ const DaySelector: React.FC<DaySelectorProps> = ({ days, selectedDay, onSelectDa
 const styles = StyleSheet.create({
   container: {
     height: 60,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   scrollContent: {
     paddingHorizontal: 10,
     alignItems: 'center',
   },
   dayTab: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginHorizontal: 5,
-    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    marginHorizontal: 6,
+    borderRadius: 30, // Pill shape
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderWidth: 1.5,
+    borderColor: '#FFC107', // Yellow border
   },
   dayTabSelected: {
-    backgroundColor: '#0066CC',
-    borderColor: '#0066CC',
+    backgroundColor: '#FFF8E1', // Light yellow/gold background
+    borderColor: '#FFC107',
   },
   dayText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#666',
   },
   dayTextSelected: {
-    color: '#fff',
+    color: '#333', // Dark text when selected
   },
 });
 

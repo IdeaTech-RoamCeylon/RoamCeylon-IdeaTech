@@ -591,7 +591,22 @@ const AITripPlannerScreen = () => {
               </View>
             )}
 
-            <Text style={styles.resultTitle}> Your Trip to {tripPlan.destination}</Text>
+            {/* Day Selector */}
+            <DaySelector
+              days={tripPlan.itinerary.map(item => item.day)}
+              selectedDay={selectedDay}
+              onSelectDay={(day) => {
+                setSelectedDay(day);
+                setSelectedActivity(null); // Reset activity selection when changing day
+              }}
+            />
+
+            <View style={styles.expeditionOverview}>
+              <Text style={styles.expeditionSubtitle}>EXPEDITION OVERVIEW</Text>
+              <Text style={styles.expeditionTitle}>Day {selectedDay}: {tripPlan.destination}</Text>
+              <Text style={styles.expeditionDate}>Generated Trip • {tripPlan.duration} Days</Text>
+            </View>
+
             <View style={styles.summaryContainer}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Duration</Text>
@@ -610,6 +625,7 @@ const AITripPlannerScreen = () => {
                 itinerary={tripPlan.itinerary}
               />
             )}
+
 
             {/* Feedback Section */}
             <View style={styles.feedbackSection}>
@@ -692,39 +708,6 @@ const AITripPlannerScreen = () => {
               )}
             </View>
 
-            {/* Action Buttons */}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={[styles.actionButton, isEditing && styles.actionButtonPrimary]}
-                onPress={() => setShowSaveDialog(true)}
-              >
-                <Text style={styles.actionButtonIcon}>{isEditing ? '💾' : '💾'}</Text>
-                <Text style={[styles.actionButtonText, isEditing && styles.actionButtonTextPrimary]}>
-                  {isEditing ? 'Update Trip' : 'Save Trip'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleNavigateToSavedTrips}
-              >
-                <Text style={styles.actionButtonIcon}>📂</Text>
-                <Text style={styles.actionButtonText}>Saved Trips</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Budget Breakdown */}
-            <BudgetBreakdown budget={tripPlan.budget} duration={tripPlan.duration} />
-
-            {/* Day Selector */}
-            <DaySelector
-              days={tripPlan.itinerary.map(item => item.day)}
-              selectedDay={selectedDay}
-              onSelectDay={(day) => {
-                setSelectedDay(day);
-                setSelectedActivity(null); // Reset activity selection when changing day
-              }}
-            />
-
             {/* Map View */}
             {MapboxGL && mapActivities.length > 0 && (
               <View style={styles.mapContainer}>
@@ -779,7 +762,7 @@ const AITripPlannerScreen = () => {
             )}
 
             <View style={styles.dayCard}>
-              <Text style={styles.dayTitle}>Day {selectedDay} Itinerary</Text>
+              <View style={styles.timelineVerticalLine} />
               {activities.map((activity, index) => (
                 <EnhancedItineraryCard
                   key={`${selectedDay}-${index}-${activity.description}`}
@@ -797,32 +780,36 @@ const AITripPlannerScreen = () => {
               ))}
             </View>
 
-            <View style={styles.bottomActions}>
-              <TouchableOpacity
-                style={styles.resetButton}
-                onPress={() => {
-                  setTripPlan(null);
-                  stopEditing();
-                  setUseSavedContext(true); // Keep context on by default
-                }}
-              >
-                <Text style={styles.resetButtonText}>Refine This Trip</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.startFreshButton}
-                onPress={() => {
-                  setTripPlan(null);
-                  stopEditing();
-                  setUseSavedContext(false); // Start completely fresh
-                }}
-              >
-                <Text style={styles.startFreshButtonText}>Start Fresh Trip</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Spacer for floating buttons */}
+            <View style={{ height: 100 }} />
           </Animated.View>
         ) : null}
       </View>
+
+      {/* Floating Action Buttons */}
+      {tripPlan && (
+        <View style={styles.floatingActionContainer}>
+          <TouchableOpacity
+            style={styles.floatingEditButton}
+            onPress={() => setShowSaveDialog(true)}
+          >
+            <Text style={styles.floatingEditIcon}>💾</Text>
+            <Text style={styles.floatingEditText}>Save</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.floatingRegenerateButton}
+            onPress={() => {
+              setTripPlan(null);
+              stopEditing();
+              setUseSavedContext(true); // Keep context on by default to refine
+            }}
+          >
+            <Text style={styles.floatingRegenerateIcon}>✨</Text>
+            <Text style={styles.floatingRegenerateText}>Regenerate</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Save Trip Dialog */}
       <Modal
@@ -911,12 +898,29 @@ const styles = StyleSheet.create({
   resultsContainer: {
     width: '100%',
   },
-  resultTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+  expeditionOverview: {
     marginBottom: 20,
-    textAlign: 'center',
+    marginTop: 10,
+    alignItems: 'flex-start',
+  },
+  expeditionSubtitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFB300', // Gold/Orange
+    letterSpacing: 1,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  expeditionTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 4,
+  },
+  expeditionDate: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   summaryContainer: {
     flexDirection: 'row',
@@ -924,20 +928,28 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     backgroundColor: '#fff',
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   summaryItem: {
     alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 6,
+    fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0066CC',
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#333',
   },
   sectionTitle: {
     fontSize: 18,
@@ -946,23 +958,18 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   dayCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0066CC',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    marginTop: 10,
+    position: 'relative',
+    paddingLeft: 10,
   },
-  dayTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+  timelineVerticalLine: {
+    position: 'absolute',
+    left: 29, // Matches timeline indicator center in EnhancedItineraryCard
+    top: 25, // Start slightly below top
+    bottom: 0,
+    width: 2,
+    backgroundColor: '#e0e0e0', // Light grey line
+    zIndex: -1,
   },
   mapContainer: {
     height: 250,
@@ -1003,50 +1010,62 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  activityRow: {
+  floatingActionContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
     flexDirection: 'row',
-    marginBottom: 6,
-    alignItems: 'flex-start',
-  },
-  bulletPoint: {
-    fontSize: 16,
-    color: '#0066CC',
-    marginRight: 8,
-    marginTop: -2,
-  },
-  activityText: {
-    fontSize: 14,
-    color: '#555',
-    flex: 1,
-    lineHeight: 20,
-  },
-  bottomActions: {
-    marginTop: 20,
-    gap: 10,
-  },
-  resetButton: {
-    backgroundColor: '#0066CC',
-    padding: 15,
-    borderRadius: 10,
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 15,
+    zIndex: 100,
   },
-  resetButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  startFreshButton: {
+  floatingEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#0066CC',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#FFC107', // Yellow border
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  startFreshButtonText: {
-    color: '#0066CC',
-    fontWeight: '600',
-    fontSize: 15,
+  floatingEditIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  floatingEditText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
+  floatingRegenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFC107', // Yellow background
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 30,
+    shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  floatingRegenerateIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  floatingRegenerateText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
   },
   // Context Toggle Styles
   contextToggleCard: {
