@@ -10,6 +10,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AIService {
@@ -141,24 +142,27 @@ export class AIService {
     return cleaned.length > 120 ? cleaned.substring(0, 117) + '...' : cleaned;
   }
 
-  private parseGenerativeJson(rawText: string): any {
+  private parseGenerativeJson(rawText: string): unknown {
     const trimmed = rawText.trim();
     try {
-      return JSON.parse(trimmed);
+      return JSON.parse(trimmed) as unknown;
     } catch {
       // Robust recovery parser for LLM formatting: extract standard curly braces block
       const match = trimmed.match(/\{[\s\S]*\}/);
       if (match) {
         try {
-          return JSON.parse(match[0]);
+          return JSON.parse(match[0]) as unknown;
         } catch (innerErr) {
-          throw new Error(`Generative JSON extraction regex failed to parse: ${innerErr.message}`);
+          throw new Error(
+            `Generative JSON extraction regex failed to parse: ${innerErr.message}`,
+          );
         }
       }
-      throw new Error(`Generative JSON could not find any enclosing curly braces: "${trimmed}"`);
+      throw new Error(
+        `Generative JSON could not find any enclosing curly braces: "${trimmed}"`,
+      );
     }
   }
-
 
   async extractTripParameters(
     message: string,
@@ -276,8 +280,7 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
         data: {
           sessionId: currentSessionId,
           sender: 'ai',
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          content: validatedData as any,
+          content: validatedData,
         },
       });
 
@@ -285,8 +288,9 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
     } catch (error) {
       console.error('Gemini extraction failed:', error);
 
-      let customReply = "I experienced a brief connection glitch, but please let me know your destination, group size, or interests, and we will get your custom Sri Lankan plan generated!";
-      
+      let customReply =
+        'I experienced a brief connection glitch, but please let me know your destination, group size, or interests, and we will get your custom Sri Lankan plan generated!';
+
       // Advanced RAG Fallback Reply: If we have retrieved local RAG facts, extract the first one to present to the user
       if (retrievedFactsText) {
         const firstLine = retrievedFactsText.split('\n')[0] || '';
@@ -308,8 +312,7 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
             data: {
               sessionId: currentSessionId,
               sender: 'ai',
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              content: fallbackReply as any,
+              content: fallbackReply as unknown as Prisma.InputJsonValue,
             },
           })
           .catch((e) => console.error('Failed to save fallback msg', e));

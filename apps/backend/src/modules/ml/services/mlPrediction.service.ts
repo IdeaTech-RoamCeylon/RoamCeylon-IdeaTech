@@ -7,13 +7,19 @@ import { BoundsEnforcerService } from '../../ai/bounds-enforcer.service';
 import { spawn } from 'child_process';
 import * as path from 'path';
 
-// Derived types — always in sync with the Prisma schema, no manual duplication
-type UserInterestProfileRow = Awaited<
-  ReturnType<PrismaService['userInterestProfile']['findUnique']>
->;
-type DestinationCategoryScoreRow = Awaited<
-  ReturnType<PrismaService['destinationCategoryScore']['findMany']>
->[number];
+import {
+  UserInterestProfile,
+  DestinationCategoryScore,
+  UserFeedbackSignal,
+  UserCategoryWeight,
+  RecommendationLog,
+} from '@prisma/client';
+
+type UserInterestProfileRow = UserInterestProfile | null;
+type DestinationCategoryScoreRow = DestinationCategoryScore;
+type UserFeedbackSignalRow = UserFeedbackSignal | null;
+type UserCategoryWeightRow = UserCategoryWeight;
+type RecommendationLogRow = RecommendationLog;
 
 export interface MLPredictionRequest {
   user_id: string;
@@ -63,7 +69,9 @@ export class MlPredictionService {
     return this.predictionCache;
   }
 
-  private runPythonPredict(payload: any): Promise<MLPredictionResponse> {
+  private runPythonPredict(
+    payload: Record<string, unknown>,
+  ): Promise<MLPredictionResponse> {
     return new Promise((resolve, reject) => {
       const scriptPath = path.join(__dirname, '../../../../scripts/predict.py');
       const proc = spawn('python', [scriptPath]);
@@ -72,13 +80,13 @@ export class MlPredictionService {
       let stderrData = '';
 
       if (proc.stdout) {
-        proc.stdout.on('data', (chunk) => {
+        proc.stdout.on('data', (chunk: Buffer | string) => {
           stdoutData += chunk.toString();
         });
       }
 
       if (proc.stderr) {
-        proc.stderr.on('data', (chunk) => {
+        proc.stderr.on('data', (chunk: Buffer | string) => {
           stderrData += chunk.toString();
         });
       }
@@ -86,13 +94,23 @@ export class MlPredictionService {
       proc.on('close', (code) => {
         if (code === 0) {
           try {
-            const parsed = JSON.parse(stdoutData.trim()) as MLPredictionResponse;
+            const parsed = JSON.parse(
+              stdoutData.trim(),
+            ) as MLPredictionResponse;
             resolve(parsed);
           } catch (err) {
-            reject(new Error(`Failed to parse prediction output: ${err.message}. Output was: ${stdoutData}`));
+            reject(
+              new Error(
+                `Failed to parse prediction output: ${err.message}. Output was: ${stdoutData}`,
+              ),
+            );
           }
         } else {
-          reject(new Error(`Prediction script failed with code ${code}. Error: ${stderrData}`));
+          reject(
+            new Error(
+              `Prediction script failed with code ${code}. Error: ${stderrData}`,
+            ),
+          );
         }
       });
 
@@ -177,56 +195,83 @@ export class MlPredictionService {
     // ─────────────────────────────────────────────────────────────────────────
     // EXTRA REAL FEATURE AGGREGATION
     // ─────────────────────────────────────────────────────────────────────────
-    
+
     // Fetch user feedback signal with retry
-    const feedbackSignal = await this.retryService.withRetry<any>(
-      () =>
-        this.prisma.userFeedbackSignal.findUnique({
-          where: { userId: user_id },
-        }),
-      { maxAttempts: 3, baseDelayMs: 100, label: 'userFeedbackSignal.findUnique' },
-    ).catch(() => null);
+    const feedbackSignal: UserFeedbackSignalRow = await this.retryService
+      .withRetry<UserFeedbackSignalRow>(
+        () =>
+          this.prisma.userFeedbackSignal.findUnique({
+            where: { userId: user_id },
+          }),
+        {
+          maxAttempts: 3,
+          baseDelayMs: 100,
+          label: 'userFeedbackSignal.findUnique',
+        },
+      )
+      .catch(() => null);
 
     // Fetch user category weights with retry
-    const categoryWeights = await this.retryService.withRetry<any[]>(
-      () =>
-        this.prisma.userCategoryWeight.findMany({
-          where: { userId: user_id },
-        }),
-      { maxAttempts: 3, baseDelayMs: 100, label: 'userCategoryWeight.findMany' },
-    ).catch(() => []);
+    const categoryWeights: UserCategoryWeightRow[] = await this.retryService
+      .withRetry<UserCategoryWeightRow[]>(
+        () =>
+          this.prisma.userCategoryWeight.findMany({
+            where: { userId: user_id },
+          }),
+        {
+          maxAttempts: 3,
+          baseDelayMs: 100,
+          label: 'userCategoryWeight.findMany',
+        },
+      )
+      .catch(() => [] as UserCategoryWeightRow[]);
 
     // Fetch recommendation logs with retry to build engagement features
-    const recLogs = await this.retryService.withRetry<any[]>(
-      () =>
-        this.prisma.recommendationLog.findMany({
-          where: { userId: user_id },
-          orderBy: { createdAt: 'desc' },
-          take: 50,
-        }),
-      { maxAttempts: 3, baseDelayMs: 100, label: 'recommendationLog.findMany' },
-    ).catch(() => []);
+    const recLogs: RecommendationLogRow[] = await this.retryService
+      .withRetry<RecommendationLogRow[]>(
+        () =>
+          this.prisma.recommendationLog.findMany({
+            where: { userId: user_id },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+          }),
+        {
+          maxAttempts: 3,
+          baseDelayMs: 100,
+          label: 'recommendationLog.findMany',
+        },
+      )
+      .catch(() => [] as RecommendationLogRow[]);
 
     const cultural = userProfile?.culturalScore ?? 0.5;
     const adventure = userProfile?.adventureScore ?? 0.5;
     const relaxation = userProfile?.relaxationScore ?? 0.5;
-    
-    const click_frequency = recLogs.length > 0 ? recLogs.filter(l => l.clicked).length / recLogs.length : 0.0;
-    const strong_engagement_count = recLogs.filter(l => l.clicked).length;
-    const ignored_recs_count = recLogs.filter(l => !l.clicked).length;
+
+    const click_frequency =
+      recLogs.length > 0
+        ? recLogs.filter((l) => l.clicked).length / recLogs.length
+        : 0.0;
+    const strong_engagement_count = recLogs.filter((l) => l.clicked).length;
+    const ignored_recs_count = recLogs.filter((l) => !l.clicked).length;
 
     let engagement_recency = 30; // default 30 days
     if (recLogs.length > 0 && recLogs[0]?.createdAt) {
-      engagement_recency = Math.floor((Date.now() - new Date(recLogs[0].createdAt).getTime()) / (1000 * 60 * 60 * 24));
+      engagement_recency = Math.floor(
+        (Date.now() - new Date(recLogs[0].createdAt).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
     }
 
-    const totalFeedbackCount = feedbackSignal 
-      ? (feedbackSignal.positiveCount + feedbackSignal.negativeCount + feedbackSignal.neutralCount) 
+    const totalFeedbackCount = feedbackSignal
+      ? feedbackSignal.positiveCount +
+        feedbackSignal.negativeCount +
+        feedbackSignal.neutralCount
       : 0;
 
-    const feedback_positivity_rate = totalFeedbackCount > 0 
-      ? feedbackSignal.positiveCount / totalFeedbackCount 
-      : 0.5;
+    const feedback_positivity_rate =
+      totalFeedbackCount > 0 && feedbackSignal
+        ? feedbackSignal.positiveCount / totalFeedbackCount
+        : 0.5;
 
     const user_trust_score = feedbackSignal?.trustScore ?? 0.5;
 
@@ -242,10 +287,11 @@ export class MlPredictionService {
       diversity_score: userProfile?.categoryDiversity ?? 0.5,
       travel_pace_preference: 0.5,
       booking_conversion_rate: 0.5,
-      category_affinity: categoryWeights.length > 0 ? categoryWeights[0].weight : 1.0,
+      category_affinity:
+        categoryWeights.length > 0 ? categoryWeights[0].weight : 1.0,
       user_trust_score,
       strong_engagement_count,
-      ignored_recs_count
+      ignored_recs_count,
     };
 
     // Prepare prediction destinations input
@@ -261,7 +307,9 @@ export class MlPredictionService {
     // MODEL PREDICTION WITH SECURE HEURISTIC FALLBACK
     // ─────────────────────────────────────────────────────────────────────────
     try {
-      this.logger.log(`Invoking Python ML model for user ${user_id} prediction...`);
+      this.logger.log(
+        `Invoking Python ML model for user ${user_id} prediction...`,
+      );
       const predictions = await this.runPythonPredict({
         user_features: userFeaturesPayload,
         destinations: pyDestinations,
@@ -270,7 +318,10 @@ export class MlPredictionService {
       // Clamp outputs using boundsEnforcer
       predictions.recommendations = predictions.recommendations.map((rec) => ({
         destination_id: rec.destination_id,
-        ml_score: this.boundsEnforcer.enforceMlOutputScore(rec.ml_score, rec.destination_id),
+        ml_score: this.boundsEnforcer.enforceMlOutputScore(
+          rec.ml_score,
+          rec.destination_id,
+        ),
       }));
 
       // Cache result
@@ -280,8 +331,11 @@ export class MlPredictionService {
       });
 
       return predictions;
-    } catch (e: any) {
-      this.logger.warn(`Python ML inference failed, using rule-based mock fallback. Error: ${e.message}`);
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      this.logger.warn(
+        `Python ML inference failed, using rule-based mock fallback. Error: ${errMsg}`,
+      );
     }
 
     // ── Rule-Based Heuristic Mock Fallback ───────────────────────────────────
