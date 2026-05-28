@@ -41,8 +41,8 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     label: 'Ride and Transport',
     icon: 'bus',
     iconColor: '#A84E0D',
-    iconBackground: '#FDE8A8',
-    cardBackground: '#FFF4D7',
+    iconBackground: '#d9c587ff',
+    cardBackground: '#feecbdff',
     route: 'Transport',
   },
   {
@@ -50,8 +50,8 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     label: 'Hotel & Stays',
     icon: 'office-building',
     iconColor: '#1A6A3B',
-    iconBackground: '#D8F6E2',
-    cardBackground: '#EFFBF1',
+    iconBackground: '#99efb6ff',
+    cardBackground: '#cff6d5ff',
     route: 'Explore',
   },
   {
@@ -59,8 +59,8 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     label: 'Market Place',
     icon: 'shopping-outline',
     iconColor: '#125D8D',
-    iconBackground: '#DDEEFF',
-    cardBackground: '#F0F7FF',
+    iconBackground: '#c7e1fbff',
+    cardBackground: '#dfe9f4ff',
     route: 'Marketplace',
   },
   {
@@ -68,8 +68,8 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     label: 'Activities & Tourist Spots',
     icon: 'terrain',
     iconColor: '#B14B17',
-    iconBackground: '#FDE5CA',
-    cardBackground: '#FFF2E5',
+    iconBackground: '#f9d1acff',
+    cardBackground: '#f2e1d2ff',
     route: 'Explore',
   },
 ];
@@ -221,28 +221,29 @@ const HomeScreen = () => {
         </View>
 
         <View style={styles.aiCard}>
-          <View style={styles.aiBadge}>
-            <MaterialCommunityIcons name="star" size={12} color="#0F1B10" />
-            <Text style={styles.aiBadgeText}>AI TRAVEL ASSISTANT</Text>
+          <View style={styles.aiCardContent}>
+            <View style={styles.aiBadge}>
+              <MaterialCommunityIcons name="star" size={12} color="#0F1B10" />
+              <Text style={styles.aiBadgeText}>AI TRAVEL ASSISTANT</Text>
+            </View>
+            <Text style={styles.aiTitle}>AI Powered Full Trip Planning</Text>
+            <Text style={styles.aiDescription}>
+              Personalize your Sri Lankan escape. Our AI analyzes thousands of routes,
+              stays, and secret spots to craft your perfect journey in seconds.
+            </Text>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => handleNavigate('AIWelcome')}>
+              <LinearGradient
+                colors={['#FFD94D', '#FFD13A']}
+                style={styles.aiButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.aiButtonText}>Plan My Entire Trip with AI</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.aiTitle}>AI Powered Full Trip Planning</Text>
-          <Text style={styles.aiDescription}>
-            Personalize your Sri Lankan escape. Our AI analyzes thousands of routes,
-            stays, and secret spots to craft your perfect journey in seconds.
-          </Text>
-          <TouchableOpacity activeOpacity={0.9} onPress={() => handleNavigate('AIWelcome')}>
-            <LinearGradient
-              colors={['#FFD94D', '#FFD13A']}
-              style={styles.aiButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.aiButtonText}>Plan My Entire Trip with AI</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <Image source={HERO_IMAGE} style={styles.aiHeroImage} />
         </View>
-
-        <Image source={HERO_IMAGE} style={styles.heroImage} />
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionEyebrow}>CURATED SELECTION</Text>
@@ -319,8 +320,8 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     color: '#343434',
-    fontSize: 30,
-    lineHeight: 38,
+    fontSize: 25,
+    lineHeight: 29,
     fontWeight: '700',
     letterSpacing: -0.4,
   },
@@ -366,13 +367,16 @@ const styles = StyleSheet.create({
   aiCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 26,
-    padding: 20,
     marginBottom: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.06,
     shadowRadius: 22,
     elevation: 4,
+    overflow: 'hidden',
+  },
+  aiCardContent: {
+    padding: 20,
   },
   aiBadge: {
     alignSelf: 'flex-start',
@@ -392,16 +396,16 @@ const styles = StyleSheet.create({
     color: '#132014',
   },
   aiTitle: {
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 30,
+    lineHeight: 34,
     color: '#1B1B1B',
     fontWeight: '800',
     letterSpacing: -0.7,
     marginBottom: 18,
   },
   aiDescription: {
-    fontSize: 17,
-    lineHeight: 26,
+    fontSize: 15,
+    lineHeight: 22,
     color: '#5F5F5F',
     marginBottom: 22,
   },
@@ -416,21 +420,20 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   aiButtonText: {
-    color: '#222222',
-    fontWeight: '800',
-    fontSize: 15,
+    color: '#ffffffff',
+    fontWeight: '900',
+    fontSize: 17,
   },
-  heroImage: {
+  aiHeroImage: {
     width: '100%',
-    height: 335,
-    borderRadius: 40,
-    marginBottom: 26,
+    height: 280,
     resizeMode: 'cover',
   },
   sectionHeader: {
     marginBottom: 16,
   },
   sectionEyebrow: {
+    marginTop: 18,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 2.4,
@@ -449,12 +452,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 22,
+    marginTop: 18,
   },
   essentialCard: {
-    width: '48.3%',
+    width: '46%',
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+
     marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(24, 24, 24, 0.04)',
