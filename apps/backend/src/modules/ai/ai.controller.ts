@@ -3244,6 +3244,175 @@ export class AIController {
     return response;
   }
 
+
+  /* ==================== ENRICH PLAN (Gemini Narrative) ==================== */
+
+  @Post('enrich-plan')
+  async enrichPlan(
+    @Body()
+    body: {
+      destination: string;
+      budget?: string;
+      pax?: string;
+      preferences?: string[];
+      dayByDayPlan: Array<{
+        day: number;
+        date: string;
+        theme: string;
+        activities: Array<{
+          placeName: string;
+          shortDescription: string;
+          category: string;
+          timeSlot?: string;
+          estimatedDuration?: string;
+        }>;
+      }>;
+    },
+  ): Promise<{
+    enrichedDays: Array<{
+      day: number;
+      date: string;
+      theme: string;
+      themeTitle: string;
+      activities: Array<{
+        placeName: string;
+        shortDescription: string;
+        category: string;
+        timeSlot?: string;
+        estimatedDuration?: string;
+        time: string;
+        richDescription: string;
+        tip: string;
+        costUSD: number;
+        photoKeyword: string;
+      }>;
+    }>;
+  }> {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !body.dayByDayPlan || body.dayByDayPlan.length === 0) {
+      return { enrichedDays: [] };
+    }
+
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    const activityList = body.dayByDayPlan
+      .flatMap((d) =>
+        d.activities.map((a) => ({
+          day: d.day,
+          placeName: a.placeName,
+          category: a.category,
+          timeSlot: a.timeSlot || 'Morning',
+        })),
+      )
+      .slice(0, 30);
+
+    const lines = activityList.map(
+      (a, i) =>
+        (i + 1) +
+        '. Day ' + a.day +
+        ' | ' + a.placeName +
+        ' (' + a.category + ', ' + a.timeSlot + ')',
+    );
+
+    const prompt =
+      'You are a professional Sri Lanka travel writer and local expert.\n' +
+      'Destination: ' + body.destination + '\n' +
+      'Budget: ' + (body.budget || 'Medium') + '\n' +
+      'Group: ' + (body.pax || 'Travelers') + '\n' +
+      'Interests: ' + (body.preferences || []).join(', ') + '\n\n' +
+      'For each place below, return EXACTLY the same order with enriched details.\n' +
+      'Places:\n' + lines.join('\n') + '\n\n' +
+      'Return ONLY a JSON array (no markdown, no backticks) with one object per place:\n' +
+      '[\n' +
+      '  {\n' +
+      '    "day": number,\n' +
+      '    "placeName": "exact same name",\n' +
+      '    "time": "HH:MM AM/PM",\n' +
+      '    "richDescription": "2-sentence vivid description with local color and specific detail",\n' +
+      '    "tip": "One practical local insider tip",\n' +
+      '    "costUSD": number,\n' +
+      '    "photoKeyword": "2-3 word search keyword for a photo of this place"\n' +
+      '  }\n' +
+      ']';
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+
+      let enrichedItems: Array<{
+        day: number;
+        placeName: string;
+        time: string;
+        richDescription: string;
+        tip: string;
+        costUSD: number;
+        photoKeyword: string;
+      }> = [];
+
+      const match = text.match(/\[[\s\S]*\]/);
+      if (match) {
+        enrichedItems = JSON.parse(match[0]);
+      }
+
+      const enrichMap = new Map<string, (typeof enrichedItems)[0]>();
+      for (const item of enrichedItems) {
+        const key = String(item.day) + '-' + String(item.placeName).toLowerCase().trim();
+        enrichMap.set(key, item);
+      }
+
+      const enrichedDays = body.dayByDayPlan.map((day) => ({
+        day: day.day,
+        date: day.date,
+        theme: day.theme,
+        themeTitle: day.theme || ('Day ' + day.day + ': ' + body.destination),
+        activities: day.activities.map((act) => {
+          const key = String(day.day) + '-' + String(act.placeName).toLowerCase().trim();
+          const enriched = enrichMap.get(key);
+          return {
+            ...act,
+            time: enriched?.time || this.defaultTime(act.timeSlot),
+            richDescription: enriched?.richDescription || act.shortDescription,
+            tip: enriched?.tip || '',
+            costUSD: enriched?.costUSD ?? 0,
+            photoKeyword: enriched?.photoKeyword || (act.placeName + ' Sri Lanka'),
+          };
+        }),
+      }));
+
+      return { enrichedDays };
+    } catch (err) {
+      this.logger.error(
+        '[enrich-plan] Gemini enrichment failed: ' + (err as Error).message,
+      );
+      const fallbackDays = body.dayByDayPlan.map((day) => ({
+        day: day.day,
+        date: day.date,
+        theme: day.theme,
+        themeTitle: 'Day ' + day.day + ': ' + body.destination,
+        activities: day.activities.map((act) => ({
+          ...act,
+          time: this.defaultTime(act.timeSlot),
+          richDescription: act.shortDescription,
+          tip: '',
+          costUSD: 0,
+          photoKeyword: act.placeName + ' Sri Lanka',
+        })),
+      }));
+      return { enrichedDays: fallbackDays };
+    }
+  }
+
+  private defaultTime(timeSlot?: string): string {
+    if (!timeSlot) return '09:00 AM';
+    const lower = timeSlot.toLowerCase();
+    if (lower === 'morning') return '08:00 AM';
+    if (lower === 'afternoon') return '01:00 PM';
+    if (lower === 'evening') return '06:00 PM';
+    return '09:00 AM';
+  }
+
   @Post('log-activity')
   async logActivity(
     @Req() req: Request,

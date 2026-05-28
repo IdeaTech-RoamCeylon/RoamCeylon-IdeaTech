@@ -15,20 +15,32 @@ export interface TripPlanRequest {
 }
 
 export interface TripActivity {
-  description: string;
+  description: string;    // place name shown in the card
   coordinate?: [number, number]; // [longitude, latitude]
   dayNumber?: number;
-  
+
+  // Rich fields from Gemini enrichment
+  time?: string;          // e.g. "08:00 AM"
+  richDescription?: string; // 2-sentence vivid narrative
+  tip?: string;           // insider local tip
+  costUSD?: number;       // entry/activity cost in USD
+  photoUrl?: string;      // Unsplash photo URL
+  photoKeyword?: string;  // search keyword used
+  estimatedDuration?: string; // e.g. "1-2 hours"
+
   // Preference-aware data from backend
-  category?: string; // 'Culture', 'Nature', 'Beach', etc.
-  matchedPreferences?: string[]; // User preferences that matched this activity
-  hasPositiveFeedback?: boolean; // NEW: Positive feedback influence
+  category?: string;
+  matchedPreferences?: string[];
+  hasPositiveFeedback?: boolean;
   confidenceScore?: 'High' | 'Medium' | 'Low';
-  tips?: string[]; // Helpful tips from backend
+  tips?: string[]; // kept for backward-compat
 }
 
 export interface TripDay {
   day: number;
+  date?: string;
+  theme?: string;
+  themeTitle?: string;
   activities: TripActivity[];
 }
 
@@ -43,11 +55,13 @@ export interface TripPlanResponse {
   usedSavedContext?: boolean;
 }
 
-  // Backend response interfaces
+// Backend response interfaces
 interface BackendActivity {
   placeName: string;
   shortDescription: string;
   category?: string;
+  timeSlot?: string;
+  estimatedDuration?: string;
   confidenceScore?: 'High' | 'Medium' | 'Low';
   explanation?: {
     rankingFactors?: {
@@ -60,6 +74,8 @@ interface BackendActivity {
 
 interface BackendDayPlan {
   day: number;
+  date?: string;
+  theme?: string;
   activities: BackendActivity[];
 }
 
@@ -80,6 +96,46 @@ interface BackendResponseWrapper {
   data: BackendTripPlanBody;
 }
 
+// Enriched activity from POST /ai/enrich-plan
+interface EnrichedActivity {
+  placeName: string;
+  shortDescription: string;
+  category: string;
+  timeSlot?: string;
+  estimatedDuration?: string;
+  time: string;
+  richDescription: string;
+  tip: string;
+  costUSD: number;
+  photoKeyword: string;
+}
+
+interface EnrichedDay {
+  day: number;
+  date: string;
+  theme: string;
+  themeTitle: string;
+  activities: EnrichedActivity[];
+}
+
+interface EnrichPlanResponse {
+  statusCode: number;
+  success: boolean;
+  data: { enrichedDays: EnrichedDay[] };
+}
+
+/**
+ * Build an Unsplash Source URL for a given keyword.
+ * Uses the free Unsplash Source API — no API key needed.
+ */
+const getUnsplashPhotoUrl = (keyword: string, width = 400, height = 220): string => {
+  const encoded = encodeURIComponent(keyword);
+  // Use a deterministic seed based on the keyword so the same place always
+  // gets the same image (Unsplash Source picks randomly otherwise).
+  const seed = keyword.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return `https://source.unsplash.com/${width}x${height}/?${encoded}&sig=${seed}`;
+};
+
 class AIService {
   private lastRequestKey: string | null = null;
   private cachedResponse: TripPlanResponse | null = null;
@@ -91,12 +147,10 @@ class AIService {
         destination: request.destination?.trim().toLowerCase(),
         duration: request.duration,
         budget: request.budget,
-        // Sort interests so order doesn't matter
         interests: request.interests ? [...request.interests].sort() : [],
-        // Context fields
         useSavedContext: request.useSavedContext,
         mode: request.mode,
-        tripId: request.tripId
+        tripId: request.tripId,
       });
 
       // 2. Check if we have a valid cache hit (skip cache for fresh plans)
@@ -107,19 +161,17 @@ class AIService {
 
       // Parse duration to calculate dates
       const durationStr = request.duration || '1';
-      // extract number from string (e.g. "3 days" -> 3)
-      const dayCount = parseInt(durationStr) || 1;
+      const dayCount = parseInt(durationStr.replace(/\D/g, '')) || 1;
 
       const startDate = new Date();
       const endDate = new Date();
-      endDate.setDate(startDate.getDate() + dayCount - 1); // -1 because start==end is 1 day
+      endDate.setDate(startDate.getDate() + dayCount - 1);
 
       const payload = {
         destination: request.destination,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
         preferences: request.interests || [],
-        // Include saved context parameters
         useSavedContext: request.useSavedContext,
         mode: request.mode,
         tripId: request.tripId,
@@ -129,72 +181,112 @@ class AIService {
         chatContext: request.chatContext,
       };
 
-      // Fetch data matching the BACKEND structure
+      // Step 1: Get raw embedding-based plan
       const wrapper = await retryWithBackoff(
         () => apiService.post<BackendResponseWrapper>('/ai/trip-plan', payload),
-        {
-          maxAttempts: 3,
-          initialDelay: 1000,
-        }
+        { maxAttempts: 3, initialDelay: 1000 },
       );
 
       const backendData = wrapper.data;
+      const rawDays: BackendDayPlan[] = backendData.plan.dayByDayPlan || [];
 
-      // Helper to generate mock coordinates near Kandy (7.2906, 80.6337)
-      // purely for demonstration until backend provides real coords
-      const getMockCoordinates = (index: number): [number, number] => {
-        const baseLat = 7.2906;
-        const baseLng = 80.6337;
-        // spread out by ~1-2km randomly
-        const latOffset = (Math.random() - 0.5) * 0.04; 
-        const lngOffset = (Math.random() - 0.5) * 0.04;
-        return [baseLng + lngOffset, baseLat + latOffset];
-      };
+      // Step 2: Enrich with Gemini (times, rich descriptions, tips, costs, photo keywords)
+      let enrichedDays: EnrichedDay[] = [];
+      try {
+        const enrichPayload = {
+          destination: backendData.plan.destination || request.destination,
+          budget: request.budget,
+          pax: request.pax,
+          preferences: request.interests || [],
+          dayByDayPlan: rawDays.map((d) => ({
+            day: d.day,
+            date: d.date || '',
+            theme: d.theme || '',
+            activities: d.activities.map((a) => ({
+              placeName: a.placeName,
+              shortDescription: a.shortDescription,
+              category: a.category || 'Sightseeing',
+              timeSlot: a.timeSlot,
+              estimatedDuration: a.estimatedDuration,
+            })),
+          })),
+        };
 
-      // Adapter: Convert Backend Response to Frontend Response
-      // Safely map itinerary, handling partial/malformed data
-      const safeItinerary = (backendData.plan.dayByDayPlan || []).map((day) => ({
-          day: day.day,
-          activities: (day.activities || []).map((act, idx) => {
-             if (!act) return null; // Skip invalid activities
+        const enrichWrapper = await retryWithBackoff(
+          () => apiService.post<EnrichPlanResponse>('/ai/enrich-plan', enrichPayload),
+          { maxAttempts: 2, initialDelay: 500 },
+        );
+        enrichedDays = enrichWrapper.data.enrichedDays || [];
+      } catch (enrichErr) {
+        console.warn('[aiService] Enrichment failed, using raw data:', enrichErr);
+        // Fall back to raw days shaped as enriched
+        enrichedDays = rawDays.map((d) => ({
+          day: d.day,
+          date: d.date || '',
+          theme: d.theme || '',
+          themeTitle: `Day ${d.day}: ${backendData.plan.destination}`,
+          activities: d.activities.map((a) => ({
+            placeName: a.placeName,
+            shortDescription: a.shortDescription,
+            category: a.category || 'Sightseeing',
+            timeSlot: a.timeSlot,
+            estimatedDuration: a.estimatedDuration,
+            time: a.timeSlot === 'Afternoon' ? '01:00 PM' : a.timeSlot === 'Evening' ? '06:00 PM' : '08:00 AM',
+            richDescription: a.shortDescription,
+            tip: a.explanation?.tips?.[0] || '',
+            costUSD: 0,
+            photoKeyword: a.placeName + ' Sri Lanka',
+          })),
+        }));
+      }
 
-             // Logic to avoid generic names like "Kandy"
-             const destLower = (backendData.plan.destination || '').toLowerCase().trim();
-             const placeLower = (act.placeName || '').toLowerCase().trim();
-             
-             // If place name is just the destination name (e.g. "Kandy" == "Kandy"), use description
-             const shouldUseDescription = placeLower === destLower || placeLower.includes(destLower);
-             
-             const finalDescription = shouldUseDescription && act.shortDescription 
-                ? act.shortDescription 
-                : (act.placeName || 'Unknown Activity');
+      // Step 3: Map enriched days to frontend TripPlanResponse
+      const safeItinerary: TripDay[] = enrichedDays.map((day) => ({
+        day: day.day,
+        date: day.date,
+        theme: day.theme,
+        themeTitle: day.themeTitle,
+        activities: day.activities
+          .filter((act) => act && act.placeName)
+          .map((act, idx) => {
+            // Find the matching raw activity for preferences / confidence
+            const rawDay = rawDays.find((d) => d.day === day.day);
+            const rawAct = rawDay?.activities.find(
+              (r) => r.placeName?.toLowerCase().trim() === act.placeName?.toLowerCase().trim(),
+            );
 
-             return {
-                description: finalDescription,
-                coordinate: getMockCoordinates(idx), // Inject mock coordinate
-                // Map preference-aware data from backend
-                category: act.category || 'General',
-                matchedPreferences: act.explanation?.rankingFactors?.preferenceMatch || [],
-                hasPositiveFeedback: act.explanation?.hasPositiveFeedback,
-                confidenceScore: act.confidenceScore,
-                tips: act.explanation?.tips || [],
-             };
-          }).filter(Boolean) as TripActivity[], // Filter out nulls
+            return {
+              description: act.placeName,
+              coordinate: undefined as [number, number] | undefined,
+              dayNumber: day.day,
+              time: act.time,
+              richDescription: act.richDescription,
+              tip: act.tip,
+              costUSD: act.costUSD,
+              photoUrl: getUnsplashPhotoUrl(act.photoKeyword, 400, 220),
+              photoKeyword: act.photoKeyword,
+              category: act.category || rawAct?.category || 'General',
+              matchedPreferences: rawAct?.explanation?.rankingFactors?.preferenceMatch || [],
+              hasPositiveFeedback: rawAct?.explanation?.hasPositiveFeedback,
+              confidenceScore: rawAct?.confidenceScore,
+              estimatedDuration: act.estimatedDuration || rawAct?.estimatedDuration,
+              tips: rawAct?.explanation?.tips || (act.tip ? [act.tip] : []),
+            } as TripActivity;
+          }),
       }));
 
-      // Edge Case: Handling "Empty planner results"
-      // If the AI returns 0 days or 0 activities total
-      const totalActivities = safeItinerary.reduce((sum, day) => sum + day.activities.length, 0);
-      
+      // Edge Case: No activities
+      const totalActivities = safeItinerary.reduce((sum, d) => sum + d.activities.length, 0);
       if (safeItinerary.length === 0 || totalActivities === 0) {
-        throw new Error('We could not generate a plan for these preferences. Please try adjusting your destination or interests.');
+        throw new Error(
+          'We could not generate a plan for these preferences. Please try adjusting your destination or interests.',
+        );
       }
 
       const mappedResponse: TripPlanResponse = {
         destination: backendData.plan.destination || request.destination,
         duration: String(backendData.plan.totalDays || safeItinerary.length),
-        budget: request.budget || 'Medium', 
-        // Version tracking
+        budget: request.budget || 'Medium',
         tripId: backendData.plan.summary?.tripId,
         versionNo: backendData.plan.summary?.versionNo,
         usedSavedContext: backendData.plan.summary?.usedSavedContext,

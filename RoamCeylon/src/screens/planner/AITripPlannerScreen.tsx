@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
   Modal,
+  Image,
 } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -525,9 +526,18 @@ const AITripPlannerScreen = () => {
             <View style={styles.expeditionOverview}>
               <Text style={styles.expeditionSubtitle}>EXPEDITION OVERVIEW</Text>
               <Text style={styles.expeditionTitle}>
-                Day {selectedDay}: {tripPlan.destination}
+                {currentDayItinerary?.themeTitle || `Day ${selectedDay}: ${tripPlan.destination}`}
               </Text>
-              <Text style={styles.expeditionDate}>Generated Trip • {tripPlan.duration} Days</Text>
+              <Text style={styles.expeditionDate}>
+                {currentDayItinerary?.date
+                  ? new Date(currentDayItinerary.date + 'T00:00:00').toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'Generated Trip'}{' '}
+                • {currentDayItinerary?.theme || `${tripPlan.duration} Days`}
+              </Text>
             </View>
 
             <View style={styles.summaryContainer}>

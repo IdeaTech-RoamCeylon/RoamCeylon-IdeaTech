@@ -1,8 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
 import { TripActivity } from '../services/aiService';
-import { PreferenceTag } from './PreferenceTag';
-import { ConfidenceIndicator } from './ConfidenceIndicator';
 
 interface EnhancedItineraryCardProps {
   activity: TripActivity;
@@ -17,96 +22,35 @@ interface EnhancedItineraryCardProps {
 }
 
 const getCategoryIcon = (category?: string, description?: string): string => {
-  if (category) {
-    switch (category.toLowerCase()) {
-      case 'culture': return '🏛️';
-      case 'nature': return '🌿';
-      case 'beach': return '🏖️';
-      case 'adventure': return '⛰️';
-      case 'relaxation': return '🧘';
-      case 'history': return '📜';
-      case 'sightseeing': return '👁️';
-      case 'arrival': return '✈️';
-      default: break;
-    }
-  }
-  
-  if (!description) return '📍';
-  const lower = description.toLowerCase();
-  if (lower.includes('breakfast') || lower.includes('lunch') || lower.includes('dinner') || lower.includes('food') || lower.includes('restaurant') || lower.includes('cafe')) {
-    return '🍽️';
-  }
-  if (lower.includes('hotel') || lower.includes('check-in') || lower.includes('accommodation') || lower.includes('resort')) {
-    return '🏨';
-  }
-  if (lower.includes('temple') || lower.includes('fort') || lower.includes('museum') || lower.includes('palace')) {
-    return '🏛️';
-  }
-  if (lower.includes('beach') || lower.includes('ocean') || lower.includes('sea')) {
-    return '🏖️';
-  }
-  if (lower.includes('hike') || lower.includes('trek') || lower.includes('mountain') || lower.includes('climb')) {
-    return '⛰️';
-  }
-  if (lower.includes('shop') || lower.includes('market') || lower.includes('bazaar')) {
-    return '🛍️';
-  }
-  if (lower.includes('safari') || lower.includes('wildlife') || lower.includes('park')) {
-    return '🦁';
-  }
-  if (lower.includes('train') || lower.includes('railway')) {
-    return '🚂';
-  }
-  if (lower.includes('tea') || lower.includes('plantation')) {
-    return '🍵';
-  }
+  const cat = (category || '').toLowerCase();
+  const desc = (description || '').toLowerCase();
+  if (cat === 'culture' || desc.includes('temple') || desc.includes('sacred')) return '🏛️';
+  if (cat === 'nature' || desc.includes('garden') || desc.includes('botanical')) return '🌿';
+  if (cat === 'beach' || desc.includes('beach') || desc.includes('ocean') || desc.includes('surf')) return '🏖️';
+  if (cat === 'adventure' || desc.includes('hike') || desc.includes('trek') || desc.includes('climb') || desc.includes('ella rock')) return '⛰️';
+  if (cat === 'relaxation' || desc.includes('spa') || desc.includes('yoga')) return '🧘';
+  if (cat === 'history' || desc.includes('fort') || desc.includes('museum') || desc.includes('colonial')) return '📜';
+  if (desc.includes('breakfast') || desc.includes('lunch') || desc.includes('dinner') || desc.includes('cafe') || desc.includes('restaurant') || desc.includes('food')) return '🍽️';
+  if (desc.includes('hotel') || desc.includes('check-in') || desc.includes('resort')) return '🏨';
+  if (desc.includes('safari') || desc.includes('wildlife') || desc.includes('elephant')) return '🦁';
+  if (desc.includes('train') || desc.includes('railway')) return '🚂';
+  if (desc.includes('tea') || desc.includes('plantation')) return '🍵';
+  if (desc.includes('whale') || desc.includes('dolphin') || desc.includes('boat')) return '🐋';
+  if (cat === 'arrival' || desc.includes('arrival') || desc.includes('pickup')) return '✈️';
+  if (desc.includes('shop') || desc.includes('market') || desc.includes('bazaar')) return '🛍️';
   return '📍';
 };
 
-const getMockCost = (description: string, budget: string = 'Medium'): number => {
-  const lower = description.toLowerCase();
-  const multipliers = { Low: 0.5, Medium: 1, High: 1.5, Luxury: 2.5 };
-  const multiplier = multipliers[budget as keyof typeof multipliers] || 1;
-
-  if (lower.includes('hotel') || lower.includes('accommodation') || lower.includes('resort')) {
-    return Math.round(80 * multiplier);
-  }
-  if (lower.includes('breakfast')) return Math.round(10 * multiplier);
-  if (lower.includes('lunch')) return Math.round(15 * multiplier);
-  if (lower.includes('dinner')) return Math.round(20 * multiplier);
-  if (lower.includes('temple') || lower.includes('fort')) return Math.round(8 * multiplier);
-  if (lower.includes('safari') || lower.includes('wildlife')) return Math.round(50 * multiplier);
-  if (lower.includes('train')) return Math.round(5 * multiplier);
-  
-  return Math.round(12 * multiplier);
-};
-
-const getMockDuration = (description: string): string => {
-  const lower = description.toLowerCase();
-  if (lower.includes('breakfast') || lower.includes('lunch') || lower.includes('dinner')) {
-    return '1-2 hrs';
-  }
-  if (lower.includes('hotel') || lower.includes('check-in')) {
-    return '15 min';
-  }
-  if (lower.includes('safari') || lower.includes('wildlife')) {
-    return '3-4 hrs';
-  }
-  if (lower.includes('hike') || lower.includes('trek')) {
-    return '2-3 hrs';
-  }
-  if (lower.includes('temple') || lower.includes('fort') || lower.includes('museum')) {
-    return '1-2 hrs';
-  }
-  return '1-2 hrs';
-};
-
-const getMockTime = (index: number): string => {
-  const startHour = 8 + (index * 2); // Start at 8 AM, add 2 hours per activity
-  if (startHour < 12) return `${startHour < 10 ? '0' : ''}${startHour}:00 AM`;
-  if (startHour === 12) return `12:00 PM`;
-  const pmHour = startHour - 12;
-  return `${pmHour < 10 ? '0' : ''}${pmHour}:00 PM`;
+const getCategoryColor = (category?: string): string => {
+  const cat = (category || '').toLowerCase();
+  if (cat === 'culture') return '#7C4DFF';
+  if (cat === 'nature') return '#2E7D32';
+  if (cat === 'beach') return '#0288D1';
+  if (cat === 'adventure') return '#E65100';
+  if (cat === 'relaxation') return '#AD1457';
+  if (cat === 'history') return '#5D4037';
+  if (cat === 'arrival') return '#1565C0';
+  return '#F9A825';
 };
 
 const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
@@ -120,114 +64,180 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
   canMoveUp,
   canMoveDown,
 }) => {
+  const [imgLoading, setImgLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+
   const icon = getCategoryIcon(activity.category, activity.description);
-  const cost = getMockCost(activity.description);
-  const duration = getMockDuration(activity.description);
-  const time = getMockTime(index);
-  
-  const hasPreferences = activity.matchedPreferences && activity.matchedPreferences.length > 0;
-  const hasTips = activity.tips && activity.tips.length > 0;
+  const accentColor = getCategoryColor(activity.category);
+  const time = activity.time || (() => {
+    const h = 8 + index * 2;
+    if (h < 12) return `0${h}:00 AM`.replace('0' + (h >= 10 ? '' : ''), h < 10 ? `0${h}` : `${h}`);
+    if (h === 12) return '12:00 PM';
+    return `0${h - 12}:00 PM`.replace('0' + ((h - 12) >= 10 ? '' : ''), (h - 12) < 10 ? `0${h - 12}` : `${h - 12}`);
+  })();
+  const richDescription = activity.richDescription || activity.description;
+  const tip = activity.tip || (activity.tips && activity.tips[0]) || '';
+  const cost = activity.costUSD ?? 0;
+  const photoUrl = activity.photoUrl;
 
   return (
     <View style={styles.timelineRow}>
-      {/* Timeline Indicator */}
-      <View style={styles.timelineIndicatorContainer}>
-        <View style={styles.timelineDotHalo}>
-          <View style={styles.timelineDot} />
+      {/* Timeline dot */}
+      <View style={styles.timelineLeft}>
+        <View style={[styles.timelineDotOuter, { borderColor: accentColor }]}>
+          <View style={[styles.timelineDotInner, { backgroundColor: accentColor }]} />
         </View>
       </View>
 
-      {/* Card Content */}
+      {/* Card */}
       <TouchableOpacity
-        style={[styles.cardContainer, isSelected && styles.selectedContainer]}
+        style={[styles.card, isSelected && { borderColor: accentColor, borderWidth: 1.5 }]}
         onPress={onPress}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.timeLabel}>
-            <Text style={styles.timeText}>{time}</Text>
+        {/* Photo */}
+        {photoUrl && !imgError ? (
+          <View style={styles.photoContainer}>
+            {imgLoading && (
+              <View style={styles.photoPlaceholder}>
+                <ActivityIndicator size="small" color={accentColor} />
+              </View>
+            )}
+            <Image
+              source={{ uri: photoUrl }}
+              style={[styles.photo, imgLoading && { opacity: 0 }]}
+              onLoad={() => setImgLoading(false)}
+              onError={() => { setImgError(true); setImgLoading(false); }}
+              resizeMode="cover"
+            />
+            {/* Time badge over photo */}
+            <View style={styles.timeBadge}>
+              <Text style={styles.timeBadgeText}>{time}</Text>
+            </View>
+            {/* Category badge */}
+            <View style={[styles.categoryBadge, { backgroundColor: accentColor }]}>
+              <Text style={styles.categoryBadgeText}>{icon}</Text>
+            </View>
           </View>
-          <Text style={styles.categoryIcon}>{icon}</Text>
-        </View>
-
-        <Text style={styles.titleText}>{activity.description}</Text>
-
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaIcon}>💰</Text>
-            <Text style={styles.metaText}>${cost}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaIcon}>⏱️</Text>
-            <Text style={styles.metaText}>{duration}</Text>
-          </View>
-          {activity.confidenceScore && (
-             <View style={styles.metaItem}>
-                <ConfidenceIndicator level={activity.confidenceScore} compact />
-             </View>
-          )}
-        </View>
-
-        {activity.hasPositiveFeedback && (
-          <View style={styles.positiveFeedbackContainer}>
-            <Text style={styles.positiveFeedbackIcon}>✨</Text>
-            <Text style={styles.positiveFeedbackText}>Based on your positive history</Text>
-          </View>
-        )}
-
-        {hasPreferences && (
-          <View style={styles.preferencesContainer}>
-            <View style={styles.preferencesTags}>
-              {activity.matchedPreferences!.map((pref) => (
-                <PreferenceTag key={pref} preference={pref} variant="compact" />
-              ))}
+        ) : (
+          /* No-photo header row */
+          <View style={styles.headerRow}>
+            <View style={styles.timePill}>
+              <Text style={styles.timePillText}>{time}</Text>
+            </View>
+            <View style={[styles.iconCircle, { backgroundColor: accentColor + '22' }]}>
+              <Text style={styles.iconText}>{icon}</Text>
             </View>
           </View>
         )}
 
-        {hasTips && (
-          <View style={styles.tipsContainer}>
-            <Text style={styles.tipsIcon}>💡</Text>
-            <Text style={styles.tipsText}>{activity.tips![0]}</Text>
-          </View>
-        )}
+        {/* Body */}
+        <View style={styles.body}>
+          <Text style={styles.placeName} numberOfLines={2}>
+            {activity.description}
+          </Text>
 
-        {(onMoveUp || onMoveDown || onDelete) && (
-          <View style={styles.actions}>
-            {onMoveUp && (
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  !canMoveUp && styles.actionButtonDisabled,
-                ]}
-                onPress={onMoveUp}
-                disabled={!canMoveUp}
-              >
-                <Text style={styles.actionText}>↑</Text>
-              </TouchableOpacity>
-            )}
-            {onMoveDown && (
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  !canMoveDown && styles.actionButtonDisabled,
-                ]}
-                onPress={onMoveDown}
-                disabled={!canMoveDown}
-              >
-                <Text style={styles.actionText}>↓</Text>
-              </TouchableOpacity>
-            )}
-            {onDelete && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={onDelete}
-              >
-                <Text style={styles.deleteText}>🗑️</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          <Text style={styles.richDesc} numberOfLines={3}>
+            {richDescription}
+          </Text>
+
+          {/* Meta row: cost + duration */}
+          {(cost > 0 || activity.estimatedDuration) && (
+            <View style={styles.metaRow}>
+              {cost > 0 && (
+                <View style={styles.metaChip}>
+                  <Text style={styles.metaChipIcon}>💵</Text>
+                  <Text style={styles.metaChipText}>${cost} USD</Text>
+                </View>
+              )}
+              {activity.estimatedDuration && (
+                <View style={styles.metaChip}>
+                  <Text style={styles.metaChipIcon}>⏱</Text>
+                  <Text style={styles.metaChipText}>{activity.estimatedDuration}</Text>
+                </View>
+              )}
+              {activity.confidenceScore && (
+                <View
+                  style={[
+                    styles.metaChip,
+                    {
+                      backgroundColor:
+                        activity.confidenceScore === 'High'
+                          ? '#E8F5E9'
+                          : activity.confidenceScore === 'Medium'
+                          ? '#FFF8E1'
+                          : '#FFEBEE',
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.confidenceDot,
+                      {
+                        backgroundColor:
+                          activity.confidenceScore === 'High'
+                            ? '#43A047'
+                            : activity.confidenceScore === 'Medium'
+                            ? '#FFB300'
+                            : '#EF5350',
+                      },
+                    ]}
+                  />
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Local tip */}
+          {tip ? (
+            <View style={styles.tipRow}>
+              <Text style={styles.tipLabel}>📌 </Text>
+              <Text style={styles.tipText} numberOfLines={2}>{tip}</Text>
+            </View>
+          ) : null}
+
+          {/* Matched preferences */}
+          {activity.matchedPreferences && activity.matchedPreferences.length > 0 && (
+            <View style={styles.prefRow}>
+              {activity.matchedPreferences.slice(0, 3).map((p) => (
+                <View key={p} style={[styles.prefChip, { borderColor: accentColor }]}>
+                  <Text style={[styles.prefChipText, { color: accentColor }]}>
+                    {p}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Edit controls */}
+          {(onMoveUp || onMoveDown || onDelete) && (
+            <View style={styles.actions}>
+              {onMoveUp && (
+                <TouchableOpacity
+                  style={[styles.actionBtn, !canMoveUp && { opacity: 0.3 }]}
+                  onPress={onMoveUp}
+                  disabled={!canMoveUp}
+                >
+                  <Text style={styles.actionBtnText}>↑</Text>
+                </TouchableOpacity>
+              )}
+              {onMoveDown && (
+                <TouchableOpacity
+                  style={[styles.actionBtn, !canMoveDown && { opacity: 0.3 }]}
+                  onPress={onMoveDown}
+                  disabled={!canMoveDown}
+                >
+                  <Text style={styles.actionBtnText}>↓</Text>
+                </TouchableOpacity>
+              )}
+              {onDelete && (
+                <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
+                  <Text style={styles.actionBtnText}>🗑️</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -236,173 +246,221 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
 const styles = StyleSheet.create({
   timelineRow: {
     flexDirection: 'row',
-    marginBottom: 20,
-    position: 'relative',
+    marginBottom: 24,
   },
-  timelineIndicatorContainer: {
-    width: 40,
+  timelineLeft: {
+    width: 32,
     alignItems: 'center',
-    paddingTop: 15,
+    paddingTop: 18,
   },
-  timelineDotHalo: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFF8E1',
+  timelineDotOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FFC107',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#FFC107',
+  timelineDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  cardContainer: {
+  card: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  selectedContainer: {
-    borderColor: '#FFC107',
-    backgroundColor: '#FFFDF5',
+  // ── Photo section ──────────────────────────────────────────────
+  photoContainer: {
+    position: 'relative',
+    height: 180,
+    width: '100%',
   },
-  cardHeader: {
+  photoPlaceholder: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photo: {
+    width: '100%',
+    height: '100%',
+  },
+  timeBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  timeBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryBadgeText: {
+    fontSize: 17,
+  },
+  // ── No-photo header ─────────────────────────────────────────────
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
   },
-  timeLabel: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  timePill: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
-  timeText: {
+  timePillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#555',
+    color: '#444',
+    letterSpacing: 0.3,
   },
-  categoryIcon: {
-    fontSize: 20,
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  titleText: {
-    fontSize: 16,
+  iconText: {
+    fontSize: 18,
+  },
+  // ── Card body ───────────────────────────────────────────────────
+  body: {
+    padding: 16,
+  },
+  placeName: {
+    fontSize: 17,
     fontWeight: '800',
-    color: '#222',
-    lineHeight: 22,
+    color: '#1A1A1A',
+    lineHeight: 23,
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  richDesc: {
+    fontSize: 13.5,
+    color: '#555',
+    lineHeight: 20,
     marginBottom: 12,
   },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 8,
-    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
   },
-  metaItem: {
+  metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15,
-    marginBottom: 5,
-  },
-  metaIcon: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '600',
-  },
-  positiveFeedbackContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    marginBottom: 12,
-    alignSelf: 'flex-start',
+    borderRadius: 10,
+    gap: 4,
   },
-  positiveFeedbackIcon: {
-    fontSize: 14,
-    marginRight: 6,
+  metaChipIcon: {
+    fontSize: 13,
   },
-  positiveFeedbackText: {
+  metaChipText: {
     fontSize: 12,
-    color: '#2E7D32',
     fontWeight: '600',
+    color: '#444',
   },
-  preferencesContainer: {
-    marginBottom: 12,
+  confidenceDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  preferencesTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tipsContainer: {
+  tipRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFF9C4',
-    borderRadius: 8,
+    backgroundColor: '#FFFBEE',
+    borderRadius: 10,
     padding: 10,
-    marginTop: 8,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F9A825',
   },
-  tipsIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  tipsText: {
-    flex: 1,
+  tipLabel: {
     fontSize: 13,
-    color: '#5D4037',
-    fontStyle: 'italic',
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: '#6D4C00',
     lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  prefRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  prefChip: {
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  prefChipText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#F0F0F0',
+    gap: 8,
   },
-  actionButton: {
+  actionBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
   },
-  actionButtonDisabled: {
-    opacity: 0.3,
+  deleteBtn: {
+    backgroundColor: '#FFF0F0',
   },
-  actionText: {
-    fontSize: 16,
+  actionBtnText: {
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#333',
-  },
-  deleteButton: {
-    backgroundColor: '#ffe6e6',
-  },
-  deleteText: {
-    fontSize: 14,
   },
 });
 
