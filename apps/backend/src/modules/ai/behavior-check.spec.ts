@@ -223,28 +223,50 @@ describe('AI Production Behavior Review', () => {
   describe('Generative JSON Recovery Parser', () => {
     it('should parse standard clean JSON string', () => {
       const input = '{"isComplete": true, "reply": "Hello"}';
-      const parsed = (aiService as any).parseGenerativeJson(input);
+      const service = aiService as unknown as {
+        parseGenerativeJson: (s: string) => unknown;
+      };
+      const parsed = service.parseGenerativeJson(input) as {
+        isComplete: boolean;
+        reply: string;
+      };
       expect(parsed.isComplete).toBe(true);
       expect(parsed.reply).toBe('Hello');
     });
 
     it('should successfully extract JSON wrapped in Markdown code blocks', () => {
       const input = '```json\n{"isComplete": false, "reply": "Test"}\n```';
-      const parsed = (aiService as any).parseGenerativeJson(input);
+      const service = aiService as unknown as {
+        parseGenerativeJson: (s: string) => unknown;
+      };
+      const parsed = service.parseGenerativeJson(input) as {
+        isComplete: boolean;
+        reply: string;
+      };
       expect(parsed.isComplete).toBe(false);
       expect(parsed.reply).toBe('Test');
     });
 
     it('should extract JSON embedded inside generic conversational text wrapper', () => {
-      const input = 'Here is the response:\n{\n  "isComplete": true,\n  "reply": "RAG matched"\n}\nHope this helps!';
-      const parsed = (aiService as any).parseGenerativeJson(input);
+      const input =
+        'Here is the response:\n{\n  "isComplete": true,\n  "reply": "RAG matched"\n}\nHope this helps!';
+      const service = aiService as unknown as {
+        parseGenerativeJson: (s: string) => unknown;
+      };
+      const parsed = service.parseGenerativeJson(input) as {
+        isComplete: boolean;
+        reply: string;
+      };
       expect(parsed.isComplete).toBe(true);
       expect(parsed.reply).toBe('RAG matched');
     });
 
     it('should throw an error if no JSON structures are found', () => {
       const input = 'This is just a simple sentence without any JSON.';
-      expect(() => (aiService as any).parseGenerativeJson(input)).toThrow(
+      const service = aiService as unknown as {
+        parseGenerativeJson: (s: string) => unknown;
+      };
+      expect(() => service.parseGenerativeJson(input)).toThrow(
         'could not find any enclosing curly braces',
       );
     });
