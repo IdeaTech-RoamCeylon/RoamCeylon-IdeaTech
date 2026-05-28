@@ -9,7 +9,10 @@ import ProductDetailsScreen from '../screens/marketplace/ProductDetailsScreen';
 import TransportScreen from '../screens/transport/TransportScreen';
 import TransportLocationPickerScreen from '../screens/transport/TransportLocationPickerScreen';
 import TransportStatusScreen from '../screens/transport/TransportStatusScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
+import SettingsHomeScreen from '../screens/Settings/SettingsHome';
+import PersonalInfoScreen from '../screens/Settings/PersonalInfo';
+import ChangePasswordScreen from '../screens/Settings/ChangePassword';
+import PrivacyPolicyScreen from '../screens/Settings/PrivacyPolicy';
 import AITripPlannerScreen from '../screens/planner/AITripPlannerScreen';
 import SavedTripsScreen from '../screens/planner/SavedTripsScreen';
 import AIWelcomeScreen from '../screens/planner/AIWelcomeScreen';
@@ -36,7 +39,10 @@ const MainStack = () => {
       <Stack.Screen name="Transport" component={TransportScreen} />
       <Stack.Screen name="TransportLocationPicker" component={TransportLocationPickerScreen} />
       <Stack.Screen name="TransportStatus" component={TransportStatusScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Profile" component={SettingsHomeScreen} />
+      <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <Stack.Screen name="AIWelcome" component={AIWelcomeScreen} />
       <Stack.Screen name="AIHome" component={AIHomeScreen} />

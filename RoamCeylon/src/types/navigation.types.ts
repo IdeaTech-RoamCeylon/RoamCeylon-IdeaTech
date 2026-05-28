@@ -32,6 +32,9 @@ export type MainStackParamList = {
   TransportStatus: undefined;
   Map: undefined;
   Profile: undefined;
+  PersonalInfo: undefined;
+  ChangePassword: undefined;
+  PrivacyPolicy: undefined;
   ComponentShowcase: undefined;
   AITripPlanner: undefined;
   AIWelcome: undefined;
