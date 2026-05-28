@@ -195,51 +195,69 @@ export class AIService {
       }
     }
 
-    const prompt = `You are a world-class, premium conversational travel assistant specializing in Sri Lanka.
-Your audience consists of high-end international travelers expecting detailed, highly accurate, and context-rich assistance.
-Current trip parameters: ${JSON.stringify(currentParams)}.
-User message: "${message}".
+    const ragSection = retrievedFactsText
+      ? 'Retrieved context facts from our verified Sri Lanka travel database:\n' +
+        retrievedFactsText +
+        '\nAlways prioritize these real database facts in your answer.'
+      : '';
 
-${
-  retrievedFactsText
-    ? `Retrieved context facts from our verified Sri Lanka travel database matching the user's query:
-${retrievedFactsText}
-Use the above database facts to provide extremely accurate answers if the user asks about these locations or regions. Always prioritize these real database facts.`
-    : ''
-}
-
-You must perform two simultaneous tasks:
-1. ANSWER THE USER'S QUESTIONS:
-   - If the user asks ANY question (about safety, weather, monsoon seasons, toddler friendliness, local routes, train tickets, packing, or cultural etiquettes), you must answer it with profound local expertise.
-   - Be specific: Mention real facts (e.g., Sigiriya is best climbed at 6 AM; Kandy-to-Ella train is iconic and takes 7 hours; southwest monsoon runs May-September, northeast runs October-January).
-   - If their question is complex, break down the answer logically and offer practical solutions (e.g. private driver vs. train, safety precautions).
-
-2. EXTRACT TRIP PARAMETERS (SLOT-FILLING):
-   - Analyze the conversation and silently extract or update the 5 key parameters:
-     a. destination (string - e.g. "Ella", "Galle", "Kandy")
-     b. duration (string - e.g. "5 days")
-     c. pax (string - e.g. "2 adults", "Family of 4 with a toddler")
-     d. budget (string - "Low", "Medium", "High", "Luxury")
-     e. interests (array of strings - e.g. ["hiking", "culture", "beaches"])
-   - Keep current values if not updated in the new message.
-
-CONVERSATIONAL GUIDANCE:
-- If the user asked a question, prioritize answering it first in a warm, helpful, and sophisticated tone. After answering, if parameters are still missing, smoothly transition into asking for ONE missing parameter (e.g. "To help me tailor the perfect route, how many days are you planning to spend in Sri Lanka?").
-- If no question was asked, generate a natural reply acknowledging their inputs and asking for ONE missing parameter.
-- If all 5 parameters are collected (none are null) or the user explicitly requests to build/generate their trip plan, set isComplete to true and give a concluding reply letting them know you are generating the itinerary (e.g. "Perfect, I have all the details! Preparing your custom Sri Lankan adventure now.").
-
-Return ONLY a JSON object with this exact structure (no markdown tags, no backticks):
-{
-  "isComplete": boolean,
-  "reply": string,
-  "extractedData": {
-    "destination": string | null,
-    "duration": string | null,
-    "pax": string | null,
-    "budget": string | null,
-    "interests": string[] | null
-  }
-}`;
+    // Build the prompt using string concatenation to avoid template-literal escaping issues
+    const prompt =
+      'You are a world-class, premium conversational travel assistant specializing in Sri Lanka.\n' +
+      'Your audience consists of high-end international travelers expecting detailed, highly accurate, and context-rich assistance.\n' +
+      'Current trip parameters (already known — do NOT reset these, only update or add): ' +
+      JSON.stringify(currentParams) +
+      '.\n' +
+      'User message: "' +
+      message +
+      '".\n' +
+      '\n' +
+      ragSection +
+      '\n\n' +
+      'You must perform two simultaneous tasks:\n' +
+      '1. ANSWER THE USER\'S QUESTIONS:\n' +
+      '   - Answer any question with profound local expertise (safety, weather, monsoon, train routes, culture, packing).\n' +
+      '   - Be specific with real facts (e.g., Sigiriya is best climbed at 6 AM; Kandy-to-Ella train takes 7 hours; southwest monsoon May-September).\n' +
+      '   - Recommend SPECIFIC named places where relevant (e.g., "Mirissa Beach", "Galle Fort", "Ella Rock hike").\n' +
+      '\n' +
+      '2. EXTRACT TRIP PARAMETERS (SLOT-FILLING):\n' +
+      '   - Extract or update only the parameters that the user has explicitly mentioned.\n' +
+      '   - Keep all existing parameter values — NEVER set a filled field back to null.\n' +
+      '   a. destination: primary city/region (e.g. "Ella", "Galle", "South Coast")\n' +
+      '   b. duration: always include the unit (e.g. "5 days", "7 days")\n' +
+      '   c. pax: full group description:\n' +
+      '      - "honeymoon", "couple" → "Couple (2)"\n' +
+      '      - "solo", "by myself" → "Solo (1)"\n' +
+      '      - "family" + kids/children → "Family of [N]"\n' +
+      '      - Otherwise use the user\'s exact description\n' +
+      '   d. budget: MUST be exactly one of: "Low", "Medium", "High", "Luxury"\n' +
+      '      - "budget", "backpacker", "cheap" → "Low"\n' +
+      '      - "comfortable", "mid-range" → "Medium"\n' +
+      '      - "nice hotels", "good quality" → "High"\n' +
+      '      - "luxury", "5-star", "premium" → "Luxury"\n' +
+      '   e. interests: array of strings — MERGE with existing, do NOT replace:\n' +
+      '      - Include BOTH generic interests AND any specific places/activities mentioned.\n' +
+      '      - Example: "Mirissa for whale watching" → add ["beach", "whale watching", "Mirissa"]\n' +
+      '      - Example: "Ella Rock hike" → add ["hiking", "Ella Rock", "nature"]\n' +
+      '\n' +
+      'CONVERSATIONAL GUIDANCE:\n' +
+      '- Priority for missing params: destination → duration → pax → budget → interests.\n' +
+      '- Ask for the HIGHEST PRIORITY missing param only, one at a time.\n' +
+      '- Answer questions first in a warm, sophisticated tone, then ask for the next missing param.\n' +
+      '- When all 5 are collected OR user says "generate"/"build my plan", set isComplete=true.\n' +
+      '\n' +
+      'Return ONLY a JSON object (no markdown, no backticks):\n' +
+      '{\n' +
+      '  "isComplete": boolean,\n' +
+      '  "reply": string,\n' +
+      '  "extractedData": {\n' +
+      '    "destination": string | null,\n' +
+      '    "duration": string | null,\n' +
+      '    "pax": string | null,\n' +
+      '    "budget": string | null,\n' +
+      '    "interests": string[] | null\n' +
+      '  }\n' +
+      '}';
 
     const ExtractedDataSchema = z.object({
       isComplete: z.boolean(),
@@ -302,7 +320,10 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
         const firstLine = retrievedFactsText.split('\n')[0] || '';
         const cleanedFact = firstLine.replace(/^- \*\*(.*?)\*\*:\s*/, '$1: ');
         if (cleanedFact) {
-          customReply = `I'm having a brief connection glitch with my cognitive engine, but I successfully retrieved this verified info from RoamCeylon's local database: ${cleanedFact}\n\nCould you tell me how many days you plan to spend or your budget so we can keep building your itinerary?`;
+          customReply =
+            "I'm having a brief connection glitch with my cognitive engine, but I successfully retrieved this verified info from RoamCeylon's local database: " +
+            cleanedFact +
+            '\n\nCould you tell me how many days you plan to spend or your budget so we can keep building your itinerary?';
         }
       }
 
@@ -351,14 +372,17 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
         model: 'gemini-flash-latest',
       });
 
-      const learnPrompt = `You are a professional travel compiler. Generate a highly accurate, structured travel database record for this Sri Lankan location: "${destination}".
-Return ONLY a JSON object with this exact structure (no markdown, no backticks, no comments):
-{
-  "title": "Clean, official name of the place",
-  "description": "A 1-sentence detailed travel description of the place, highlights, and travel tips.",
-  "near": ["adjacent town 1", "adjacent town 2"],
-  "region": "one of: south, cultural_triangle, kandy, hill_country, safari_south, east_coast, north, west, south_west, uva, sabaragamuwa, east"
-}`;
+      const learnPrompt =
+        'You are a professional travel compiler. Generate a highly accurate, structured travel database record for this Sri Lankan location: "' +
+        destination +
+        '".\n' +
+        'Return ONLY a JSON object with this exact structure (no markdown, no backticks, no comments):\n' +
+        '{\n' +
+        '  "title": "Clean, official name of the place",\n' +
+        '  "description": "A 1-sentence detailed travel description of the place, highlights, and travel tips.",\n' +
+        '  "near": ["adjacent town 1", "adjacent town 2"],\n' +
+        '  "region": "one of: south, cultural_triangle, kandy, hill_country, safari_south, east_coast, north, west, south_west, uva, sabaragamuwa, east"\n' +
+        '}';
 
       const result = await model.generateContent(learnPrompt);
       const text = result.response.text();
@@ -381,13 +405,13 @@ Return ONLY a JSON object with this exact structure (no markdown, no backticks, 
 
       if (title && desc) {
         const metaLines: string[] = [];
-        if (near.length) metaLines.push(`Near: ${near.join(', ')}`);
-        if (region) metaLines.push(`Region: ${region}`);
+        if (near.length) metaLines.push('Near: ' + near.join(', '));
+        if (region) metaLines.push('Region: ' + region);
         const contentWithMeta = metaLines.length
-          ? `${desc}\n\n${metaLines.join('\n')}`
+          ? desc + '\n\n' + metaLines.join('\n')
           : desc;
 
-        const textForEmbedding = `${title}. ${contentWithMeta}`;
+        const textForEmbedding = title + '. ' + contentWithMeta;
         const embedding = this.generateDummyEmbedding(textForEmbedding);
 
         await this.embeddingService.saveNewEmbedding(
@@ -396,7 +420,9 @@ Return ONLY a JSON object with this exact structure (no markdown, no backticks, 
           embedding,
         );
         console.log(
-          `[Self-Learning] Automatically learned new destination: "${title}"`,
+          '[Self-Learning] Automatically learned new destination: "' +
+            title +
+            '"',
         );
       }
     } catch (e) {

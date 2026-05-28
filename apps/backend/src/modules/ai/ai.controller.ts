@@ -74,6 +74,10 @@ export interface TripPlanRequestDto {
   useSavedContext?: boolean; // default true
   mode?: 'new' | 'refine'; // default 'refine'
   tripId?: string; // optional specific trip refinement
+  // Chat-context fields
+  budget?: string; // 'Low' | 'Medium' | 'High' | 'Luxury'
+  pax?: string; // e.g. '2 adults', 'Family of 4'
+  chatContext?: string; // Condensed summary of chat conversation for enriched search
 }
 
 interface RankingDetails {
@@ -3019,14 +3023,50 @@ export class AIController {
     // ===============================
     // NORMAL SEARCH FLOW ONLY SHOWN
     // ===============================
-    const searchResults = await this.executeSearch(
-      [
-        destinationLower,
-        'attractions',
-        'places to visit',
-        ...preferences.map((p) => p.toLowerCase()),
-      ].join(' '),
-    );
+
+    // Build an enriched search query from all available context
+    const searchTerms: string[] = [
+      destinationLower,
+      'attractions',
+      'places to visit',
+      ...preferences.map((p) => p.toLowerCase()),
+    ];
+
+    // Inject budget-appropriate activity terms
+    if (body.budget) {
+      const budgetLower = body.budget.toLowerCase();
+      if (budgetLower === 'luxury') searchTerms.push('luxury resort spa premium');
+      else if (budgetLower === 'high') searchTerms.push('premium experience resort');
+      else if (budgetLower === 'low') searchTerms.push('budget friendly affordable');
+    }
+
+    // Inject group-type terms derived from pax
+    if (body.pax) {
+      const paxLower = body.pax.toLowerCase();
+      if (paxLower.includes('family') || paxLower.includes('child') || paxLower.includes('kid'))
+        searchTerms.push('family friendly kid safe');
+      else if (paxLower.includes('couple') || paxLower.includes('honeymoon'))
+        searchTerms.push('romantic couples scenic');
+      else if (paxLower.includes('solo'))
+        searchTerms.push('solo traveler safe');
+    }
+
+    // Inject key phrases from the chat conversation summary
+    if (body.chatContext && body.chatContext.length > 5) {
+      const contextSnippet = body.chatContext
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 3)
+        .slice(0, 10)
+        .join(' ');
+      if (contextSnippet) searchTerms.push(contextSnippet);
+    }
+
+    const enrichedQuery = [...new Set(searchTerms)].join(' ');
+    this.logger.log(`[trip-plan] Enriched search query: "${enrichedQuery}"`);
+
+    const searchResults = await this.executeSearch(enrichedQuery);
 
     const gated = this.gateByNearOrRegion(
       searchResults.results,

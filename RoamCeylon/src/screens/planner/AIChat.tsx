@@ -136,9 +136,17 @@ const AIChatScreen = () => {
       // Remove "Thinking..."
       removeMessage(thinkingId);
 
-      // Update parameters context
-      const updatedParams = { ...tripParams, ...extractedData };
-      setTripParams(updatedParams);
+      // Merge parameters carefully so we don't overwrite valid existing ones with null
+      const mergedParams = { ...tripParams };
+      if (extractedData) {
+        Object.keys(extractedData).forEach(key => {
+          const val = extractedData[key];
+          if (val !== null && val !== undefined) {
+            mergedParams[key as keyof typeof tripParams] = val;
+          }
+        });
+      }
+      setTripParams(mergedParams);
 
       // Push AI reply
       pushMessage(reply, 'ai');
@@ -154,7 +162,7 @@ const AIChatScreen = () => {
               sender: 'ai',
               timestamp: new Date(),
               type: 'summaryCard',
-              tripData: updatedParams,
+              tripData: mergedParams,
             },
           ]);
         }, 500);
@@ -209,6 +217,36 @@ const AIChatScreen = () => {
 
   // ─── Generate Trip Plan (handoff) ─────────────────────────────────────────
 
+  /**
+   * Build a compact keyword summary from the AI messages in the chat so the
+   * backend search engine can surface places that actually match what was
+   * discussed (specific beaches, cultural sites, preferences, etc.).
+   */
+  const buildChatContext = useCallback((): string => {
+    const aiReplies = messages
+      .filter(m => m.sender === 'ai' && m.type === 'text' && m.text && m.text.length > 20)
+      .map(m => m.text)
+      .slice(-6); // Use last 6 AI messages for freshness
+
+    const combined = aiReplies.join(' ');
+    // Extract meaningful words only (strip pronouns / filler)
+    const stopWords = new Set([
+      'the', 'and', 'for', 'you', 'your', 'that', 'this', 'with',
+      'have', 'are', 'will', 'can', 'all', 'any', 'its', 'has',
+      'also', 'about', 'from', 'which', 'what', 'some', 'our',
+      'into', 'more', 'than', 'they', 'their', 'when', 'here', 'how',
+    ]);
+    const words = combined
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 4 && !stopWords.has(w));
+
+    // Deduplicate and take top 20 keywords
+    const unique = [...new Set(words)].slice(0, 20);
+    return unique.join(' ');
+  }, [messages]);
+
   const handleGeneratePlan = useCallback(async () => {
     if (isLoading) return;
 
@@ -225,12 +263,15 @@ const AIChatScreen = () => {
     pushMessage('Generating your trip plan... please wait! 🚀', 'ai');
 
     try {
+      const chatContext = buildChatContext();
+
       const request: TripPlanRequest = {
         destination: tripParams.destination || '',
         duration: tripParams.duration || '3',
         budget: tripParams.budget || 'Medium',
         interests: tripParams.interests || [],
         pax: tripParams.pax,
+        chatContext: chatContext || undefined,
         useSavedContext: false,
         mode: 'new',
       };
@@ -256,7 +297,7 @@ const AIChatScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [tripParams, isLoading, pushMessage, setQuery, setTripPlan, navigation]);
+  }, [tripParams, isLoading, pushMessage, setQuery, setTripPlan, navigation, buildChatContext]);
 
   // ─── Summary Card Renderer ────────────────────────────────────────────────
 

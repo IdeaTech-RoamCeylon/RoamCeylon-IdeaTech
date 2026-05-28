@@ -4,9 +4,10 @@ import { retryWithBackoff } from '../utils/networkUtils';
 export interface TripPlanRequest {
   destination: string;
   duration: string; // e.g., '3 days'
-  budget: string; // e.g., 'Medium', 'Low', 'High'
+  budget: string; // e.g., 'Medium', 'Low', 'High', 'Luxury'
   interests?: string[];
   pax?: string; // Number of people traveling
+  chatContext?: string; // Condensed summary of chat for enriched search
   // Saved Trip Context integration
   useSavedContext?: boolean; // default true
   mode?: 'new' | 'refine'; // default 'refine'
@@ -98,8 +99,9 @@ class AIService {
         tripId: request.tripId
       });
 
-      // 2. Check if we have a valid cache hit
-      if (this.cachedResponse && this.lastRequestKey === cacheKey) {
+      // 2. Check if we have a valid cache hit (skip cache for fresh plans)
+      const isNewPlan = request.mode === 'new';
+      if (!isNewPlan && this.cachedResponse && this.lastRequestKey === cacheKey) {
         return this.cachedResponse;
       }
 
@@ -121,6 +123,10 @@ class AIService {
         useSavedContext: request.useSavedContext,
         mode: request.mode,
         tripId: request.tripId,
+        // Chat-context fields for accuracy
+        budget: request.budget,
+        pax: request.pax,
+        chatContext: request.chatContext,
       };
 
       // Fetch data matching the BACKEND structure
