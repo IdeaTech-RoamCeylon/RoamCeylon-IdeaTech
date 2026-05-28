@@ -194,43 +194,67 @@
     {
       "title": "Galle Fort Dutch Museum",
       "description": "The Dutch Period Museum inside Galle Fort showcases colonial artifacts, furniture, and history of Dutch rule in Sri Lanka.",
-      "near": ["galle", "unawatuna"],
+      "near": [
+        "galle",
+        "unawatuna"
+      ],
       "region": "south"
     },
     {
       "title": "Galle Lighthouse",
       "description": "The Galle Lighthouse is the oldest lighthouse in Sri Lanka, located within the Galle Fort walls with panoramic ocean views.",
-      "near": ["galle", "unawatuna"],
+      "near": [
+        "galle",
+        "unawatuna"
+      ],
       "region": "south"
     },
     {
       "title": "Jungle Beach",
       "description": "Jungle Beach is a secluded cove near Unawatuna surrounded by jungle, ideal for snorkeling and escaping the crowds.",
-      "near": ["galle", "unawatuna", "hikkaduwa"],
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
       "region": "south"
     },
     {
       "title": "Japanese Peace Pagoda",
       "description": "A serene Buddhist stupa on a hilltop near Unawatuna with stunning views over the Indian Ocean and surrounding coastline.",
-      "near": ["galle", "unawatuna"],
+      "near": [
+        "galle",
+        "unawatuna"
+      ],
       "region": "south"
     },
     {
       "title": "Koggala Lake",
       "description": "Koggala Lake near Galle is a scenic lagoon perfect for boat rides, birdwatching, and visiting small island temples.",
-      "near": ["galle", "hikkaduwa", "unawatuna"],
+      "near": [
+        "galle",
+        "hikkaduwa",
+        "unawatuna"
+      ],
       "region": "south"
     },
     {
       "title": "Rumassala Hill",
       "description": "Rumassala is a forested hill near Unawatuna with jungle trails, medicinal herbs, and panoramic views of Galle Bay.",
-      "near": ["galle", "unawatuna"],
+      "near": [
+        "galle",
+        "unawatuna"
+      ],
       "region": "south"
     },
     {
       "title": "Hikkaduwa Coral Reef",
       "description": "The Hikkaduwa coral reef is a protected marine sanctuary near Galle with vibrant coral gardens and sea turtles.",
-      "near": ["galle", "hikkaduwa", "bentota"],
+      "near": [
+        "galle",
+        "hikkaduwa",
+        "bentota"
+      ],
       "region": "south"
     },
     {
@@ -264,24 +288,4608 @@
         "nuwara eliya"
       ],
       "region": "kandy"
-   },
-   {
-    "title": "Knuckles Mountain Range",
-    "description": "The Knuckles Mountain Range is a UNESCO World Heritage listed mountain range in central Sri Lanka, known for its dramatic peaks, cloud forests, waterfalls, diverse wildlife, and challenging trekking trails.",
-    "near": [
-      "kandy",
-      "matale",
-      "ella"
-    ],
-    "region": "kandy"
-   },
-   {
-     "title": "Jaffna Fort",
-     "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon.",
-     "near": [
-      "jaffna"
-     ],
-     "region": "north"
-   }
+    },
+    {
+      "title": "Knuckles Mountain Range",
+      "description": "The Knuckles Mountain Range is a UNESCO World Heritage listed mountain range in central Sri Lanka, known for its dramatic peaks, cloud forests, waterfalls, diverse wildlife, and challenging trekking trails.",
+      "near": [
+        "kandy",
+        "matale",
+        "ella"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Jaffna Fort",
+      "description": "A historic fortress in the northern tip of Sri Lanka, reflecting both Portuguese and Dutch architectural influences and offering views of the Jaffna lagoon.",
+      "near": [
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Pidurangala Rock",
+      "description": "Pidurangala is a massive rock formation situated adjacent to Sigiriya Rock, offering an adventurous hike and the best panoramic sunset views of Sigiriya Lion Rock.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "habarana"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Ritigala Archaeological Monastery",
+      "description": "Ritigala is an ancient Buddhist monastery and mountain range strict nature reserve containing beautiful stone ruins, bridges, and unique medicinal herbs.",
+      "near": [
+        "habarana",
+        "anuradhapura",
+        "sigiriya"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Delft Island",
+      "description": "Also known as Neduntheevu, Delft Island is a remote island off the Jaffna coast famous for its wild horses, giant baobab tree, growing coral walls, and historical Dutch ruins.",
+      "near": [
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Lipton's Seat",
+      "description": "Lipton's Seat is a famous panoramic viewpoint in Haputale where Sir Thomas Lipton used to survey his vast tea plantations, offering breathtaking views over multiple provinces.",
+      "near": [
+        "haputale",
+        "ella",
+        "badulla"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Diyaluma Falls",
+      "description": "Diyaluma Falls is the second-highest waterfall in Sri Lanka, popular for its natural swimming pools and infinity drop pools situated at the very top of the falls.",
+      "near": [
+        "ella",
+        "wellawaya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Lunuganga Estate",
+      "description": "The country estate of the world-famous tropical modernist architect Geoffrey Bawa, displaying beautiful Italian-style gardens, lake views, and artistic landscaping.",
+      "near": [
+        "bentota",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Pigeon Island National Park",
+      "description": "A beautiful marine national park in Nilaveli consisting of pristine coral reefs, sea turtles, colorful reef fish, and harmless blacktip reef sharks ideal for snorkeling.",
+      "near": [
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Sinharaja Forest Reserve",
+      "description": "Sinharaja is a UNESCO World Heritage biosphere reserve and primary tropical rainforest in Sri Lanka, boasting immense biodiversity and rare endemic birds and tree species.",
+      "near": [
+        "deniyaya",
+        "ratnapura",
+        "galle"
+      ],
+      "region": "south_west"
+    },
+    {
+      "title": "Bambarakanda Falls",
+      "description": "Bambarakanda is the tallest waterfall in Sri Lanka, cascading down a sheer rock face amidst beautiful pine forests.",
+      "near": [
+        "ella",
+        "haputale",
+        "belihuloya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Adam's Peak",
+      "description": "Known locally as Sri Pada, Adam's Peak is a sacred mountain revered by multiple religions, famous for midnight pilgrimage hikes to watch the magnificent sunrise and its triangular shadow.",
+      "near": [
+        "hatton",
+        "dalhousie",
+        "ratnapura"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Gal Oya National Park",
+      "description": "A remote wildlife sanctuary famous for its boat safaris on the Senanayake Samudra reservoir, where visitors can watch wild elephants swimming between islands.",
+      "near": [
+        "ampara",
+        "bibile"
+      ],
+      "region": "east"
+    },
+    {
+      "title": "Belilena Cave",
+      "description": "An archaeological cave site near Kitulgala that holds evidence of the prehistoric Balangoda Man, who lived there over 12,000 years ago.",
+      "near": [
+        "kitulgala",
+        "avissawella"
+      ],
+      "region": "sabaragamuwa"
+    },
+    {
+      "title": "Mannar Island",
+      "description": "A northern peninsula containing ancient baobab trees, historic Mannar Fort, migrating flamingos, and the sandbanks of Adam's Bridge stretching towards India.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Nilgala Forest Reserve",
+      "description": "A medicinal forest reserve renowned for its savannah-like grasslands, wild herds of deer, rich medicinal herbs, and avian biodiversity.",
+      "near": [
+        "bibile",
+        "monaragala",
+        "ella"
+      ],
+      "region": "uva"
+    },
+    {
+      "title": "Dunhinda Falls",
+      "description": "One of Sri Lanka's most beautiful roaring waterfalls, located near Badulla and surrounded by lush green valleys.",
+      "near": [
+        "badulla",
+        "ella",
+        "passara"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Galle Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Galle region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Unawatuna region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Hikkaduwa region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Mirissa region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Bentota region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Tangalle region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Weligama region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Matara region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Sigiriya region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Dambulla region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Anuradhapura region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Polonnaruwa region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Habarana region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Kandy region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Peradeniya region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Matale region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Ella region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Nuwara Eliya region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Haputale region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Hatton region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Badulla region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Yala region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Udawalawe region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Trincomalee region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Arugam Bay region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Nilaveli region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Jaffna region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Mannar region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Colombo region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Negombo region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Galle, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Unawatuna, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Hikkaduwa, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Mirissa, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Bentota, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Tangalle, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Weligama, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Matara, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Sigiriya, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Dambulla, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Anuradhapura, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Polonnaruwa, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Habarana, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Kandy, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Peradeniya, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Matale, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Ella, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Nuwara Eliya, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Haputale, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Hatton, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Badulla, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Yala, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Udawalawe, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Trincomalee, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Arugam Bay, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Nilaveli, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Jaffna, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Mannar, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Colombo, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Vihara",
+      "description": "A serene historical Buddhist temple located in the hills of Negombo, featuring ancient stone stupas, religious murals, and a tranquil space for meditation.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Galle bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Unawatuna bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Hikkaduwa bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Mirissa bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Bentota bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Tangalle bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Weligama bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Matara bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Sigiriya bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Dambulla bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Anuradhapura bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Polonnaruwa bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Habarana bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Kandy bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Peradeniya bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Matale bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Ella bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Nuwara Eliya bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Haputale bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Hatton bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Badulla bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Yala bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Udawalawe bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Trincomalee bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Arugam Bay bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Nilaveli bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Jaffna bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Mannar bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Colombo bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Secret Beach Cove",
+      "description": "A pristine, hidden coastal inlet near Negombo bordered by leaning coconut palms, offering soft golden sands, quiet waves, and exceptional snorkeling spots.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Galle forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Unawatuna forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Hikkaduwa forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Mirissa forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Bentota forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Tangalle forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Weligama forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Matara forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Sigiriya forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Dambulla forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Anuradhapura forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Polonnaruwa forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Habarana forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Kandy forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Peradeniya forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Matale forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Ella forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Nuwara Eliya forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Haputale forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Hatton forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Badulla forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Yala forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Udawalawe forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Trincomalee forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Arugam Bay forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Nilaveli forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Jaffna forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Mannar forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Colombo forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Waterfalls Valley",
+      "description": "A spectacular natural canyon in the Negombo forests containing multiple cascading waterfalls, rock pools for cooling baths, and scenic hiking trails.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Galle showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Unawatuna showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Hikkaduwa showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Mirissa showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Bentota showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Tangalle showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Weligama showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Matara showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Sigiriya showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Dambulla showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Anuradhapura showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Polonnaruwa showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Habarana showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Kandy showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Peradeniya showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Matale showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Ella showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Nuwara Eliya showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Haputale showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Hatton showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Badulla showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Yala showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Udawalawe showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Trincomalee showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Arugam Bay showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Nilaveli showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Jaffna showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Mannar showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Colombo showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Ayurvedic Gardens",
+      "description": "A lush agricultural sanctuary near Negombo showcasing organic cinnamon, cardamom, vanilla, and traditional Ayurvedic herbs with local guided tours.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Jeep Safari Trail",
+      "description": "An adventurous wild track in Galle popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Jeep Safari Trail",
+      "description": "An adventurous wild track in Unawatuna popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Jeep Safari Trail",
+      "description": "An adventurous wild track in Hikkaduwa popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Jeep Safari Trail",
+      "description": "An adventurous wild track in Mirissa popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Jeep Safari Trail",
+      "description": "An adventurous wild track in Bentota popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Jeep Safari Trail",
+      "description": "An adventurous wild track in Tangalle popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Jeep Safari Trail",
+      "description": "An adventurous wild track in Weligama popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Jeep Safari Trail",
+      "description": "An adventurous wild track in Matara popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Jeep Safari Trail",
+      "description": "An adventurous wild track in Sigiriya popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Jeep Safari Trail",
+      "description": "An adventurous wild track in Dambulla popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Jeep Safari Trail",
+      "description": "An adventurous wild track in Anuradhapura popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Jeep Safari Trail",
+      "description": "An adventurous wild track in Polonnaruwa popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Jeep Safari Trail",
+      "description": "An adventurous wild track in Habarana popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Jeep Safari Trail",
+      "description": "An adventurous wild track in Kandy popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Jeep Safari Trail",
+      "description": "An adventurous wild track in Peradeniya popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Jeep Safari Trail",
+      "description": "An adventurous wild track in Matale popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Jeep Safari Trail",
+      "description": "An adventurous wild track in Ella popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Jeep Safari Trail",
+      "description": "An adventurous wild track in Nuwara Eliya popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Jeep Safari Trail",
+      "description": "An adventurous wild track in Haputale popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Jeep Safari Trail",
+      "description": "An adventurous wild track in Hatton popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Jeep Safari Trail",
+      "description": "An adventurous wild track in Badulla popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Jeep Safari Trail",
+      "description": "An adventurous wild track in Yala popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Jeep Safari Trail",
+      "description": "An adventurous wild track in Udawalawe popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Jeep Safari Trail",
+      "description": "An adventurous wild track in Trincomalee popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Jeep Safari Trail",
+      "description": "An adventurous wild track in Arugam Bay popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Jeep Safari Trail",
+      "description": "An adventurous wild track in Nilaveli popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Jeep Safari Trail",
+      "description": "An adventurous wild track in Jaffna popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Jeep Safari Trail",
+      "description": "An adventurous wild track in Mannar popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Jeep Safari Trail",
+      "description": "An adventurous wild track in Colombo popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Jeep Safari Trail",
+      "description": "An adventurous wild track in Negombo popular for wildlife sightings, dry-zone grasslands, elephant paths, and guided off-road jeep expeditions.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Galle, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Unawatuna, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Hikkaduwa, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Mirissa, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Bentota, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Tangalle, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Weligama, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Matara, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Sigiriya, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Dambulla, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Anuradhapura, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Polonnaruwa, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Habarana, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Kandy, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Peradeniya, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Matale, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Ella, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Nuwara Eliya, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Haputale, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Hatton, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Badulla, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Yala, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Udawalawe, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Trincomalee, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Arugam Bay, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Nilaveli, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Jaffna, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Mannar, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Colombo, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Colonial Manor House",
+      "description": "A beautifully restored 18th-century colonial bungalow in Negombo, displaying historic furniture, cobblestone courtyards, and ancient architecture.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Galle bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Unawatuna bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Hikkaduwa bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Mirissa bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Bentota bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Tangalle bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Weligama bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Matara bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Sigiriya bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Dambulla bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Anuradhapura bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Polonnaruwa bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Habarana bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Kandy bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Peradeniya bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Matale bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Ella bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Nuwara Eliya bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Haputale bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Hatton bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Badulla bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Yala bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Udawalawe bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Trincomalee bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Arugam Bay bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Nilaveli bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Jaffna bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Mannar bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Colombo bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Coral Reef Snorkeling Point",
+      "description": "A vibrant shallow reef sanctuary near Negombo bustling with colorful marine life, sea anemones, tropical fish, and green sea turtles.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Zipline Adventure Course",
+      "description": "A high-flying adventure course in Galle featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Zipline Adventure Course",
+      "description": "A high-flying adventure course in Unawatuna featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Zipline Adventure Course",
+      "description": "A high-flying adventure course in Hikkaduwa featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Zipline Adventure Course",
+      "description": "A high-flying adventure course in Mirissa featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Zipline Adventure Course",
+      "description": "A high-flying adventure course in Bentota featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Zipline Adventure Course",
+      "description": "A high-flying adventure course in Tangalle featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Zipline Adventure Course",
+      "description": "A high-flying adventure course in Weligama featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Zipline Adventure Course",
+      "description": "A high-flying adventure course in Matara featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Zipline Adventure Course",
+      "description": "A high-flying adventure course in Sigiriya featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Zipline Adventure Course",
+      "description": "A high-flying adventure course in Dambulla featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Zipline Adventure Course",
+      "description": "A high-flying adventure course in Anuradhapura featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Zipline Adventure Course",
+      "description": "A high-flying adventure course in Polonnaruwa featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Zipline Adventure Course",
+      "description": "A high-flying adventure course in Habarana featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Zipline Adventure Course",
+      "description": "A high-flying adventure course in Kandy featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Zipline Adventure Course",
+      "description": "A high-flying adventure course in Peradeniya featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Zipline Adventure Course",
+      "description": "A high-flying adventure course in Matale featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Zipline Adventure Course",
+      "description": "A high-flying adventure course in Ella featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Zipline Adventure Course",
+      "description": "A high-flying adventure course in Nuwara Eliya featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Zipline Adventure Course",
+      "description": "A high-flying adventure course in Haputale featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Zipline Adventure Course",
+      "description": "A high-flying adventure course in Hatton featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Zipline Adventure Course",
+      "description": "A high-flying adventure course in Badulla featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Zipline Adventure Course",
+      "description": "A high-flying adventure course in Yala featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Zipline Adventure Course",
+      "description": "A high-flying adventure course in Udawalawe featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Zipline Adventure Course",
+      "description": "A high-flying adventure course in Trincomalee featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Zipline Adventure Course",
+      "description": "A high-flying adventure course in Arugam Bay featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Zipline Adventure Course",
+      "description": "A high-flying adventure course in Nilaveli featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Zipline Adventure Course",
+      "description": "A high-flying adventure course in Jaffna featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Zipline Adventure Course",
+      "description": "A high-flying adventure course in Mannar featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Zipline Adventure Course",
+      "description": "A high-flying adventure course in Colombo featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Zipline Adventure Course",
+      "description": "A high-flying adventure course in Negombo featuring a dual zip-line stretching over lush tea valleys, perfect for thrill-seekers.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Galle, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Unawatuna, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Hikkaduwa, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Mirissa, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Bentota, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Tangalle, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Weligama, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Matara, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Sigiriya, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Dambulla, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Anuradhapura, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Polonnaruwa, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Habarana, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Kandy, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Peradeniya, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Matale, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Ella, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Nuwara Eliya, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Haputale, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Hatton, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Badulla, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Yala, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Udawalawe, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Trincomalee, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Arugam Bay, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Nilaveli, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Jaffna, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Mannar, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Colombo, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Sacred Rock Caves",
+      "description": "A series of ancient meditation caves carved directly into the hillsides of Negombo, housing centuries-old rock murals and serene Buddha statues.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Galle where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Unawatuna where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Hikkaduwa where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Mirissa where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Bentota where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Tangalle where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Weligama where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Matara where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Sigiriya where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Dambulla where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Anuradhapura where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Polonnaruwa where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Habarana where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Kandy where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Peradeniya where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Matale where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Ella where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Nuwara Eliya where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Haputale where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Hatton where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Badulla where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Yala where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Udawalawe where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Trincomalee where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Arugam Bay where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Nilaveli where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Jaffna where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Mannar where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Colombo where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Tea Tasting Plantation",
+      "description": "An elegant terraced tea plantation in Negombo where visitors can pluck organic tea leaves, tour the old factories, and sample premium Ceylon tea varieties.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Galle, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Unawatuna, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Hikkaduwa, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Mirissa, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Bentota, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Tangalle, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Weligama, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Matara, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Sigiriya, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Dambulla, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Anuradhapura, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Polonnaruwa, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Habarana, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Kandy, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Peradeniya, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Matale, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Ella, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Nuwara Eliya, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Haputale, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Hatton, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Badulla, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Yala, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Udawalawe, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Trincomalee, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Arugam Bay, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Nilaveli, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Jaffna, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Mannar, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Colombo, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Mangrove Lagoon Safari",
+      "description": "A peaceful boat cruise along the swamp rivers of Negombo, weaving through thick mangrove tunnels, spotting water monitors, and visiting islands.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Galle dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Unawatuna dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Hikkaduwa dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Mirissa dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Bentota dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Tangalle dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Weligama dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Matara dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Sigiriya dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Dambulla dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Anuradhapura dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Polonnaruwa dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Habarana dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Kandy dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Peradeniya dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Matale dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Ella dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Nuwara Eliya dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Haputale dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Hatton dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Badulla dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Yala dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Udawalawe dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Trincomalee dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Arugam Bay dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Nilaveli dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Jaffna dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Mannar dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Colombo dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Kovil Sanctuary",
+      "description": "A beautiful and colorful Hindu shrine in Negombo dedicated to deities, featuring high tower gates (gopurams) and lively daily evening prayer rituals.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Galle, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Unawatuna, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Hikkaduwa, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Mirissa, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Bentota, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Tangalle, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Weligama, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Matara, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Sigiriya, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Dambulla, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Anuradhapura, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Polonnaruwa, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Habarana, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Kandy, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Peradeniya, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Matale, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Ella, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Nuwara Eliya, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Haputale, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Hatton, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Badulla, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Yala, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Udawalawe, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Trincomalee, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Arugam Bay, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Nilaveli, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Jaffna, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Mannar, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Colombo, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Strict Nature Reserve",
+      "description": "A strictly protected evergreen dry-zone forest reserve near Negombo, boasting rich avian biodiversity, wild hornbills, and hidden stone ruins.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Galle Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Galle featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Unawatuna Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Unawatuna featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Hikkaduwa Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Hikkaduwa featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Mirissa Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Mirissa featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "mirissa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Bentota Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Bentota featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "bentota",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Tangalle Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Tangalle featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "tangalle",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Weligama Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Weligama featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "weligama",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Matara Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Matara featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "matara",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Hidden Sigiriya Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Sigiriya featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "sigiriya",
+        "dambulla",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Dambulla Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Dambulla featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "dambulla",
+        "sigiriya",
+        "anuradhapura"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Anuradhapura Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Anuradhapura featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "anuradhapura",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Polonnaruwa Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Polonnaruwa featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "polonnaruwa",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Habarana Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Habarana featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "habarana",
+        "sigiriya",
+        "dambulla"
+      ],
+      "region": "cultural_triangle"
+    },
+    {
+      "title": "Hidden Kandy Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Kandy featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "kandy",
+        "peradeniya",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Peradeniya Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Peradeniya featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "peradeniya",
+        "kandy",
+        "matale"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Matale Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Matale featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "matale",
+        "kandy",
+        "peradeniya"
+      ],
+      "region": "kandy"
+    },
+    {
+      "title": "Hidden Ella Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Ella featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "ella",
+        "nuwara eliya",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Nuwara Eliya Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Nuwara Eliya featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "nuwara eliya",
+        "ella",
+        "haputale"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Haputale Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Haputale featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "haputale",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Hatton Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Hatton featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "hatton",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Badulla Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Badulla featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "badulla",
+        "ella",
+        "nuwara eliya"
+      ],
+      "region": "hill_country"
+    },
+    {
+      "title": "Hidden Yala Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Yala featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "yala",
+        "udawalawe"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Udawalawe Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Udawalawe featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "udawalawe",
+        "yala"
+      ],
+      "region": "safari_south"
+    },
+    {
+      "title": "Hidden Trincomalee Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Trincomalee featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "trincomalee",
+        "arugam bay",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Arugam Bay Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Arugam Bay featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "arugam bay",
+        "trincomalee",
+        "nilaveli"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Nilaveli Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Nilaveli featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "nilaveli",
+        "trincomalee",
+        "arugam bay"
+      ],
+      "region": "east_coast"
+    },
+    {
+      "title": "Hidden Jaffna Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Jaffna featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "jaffna",
+        "mannar"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Mannar Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Mannar featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "mannar",
+        "jaffna"
+      ],
+      "region": "north"
+    },
+    {
+      "title": "Hidden Colombo Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Colombo featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "colombo",
+        "negombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Hidden Negombo Lighthouse Cliff",
+      "description": "A dramatic coastal headland in Negombo featuring an active white-washed lighthouse with views stretching out over the deep ocean waves.",
+      "near": [
+        "negombo",
+        "colombo"
+      ],
+      "region": "west"
+    },
+    {
+      "title": "Sacred Galle Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Galle region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "galle",
+        "unawatuna",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Sacred Unawatuna Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Unawatuna region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "unawatuna",
+        "galle",
+        "hikkaduwa"
+      ],
+      "region": "south"
+    },
+    {
+      "title": "Sacred Hikkaduwa Viewpoint Peak",
+      "description": "A breathtaking high-altitude viewpoint in the Hikkaduwa region, offering sweeping panoramic vistas of the valleys, tea estates, and surrounding mountain ranges.",
+      "near": [
+        "hikkaduwa",
+        "galle",
+        "unawatuna"
+      ],
+      "region": "south"
+    }
   ]
 }

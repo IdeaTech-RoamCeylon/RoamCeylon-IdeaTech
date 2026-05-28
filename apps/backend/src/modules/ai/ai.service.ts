@@ -284,6 +284,12 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
         },
       });
 
+      if (validatedData.extractedData.destination) {
+        this.autoLearnDestination(
+          validatedData.extractedData.destination,
+        ).catch((e) => console.error('Background self-learning failed:', e));
+      }
+
       return { ...validatedData, sessionId: currentSessionId };
     } catch (error) {
       console.error('Gemini extraction failed:', error);
@@ -319,6 +325,85 @@ Return ONLY a JSON object with this exact structure (no markdown tags, no backti
       }
 
       return { ...fallbackReply, sessionId: currentSessionId };
+    }
+  }
+
+  async autoLearnDestination(destination: string): Promise<void> {
+    try {
+      const existing = await this.prisma.embeddings.findFirst({
+        where: {
+          title: {
+            equals: destination.trim(),
+            mode: 'insensitive',
+          },
+        },
+      });
+
+      if (existing) {
+        return; // Already learned!
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return;
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-flash-latest',
+      });
+
+      const learnPrompt = `You are a professional travel compiler. Generate a highly accurate, structured travel database record for this Sri Lankan location: "${destination}".
+Return ONLY a JSON object with this exact structure (no markdown, no backticks, no comments):
+{
+  "title": "Clean, official name of the place",
+  "description": "A 1-sentence detailed travel description of the place, highlights, and travel tips.",
+  "near": ["adjacent town 1", "adjacent town 2"],
+  "region": "one of: south, cultural_triangle, kandy, hill_country, safari_south, east_coast, north, west, south_west, uva, sabaragamuwa, east"
+}`;
+
+      const result = await model.generateContent(learnPrompt);
+      const text = result.response.text();
+
+      const parsed = this.parseGenerativeJson(text) as {
+        title?: string;
+        description?: string;
+        near?: string[];
+        region?: string;
+      };
+
+      const title = String(parsed.title || destination).trim();
+      const desc = String(parsed.description || '').trim();
+      const near = Array.isArray(parsed.near)
+        ? parsed.near.map((x) => String(x).toLowerCase().trim())
+        : [];
+      const region = String(parsed.region || '')
+        .toLowerCase()
+        .trim();
+
+      if (title && desc) {
+        const metaLines: string[] = [];
+        if (near.length) metaLines.push(`Near: ${near.join(', ')}`);
+        if (region) metaLines.push(`Region: ${region}`);
+        const contentWithMeta = metaLines.length
+          ? `${desc}\n\n${metaLines.join('\n')}`
+          : desc;
+
+        const textForEmbedding = `${title}. ${contentWithMeta}`;
+        const embedding = this.generateDummyEmbedding(textForEmbedding);
+
+        await this.embeddingService.saveNewEmbedding(
+          title,
+          contentWithMeta,
+          embedding,
+        );
+        console.log(
+          `[Self-Learning] Automatically learned new destination: "${title}"`,
+        );
+      }
+    } catch (e) {
+      console.error(
+        '[Self-Learning] Failed to automatically learn destination:',
+        e,
+      );
     }
   }
 

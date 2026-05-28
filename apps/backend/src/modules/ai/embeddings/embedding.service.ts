@@ -370,4 +370,23 @@ export class EmbeddingService {
     }
     return false;
   }
+
+  async saveNewEmbedding(
+    title: string,
+    content: string,
+    embedding: number[],
+  ): Promise<void> {
+    const client = this.createClient();
+    try {
+      await client.connect();
+      const vectorLiteral = this.vectorToLiteral(embedding);
+      await client.query(
+        `INSERT INTO embeddings (title, content, embedding)
+         VALUES ($1, $2, $3::vector)`,
+        [title, content, vectorLiteral],
+      );
+    } finally {
+      await client.end();
+    }
+  }
 }
