@@ -94,8 +94,10 @@ export const plannerApiService = {
       cacheTimestamp = now;
       
       return tripsCache;
-    } catch (error) {
-      console.error('Error loading trips from backend:', error);
+    } catch (error: any) {
+      if (error?.response?.status !== 401) {
+        console.error('Error loading trips from backend:', error);
+      }
       throw error;
     }
   },

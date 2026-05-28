@@ -51,9 +51,14 @@ class TripStorageService {
         }
 
         return trips;
-      } catch (error) {
-        console.warn('Backend unavailable, using local storage:', error);
-        this.useBackend = false;
+      } catch (error: any) {
+        // If it's a 401 Unauthorized, just fall back to local storage without disabling backend permanently
+        if (error?.response?.status !== 401) {
+          console.warn('Backend unavailable, using local storage:', error);
+          this.useBackend = false;
+        } else {
+          console.log('User not authenticated, using local storage for trips');
+        }
         return this.getLocalTrips(page, pageSize);
       }
     }

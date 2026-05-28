@@ -11,9 +11,14 @@ const AIHomeScreen = () => {
     const navigation = useNavigation();
     const { user } = useAuth();
     const userName = user?.name || 'Traveler';
-    const { setTripPlan, setQuery, startEditing } = usePlannerContext();
+    const { setTripPlan, setQuery, startEditing, clearPlanner } = usePlannerContext();
     const [recentTrips, setRecentTrips] = useState<SavedTrip[]>([]);
     const [isLoadingTrips, setIsLoadingTrips] = useState(true);
+
+    const handleNewChat = () => {
+        clearPlanner();
+        navigation.navigate('AIChat' as never);
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -139,13 +144,13 @@ const AIHomeScreen = () => {
                         style={styles.textInput}
                         placeholder="Ask AI anything about your trip..."
                         placeholderTextColor="#A0A0A0"
-                        onFocus={() => navigation.navigate('AIChat' as never)}
+                        onFocus={handleNewChat}
                     />
                     
                     <TouchableOpacity 
                         style={styles.sendIconButton} 
                         activeOpacity={0.8}
-                        onPress={() => navigation.navigate('AIChat' as never)}
+                        onPress={handleNewChat}
                     >
                         <Ionicons name="send" size={16} color="#3C2B1C" style={styles.sendIcon} />
                     </TouchableOpacity>

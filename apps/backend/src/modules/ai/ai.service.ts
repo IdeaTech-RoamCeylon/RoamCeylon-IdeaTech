@@ -215,7 +215,7 @@ export class AIService {
       ragSection +
       '\n\n' +
       'You must perform two simultaneous tasks:\n' +
-      '1. ANSWER THE USER\'S QUESTIONS:\n' +
+      "1. ANSWER THE USER'S QUESTIONS:\n" +
       '   - Answer any question with profound local expertise (safety, weather, monsoon, train routes, culture, packing).\n' +
       '   - Be specific with real facts (e.g., Sigiriya is best climbed at 6 AM; Kandy-to-Ella train takes 7 hours; southwest monsoon May-September).\n' +
       '   - Recommend SPECIFIC named places where relevant (e.g., "Mirissa Beach", "Galle Fort", "Ella Rock hike").\n' +
@@ -229,7 +229,7 @@ export class AIService {
       '      - "honeymoon", "couple" → "Couple (2)"\n' +
       '      - "solo", "by myself" → "Solo (1)"\n' +
       '      - "family" + kids/children → "Family of [N]"\n' +
-      '      - Otherwise use the user\'s exact description\n' +
+      "      - Otherwise use the user's exact description\n" +
       '   d. budget: MUST be exactly one of: "Low", "Medium", "High", "Luxury"\n' +
       '      - "budget", "backpacker", "cheap" → "Low"\n' +
       '      - "comfortable", "mid-range" → "Medium"\n' +
@@ -414,7 +414,8 @@ export class AIService {
         const textForEmbedding = title + '. ' + contentWithMeta;
         const embedding = this.generateDummyEmbedding(textForEmbedding);
 
-        await this.embeddingService.saveNewEmbedding(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        await (this.embeddingService as any).saveNewEmbedding(
           title,
           contentWithMeta,
           embedding,
@@ -458,6 +459,20 @@ export class AIService {
     return this.prisma.message.findMany({
       where: { sessionId },
       orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async deleteChatSession(userId: string, sessionId: string) {
+    const session = await this.prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session || session.userId !== userId) {
+      throw new NotFoundException('Chat session not found');
+    }
+
+    return this.prisma.chatSession.delete({
+      where: { id: sessionId },
     });
   }
 }

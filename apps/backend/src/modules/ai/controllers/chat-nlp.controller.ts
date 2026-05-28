@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
   Param,
+  Delete,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AIService } from '../ai.service';
@@ -51,5 +52,13 @@ export class ChatNlpController {
     @Param('sessionId') sessionId: string,
   ) {
     return this.aiService.getChatMessages(req.user.userId, sessionId);
+  }
+
+  @Delete('history/:sessionId')
+  async deleteChatSession(
+    @Req() req: RequestWithUser,
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.aiService.deleteChatSession(req.user.userId, sessionId);
   }
 }

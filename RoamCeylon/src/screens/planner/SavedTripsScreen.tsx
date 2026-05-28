@@ -53,6 +53,32 @@ const SavedTripsScreen = () => {
     }
   };
 
+  const handleDeleteChat = useCallback((sessionId: string) => {
+    Alert.alert(
+      'Delete Chat',
+      'Are you sure you want to delete this chat session? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await apiService.delete(`/ai/chat/history/${sessionId}`);
+              setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+            } catch (error) {
+              console.error('Error deleting chat:', error);
+              Alert.alert('Error', 'Failed to delete chat session');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  }, []);
+
   const handleLoadChat = useCallback(async (sessionId: string) => {
     try {
       const response = await apiService.get(`/ai/chat/history/${sessionId}`) as any;
@@ -308,6 +334,7 @@ const SavedTripsScreen = () => {
                         key={session.id} 
                         style={styles.chatCard}
                         onPress={() => handleLoadChat(session.id)}
+                        onLongPress={() => handleDeleteChat(session.id)}
                       >
                         <Text style={styles.chatIcon}>💬</Text>
                         <View>

@@ -3035,15 +3035,22 @@ export class AIController {
     // Inject budget-appropriate activity terms
     if (body.budget) {
       const budgetLower = body.budget.toLowerCase();
-      if (budgetLower === 'luxury') searchTerms.push('luxury resort spa premium');
-      else if (budgetLower === 'high') searchTerms.push('premium experience resort');
-      else if (budgetLower === 'low') searchTerms.push('budget friendly affordable');
+      if (budgetLower === 'luxury')
+        searchTerms.push('luxury resort spa premium');
+      else if (budgetLower === 'high')
+        searchTerms.push('premium experience resort');
+      else if (budgetLower === 'low')
+        searchTerms.push('budget friendly affordable');
     }
 
     // Inject group-type terms derived from pax
     if (body.pax) {
       const paxLower = body.pax.toLowerCase();
-      if (paxLower.includes('family') || paxLower.includes('child') || paxLower.includes('kid'))
+      if (
+        paxLower.includes('family') ||
+        paxLower.includes('child') ||
+        paxLower.includes('kid')
+      )
         searchTerms.push('family friendly kid safe');
       else if (paxLower.includes('couple') || paxLower.includes('honeymoon'))
         searchTerms.push('romantic couples scenic');
@@ -3244,7 +3251,6 @@ export class AIController {
     return response;
   }
 
-
   /* ==================== ENRICH PLAN (Gemini Narrative) ==================== */
 
   @Post('enrich-plan')
@@ -3310,20 +3316,37 @@ export class AIController {
 
     const lines = activityList.map(
       (a, i) =>
-        (i + 1) +
-        '. Day ' + a.day +
-        ' | ' + a.placeName +
-        ' (' + a.category + ', ' + a.timeSlot + ')',
+        i +
+        1 +
+        '. Day ' +
+        a.day +
+        ' | ' +
+        a.placeName +
+        ' (' +
+        a.category +
+        ', ' +
+        a.timeSlot +
+        ')',
     );
 
     const prompt =
       'You are a professional Sri Lanka travel writer and local expert.\n' +
-      'Destination: ' + body.destination + '\n' +
-      'Budget: ' + (body.budget || 'Medium') + '\n' +
-      'Group: ' + (body.pax || 'Travelers') + '\n' +
-      'Interests: ' + (body.preferences || []).join(', ') + '\n\n' +
+      'Destination: ' +
+      body.destination +
+      '\n' +
+      'Budget: ' +
+      (body.budget || 'Medium') +
+      '\n' +
+      'Group: ' +
+      (body.pax || 'Travelers') +
+      '\n' +
+      'Interests: ' +
+      (body.preferences || []).join(', ') +
+      '\n\n' +
       'For each place below, return EXACTLY the same order with enriched details.\n' +
-      'Places:\n' + lines.join('\n') + '\n\n' +
+      'Places:\n' +
+      lines.join('\n') +
+      '\n\n' +
       'Return ONLY a JSON array (no markdown, no backticks) with one object per place:\n' +
       '[\n' +
       '  {\n' +
@@ -3353,12 +3376,14 @@ export class AIController {
 
       const match = text.match(/\[[\s\S]*\]/);
       if (match) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         enrichedItems = JSON.parse(match[0]);
       }
 
       const enrichMap = new Map<string, (typeof enrichedItems)[0]>();
       for (const item of enrichedItems) {
-        const key = String(item.day) + '-' + String(item.placeName).toLowerCase().trim();
+        const key =
+          String(item.day) + '-' + String(item.placeName).toLowerCase().trim();
         enrichMap.set(key, item);
       }
 
@@ -3366,9 +3391,10 @@ export class AIController {
         day: day.day,
         date: day.date,
         theme: day.theme,
-        themeTitle: day.theme || ('Day ' + day.day + ': ' + body.destination),
+        themeTitle: day.theme || 'Day ' + day.day + ': ' + body.destination,
         activities: day.activities.map((act) => {
-          const key = String(day.day) + '-' + String(act.placeName).toLowerCase().trim();
+          const key =
+            String(day.day) + '-' + String(act.placeName).toLowerCase().trim();
           const enriched = enrichMap.get(key);
           return {
             ...act,
@@ -3376,7 +3402,8 @@ export class AIController {
             richDescription: enriched?.richDescription || act.shortDescription,
             tip: enriched?.tip || '',
             costUSD: enriched?.costUSD ?? 0,
-            photoKeyword: enriched?.photoKeyword || (act.placeName + ' Sri Lanka'),
+            photoKeyword:
+              enriched?.photoKeyword || act.placeName + ' Sri Lanka',
           };
         }),
       }));
