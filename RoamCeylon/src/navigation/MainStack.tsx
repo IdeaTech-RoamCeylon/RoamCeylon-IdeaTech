@@ -17,35 +17,37 @@ import AIHomeScreen from '../screens/planner/AIHomeScreen';
 import AIChatScreen from '../screens/planner/AIChat';
 import AIPlannerTestingScreen from '../screens/planner/AIPlannerTestingScreen';
 import EmergencyScreen from '../screens/emergency/EmergencyScreen';
+import HotelBookingScreen from '../screens/hotel/HotelBookingScreen';
 
 const Stack = createStackNavigator<MainStackParamList>();
 
 const MainStack = () => {
-    return (
-        <Stack.Navigator
-            initialRouteName="Home"
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Explore" component={ExploreScreen} />
-            <Stack.Screen name="Marketplace" component={MarketplaceHomeScreen} />
-            <Stack.Screen name="MarketplaceCategory" component={MarketplaceCategoryScreen} />
-            <Stack.Screen name="Transport" component={TransportScreen} />
-            <Stack.Screen name="TransportLocationPicker" component={TransportLocationPickerScreen} />
-            <Stack.Screen name="TransportStatus" component={TransportStatusScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
-            <Stack.Screen name="AIWelcome" component={AIWelcomeScreen} />
-            <Stack.Screen name="AIHome" component={AIHomeScreen} />
-            <Stack.Screen name="AIChat" component={AIChatScreen} />
-            <Stack.Screen name="AITripPlanner" component={AITripPlannerScreen} />
-            <Stack.Screen name="SavedTrips" component={SavedTripsScreen} />
-            <Stack.Screen name="AIPlannerTesting" component={AIPlannerTestingScreen} />
-            <Stack.Screen name="Emergency" component={EmergencyScreen} />
-        </Stack.Navigator>
-    );
+  return (
+    <Stack.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Explore" component={ExploreScreen} />
+      <Stack.Screen name="Marketplace" component={MarketplaceHomeScreen} />
+      <Stack.Screen name="MarketplaceCategory" component={MarketplaceCategoryScreen} />
+      <Stack.Screen name="Transport" component={TransportScreen} />
+      <Stack.Screen name="TransportLocationPicker" component={TransportLocationPickerScreen} />
+      <Stack.Screen name="TransportStatus" component={TransportStatusScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+      <Stack.Screen name="AIWelcome" component={AIWelcomeScreen} />
+      <Stack.Screen name="AIHome" component={AIHomeScreen} />
+      <Stack.Screen name="AIChat" component={AIChatScreen} />
+      <Stack.Screen name="AITripPlanner" component={AITripPlannerScreen} />
+      <Stack.Screen name="SavedTrips" component={SavedTripsScreen} />
+      <Stack.Screen name="AIPlannerTesting" component={AIPlannerTestingScreen} />
+      <Stack.Screen name="Emergency" component={EmergencyScreen} />
+      <Stack.Screen name="HotelBooking" component={HotelBookingScreen} />
+    </Stack.Navigator>
+  );
 };
 
 export default MainStack;

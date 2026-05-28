@@ -22,6 +22,7 @@ import { LatencyTrackingInterceptor } from './common/interceptors/latency-tracki
 import { LatencyTrackerService } from './modules/analytics/latency-tracker.service';
 import { MlModule } from './modules/ml/ml.module';
 import { HealthModule } from './modules/health/health.module';
+import { HotelModule } from './modules/hotel/hotel.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { HealthModule } from './modules/health/health.module';
     MarketplaceModule,
     AIModule,
     PlannerModule,
+    HotelModule,
     ScheduleModule.forRoot(),
     FeedbackModule,
     AnalyticsModule,

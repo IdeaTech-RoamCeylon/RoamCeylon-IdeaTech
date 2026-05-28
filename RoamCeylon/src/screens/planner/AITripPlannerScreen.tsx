@@ -9,13 +9,15 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Modal
+  Modal,
 } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../../types';
 import { aiService, TripPlanResponse, TripActivity } from '../../services/aiService';
+import { hotelService, Hotel } from '../../services/hotelService';
+import { Ionicons } from '@expo/vector-icons';
 import { usePlannerContext } from '../../context/PlannerContext';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import DaySelector from '../../components/DaySelector';
@@ -25,7 +27,6 @@ import EnhancedItineraryCard from '../../components/EnhancedItineraryCard';
 import { PreferenceSummaryBanner } from '../../components/PreferenceSummaryBanner';
 import { tripStorageService, TripFeedback } from '../../services/tripStorageService';
 import { analyticsService } from '../../services/analyticsService';
-
 
 import { MAPBOX_CONFIG } from '../../config/mapbox.config';
 
@@ -47,7 +48,18 @@ type AITripPlannerNavigationProp = StackNavigationProp<MainStackParamList, 'AITr
 
 const AITripPlannerScreen = () => {
   const navigation = useNavigation<AITripPlannerNavigationProp>();
-  const { query, setQuery, tripPlan, setTripPlan, currentTripId, setCurrentTripId, isEditing, stopEditing, setChatMessages, chatSessionId } = usePlannerContext();
+  const {
+    query,
+    setQuery,
+    tripPlan,
+    setTripPlan,
+    currentTripId,
+    setCurrentTripId,
+    isEditing,
+    stopEditing,
+    setChatMessages,
+    chatSessionId,
+  } = usePlannerContext();
   const networkStatus = useNetworkStatus();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -93,119 +105,148 @@ const AITripPlannerScreen = () => {
     }
   }, [tripPlan]);
 
+  // Hotel recommendations state
+  const [suggestedHotels, setSuggestedHotels] = useState<Hotel[]>([]);
+  const [loadingHotels, setLoadingHotels] = useState(false);
 
-
-  const handleMoveActivity = useCallback((index: number, direction: 'up' | 'down') => {
-    if (!tripPlan) return;
-
-    // Optimized update without deep clone for everything
-    setTripPlan(prevPlan => {
-      if (!prevPlan) return null;
-
-      const newItinerary = [...prevPlan.itinerary];
-      const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
-
-      if (dayIndex === -1) return prevPlan;
-
-      const day = { ...newItinerary[dayIndex] };
-      const newActivities = [...day.activities];
-
-      if (direction === 'up' && index > 0) {
-        [newActivities[index], newActivities[index - 1]] = [newActivities[index - 1], newActivities[index]];
-      } else if (direction === 'down' && index < newActivities.length - 1) {
-        [newActivities[index], newActivities[index + 1]] = [newActivities[index + 1], newActivities[index]];
-      } else {
-        return prevPlan; // No change
+  useEffect(() => {
+    const fetchHotels = async () => {
+      if (tripPlan && tripPlan.destination) {
+        setLoadingHotels(true);
+        try {
+          const hotels = await hotelService.getSuggestions(tripPlan.destination, tripPlan.budget);
+          setSuggestedHotels(hotels);
+        } catch (err) {
+          console.error('Failed to get hotel suggestions in planner:', err);
+        } finally {
+          setLoadingHotels(false);
+        }
       }
+    };
+    fetchHotels();
+  }, [tripPlan]);
 
-      day.activities = newActivities;
-      newItinerary[dayIndex] = day;
+  const handleMoveActivity = useCallback(
+    (index: number, direction: 'up' | 'down') => {
+      if (!tripPlan) return;
 
-      analyticsService.trackPlannerEdit(prevPlan.tripId || 'unsaved', 'reorder_activity');
+      // Optimized update without deep clone for everything
+      setTripPlan(prevPlan => {
+        if (!prevPlan) return null;
 
-      return {
-        ...prevPlan,
-        itinerary: newItinerary
-      };
-    });
-  }, [selectedDay, setTripPlan]);
+        const newItinerary = [...prevPlan.itinerary];
+        const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
 
+        if (dayIndex === -1) return prevPlan;
+
+        const day = { ...newItinerary[dayIndex] };
+        const newActivities = [...day.activities];
+
+        if (direction === 'up' && index > 0) {
+          [newActivities[index], newActivities[index - 1]] = [
+            newActivities[index - 1],
+            newActivities[index],
+          ];
+        } else if (direction === 'down' && index < newActivities.length - 1) {
+          [newActivities[index], newActivities[index + 1]] = [
+            newActivities[index + 1],
+            newActivities[index],
+          ];
+        } else {
+          return prevPlan; // No change
+        }
+
+        day.activities = newActivities;
+        newItinerary[dayIndex] = day;
+
+        analyticsService.trackPlannerEdit(prevPlan.tripId || 'unsaved', 'reorder_activity');
+
+        return {
+          ...prevPlan,
+          itinerary: newItinerary,
+        };
+      });
+    },
+    [selectedDay, setTripPlan]
+  );
 
   // ...
 
   // Handle deleting an activity
-  const handleDeleteActivity = useCallback((index: number) => {
-    if (!tripPlan) return;
+  const handleDeleteActivity = useCallback(
+    (index: number) => {
+      if (!tripPlan) return;
 
-    Alert.alert(
-      "Remove Place?",
-      "Are you sure you want to remove this place from your itinerary?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            setTripPlan(prevPlan => {
-              if (!prevPlan) return null;
+      Alert.alert(
+        'Remove Place?',
+        'Are you sure you want to remove this place from your itinerary?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => {
+              setTripPlan(prevPlan => {
+                if (!prevPlan) return null;
 
-              const newItinerary = [...prevPlan.itinerary];
-              const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
+                const newItinerary = [...prevPlan.itinerary];
+                const dayIndex = newItinerary.findIndex(d => d.day === selectedDay);
 
-              if (dayIndex === -1) return prevPlan;
+                if (dayIndex === -1) return prevPlan;
 
-              const day = { ...newItinerary[dayIndex] };
-              const newActivities = [...day.activities];
+                const day = { ...newItinerary[dayIndex] };
+                const newActivities = [...day.activities];
 
-              // Remove item
-              const removed = newActivities.splice(index, 1)[0];
+                // Remove item
+                const removed = newActivities.splice(index, 1)[0];
 
-              if (selectedActivity && selectedActivity.description === removed.description) {
-                setSelectedActivity(null);
-              }
-
-              day.activities = newActivities;
-
-              if (newActivities.length === 0) {
-                // Remove day if empty
-                newItinerary.splice(dayIndex, 1);
-
-                // Renumber
-                newItinerary.forEach((d, idx) => {
-                  d.day = idx + 1;
-                  d.activities.forEach((act: any) => act.dayNumber = idx + 1);
-                });
-
-                // Update duration
-                const newDuration = String(newItinerary.length);
-
-                // Check if selectedDay is valid
-                if (selectedDay > newItinerary.length) {
-                  setSelectedDay(Math.max(1, newItinerary.length));
+                if (selectedActivity && selectedActivity.description === removed.description) {
+                  setSelectedActivity(null);
                 }
+
+                day.activities = newActivities;
+
+                if (newActivities.length === 0) {
+                  // Remove day if empty
+                  newItinerary.splice(dayIndex, 1);
+
+                  // Renumber
+                  newItinerary.forEach((d, idx) => {
+                    d.day = idx + 1;
+                    d.activities.forEach((act: any) => (act.dayNumber = idx + 1));
+                  });
+
+                  // Update duration
+                  const newDuration = String(newItinerary.length);
+
+                  // Check if selectedDay is valid
+                  if (selectedDay > newItinerary.length) {
+                    setSelectedDay(Math.max(1, newItinerary.length));
+                  }
+
+                  return {
+                    ...prevPlan,
+                    itinerary: newItinerary,
+                    duration: newDuration,
+                  };
+                }
+
+                newItinerary[dayIndex] = day;
+
+                analyticsService.trackPlannerEdit(prevPlan.tripId || 'unsaved', 'delete_activity');
 
                 return {
                   ...prevPlan,
                   itinerary: newItinerary,
-                  duration: newDuration
                 };
-              }
-
-              newItinerary[dayIndex] = day;
-
-              analyticsService.trackPlannerEdit(prevPlan.tripId || 'unsaved', 'delete_activity');
-
-              return {
-                ...prevPlan,
-                itinerary: newItinerary
-              };
-            });
-          }
-        }
-      ]
-    );
-  }, [tripPlan, selectedDay, setTripPlan, selectedActivity]);
-
+              });
+            },
+          },
+        ]
+      );
+    },
+    [tripPlan, selectedDay, setTripPlan, selectedActivity]
+  );
 
   const handleSelectActivity = useCallback((activity: TripActivity) => {
     setSelectedActivity(activity);
@@ -213,7 +254,6 @@ const AITripPlannerScreen = () => {
   }, []);
 
   const handleSaveTrip = useCallback(async () => {
-
     if (!tripPlan) return;
 
     if (!tripName.trim()) {
@@ -239,18 +279,23 @@ const AITripPlannerScreen = () => {
         Alert.alert('Success', 'Trip updated successfully!');
       } else {
         // Save new trip
-        const savedTrip = await tripStorageService.saveTrip(tripNameToSave, tripPlan, chatSessionId);
+        const savedTrip = await tripStorageService.saveTrip(
+          tripNameToSave,
+          tripPlan,
+          chatSessionId
+        );
         analyticsService.logTripSaved(savedTrip.id, tripNameToSave);
         analyticsService.trackTripAccepted(savedTrip.id);
         setIsSaving(false);
         Alert.alert('Success', 'Trip saved successfully!');
       }
-
     } catch (error) {
       setIsSaving(false);
       Alert.alert(
         'Error',
-        isEditing ? 'Failed to update trip. Please try again.' : 'Failed to save trip. Please try again.'
+        isEditing
+          ? 'Failed to update trip. Please try again.'
+          : 'Failed to save trip. Please try again.'
       );
     }
   }, [tripPlan, tripName, isEditing, currentTripId, chatSessionId]);
@@ -295,26 +340,29 @@ const AITripPlannerScreen = () => {
     navigation.navigate('SavedTrips' as never);
   }, [navigation]);
 
-  const handleFeedback = useCallback(async (isPositive: boolean) => {
-    if (isFeedbackSubmitted) return;
+  const handleFeedback = useCallback(
+    async (isPositive: boolean) => {
+      if (isFeedbackSubmitted) return;
 
-    if (isPositive) {
-      setFeedbackState('positive');
-      setIsFeedbackSubmitted(true);
+      if (isPositive) {
+        setFeedbackState('positive');
+        setIsFeedbackSubmitted(true);
 
-      // Save positive feedback properly
-      const feedback: TripFeedback = {
-        tripId: currentTripId || `temp_${Date.now()}`,
-        isPositive: true,
-        timestamp: new Date().toISOString(),
-      };
-      await tripStorageService.saveFeedback(feedback);
+        // Save positive feedback properly
+        const feedback: TripFeedback = {
+          tripId: currentTripId || `temp_${Date.now()}`,
+          isPositive: true,
+          timestamp: new Date().toISOString(),
+        };
+        await tripStorageService.saveFeedback(feedback);
 
-      analyticsService.logFeedbackSubmitted(true);
-    } else {
-      setFeedbackState('negative');
-    }
-  }, [currentTripId, isFeedbackSubmitted]);
+        analyticsService.logFeedbackSubmitted(true);
+      } else {
+        setFeedbackState('negative');
+      }
+    },
+    [currentTripId, isFeedbackSubmitted]
+  );
 
   const handleSubmitNegativeFeedback = useCallback(async () => {
     setIsFeedbackSubmitted(true);
@@ -341,7 +389,6 @@ const AITripPlannerScreen = () => {
     });
   }, []);
 
-
   // Derived state for current day
   const currentDayItinerary = useMemo(() => {
     if (!tripPlan || !tripPlan.itinerary || !Array.isArray(tripPlan.itinerary)) {
@@ -351,7 +398,11 @@ const AITripPlannerScreen = () => {
   }, [tripPlan, selectedDay]);
 
   const activities = useMemo(() => {
-    if (!currentDayItinerary || !currentDayItinerary.activities || !Array.isArray(currentDayItinerary.activities)) {
+    if (
+      !currentDayItinerary ||
+      !currentDayItinerary.activities ||
+      !Array.isArray(currentDayItinerary.activities)
+    ) {
       return [];
     }
     return currentDayItinerary.activities.filter(activity => activity != null);
@@ -395,8 +446,14 @@ const AITripPlannerScreen = () => {
       if (routeCoordinates.length > 1) {
         return {
           bounds: {
-            ne: [Math.max(...routeCoordinates.map(c => c[0])), Math.max(...routeCoordinates.map(c => c[1]))],
-            sw: [Math.min(...routeCoordinates.map(c => c[0])), Math.min(...routeCoordinates.map(c => c[1]))],
+            ne: [
+              Math.max(...routeCoordinates.map(c => c[0])),
+              Math.max(...routeCoordinates.map(c => c[1])),
+            ],
+            sw: [
+              Math.min(...routeCoordinates.map(c => c[0])),
+              Math.min(...routeCoordinates.map(c => c[1])),
+            ],
             paddingBottom: 40,
             paddingTop: 40,
             paddingLeft: 40,
@@ -431,8 +488,8 @@ const AITripPlannerScreen = () => {
       <View style={styles.content}>
         {!tripPlan ? (
           <View style={{ padding: 40, alignItems: 'center' }}>
-             <ActivityIndicator size="large" color="#0066CC" />
-             <Text style={{ marginTop: 20, color: '#666' }}>Loading your plan...</Text>
+            <ActivityIndicator size="large" color="#0066CC" />
+            <Text style={{ marginTop: 20, color: '#666' }}>Loading your plan...</Text>
           </View>
         ) : (
           <Animated.View style={[styles.resultsContainer, { opacity: fadeAnim }]}>
@@ -459,7 +516,7 @@ const AITripPlannerScreen = () => {
             <DaySelector
               days={tripPlan.itinerary.map(item => item.day)}
               selectedDay={selectedDay}
-              onSelectDay={(day) => {
+              onSelectDay={day => {
                 setSelectedDay(day);
                 setSelectedActivity(null); // Reset activity selection when changing day
               }}
@@ -467,7 +524,9 @@ const AITripPlannerScreen = () => {
 
             <View style={styles.expeditionOverview}>
               <Text style={styles.expeditionSubtitle}>EXPEDITION OVERVIEW</Text>
-              <Text style={styles.expeditionTitle}>Day {selectedDay}: {tripPlan.destination}</Text>
+              <Text style={styles.expeditionTitle}>
+                Day {selectedDay}: {tripPlan.destination}
+              </Text>
               <Text style={styles.expeditionDate}>Generated Trip • {tripPlan.duration} Days</Text>
             </View>
 
@@ -490,6 +549,68 @@ const AITripPlannerScreen = () => {
               />
             )}
 
+            {/* Recommended Premium Stays */}
+            {tripPlan && suggestedHotels.length > 0 && (
+              <View style={styles.hotelSuggestionsContainer}>
+                <View style={styles.hotelHeaderRow}>
+                  <Text style={styles.hotelSuggestionsTitle}>🏨 Recommended Premium Stays</Text>
+                  <Text style={styles.hotelSuggestionsSubtitle}>
+                    Selected stays for {tripPlan.destination}
+                  </Text>
+                </View>
+                {loadingHotels ? (
+                  <ActivityIndicator size="small" color="#0066CC" style={{ padding: 20 }} />
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.hotelScrollContainer}
+                  >
+                    {suggestedHotels.map(hotel => (
+                      <TouchableOpacity
+                        key={hotel.id}
+                        style={styles.hotelCarouselCard}
+                        onPress={() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          const checkoutDate = new Date();
+                          const durationDays = parseInt(tripPlan.duration) || 3;
+                          checkoutDate.setDate(checkoutDate.getDate() + durationDays);
+                          const checkoutStr = checkoutDate.toISOString().split('T')[0];
+
+                          navigation.navigate('HotelBooking', {
+                            hotel,
+                            checkIn: today,
+                            checkOut: checkoutStr,
+                          });
+                        }}
+                      >
+                        <Image source={{ uri: hotel.image }} style={styles.hotelCardImage} />
+                        <View style={styles.hotelCardContent}>
+                          <Text style={styles.hotelCardName} numberOfLines={1}>
+                            {hotel.name}
+                          </Text>
+                          <View style={styles.hotelRatingRow}>
+                            <Ionicons name="star" size={13} color="#FFB300" />
+                            <Text style={styles.hotelRatingText}>
+                              {hotel.rating} • {hotel.destination}
+                            </Text>
+                          </View>
+                          <View style={styles.hotelPriceRow}>
+                            <Text style={styles.hotelPriceValue}>
+                              LKR {hotel.price.toLocaleString()}
+                            </Text>
+                            <Text style={styles.hotelPriceLabel}>/ night</Text>
+                          </View>
+                          <View style={styles.bookStayBadge}>
+                            <Text style={styles.bookStayBadgeText}>Book Stay 🏨</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            )}
 
             {/* Feedback Section */}
             <View style={styles.feedbackSection}>
@@ -500,7 +621,9 @@ const AITripPlannerScreen = () => {
                     style={[
                       styles.feedbackButton,
                       feedbackState === 'positive' && styles.feedbackButtonSelected,
-                      isFeedbackSubmitted && feedbackState !== 'positive' && styles.feedbackButtonDisabled
+                      isFeedbackSubmitted &&
+                        feedbackState !== 'positive' &&
+                        styles.feedbackButtonDisabled,
                     ]}
                     onPress={() => handleFeedback(true)}
                     disabled={isFeedbackSubmitted}
@@ -511,7 +634,9 @@ const AITripPlannerScreen = () => {
                     style={[
                       styles.feedbackButton,
                       feedbackState === 'negative' && styles.feedbackButtonSelected,
-                      isFeedbackSubmitted && feedbackState !== 'negative' && styles.feedbackButtonDisabled
+                      isFeedbackSubmitted &&
+                        feedbackState !== 'negative' &&
+                        styles.feedbackButtonDisabled,
                     ]}
                     onPress={() => handleFeedback(false)}
                     disabled={isFeedbackSubmitted}
@@ -525,19 +650,23 @@ const AITripPlannerScreen = () => {
                 <View style={styles.negativeFeedbackContainer}>
                   <Text style={styles.feedbackQuestion}>What can be improved?</Text>
                   <View style={styles.reasonChips}>
-                    {['Too expensive', 'Too busy', 'Bad location', 'Not my style'].map((reason) => (
+                    {['Too expensive', 'Too busy', 'Bad location', 'Not my style'].map(reason => (
                       <TouchableOpacity
                         key={reason}
                         style={[
                           styles.reasonChip,
-                          selectedReasons.includes(reason) && styles.reasonChipSelected
+                          selectedReasons.includes(reason) && styles.reasonChipSelected,
                         ]}
                         onPress={() => toggleReason(reason)}
                       >
-                        <Text style={[
-                          styles.reasonChipText,
-                          selectedReasons.includes(reason) && styles.reasonChipTextSelected
-                        ]}>{reason}</Text>
+                        <Text
+                          style={[
+                            styles.reasonChipText,
+                            selectedReasons.includes(reason) && styles.reasonChipTextSelected,
+                          ]}
+                        >
+                          {reason}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -555,7 +684,7 @@ const AITripPlannerScreen = () => {
                       onPress={handleSubmitNegativeFeedback}
                       style={[
                         styles.feedbackSubmitButton,
-                        selectedReasons.length === 0 && styles.feedbackSubmitButtonDisabled
+                        selectedReasons.length === 0 && styles.feedbackSubmitButtonDisabled,
                       ]}
                       disabled={selectedReasons.length === 0}
                     >
@@ -581,9 +710,7 @@ const AITripPlannerScreen = () => {
                   logoEnabled={false}
                   attributionEnabled={false}
                 >
-                  <MapboxGL.Camera
-                    {...cameraSettings}
-                  />
+                  <MapboxGL.Camera {...cameraSettings} />
 
                   {/* Route Line */}
                   {routeCoordinates.length > 1 && (
@@ -596,7 +723,7 @@ const AITripPlannerScreen = () => {
                           lineCap: 'round',
                           lineJoin: 'round',
                           lineOpacity: 0.8,
-                          lineDasharray: [1, 1] // Dashed line for walking/travel path vibe
+                          lineDasharray: [1, 1], // Dashed line for walking/travel path vibe
                         }}
                       />
                     </MapboxGL.ShapeSource>
@@ -611,10 +738,11 @@ const AITripPlannerScreen = () => {
                         id={`marker-${index}`}
                         coordinate={activity.coordinate}
                         onSelected={() => handleSelectActivity(activity)}
-
                       >
                         <View style={styles.markerContainer}>
-                          <View style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}>
+                          <View
+                            style={[styles.markerBadge, isSelected && styles.selectedMarkerBadge]}
+                          >
                             <Text style={styles.markerText}>{index + 1}</Text>
                           </View>
                         </View>
@@ -634,7 +762,6 @@ const AITripPlannerScreen = () => {
                   index={index}
                   isSelected={selectedActivity === activity}
                   onPress={() => handleSelectActivity(activity)}
-
                   onMoveUp={() => handleMoveActivity(index, 'up')}
                   onMoveDown={() => handleMoveActivity(index, 'down')}
                   onDelete={() => handleDeleteActivity(index)}
@@ -670,11 +797,11 @@ const AITripPlannerScreen = () => {
                   ...withoutSummary,
                   {
                     id: Date.now().toString(),
-                    text: "What would you like to change about this plan?",
+                    text: 'What would you like to change about this plan?',
                     sender: 'ai',
                     timestamp: new Date(),
                     type: 'text',
-                  }
+                  },
                 ];
               });
               navigation.navigate('AIChat');
@@ -727,9 +854,7 @@ const AITripPlannerScreen = () => {
                 {isSaving ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.modalButtonTextSave}>
-                    {isEditing ? 'Update' : 'Save'}
-                  </Text>
+                  <Text style={styles.modalButtonTextSave}>{isEditing ? 'Update' : 'Save'}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1257,6 +1382,96 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
     fontSize: 14,
+  },
+  // Hotel suggestions styling
+  hotelSuggestionsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 20,
+    marginTop: 5,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  hotelHeaderRow: {
+    marginBottom: 15,
+  },
+  hotelSuggestionsTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111',
+  },
+  hotelSuggestionsSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  hotelScrollContainer: {
+    paddingRight: 10,
+    gap: 15,
+  },
+  hotelCarouselCard: {
+    width: 210,
+    backgroundColor: '#FAFAF9',
+    borderRadius: 15,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#EEEEEE',
+  },
+  hotelCardImage: {
+    width: '100%',
+    height: 110,
+  },
+  hotelCardContent: {
+    padding: 12,
+  },
+  hotelCardName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  hotelRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  hotelRatingText: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  hotelPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  hotelPriceValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0066CC',
+  },
+  hotelPriceLabel: {
+    fontSize: 10,
+    color: '#888',
+    marginLeft: 2,
+  },
+  bookStayBadge: {
+    marginTop: 8,
+    backgroundColor: '#FFC107',
+    borderRadius: 12,
+    paddingVertical: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookStayBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#222',
   },
 });
 

@@ -26,7 +26,9 @@ export type MainStackParamList = {
     productId: string;
   };
   Transport: { pickup?: LocationSelection; destination?: LocationSelection } | undefined;
-  TransportLocationPicker: { pickup?: LocationSelection; destination?: LocationSelection } | undefined;
+  TransportLocationPicker:
+    | { pickup?: LocationSelection; destination?: LocationSelection }
+    | undefined;
   TransportStatus: undefined;
   Map: undefined;
   Profile: undefined;
@@ -38,6 +40,11 @@ export type MainStackParamList = {
   SavedTrips: undefined;
   AIPlannerTesting: undefined;
   Emergency: undefined;
+  HotelBooking: {
+    hotel: any;
+    checkIn: string;
+    checkOut: string;
+  };
 };
 
 export type LocationSelection = {
