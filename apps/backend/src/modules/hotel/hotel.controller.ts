@@ -54,7 +54,6 @@ interface RequestWithUser extends Request {
 // ─── Controller ─────────────────────────────────────────────────────────────
 
 @Controller('hotel')
-@UseGuards(JwtAuthGuard)
 export class HotelController {
   private readonly logger = new Logger(HotelController.name);
 
@@ -71,6 +70,7 @@ export class HotelController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('book')
   bookHotel(@Req() req: RequestWithUser, @Body() body: BookHotelDto) {
     this.logger.log(
@@ -79,6 +79,7 @@ export class HotelController {
     return this.hotelService.bookHotel(req.user.userId, body);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('bookings')
   getBookings(@Req() req: RequestWithUser) {
     this.logger.log(

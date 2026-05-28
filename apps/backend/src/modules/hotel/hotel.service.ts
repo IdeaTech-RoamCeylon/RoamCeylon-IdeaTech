@@ -296,22 +296,25 @@ export class HotelService {
         destClean.includes(h.destination.toLowerCase()),
     );
 
-    // Fallback: If no direct match is found, return popular generic Sri Lanka properties
+    // Fallback: If no direct match is found, use all hotels as candidates
     if (results.length === 0) {
-      results = this.hotels.slice(0, 3);
+      results = [...this.hotels];
     }
 
-    // Sort results based on price if budget is specified
+    // Filter or sort results based on price if budget is specified
     if (budget) {
       const budgetLower = budget.toLowerCase();
-      if (budgetLower === 'low') {
+      if (budgetLower === 'low' || budgetLower === 'medium') {
+        // Sort lowest price first
         results.sort((a, b) => a.price - b.price);
       } else if (budgetLower === 'luxury' || budgetLower === 'high') {
+        // Sort highest price first
         results.sort((a, b) => b.price - a.price);
       }
     }
 
-    return results;
+    // Always return top 3
+    return results.slice(0, 3);
   }
 
   /**

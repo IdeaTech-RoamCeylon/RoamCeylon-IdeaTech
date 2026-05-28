@@ -3361,8 +3361,22 @@ export class AIController {
       ']';
 
     try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim();
+      let result: any;
+      try {
+        result = await model.generateContent(prompt);
+      } catch (error: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        if (error?.status === 429 || error?.message?.includes('429')) {
+          const fallbackModel = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+          });
+          result = await fallbackModel.generateContent(prompt);
+        } else {
+          throw error;
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      const text = String(result.response.text()).trim();
 
       let enrichedItems: Array<{
         day: number;

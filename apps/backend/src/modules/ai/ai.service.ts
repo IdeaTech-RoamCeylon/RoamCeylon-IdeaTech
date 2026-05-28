@@ -289,8 +289,22 @@ export class AIService {
         },
       });
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      let result: any;
+      try {
+        result = await model.generateContent(prompt);
+      } catch (error: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        if (error?.status === 429 || error?.message?.includes('429')) {
+          const fallbackModel = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+          });
+          result = await fallbackModel.generateContent(prompt);
+        } else {
+          throw error;
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      const text = String(result.response.text());
       const parsedJson = this.parseGenerativeJson(text);
       const validatedData = ExtractedDataSchema.parse(parsedJson);
 
@@ -384,8 +398,22 @@ export class AIService {
         '  "region": "one of: south, cultural_triangle, kandy, hill_country, safari_south, east_coast, north, west, south_west, uva, sabaragamuwa, east"\n' +
         '}';
 
-      const result = await model.generateContent(learnPrompt);
-      const text = result.response.text();
+      let result: any;
+      try {
+        result = await model.generateContent(learnPrompt);
+      } catch (error: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        if (error?.status === 429 || error?.message?.includes('429')) {
+          const fallbackModel = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+          });
+          result = await fallbackModel.generateContent(learnPrompt);
+        } else {
+          throw error;
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      const text = String(result.response.text());
 
       const parsed = this.parseGenerativeJson(text) as {
         title?: string;
