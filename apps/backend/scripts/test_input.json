@@ -1,0 +1,28 @@
+{
+  "user_features": {
+    "user_interest_score": 0.75,
+    "cultural_match": 0.85,
+    "adventure_match": 0.5,
+    "relaxation_match": 0.4,
+    "click_frequency": 0.12,
+    "feedback_positivity_rate": 0.78,
+    "engagement_recency": 2,
+    "diversity_score": 0.85,
+    "travel_pace_preference": 0.5,
+    "booking_conversion_rate": 0.5,
+    "category_affinity": 1.2,
+    "user_trust_score": 0.9,
+    "strong_engagement_count": 5,
+    "ignored_recs_count": 2
+  },
+  "destinations": [
+    {
+      "destination_id": "trip_001",
+      "destination_popularity": 0.75
+    },
+    {
+      "destination_id": "trip_002",
+      "destination_popularity": 0.35
+    }
+  ]
+}

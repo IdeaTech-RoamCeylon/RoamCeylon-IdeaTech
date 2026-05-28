@@ -37,32 +37,33 @@ metadata_path   = DATA_DIR / "model_v2_metadata.json"
 DECISION_THRESHOLD = 0.65
 
 
-def load_training_data() -> pd.DataFrame:
-    """Load SMOTE balanced dataset (primary) or latest v2 CSV (fallback)."""
+def load_training_data() -> tuple:
+    """Load latest v2 CSV (primary) or SMOTE balanced dataset (fallback)."""
     print('[1/6] Loading training data...')
 
-    # Primary: SMOTE balanced dataset
-    smote_path = DATA_DIR / "smote_balanced_dataset.csv"
-    if smote_path.exists():
-        print(f"  ✓ Using SMOTE balanced dataset: {smote_path.name}")
-        df = pd.read_csv(smote_path)
-        print(f"  ✓ Loaded {len(df)} records  "
-              f"(pos={df['label'].sum()}, neg={(df['label']==0).sum()})\n")
-        return df
-
-    # Fallback: latest dated v2 CSV
+    # Primary: latest dated v2 CSV (fresh live feedback)
     v2_datasets = sorted(DATA_DIR.glob("ml_training_dataset_v2_*.csv"))
 
     if v2_datasets:
         dataset_path = v2_datasets[-1]  # Latest
-        print(f"  ℹ SMOTE dataset not found — using: {dataset_path.name}")
+        print(f"  ✓ Using latest live feedback dataset: {dataset_path.name}")
         df = pd.read_csv(dataset_path)
-        print(f"  ✓ Loaded {len(df)} records\n")
-        return df
+        print(f"  ✓ Loaded {len(df)} records  "
+              f"(pos={df['label'].sum()}, neg={(df['label']==0).sum()})\n")
+        return df, dataset_path.name
+
+    # Fallback: SMOTE balanced dataset
+    smote_path = DATA_DIR / "smote_balanced_dataset.csv"
+    if smote_path.exists():
+        print(f"  ℹ Live feedback dataset not found — using fallback SMOTE dataset: {smote_path.name}")
+        df = pd.read_csv(smote_path)
+        print(f"  ✓ Loaded {len(df)} records  "
+              f"(pos={df['label'].sum()}, neg={(df['label']==0).sum()})\n")
+        return df, smote_path.name
 
     raise FileNotFoundError(
-        "No training dataset found. Expected smote_balanced_dataset.csv "
-        "or ml_training_dataset_v2_*.csv in data/training/"
+        "No training dataset found. Expected ml_training_dataset_v2_*.csv "
+        "or smote_balanced_dataset.csv in data/training/"
     )
 
 
@@ -194,7 +195,7 @@ def evaluate_model(model, X: pd.DataFrame, y: np.ndarray) -> dict:
 
 
 def save_model(model, scaler, feature_names: list,
-               eval_results: dict, cv_avg: dict, fold_metrics: list) -> dict:
+               eval_results: dict, cv_avg: dict, fold_metrics: list, dataset_name: str) -> dict:
     """Save model, scaler, and metadata."""
     print('[5/6] Saving Model v2...')
 
@@ -211,7 +212,7 @@ def save_model(model, scaler, feature_names: list,
         'version': 'v2',
         'created_at': datetime.now().isoformat(),
         'model_type': 'HistGradientBoostingClassifier',
-        'dataset':    'smote_balanced_dataset.csv',
+        'dataset':    dataset_name,
         'features': list(feature_names),
         'feature_count': len(feature_names),
         'leakage_removed': ['event_weight'],
@@ -276,13 +277,13 @@ def main():
 
     try:
         # Load and prepare data
-        df = load_training_data()
+        df, dataset_name = load_training_data()
         X, y, groups, scaler, feature_names = prepare_features(df)
         model, cv_avg, fold_metrics = train_model_v2(X, y, groups)
         eval_results = evaluate_model(model, X, y)
         metadata = save_model(
             model, scaler, feature_names,
-            eval_results, cv_avg, fold_metrics
+            eval_results, cv_avg, fold_metrics, dataset_name
         )
         print_summary(metadata)
 

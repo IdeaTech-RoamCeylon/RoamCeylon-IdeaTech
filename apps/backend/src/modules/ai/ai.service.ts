@@ -157,22 +157,55 @@ export class AIService {
       model: 'gemini-flash-latest',
     });
 
-    const prompt = `You are a conversational travel assistant for Sri Lanka.
+    let retrievedFactsText = '';
+    if (this.embeddingService) {
+      try {
+        const queryVector = this.generateDummyEmbedding(message);
+        const searchResults = await this.search(queryVector, 3);
+        if (searchResults && searchResults.length > 0) {
+          retrievedFactsText = searchResults
+            .map((r) => `- **${r.title}**: ${r.content}`)
+            .join('\n');
+        }
+      } catch (e) {
+        console.error('Failed to retrieve search facts for AI context:', e);
+      }
+    }
+
+    const prompt = `You are a world-class, premium conversational travel assistant specializing in Sri Lanka.
+Your audience consists of high-end international travelers expecting detailed, highly accurate, and context-rich assistance.
 Current trip parameters: ${JSON.stringify(currentParams)}.
 User message: "${message}".
 
-Your task is to extract 5 parameters for a trip to Sri Lanka:
-1. destination (string)
-2. duration (string, e.g. "5 days")
-3. pax (string, number of people)
-4. budget (string, "Low", "Medium", "High", "Luxury")
-5. interests (array of strings)
+${
+  retrievedFactsText
+    ? `Retrieved context facts from our verified Sri Lanka travel database matching the user's query:
+${retrievedFactsText}
+Use the above database facts to provide extremely accurate answers if the user asks about these locations or regions. Always prioritize these real database facts.`
+    : ''
+}
 
-Analyze the user message and update the current parameters.
-If any parameter is still missing (null), generate a friendly, natural conversational reply asking for ONE missing parameter.
-If all 5 parameters are collected (not null), set isComplete to true and generate a friendly closing reply (e.g. "Perfect, I have all the details! Generating your plan now.").
+You must perform two simultaneous tasks:
+1. ANSWER THE USER'S QUESTIONS:
+   - If the user asks ANY question (about safety, weather, monsoon seasons, toddler friendliness, local routes, train tickets, packing, or cultural etiquettes), you must answer it with profound local expertise.
+   - Be specific: Mention real facts (e.g., Sigiriya is best climbed at 6 AM; Kandy-to-Ella train is iconic and takes 7 hours; southwest monsoon runs May-September, northeast runs October-January).
+   - If their question is complex, break down the answer logically and offer practical solutions (e.g. private driver vs. train, safety precautions).
 
-Return ONLY a JSON object with this exact structure (no markdown tags):
+2. EXTRACT TRIP PARAMETERS (SLOT-FILLING):
+   - Analyze the conversation and silently extract or update the 5 key parameters:
+     a. destination (string - e.g. "Ella", "Galle", "Kandy")
+     b. duration (string - e.g. "5 days")
+     c. pax (string - e.g. "2 adults", "Family of 4 with a toddler")
+     d. budget (string - "Low", "Medium", "High", "Luxury")
+     e. interests (array of strings - e.g. ["hiking", "culture", "beaches"])
+   - Keep current values if not updated in the new message.
+
+CONVERSATIONAL GUIDANCE:
+- If the user asked a question, prioritize answering it first in a warm, helpful, and sophisticated tone. After answering, if parameters are still missing, smoothly transition into asking for ONE missing parameter (e.g. "To help me tailor the perfect route, how many days are you planning to spend in Sri Lanka?").
+- If no question was asked, generate a natural reply acknowledging their inputs and asking for ONE missing parameter.
+- If all 5 parameters are collected (none are null) or the user explicitly requests to build/generate their trip plan, set isComplete to true and give a concluding reply letting them know you are generating the itinerary (e.g. "Perfect, I have all the details! Preparing your custom Sri Lankan adventure now.").
+
+Return ONLY a JSON object with this exact structure (no markdown tags, no backticks):
 {
   "isComplete": boolean,
   "reply": string,
