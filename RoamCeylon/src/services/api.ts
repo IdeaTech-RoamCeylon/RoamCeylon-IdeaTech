@@ -38,21 +38,57 @@ class ApiService {
 
     // Response interceptor - handle errors
     this.client.interceptors.response.use(
-      response => {
-        return response;
-      },
+      response => response,
       async error => {
-        logger.error('API Error:', error);
-
-        // Show global error toast (suppressed for 401 to prevent confusing toast on app startup/session expiration)
+        const originalRequest = error.config;
+        
+        // Suppress 401 toast
         if (error.response?.status !== 401) {
+          logger.error('API Error:', error);
           showToast.apiError(error);
         }
 
-        if (error.response?.status === 401) {
-          // Token expired or invalid - handle logout
+        // If 401 and we haven't retried yet
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const refreshToken = await SecureStore.getItemAsync('nhostRefreshToken');
+            if (refreshToken) {
+              const subdomain = process.env.EXPO_PUBLIC_NHOST_SUBDOMAIN;
+              const region = process.env.EXPO_PUBLIC_NHOST_REGION;
+              
+              // Call Nhost auth endpoint directly to bypass SDK state issues
+              const refreshRes = await axios.post(
+                `https://${subdomain}.auth.${region}.nhost.run/v1/token`,
+                { refreshToken }
+              );
+
+              const { accessToken, refreshToken: newRefreshToken } = refreshRes.data;
+              
+              if (accessToken) {
+                // Save new tokens
+                await SecureStore.setItemAsync('authToken', accessToken);
+                if (newRefreshToken) {
+                  await SecureStore.setItemAsync('nhostRefreshToken', newRefreshToken);
+                }
+
+                // Update auth header for the failed request and retry
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                return this.client(originalRequest);
+              }
+            }
+          } catch (refreshErr) {
+            logger.error('Token refresh failed:', refreshErr);
+          }
+
+          // If refresh failed or no refresh token, log out
           await SecureStore.deleteItemAsync('authToken');
+          await SecureStore.deleteItemAsync('nhostRefreshToken');
+          
+          // Optionally redirect to login or let AuthContext handle it
         }
+        
         return Promise.reject(error);
       }
     );

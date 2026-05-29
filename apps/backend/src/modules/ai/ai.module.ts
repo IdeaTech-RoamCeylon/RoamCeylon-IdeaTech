@@ -14,12 +14,14 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 import { FeedbackModule } from '../feedback/feedback.module';
 import { AIDecisionLoggerService } from './decision/ai-decision-logger.service';
 import { BoundsEnforcerService } from './bounds-enforcer.service';
+import { PlacesModule } from '../places/places.module';
 
 @Module({
   imports: [
     ConfigModule,
     PlannerModule,
     AnalyticsModule,
+    PlacesModule,
     forwardRef(() => FeedbackModule),
     ThrottlerModule.forRoot([
       {

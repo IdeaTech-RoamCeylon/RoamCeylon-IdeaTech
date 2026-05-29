@@ -500,6 +500,12 @@ const AIChatScreen = () => {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
+          // Performance Optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={15}
+          updateCellsBatchingPeriod={50}
         />
 
         {/* Input Area */}

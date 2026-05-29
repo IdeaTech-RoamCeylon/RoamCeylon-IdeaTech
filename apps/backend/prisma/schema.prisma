@@ -319,3 +319,12 @@ model Message {
   @@index([createdAt])
   @@map("Message")
 }
+
+model PlaceCache {
+  id        String   @id @default(uuid())
+  placeName String   @unique
+  imageUrl  String
+  updatedAt DateTime @default(now())
+
+  @@map("PlaceCache")
+}

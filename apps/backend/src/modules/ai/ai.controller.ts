@@ -27,6 +27,7 @@ import {
 
 import { TripStoreService, SavedTrip } from './trips/trip-store.service';
 import { PlannerService } from '../planner/planner.service';
+import { PlacesService } from '../places/places.service';
 import { FeedbackRankingService } from '../feedback/ranking.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import {
@@ -78,6 +79,7 @@ export interface TripPlanRequestDto {
   budget?: string; // 'Low' | 'Medium' | 'High' | 'Luxury'
   pax?: string; // e.g. '2 adults', 'Family of 4'
   chatContext?: string; // Condensed summary of chat conversation for enriched search
+  lastDayPreference?: 'explore' | 'head_home';
 }
 
 interface RankingDetails {
@@ -514,6 +516,7 @@ export class AIController {
     private readonly decisionLogger: AIDecisionLoggerService,
     private readonly latencyTracker: LatencyTrackerService,
     private readonly boundsEnforcer: BoundsEnforcerService,
+    private readonly placesService: PlacesService,
   ) {}
 
   @Get('health')
@@ -1923,22 +1926,22 @@ export class AIController {
     dayNumber: number,
     totalDays: number,
   ): 'Morning' | 'Afternoon' | 'Evening' {
-    // Edge case safety check: if no activities, default to afternoon
     if (totalActivitiesInDay <= 0) return 'Afternoon';
-    const energy = this.getEnergyScoreForItem(item);
+    if (totalActivitiesInDay === 1) return 'Afternoon';
 
-    // Single activity → energy based
-    if (totalActivitiesInDay === 1)
-      return energy === 3 ? 'Morning' : energy === 1 ? 'Evening' : 'Afternoon';
-    const ratio = activityIndex / (totalActivitiesInDay - 1);
+    // Arrival Day: Cap is 2 -> Index 0: Afternoon, Index 1: Evening
+    if (dayNumber === 1) {
+      if (activityIndex === 0) return 'Afternoon';
+      if (activityIndex === 1) return 'Evening';
+      return 'Afternoon'; // Fallback
+    }
 
-    // SINGLE DAY TRIP
-    if (totalDays === 1) return this.assignSingleDaySlot(energy, ratio);
+    // Other days: Index 0: Morning, Index 1: Afternoon, Index 2: Evening
+    if (activityIndex === 0) return 'Morning';
+    if (activityIndex === 1) return 'Afternoon';
+    if (activityIndex >= 2) return 'Evening';
 
-    // MULTI DAY TRIP
-    const dayType = this.getDayEnergyProfile(dayNumber, totalDays);
-
-    return this.assignMultiDaySlot(energy, ratio, dayType);
+    return 'Afternoon';
   }
 
   /* --------------------------------------------------
@@ -2255,19 +2258,21 @@ export class AIController {
   private allocateAcrossDays(
     activities: SearchResultItem[],
     dayCount: number,
-    maxPerDay: number,
+    maxPerDay: number, // Legacy param, kept for signature but overridden by strict capacities
     preferences?: string[],
+    lastDayPreference?: string,
   ): SearchResultItem[][] {
     const buckets: SearchResultItem[][] = Array.from(
       { length: dayCount },
       () => [],
     );
 
-    // Track category counts per day separately
     const dayCategoryCounts: Record<string, number>[] = Array.from(
       { length: dayCount },
       () => ({}),
     );
+
+    let currentDayStartIndex = 0;
 
     for (const item of activities) {
       const category = this.inferCategoryFromText(
@@ -2276,18 +2281,23 @@ export class AIController {
         preferences,
       );
 
-      // Try to place in the ideal day first (round-robin), then overflow
-      // to the next available day that still has capacity
       let placed = false;
 
       for (let attempt = 0; attempt < dayCount; attempt++) {
-        const dayIndex = attempt % dayCount;
+        const dayIndex = (currentDayStartIndex + attempt) % dayCount;
         const bucket = buckets[dayIndex];
         const categoryCounts = dayCategoryCounts[dayIndex];
 
-        if (bucket.length >= maxPerDay) continue;
+        let capacity = 3;
+        if (dayIndex === 0) capacity = 2; // Arrival day capped at 2
+        else if (dayIndex === dayCount - 1 && dayCount > 1) {
+          if (lastDayPreference === 'head_home') capacity = 0;
+          else if (lastDayPreference === 'explore') capacity = 3;
+          else capacity = 1;
+        }
 
-        // Day 1 (index 0) is arrival — stricter same-category cap
+        if (bucket.length >= capacity) continue;
+
         const sameCategoryCap =
           dayIndex === 0
             ? PLANNER_CONFIG.DIVERSITY.MAX_SAME_CATEGORY_DAY_ONE
@@ -2299,25 +2309,34 @@ export class AIController {
           bucket.push(item);
           categoryCounts[category] = currentCategoryCount + 1;
           placed = true;
+          currentDayStartIndex = (dayIndex + 1) % dayCount;
           break;
         }
       }
 
-      // If we couldn't place respecting category caps, fall back to
-      // any day that still has capacity (score quality > strict diversity)
       if (!placed) {
-        for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
-          if (buckets[dayIndex].length < maxPerDay) {
+        for (let attempt = 0; attempt < dayCount; attempt++) {
+          const dayIndex = (currentDayStartIndex + attempt) % dayCount;
+          
+          let capacity = 3;
+          if (dayIndex === 0) capacity = 2;
+          else if (dayIndex === dayCount - 1 && dayCount > 1) {
+            if (lastDayPreference === 'head_home') capacity = 0;
+            else if (lastDayPreference === 'explore') capacity = 3;
+            else capacity = 1;
+          }
+
+          if (buckets[dayIndex].length < capacity) {
             buckets[dayIndex].push(item);
             const cat = dayCategoryCounts[dayIndex][category] || 0;
             dayCategoryCounts[dayIndex][category] = cat + 1;
+            currentDayStartIndex = (dayIndex + 1) % dayCount;
             break;
           }
         }
       }
     }
 
-    // Log per-day distribution
     buckets.forEach((bucket, i) => {
       const cats = bucket.map((r) =>
         this.inferCategoryFromText(r.title, r.content, preferences),
@@ -2521,6 +2540,7 @@ export class AIController {
     preferences?: string[],
     destination?: string,
     userId?: string,
+    lastDayPreference?: string,
   ): Promise<{ plans: DayPlan[]; usedFallback: boolean }> {
     const startItin = process.hrtime.bigint();
 
@@ -2574,7 +2594,6 @@ export class AIController {
     const maxTotalActivities = Math.min(
       dayCount * MAX_PER_DAY,
       PLANNER_CONFIG.ACTIVITIES.MAX_TOTAL,
-      scored.length,
     );
 
     const selectedResults = this.selectDiverseActivities(
@@ -2588,6 +2607,7 @@ export class AIController {
       dayCount,
       MAX_PER_DAY,
       preferences,
+      lastDayPreference,
     );
 
     const dayPlans: DayPlan[] = [];
@@ -2599,6 +2619,16 @@ export class AIController {
     for (let day = 1; day <= dayCount; day++) {
       const dayDate = this.addDaysLocal(baseDate, day - 1);
       const bucket = dayBuckets[day - 1] ?? [];
+      
+      // Sort bucket by energy (descending) so high-energy items appear early (Morning)
+      bucket.sort((a, b) => {
+        const scoredA = scored.find((s) => s.id === a.id);
+        const scoredB = scored.find((s) => s.id === b.id);
+        const energyA = scoredA ? this.getEnergyScoreForItem(scoredA) : 2;
+        const energyB = scoredB ? this.getEnergyScoreForItem(scoredB) : 2;
+        return energyB - energyA; // Descending
+      });
+
       const activitiesForDay: EnhancedItineraryItemDto[] = [];
 
       /* ================= ACTIVITY LOOP ================= */
@@ -2832,7 +2862,7 @@ export class AIController {
 
       const nearHit = destTokens.some((t) => near.includes(t));
       const regionHit = destRegion && region && region === destRegion;
-      const directHit = destTokens.some((t) => text.includes(t));
+      const directHit = destTokens.every((t) => text.includes(t));
 
       return nearHit || regionHit || directHit;
     });
@@ -3027,53 +3057,16 @@ export class AIController {
     // Build an enriched search query from all available context
     const searchTerms: string[] = [
       destinationLower,
-      'attractions',
-      'places to visit',
       ...preferences.map((p) => p.toLowerCase()),
     ];
-
-    // Inject budget-appropriate activity terms
-    if (body.budget) {
-      const budgetLower = body.budget.toLowerCase();
-      if (budgetLower === 'luxury')
-        searchTerms.push('luxury resort spa premium');
-      else if (budgetLower === 'high')
-        searchTerms.push('premium experience resort');
-      else if (budgetLower === 'low')
-        searchTerms.push('budget friendly affordable');
-    }
-
-    // Inject group-type terms derived from pax
-    if (body.pax) {
-      const paxLower = body.pax.toLowerCase();
-      if (
-        paxLower.includes('family') ||
-        paxLower.includes('child') ||
-        paxLower.includes('kid')
-      )
-        searchTerms.push('family friendly kid safe');
-      else if (paxLower.includes('couple') || paxLower.includes('honeymoon'))
-        searchTerms.push('romantic couples scenic');
-      else if (paxLower.includes('solo'))
-        searchTerms.push('solo traveler safe');
-    }
-
-    // Inject key phrases from the chat conversation summary
-    if (body.chatContext && body.chatContext.length > 5) {
-      const contextSnippet = body.chatContext
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter((w) => w.length > 3)
-        .slice(0, 10)
-        .join(' ');
-      if (contextSnippet) searchTerms.push(contextSnippet);
-    }
 
     const enrichedQuery = [...new Set(searchTerms)].join(' ');
     this.logger.log(`[trip-plan] Enriched search query: "${enrichedQuery}"`);
 
     const searchResults = await this.executeSearch(enrichedQuery);
+
+    this.logger.log(`[DEBUG] searchResults scores: ${searchResults.results.map(r => r.score).join(', ')}`);
+    this.logger.log(`[DEBUG] searchResults titles: ${searchResults.results.map(r => r.title).join(', ')}`);
 
     const gated = this.gateByNearOrRegion(
       searchResults.results,
@@ -3087,6 +3080,7 @@ export class AIController {
       preferences,
       destinationLower,
       userId,
+      body.lastDayPreference,
     );
 
     const allCategoriesInPlan = dayByDayPlan.flatMap((d) =>
@@ -3401,46 +3395,69 @@ export class AIController {
         enrichMap.set(key, item);
       }
 
-      const enrichedDays = body.dayByDayPlan.map((day) => ({
-        day: day.day,
-        date: day.date,
-        theme: day.theme,
-        themeTitle: day.theme || 'Day ' + day.day + ': ' + body.destination,
-        activities: day.activities.map((act) => {
-          const key =
-            String(day.day) + '-' + String(act.placeName).toLowerCase().trim();
-          const enriched = enrichMap.get(key);
-          return {
-            ...act,
-            time: enriched?.time || this.defaultTime(act.timeSlot),
-            richDescription: enriched?.richDescription || act.shortDescription,
-            tip: enriched?.tip || '',
-            costUSD: enriched?.costUSD ?? 0,
-            photoKeyword:
-              enriched?.photoKeyword || act.placeName + ' Sri Lanka',
-          };
-        }),
-      }));
+      const enrichedDays = await Promise.all(
+        body.dayByDayPlan.map(async (day) => ({
+          day: day.day,
+          date: day.date,
+          theme: day.theme,
+          themeTitle: day.theme || 'Day ' + day.day + ': ' + body.destination,
+          activities: await Promise.all(
+            day.activities.map(async (act) => {
+              const key =
+                String(day.day) +
+                '-' +
+                String(act.placeName).toLowerCase().trim();
+              const enriched = enrichMap.get(key);
+              const imageUrl = await this.placesService.getPlacePhotoUrl(
+                act.placeName,
+                body.destination,
+              );
+              return {
+                ...act,
+                time: enriched?.time || this.defaultTime(act.timeSlot),
+                richDescription:
+                  enriched?.richDescription || act.shortDescription,
+                tip: enriched?.tip || '',
+                costUSD: enriched?.costUSD ?? 0,
+                photoKeyword:
+                  enriched?.photoKeyword || act.placeName + ' Sri Lanka',
+                imageUrl,
+              };
+            }),
+          ),
+        })),
+      );
 
       return { enrichedDays };
     } catch (err) {
       this.logger.error(
         '[enrich-plan] Gemini enrichment failed: ' + (err as Error).message,
       );
-      const fallbackDays = body.dayByDayPlan.map((day) => ({
-        day: day.day,
-        date: day.date,
-        theme: day.theme,
-        themeTitle: 'Day ' + day.day + ': ' + body.destination,
-        activities: day.activities.map((act) => ({
-          ...act,
-          time: this.defaultTime(act.timeSlot),
-          richDescription: act.shortDescription,
-          tip: '',
-          costUSD: 0,
-          photoKeyword: act.placeName + ' Sri Lanka',
+      const fallbackDays = await Promise.all(
+        body.dayByDayPlan.map(async (day) => ({
+          day: day.day,
+          date: day.date,
+          theme: day.theme,
+          themeTitle: 'Day ' + day.day + ': ' + body.destination,
+          activities: await Promise.all(
+            day.activities.map(async (act) => {
+              const imageUrl = await this.placesService.getPlacePhotoUrl(
+                act.placeName,
+                body.destination,
+              );
+              return {
+                ...act,
+                time: this.defaultTime(act.timeSlot),
+                richDescription: act.shortDescription,
+                tip: '',
+                costUSD: 0,
+                photoKeyword: act.placeName + ' Sri Lanka',
+                imageUrl,
+              };
+            }),
+          ),
         })),
-      }));
+      );
       return { enrichedDays: fallbackDays };
     }
   }

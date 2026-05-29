@@ -176,9 +176,6 @@ export class AIService {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
-    });
 
     let retrievedFactsText = '';
     if (this.embeddingService) {
@@ -239,12 +236,16 @@ export class AIService {
       '      - Include BOTH generic interests AND any specific places/activities mentioned.\n' +
       '      - Example: "Mirissa for whale watching" → add ["beach", "whale watching", "Mirissa"]\n' +
       '      - Example: "Ella Rock hike" → add ["hiking", "Ella Rock", "nature"]\n' +
+      '   f. lastDayPreference: exactly one of "explore" or "head_home"\n' +
+      '      - "look around", "visit places", "explore" → "explore"\n' +
+      '      - "go back", "leave", "head home" → "head_home"\n' +
       '\n' +
       'CONVERSATIONAL GUIDANCE:\n' +
-      '- Priority for missing params: destination → duration → pax → budget → interests.\n' +
+      '- Priority for missing params: destination → duration → pax → budget → interests → lastDayPreference.\n' +
       '- Ask for the HIGHEST PRIORITY missing param only, one at a time.\n' +
+      '- For lastDayPreference, specifically ask: "Would you like to explore some places on your last day, or just head straight home?"\n' +
       '- Answer questions first in a warm, sophisticated tone, then ask for the next missing param.\n' +
-      '- When all 5 are collected OR user says "generate"/"build my plan", set isComplete=true.\n' +
+      '- When all 6 are collected OR user says "generate"/"build my plan", set isComplete=true.\n' +
       '\n' +
       'Return ONLY a JSON object (no markdown, no backticks):\n' +
       '{\n' +
@@ -255,7 +256,8 @@ export class AIService {
       '    "duration": string | null,\n' +
       '    "pax": string | null,\n' +
       '    "budget": string | null,\n' +
-      '    "interests": string[] | null\n' +
+      '    "interests": string[] | null,\n' +
+      '    "lastDayPreference": string | null\n' +
       '  }\n' +
       '}';
 
@@ -268,6 +270,7 @@ export class AIService {
         pax: z.string().nullable(),
         budget: z.string().nullable(),
         interests: z.array(z.string()).nullable(),
+        lastDayPreference: z.string().nullable(),
       }),
     });
 
@@ -289,20 +292,32 @@ export class AIService {
         },
       });
 
+      const modelsToTry = [
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash-lite'
+      ];
       let result: any;
-      try {
-        result = await model.generateContent(prompt);
-      } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        if (error?.status === 429 || error?.message?.includes('429')) {
-          const fallbackModel = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-          });
-          result = await fallbackModel.generateContent(prompt);
-        } else {
-          throw error;
+      let lastError: any;
+
+      for (const modelName of modelsToTry) {
+        try {
+          const currentModel = genAI.getGenerativeModel({ model: modelName });
+          result = await currentModel.generateContent(prompt);
+          break; // Success
+        } catch (error: any) {
+          lastError = error;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          if (error?.status === 429 || error?.message?.includes('429') || error?.status === 503 || error?.message?.includes('503') || error?.status === 404 || error?.message?.includes('404')) {
+            console.log(`[AI Chat] Model ${modelName} failed. Trying next...`);
+            continue;
+          } else {
+            throw error;
+          }
         }
       }
+      if (!result) throw lastError;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const text = String(result.response.text());
       const parsedJson = this.parseGenerativeJson(text);
@@ -382,9 +397,6 @@ export class AIService {
       if (!apiKey) return;
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-flash-latest',
-      });
 
       const learnPrompt =
         'You are a professional travel compiler. Generate a highly accurate, structured travel database record for this Sri Lankan location: "' +
@@ -398,20 +410,32 @@ export class AIService {
         '  "region": "one of: south, cultural_triangle, kandy, hill_country, safari_south, east_coast, north, west, south_west, uva, sabaragamuwa, east"\n' +
         '}';
 
+      const modelsToTry = [
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash-lite'
+      ];
       let result: any;
-      try {
-        result = await model.generateContent(learnPrompt);
-      } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        if (error?.status === 429 || error?.message?.includes('429')) {
-          const fallbackModel = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-          });
-          result = await fallbackModel.generateContent(learnPrompt);
-        } else {
-          throw error;
+      let lastError: any;
+
+      for (const modelName of modelsToTry) {
+        try {
+          const currentModel = genAI.getGenerativeModel({ model: modelName });
+          result = await currentModel.generateContent(learnPrompt);
+          break; // Success
+        } catch (error: any) {
+          lastError = error;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          if (error?.status === 429 || error?.message?.includes('429') || error?.status === 503 || error?.message?.includes('503') || error?.status === 404 || error?.message?.includes('404')) {
+            console.log(`[AI Learn] Model ${modelName} failed. Trying next...`);
+            continue;
+          } else {
+            throw error;
+          }
         }
       }
+      if (!result) throw lastError;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const text = String(result.response.text());
 

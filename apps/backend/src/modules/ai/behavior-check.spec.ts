@@ -39,7 +39,11 @@ describe('AI Production Behavior Review', () => {
 
   beforeEach(() => {
     // Modified AIService instantiation
-    aiService = new AIService(null as unknown as EmbeddingService);
+    aiService = new AIService(
+      null as unknown as EmbeddingService,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      null as unknown as any, // PrismaService mock
+    );
   });
 
   // SCENARIO 1: Predictability & Clarity (Happy Path)
