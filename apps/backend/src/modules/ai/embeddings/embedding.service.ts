@@ -77,9 +77,11 @@ export class EmbeddingService {
   });
 
   private createClient(): Client {
-    const dbUrl = this.configService.get<string>('DATABASE_URL');
+    let dbUrl = this.configService.get<string>('DATABASE_URL');
 
     if (dbUrl) {
+      // Increase connection limit to avoid hangs from connection slot exhaustion
+      dbUrl = dbUrl.replace('connection_limit=1', 'connection_limit=10');
       return new Client({
         connectionString: dbUrl,
         ssl: dbUrl.includes('sslmode=')
@@ -173,35 +175,55 @@ export class EmbeddingService {
     const client = this.createClient();
 
     try {
+      console.log('Connecting to database for seeding...');
       await client.connect();
+      console.log('Connected to database. Clearing old embeddings...');
 
       // Deterministic seeding: stable IDs every time
-      await client.query(`TRUNCATE TABLE embeddings RESTART IDENTITY`);
+      // Using DELETE instead of TRUNCATE to avoid ACCESS EXCLUSIVE locks that can hang
+      await client.query(`DELETE FROM embeddings`);
+      await client.query(`ALTER SEQUENCE IF EXISTS embeddings_id_seq RESTART WITH 1`);
+      console.log('Old embeddings cleared and sequence reset.');
 
       const dataset = parseTourismSamples(rawTourismData);
+      console.log(`Loaded ${dataset.length} Sri Lanka travel locations to seed.`);
 
       // Deterministic order
       dataset.sort((a, b) => this.collator.compare(a.title, b.title));
 
-      for (const item of dataset) {
-        const title = this.normalizeText(item.title);
-        const contentWithMeta = this.buildContentWithMeta(item);
+      const batchSize = 100;
+      let insertedCount = 0;
 
-        const textForEmbedding = `${title}. ${contentWithMeta}`;
-        const embedding = this.generateDummyEmbedding(
-          textForEmbedding,
-          this.EMBEDDING_DIM,
-        );
+      for (let i = 0; i < dataset.length; i += batchSize) {
+        const batch = dataset.slice(i, i + batchSize);
+        const valueStrings: string[] = [];
+        const values: any[] = [];
+        let valIdx = 1;
 
-        // Deterministic float serialization
-        const vectorLiteral = this.vectorToLiteral(embedding);
+        for (const item of batch) {
+          const title = this.normalizeText(item.title);
+          const contentWithMeta = this.buildContentWithMeta(item);
 
-        await client.query(
-          `INSERT INTO embeddings (title, content, embedding)
-           VALUES ($1, $2, $3::vector)`,
-          [title, contentWithMeta, vectorLiteral],
-        );
+          const textForEmbedding = `${title}. ${contentWithMeta}`;
+          const embedding = this.generateDummyEmbedding(
+            textForEmbedding,
+            this.EMBEDDING_DIM,
+          );
+
+          const vectorLiteral = this.vectorToLiteral(embedding);
+
+          valueStrings.push(`($${valIdx}, $${valIdx + 1}, $${valIdx + 2}::vector)`);
+          values.push(title, contentWithMeta, vectorLiteral);
+          valIdx += 3;
+        }
+
+        const query = `INSERT INTO embeddings (title, content, embedding) VALUES ${valueStrings.join(', ')}`;
+        await client.query(query, values);
+
+        insertedCount += batch.length;
+        console.log(`Progress: Seeded ${insertedCount}/${dataset.length} items...`);
       }
+      console.log('Database seeding process completed successfully!');
     } catch (err) {
       console.error('Seeding error:', err);
       throw err;
