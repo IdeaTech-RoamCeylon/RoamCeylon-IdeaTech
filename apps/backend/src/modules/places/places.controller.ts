@@ -7,9 +7,13 @@ export class PlacesController {
   constructor(private readonly placesService: PlacesService) {}
 
   @Get('image/:placeName')
-  async getPlaceImage(@Param('placeName') placeName: string, @Res() res: Response) {
-    const presignedUrl = await this.placesService.getPresignedUrlForPlace(placeName);
-    
+  async getPlaceImage(
+    @Param('placeName') placeName: string,
+    @Res() res: Response,
+  ) {
+    const presignedUrl =
+      await this.placesService.getPresignedUrlForPlace(placeName);
+
     if (presignedUrl) {
       // Issue a temporary redirect to the 30-second presigned URL
       return res.redirect(302, presignedUrl);

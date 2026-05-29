@@ -296,28 +296,39 @@ export class AIService {
         'gemini-3.5-flash',
         'gemini-2.5-flash',
         'gemini-3.1-flash-lite',
-        'gemini-2.5-flash-lite'
+        'gemini-2.5-flash-lite',
       ];
       let result: any;
-      let lastError: any;
+      let lastError: unknown;
 
       for (const modelName of modelsToTry) {
         try {
           const currentModel = genAI.getGenerativeModel({ model: modelName });
           result = await currentModel.generateContent(prompt);
           break; // Success
-        } catch (error: any) {
-          lastError = error;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          if (error?.status === 429 || error?.message?.includes('429') || error?.status === 503 || error?.message?.includes('503') || error?.status === 404 || error?.message?.includes('404')) {
+        } catch (err: unknown) {
+          lastError = err;
+          const error = err as { status?: number; message?: string };
+          if (
+            error?.status === 429 ||
+            error?.message?.includes('429') ||
+            error?.status === 503 ||
+            error?.message?.includes('503') ||
+            error?.status === 404 ||
+            error?.message?.includes('404')
+          ) {
             console.log(`[AI Chat] Model ${modelName} failed. Trying next...`);
             continue;
           } else {
-            throw error;
+            throw err instanceof Error ? err : new Error(String(err));
           }
         }
       }
-      if (!result) throw lastError;
+      if (!result) {
+        throw lastError instanceof Error
+          ? lastError
+          : new Error(String(lastError));
+      }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const text = String(result.response.text());
       const parsedJson = this.parseGenerativeJson(text);
@@ -414,28 +425,39 @@ export class AIService {
         'gemini-3.5-flash',
         'gemini-2.5-flash',
         'gemini-3.1-flash-lite',
-        'gemini-2.5-flash-lite'
+        'gemini-2.5-flash-lite',
       ];
       let result: any;
-      let lastError: any;
+      let lastError: unknown;
 
       for (const modelName of modelsToTry) {
         try {
           const currentModel = genAI.getGenerativeModel({ model: modelName });
           result = await currentModel.generateContent(learnPrompt);
           break; // Success
-        } catch (error: any) {
-          lastError = error;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          if (error?.status === 429 || error?.message?.includes('429') || error?.status === 503 || error?.message?.includes('503') || error?.status === 404 || error?.message?.includes('404')) {
+        } catch (err: unknown) {
+          lastError = err;
+          const error = err as { status?: number; message?: string };
+          if (
+            error?.status === 429 ||
+            error?.message?.includes('429') ||
+            error?.status === 503 ||
+            error?.message?.includes('503') ||
+            error?.status === 404 ||
+            error?.message?.includes('404')
+          ) {
             console.log(`[AI Learn] Model ${modelName} failed. Trying next...`);
             continue;
           } else {
-            throw error;
+            throw err instanceof Error ? err : new Error(String(err));
           }
         }
       }
-      if (!result) throw lastError;
+      if (!result) {
+        throw lastError instanceof Error
+          ? lastError
+          : new Error(String(lastError));
+      }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       const text = String(result.response.text());
 

@@ -1924,7 +1924,6 @@ export class AIController {
     activityIndex: number,
     totalActivitiesInDay: number,
     dayNumber: number,
-    totalDays: number,
   ): 'Morning' | 'Afternoon' | 'Evening' {
     if (totalActivitiesInDay <= 0) return 'Afternoon';
     if (totalActivitiesInDay === 1) return 'Afternoon';
@@ -2289,7 +2288,8 @@ export class AIController {
         const categoryCounts = dayCategoryCounts[dayIndex];
 
         let capacity = 3;
-        if (dayIndex === 0) capacity = 2; // Arrival day capped at 2
+        if (dayIndex === 0)
+          capacity = 2; // Arrival day capped at 2
         else if (dayIndex === dayCount - 1 && dayCount > 1) {
           if (lastDayPreference === 'head_home') capacity = 0;
           else if (lastDayPreference === 'explore') capacity = 3;
@@ -2317,7 +2317,7 @@ export class AIController {
       if (!placed) {
         for (let attempt = 0; attempt < dayCount; attempt++) {
           const dayIndex = (currentDayStartIndex + attempt) % dayCount;
-          
+
           let capacity = 3;
           if (dayIndex === 0) capacity = 2;
           else if (dayIndex === dayCount - 1 && dayCount > 1) {
@@ -2619,7 +2619,7 @@ export class AIController {
     for (let day = 1; day <= dayCount; day++) {
       const dayDate = this.addDaysLocal(baseDate, day - 1);
       const bucket = dayBuckets[day - 1] ?? [];
-      
+
       // Sort bucket by energy (descending) so high-energy items appear early (Morning)
       bucket.sort((a, b) => {
         const scoredA = scored.find((s) => s.id === a.id);
@@ -2661,7 +2661,6 @@ export class AIController {
           i,
           bucket.length,
           day,
-          dayCount,
         );
 
         /* ================= PERSONALIZATION METRICS ================= */
@@ -3065,8 +3064,12 @@ export class AIController {
 
     const searchResults = await this.executeSearch(enrichedQuery);
 
-    this.logger.log(`[DEBUG] searchResults scores: ${searchResults.results.map(r => r.score).join(', ')}`);
-    this.logger.log(`[DEBUG] searchResults titles: ${searchResults.results.map(r => r.title).join(', ')}`);
+    this.logger.log(
+      `[DEBUG] searchResults scores: ${searchResults.results.map((r) => r.score).join(', ')}`,
+    );
+    this.logger.log(
+      `[DEBUG] searchResults titles: ${searchResults.results.map((r) => r.title).join(', ')}`,
+    );
 
     const gated = this.gateByNearOrRegion(
       searchResults.results,

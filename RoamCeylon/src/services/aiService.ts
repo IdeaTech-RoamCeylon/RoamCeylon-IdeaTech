@@ -16,6 +16,7 @@ export interface TripPlanRequest {
 }
 
 export interface TripActivity {
+  placeName?: string;
   description: string;    // place name shown in the card
   coordinate?: [number, number]; // [longitude, latitude]
   dayNumber?: number;
@@ -110,6 +111,7 @@ interface EnrichedActivity {
   tip: string;
   costUSD: number;
   photoKeyword: string;
+  imageUrl?: string | null;
 }
 
 interface EnrichedDay {
