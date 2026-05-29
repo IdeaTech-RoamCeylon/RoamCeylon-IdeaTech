@@ -12,6 +12,7 @@ export interface TripPlanRequest {
   useSavedContext?: boolean; // default true
   mode?: 'new' | 'refine'; // default 'refine'
   tripId?: string; // optional specific trip refinement
+  lastDayPreference?: 'explore' | 'head_home';
 }
 
 export interface TripActivity {
@@ -26,6 +27,7 @@ export interface TripActivity {
   costUSD?: number;       // entry/activity cost in USD
   photoUrl?: string;      // Unsplash photo URL
   photoKeyword?: string;  // search keyword used
+  imageUrl?: string | null; // Nhost Storage URL
   estimatedDuration?: string; // e.g. "1-2 hours"
 
   // Preference-aware data from backend
@@ -151,6 +153,7 @@ class AIService {
         useSavedContext: request.useSavedContext,
         mode: request.mode,
         tripId: request.tripId,
+        lastDayPreference: request.lastDayPreference,
       });
 
       // 2. Check if we have a valid cache hit (skip cache for fresh plans)
@@ -179,6 +182,7 @@ class AIService {
         budget: request.budget,
         pax: request.pax,
         chatContext: request.chatContext,
+        lastDayPreference: request.lastDayPreference,
       };
 
       // Step 1: Get raw embedding-based plan
@@ -256,6 +260,7 @@ class AIService {
             );
 
             return {
+              placeName: act.placeName,
               description: act.placeName,
               coordinate: undefined as [number, number] | undefined,
               dayNumber: day.day,
@@ -263,6 +268,7 @@ class AIService {
               richDescription: act.richDescription,
               tip: act.tip,
               costUSD: act.costUSD,
+              imageUrl: act.imageUrl,
               photoUrl: getUnsplashPhotoUrl(act.photoKeyword, 400, 220),
               photoKeyword: act.photoKeyword,
               category: act.category || rawAct?.category || 'General',

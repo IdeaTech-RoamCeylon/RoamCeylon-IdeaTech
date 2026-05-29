@@ -307,10 +307,12 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   headerContainer: {
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    marginTop:50,
     paddingVertical: 14,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

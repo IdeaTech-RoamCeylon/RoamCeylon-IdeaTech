@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { TripActivity } from '../services/aiService';
+import { CONFIG } from '../config';
 
 interface EnhancedItineraryCardProps {
   activity: TripActivity;
@@ -66,6 +68,24 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
 }) => {
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
+  const fadeAnim = React.useRef(new Animated.Value(0.4)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0.8,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, [fadeAnim]);
 
   const icon = getCategoryIcon(activity.category, activity.description);
   const accentColor = getCategoryColor(activity.category);
@@ -78,7 +98,12 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
   const richDescription = activity.richDescription || activity.description;
   const tip = activity.tip || (activity.tips && activity.tips[0]) || '';
   const cost = activity.costUSD ?? 0;
-  const photoUrl = activity.photoUrl;
+  let photoUrl = activity.imageUrl || activity.photoUrl;
+  if (photoUrl && photoUrl.startsWith('/')) {
+    photoUrl = `${CONFIG.API_BASE_URL}${photoUrl}`;
+  }
+  
+  console.log('Rendering EnhancedItineraryCard for:', activity.placeName, 'photoUrl:', photoUrl);
 
   return (
     <View style={styles.timelineRow}>
@@ -95,41 +120,44 @@ const EnhancedItineraryCard: React.FC<EnhancedItineraryCardProps> = ({
         onPress={onPress}
         activeOpacity={0.85}
       >
-        {/* Photo */}
-        {photoUrl && !imgError ? (
-          <View style={styles.photoContainer}>
-            {imgLoading && (
-              <View style={styles.photoPlaceholder}>
-                <ActivityIndicator size="small" color={accentColor} />
-              </View>
-            )}
+        {/* Photo Banner */}
+        <View style={styles.photoContainer}>
+          {photoUrl && !imgError ? (
+            <>
+              {imgLoading && (
+                <Animated.View style={[styles.photoPlaceholder, { opacity: fadeAnim, backgroundColor: '#E0E0E0', ...StyleSheet.absoluteFillObject }]} />
+              )}
+              <Image
+                source={{ uri: photoUrl }}
+                style={[styles.photo, imgLoading && { opacity: 0 }]}
+                onLoad={() => setImgLoading(false)}
+                onError={(e) => { 
+                  console.error('Image load failed for', photoUrl, 'Error:', e.nativeEvent.error);
+                  setImgError(true); 
+                  setImgLoading(false); 
+                }}
+                resizeMode="cover"
+              />
+            </>
+          ) : (
             <Image
-              source={{ uri: photoUrl }}
-              style={[styles.photo, imgLoading && { opacity: 0 }]}
-              onLoad={() => setImgLoading(false)}
-              onError={() => { setImgError(true); setImgLoading(false); }}
+              source={require('../../assets/RoamCeylon.png')}
+              style={styles.photo}
               resizeMode="cover"
             />
-            {/* Time badge over photo */}
-            <View style={styles.timeBadge}>
-              <Text style={styles.timeBadgeText}>{time}</Text>
-            </View>
-            {/* Category badge */}
-            <View style={[styles.categoryBadge, { backgroundColor: accentColor }]}>
-              <Text style={styles.categoryBadgeText}>{icon}</Text>
-            </View>
+          )}
+          {/* Dark gradient overlay for text readability */}
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.2)' }]} />
+          
+          {/* Time badge over photo */}
+          <View style={styles.timeBadge}>
+            <Text style={styles.timeBadgeText}>{time}</Text>
           </View>
-        ) : (
-          /* No-photo header row */
-          <View style={styles.headerRow}>
-            <View style={styles.timePill}>
-              <Text style={styles.timePillText}>{time}</Text>
-            </View>
-            <View style={[styles.iconCircle, { backgroundColor: accentColor + '22' }]}>
-              <Text style={styles.iconText}>{icon}</Text>
-            </View>
+          {/* Category badge */}
+          <View style={[styles.categoryBadge, { backgroundColor: accentColor }]}>
+            <Text style={styles.categoryBadgeText}>{icon}</Text>
           </View>
-        )}
+        </View>
 
         {/* Body */}
         <View style={styles.body}>
