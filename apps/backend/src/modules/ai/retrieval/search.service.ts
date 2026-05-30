@@ -200,6 +200,7 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     limit = 10,
     similarityThreshold = 0.5,
     minConfidence?: 'High' | 'Medium' | 'Low',
+    queryText?: string,
   ): Promise<SearchResultDto[] | { message: string }> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
@@ -207,27 +208,105 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
 
     const vectorLiteral = `[${embedding.join(',')}]`;
 
-    this.logger.log(`📡 Running pgvector search with limit=${limit}`);
+    this.logger.log(`📡 Running hybrid search with limit=${limit}`);
 
     const start = Date.now();
+    let exactMatches: RawEmbeddingRow[] = [];
 
-    const result = await this.client.query<RawEmbeddingRow>(
-      `SELECT 
-          id,
-          title,
-          content,
-          embedding::text AS embedding_str,
-          embedding <=> $1::vector AS distance
-       FROM embeddings
-       ORDER BY distance
-       LIMIT $2`,
-      [vectorLiteral, limit],
-    );
+    // Step 1: Exact Match / Filter
+    if (queryText) {
+      const KNOWN_LOCATIONS = [
+        'kandy',
+        'colombo',
+        'galle',
+        'sigiriya',
+        'ella',
+        'nuwara eliya',
+        'trincomalee',
+        'jaffna',
+        'mirissa',
+        'yala',
+        'udawalawe',
+        'anuradhapura',
+        'polonnaruwa',
+        'dambulla',
+        'negombo',
+        'bentota',
+        'hikkaduwa',
+        'unawatuna',
+        'matara',
+        'arugam bay',
+        'batticaloa',
+        'tangalle',
+        'weligama',
+        'hiriketiya',
+      ];
+
+      const queryParam = queryText.toLowerCase();
+      const matchedLocations = KNOWN_LOCATIONS.filter((loc) =>
+        queryParam.includes(loc),
+      );
+
+      if (matchedLocations.length > 0) {
+        const conditions = matchedLocations
+          .map((_, i) => `(title ILIKE $${i + 1} OR content ILIKE $${i + 1})`)
+          .join(' OR ');
+        const values = matchedLocations.map((loc) => `%${loc}%`);
+
+        try {
+          const exactResult = await this.client.query<RawEmbeddingRow>(
+            `
+            SELECT 
+              id,
+              title,
+              content,
+              embedding::text AS embedding_str,
+              0 AS distance
+            FROM embeddings
+            WHERE ${conditions}
+            LIMIT ${limit}
+          `,
+            values,
+          );
+
+          exactMatches = exactResult.rows;
+          this.logger.log(
+            `Found ${exactMatches.length} exact matches for locations: ${matchedLocations.join(', ')}`,
+          );
+        } catch (e) {
+          this.logger.error(
+            `Error during exact match search: ${(e as Error).message}`,
+          );
+        }
+      }
+    }
+
+    // Step 2: Semantic Fallback
+    const remainingLimit = limit - exactMatches.length;
+    let semanticMatches: RawEmbeddingRow[] = [];
+
+    if (remainingLimit > 0) {
+      const result = await this.client.query<RawEmbeddingRow>(
+        `SELECT 
+            id,
+            title,
+            content,
+            embedding::text AS embedding_str,
+            embedding <=> $1::vector AS distance
+         FROM embeddings
+         ORDER BY distance
+         LIMIT $2`,
+        [vectorLiteral, limit],
+      );
+      semanticMatches = result.rows;
+    }
 
     const dbTime = Date.now() - start;
     this.logger.log(`🗄️ Postgres search took ${dbTime}ms`);
 
-    const normalized = result.rows.map((row) => {
+    const combinedRows = [...exactMatches, ...semanticMatches];
+
+    const normalized = combinedRows.map((row) => {
       const score = this.normalizeScore(row.distance);
 
       return {

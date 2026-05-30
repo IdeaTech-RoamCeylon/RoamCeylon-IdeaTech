@@ -63,12 +63,12 @@ export class PlacesService {
       });
       if (cached) {
         this.logger.log(`Found cached image for ${placeName}`);
-        return this.getPresignedUrlForPlace(placeName);
+        return `/places/image/${normalizedName}`;
       }
 
       // 3. Fetch from Google Places API
       const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-        placeName + ' ' + location,
+        placeName + ' tourist attraction ' + location,
       )}&key=${this.googleApiKey}`;
 
       interface PlacesResponse {
@@ -159,7 +159,7 @@ export class PlacesService {
       this.logger.log(
         `Successfully fetched and uploaded image for ${placeName}: ${imageUrl}`,
       );
-      return this.getPresignedUrlForPlace(placeName);
+      return `/places/image/${normalizedName}`;
     } catch (error) {
       this.logger.error(
         `Failed to get photo for ${placeName}: ${(error as Error).message}`,

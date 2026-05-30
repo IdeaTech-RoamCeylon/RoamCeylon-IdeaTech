@@ -54,7 +54,7 @@ const AIChatScreen = () => {
       setMessages([
         {
           id: 'init_1',
-          text: "Hello! I'm your personal AI travel assistant. Let's plan your perfect Sri Lankan adventure! ✨ Where would you like to explore, and for how long?",
+          text: "Hello! I'm your personal AI travel assistant. Let's plan your perfect Sri Lankan adventure! ✨ Where would you like to explore, for how long, and what are your main interests (e.g. beaches, wildlife, history, adventure)?",
           sender: 'ai',
           timestamp: new Date(),
           type: 'text',

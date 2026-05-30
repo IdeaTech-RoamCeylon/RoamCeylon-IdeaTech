@@ -708,7 +708,10 @@ export class AIController {
 
   /* ---------- In-memory cosine search ---------- */
 
-  private async executeSearch(query: unknown): Promise<SearchResponseDto> {
+  private async executeSearch(
+    query: unknown,
+    overrideLimit?: number,
+  ): Promise<SearchResponseDto> {
     const totalStart = process.hrtime.bigint();
     const originalQuery = typeof query === 'string' ? query.trim() : '';
     const validated = this.validateAndPreprocess(query);
@@ -740,7 +743,8 @@ export class AIController {
 
     let rawResults: (EmbeddingItem & { score: number })[] = [];
     try {
-      rawResults = await this.aiService.search(queryVector, 20);
+      const fetchLimit = overrideLimit ? Math.max(60, overrideLimit * 2) : 20;
+      rawResults = await this.aiService.search(queryVector, fetchLimit);
     } catch (error) {
       this.logger.error(`Vector search failed: ${(error as Error).message}`);
       rawResults = [];
@@ -791,7 +795,7 @@ export class AIController {
         if (Math.abs(diff) > this.EPS) return diff;
         return this.collator.compare(this.stableId(a.id), this.stableId(b.id));
       })
-      .slice(0, PLANNER_CONFIG.SEARCH.MAX_RESULTS_FOR_PLANNER)
+      .slice(0, overrideLimit || PLANNER_CONFIG.SEARCH.MAX_RESULTS_FOR_PLANNER)
       .map((item, idx) => ({ rank: idx + 1, ...item }));
     const { filtered, fallbackMessage } = this.filterByConfidenceThreshold(
       scored,
@@ -856,6 +860,9 @@ export class AIController {
       await this.searchService.searchEmbeddingsWithMetadataFromEmbedding(
         embedding,
         lim,
+        0.5,
+        undefined,
+        cleaned,
       );
 
     if (Array.isArray(raw)) {
@@ -3062,7 +3069,8 @@ export class AIController {
     const enrichedQuery = [...new Set(searchTerms)].join(' ');
     this.logger.log(`[trip-plan] Enriched search query: "${enrichedQuery}"`);
 
-    const searchResults = await this.executeSearch(enrichedQuery);
+    const poolSize = Math.max(40, dayCount * 8);
+    const searchResults = await this.executeSearch(enrichedQuery, poolSize);
 
     this.logger.log(
       `[DEBUG] searchResults scores: ${searchResults.results.map((r) => r.score).join(', ')}`,
@@ -3298,7 +3306,7 @@ export class AIController {
 
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
     const activityList = body.dayByDayPlan
       .flatMap((d) =>
@@ -3361,13 +3369,62 @@ export class AIController {
       let result: any;
       try {
         result = await model.generateContent(prompt);
-      } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        if (error?.status === 429 || error?.message?.includes('429')) {
-          const fallbackModel = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-          });
-          result = await fallbackModel.generateContent(prompt);
+      } catch (error: unknown) {
+        const isRetryable = (e: unknown): boolean => {
+          if (!e || typeof e !== 'object') return false;
+          const err = e as { status?: number; message?: string };
+          const status = err.status;
+          const message = err.message;
+          return (
+            status === 429 ||
+            status === 503 ||
+            status === 500 ||
+            (typeof message === 'string' &&
+              (message.includes('429') ||
+                message.includes('503') ||
+                message.includes('500')))
+          );
+        };
+
+        if (isRetryable(error)) {
+          const err = error as { status?: number; message?: string };
+          this.logger.warn(
+            `[enrich-plan] Primary model failed (${err.status || 'error'}), trying first fallback (gemini-2.5-flash)`,
+          );
+          try {
+            const fallbackModel1 = genAI.getGenerativeModel({
+              model: 'gemini-2.5-flash',
+            });
+            result = await fallbackModel1.generateContent(prompt);
+          } catch (error2: unknown) {
+            if (isRetryable(error2)) {
+              const err2 = error2 as { status?: number; message?: string };
+              this.logger.warn(
+                `[enrich-plan] First fallback failed (${err2.status || 'error'}), trying second fallback (gemini-3.1-flash-lite)`,
+              );
+              try {
+                const fallbackModel2 = genAI.getGenerativeModel({
+                  model: 'gemini-3.1-flash-lite',
+                });
+                result = await fallbackModel2.generateContent(prompt);
+              } catch (error3: unknown) {
+                if (isRetryable(error3)) {
+                  const err3 = error3 as { status?: number; message?: string };
+                  this.logger.warn(
+                    `[enrich-plan] Second fallback failed (${err3.status || 'error'}), trying third fallback (gemini-2.5-flash-lite)`,
+                  );
+                  const fallbackModel3 = genAI.getGenerativeModel({
+                    model: 'gemini-2.5-flash-lite',
+                  });
+                  result = await fallbackModel3.generateContent(prompt);
+                } else {
+                  throw error3;
+                }
+              }
+            } else {
+              throw error2;
+            }
+          }
         } else {
           throw error;
         }

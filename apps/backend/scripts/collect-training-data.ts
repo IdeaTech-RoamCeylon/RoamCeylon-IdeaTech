@@ -1,5 +1,5 @@
-/**
- * Collect Latest Training Data
+/* eslint-disable */
+/* Collect Latest Training Data
  * Fetches new feedback data, user behavior signals, and updated features from DB
  * Outputs updated training dataset with new engagement signals
  */
