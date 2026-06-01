@@ -193,7 +193,7 @@ const RegisterScreen = () => {
           <TextInput
             style={styles.textInput}
             placeholder={placeholder}
-            placeholderTextColor="#C4C4C4"
+            placeholderTextColor="#B5C0BC"
             value={value}
             onChangeText={(t) => {
               onChangeText(t);
@@ -206,11 +206,17 @@ const RegisterScreen = () => {
           />
           {isSecure && onToggleSecure ? (
              <TouchableOpacity style={styles.iconContainer} onPress={onToggleSecure}>
-               <MaterialCommunityIcons name={showSecure ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
+               <MaterialCommunityIcons 
+                 name={iconName === 'shield-check-outline'
+                   ? (showSecure ? 'shield-outline' : 'shield-check-outline')
+                   : (showSecure ? 'lock-open-outline' : 'lock-outline')} 
+                 size={20} 
+                 color="#8F9B96" 
+               />
              </TouchableOpacity>
           ) : (
              <View style={styles.iconContainer}>
-               <MaterialCommunityIcons name={iconName} size={20} color="#9E9E9E" />
+               <MaterialCommunityIcons name={iconName} size={20} color="#8F9B96" />
              </View>
           )}
         </View>
@@ -231,26 +237,21 @@ const RegisterScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
-            {/* Header / Hero Image */}
-            <View style={styles.heroContainer}>
-              <Image 
-                source={require('../../assets/RegisterScreenPic.png')} 
-                style={styles.heroImage} 
-              />
-              <LinearGradient
-                colors={['transparent', '#ffffff']}
-                style={styles.heroGradient}
-              />
-            </View>
+          {/* Header / Hero Image - now spans full bleed */}
+          <View style={styles.heroContainer}>
+            <Image 
+              source={require('../../assets/registerscreen.png')} 
+              style={styles.heroImage} 
+            />
+          </View>
 
+          {/* White Card overlapping the hero image */}
+          <View style={styles.card}>
             <View style={styles.contentContainer}>
               {/* Titles */}
-              <Text style={styles.brandText}>Roam Ceylon</Text>
-              
               <Text style={styles.titleText}>Create an account</Text>
               <Text style={styles.subtitleText}>
-                Start your journey through the{'\n'}Emerald Isle.
+                Start your journey through the Emerald Isle.
               </Text>
 
               {/* Form Fields */}
@@ -285,7 +286,7 @@ const RegisterScreen = () => {
 
                 {renderInputCard(
                   'PHONE NUMBER',
-                  '07X XXX XXXX',
+                  '+94 77 123 4567',
                   phoneNumber,
                   setPhoneNumber,
                   'phone-outline',
@@ -296,22 +297,63 @@ const RegisterScreen = () => {
                   'phone-pad'
                 )}
 
-                <View style={styles.inputSection}>
-                  <Text style={styles.inputLabel}>BIRTHDAY</Text>
-                  <TouchableOpacity
-                    style={[styles.inputWrapper, errors.birthday ? styles.inputError : null]}
-                    onPress={() => { setShowDatePicker(true); setErrors((e) => ({ ...e, birthday: '' })); }}
-                    disabled={loading}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.textInput, !birthday && { color: '#C4C4C4', paddingTop: 16 }]}>
-                      {birthday ? formatDate(birthday) : 'Select your birthday'}
-                    </Text>
-                    <View style={styles.iconContainer}>
-                      <MaterialCommunityIcons name="calendar-month-outline" size={20} color="#9E9E9E" />
+                {/* BIRTHDAY and GENDER row */}
+                <View style={styles.row}>
+                  {/* Birthday Section */}
+                  <View style={styles.halfCol}>
+                    <Text style={styles.inputLabel}>BIRTHDAY</Text>
+                    <TouchableOpacity
+                      style={[styles.inputWrapper, errors.birthday ? styles.inputError : null]}
+                      onPress={() => { setShowDatePicker(true); setErrors((e) => ({ ...e, birthday: '' })); }}
+                      disabled={loading}
+                      activeOpacity={0.8}
+                    >
+                      <Text 
+                        numberOfLines={1} 
+                        style={[styles.birthdayText, !birthday && styles.placeholderText]}
+                      >
+                        {birthday ? formatDate(birthday) : 'MM/DD/YYYY'}
+                      </Text>
+                      <View style={styles.iconContainer}>
+                        <MaterialCommunityIcons name="calendar-month-outline" size={20} color="#8F9B96" />
+                      </View>
+                    </TouchableOpacity>
+                    {errors.birthday ? <Text style={styles.errorText}>{errors.birthday}</Text> : null}
+                  </View>
+
+                  {/* Gender Section */}
+                  <View style={styles.halfCol}>
+                    <Text style={styles.inputLabel}>GENDER</Text>
+                    <View style={[styles.genderContainer, errors.gender ? styles.inputError : null]}>
+                      {GENDERS.map((option) => {
+                        const isActive = gender === option;
+                        let displayLabel = 'M';
+                        if (option === 'Female') displayLabel = 'F';
+                        else if (option === 'Other') displayLabel = 'O';
+
+                        return (
+                          <TouchableOpacity
+                            key={option}
+                            style={[
+                              styles.genderOptionBtn,
+                              isActive ? styles.genderOptionBtnActive : null,
+                            ]}
+                            onPress={() => { setGender(option); setErrors((e) => ({ ...e, gender: '' })); }}
+                            disabled={loading}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={[
+                              styles.genderOptionText,
+                              isActive ? styles.genderOptionTextActive : null
+                            ]}>
+                              {displayLabel}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
-                  </TouchableOpacity>
-                  {errors.birthday ? <Text style={styles.errorText}>{errors.birthday}</Text> : null}
+                    {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
+                  </View>
                 </View>
 
                 {showDatePicker && (
@@ -324,63 +366,35 @@ const RegisterScreen = () => {
                   />
                 )}
 
-                <View style={styles.inputSection}>
-                  <Text style={styles.inputLabel}>GENDER</Text>
-                  <View style={styles.genderButtonsContainer}>
-                    {GENDERS.map((option) => {
-                      const isActive = gender === option;
-                      let iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"] = 'gender-non-binary';
-                      if (option === 'Male') iconName = 'gender-male';
-                      else if (option === 'Female') iconName = 'gender-female';
-
-                      return (
-                        <TouchableOpacity
-                          key={option}
-                          style={[
-                            styles.genderBtnNew,
-                            isActive ? styles.genderBtnActiveNew : styles.genderBtnInactiveNew,
-                          ]}
-                          onPress={() => { setGender(option); setErrors((e) => ({ ...e, gender: '' })); }}
-                          disabled={loading}
-                        >
-                          <MaterialCommunityIcons 
-                            name={iconName} 
-                            size={18} 
-                            color={isActive ? '#075A1A' : '#494034'} 
-                            style={{ marginRight: 6 }} 
-                          />
-                          <Text style={[
-                            styles.genderBtnTextNew, 
-                            isActive ? styles.genderBtnTextActiveNew : styles.genderBtnTextInactiveNew
-                          ]}>
-                            {option}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                  {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
-                </View>
-
-                {/* Visitor Type */}
+                {/* Visitor Type ("I AM A") */}
                 <View style={styles.inputSection}>
                   <Text style={styles.inputLabel}>I AM A</Text>
-                  <View style={styles.genderButtonsContainer}>
-                    {([{ label: '🇱🇰  Local', value: true }, { label: '✈️  Foreigner', value: false }] as const).map(({ label, value }) => {
+                  <View style={styles.visitorRow}>
+                    {([
+                      { label: 'Local', value: true, icon: 'earth' },
+                      { label: 'Foreigner', value: false, icon: 'airplane' }
+                    ] as const).map(({ label, value, icon }) => {
                       const isActive = isLocal === value;
                       return (
                         <TouchableOpacity
                           key={label}
                           style={[
-                            styles.genderBtnNew,
-                            isActive ? styles.genderBtnActiveNew : styles.genderBtnInactiveNew,
+                            styles.visitorBtn,
+                            isActive ? styles.visitorBtnActive : styles.visitorBtnInactive,
                           ]}
                           onPress={() => { setIsLocal(value); setErrors((e) => ({ ...e, isLocal: '' })); }}
                           disabled={loading}
+                          activeOpacity={0.8}
                         >
+                          <MaterialCommunityIcons 
+                            name={icon} 
+                            size={20} 
+                            color={isActive ? '#0E5E2F' : '#494034'} 
+                            style={styles.visitorIcon} 
+                          />
                           <Text style={[
-                            styles.genderBtnTextNew,
-                            isActive ? styles.genderBtnTextActiveNew : styles.genderBtnTextInactiveNew,
+                            styles.visitorBtnText,
+                            isActive ? styles.visitorBtnTextActive : styles.visitorBtnTextInactive,
                           ]}>
                             {label}
                           </Text>
@@ -391,13 +405,14 @@ const RegisterScreen = () => {
                   {errors.isLocal ? <Text style={styles.errorText}>{errors.isLocal}</Text> : null}
                 </View>
 
+                {/* Password field with strength bars */}
                 <View style={styles.inputSection}>
                   <Text style={styles.inputLabel}>PASSWORD</Text>
                   <View style={[styles.inputWrapper, errors.password ? styles.inputError : null]}>
                     <TextInput
                       style={styles.textInput}
                       placeholder="••••••••••••"
-                      placeholderTextColor="#C4C4C4"
+                      placeholderTextColor="#B5C0BC"
                       value={password}
                       onChangeText={(t) => {
                         setPassword(t);
@@ -409,39 +424,78 @@ const RegisterScreen = () => {
                       editable={!loading}
                     />
                     <TouchableOpacity style={styles.iconContainer} onPress={() => setShowPassword(!showPassword)}>
-                      <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
+                      <MaterialCommunityIcons 
+                        name={showPassword ? 'lock-open-outline' : 'lock-outline'} 
+                        size={20} 
+                        color="#8F9B96" 
+                      />
                     </TouchableOpacity>
                   </View>
                   {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-                  {/* Password Strength Indicator */}
+                  {/* Dynamic Password Strength Indicator */}
                   {password.length > 0 && (
                     <View style={styles.strengthContainer}>
                       <View style={styles.strengthBars}>
-                        {[1, 2, 3, 4].map(idx => (
-                          <View 
-                            key={idx} 
-                            style={[
-                              styles.strengthBar, 
-                              strength >= idx ? styles.activeStrengthBar : null
-                            ]} 
-                          />
-                        ))}
+                        {[1, 2, 3, 4].map(idx => {
+                          let barColor = '#E0E0E0';
+                          if (strength >= idx) {
+                            if (strength === 1) barColor = '#FF4D4D'; // Red
+                            else if (strength === 2) barColor = '#FF944D'; // Orange
+                            else if (strength === 3) barColor = '#FFD700'; // Yellow
+                            else if (strength === 4) barColor = '#34C759'; // Green
+                          }
+                          return (
+                            <View 
+                              key={idx} 
+                              style={[styles.strengthBar, { backgroundColor: barColor }]} 
+                            />
+                          );
+                        })}
                       </View>
                       <View style={styles.strengthTextRow}>
-                        <MaterialCommunityIcons 
-                          name="check-circle" 
-                          size={14} 
-                          color={strength >= 2 ? '#34C759' : '#9E9E9E'} 
-                        />
-                        <Text style={[styles.strengthText, strength >= 2 && styles.activeStrengthText]}>
-                          Password looks promising
-                        </Text>
+                        {(() => {
+                          let msg = '';
+                          let color = '#9E9E9E';
+                          let icon = 'check-circle-outline';
+
+                          if (strength <= 1) {
+                            msg = 'Weak password (try adding more characters)';
+                            color = '#FF4D4D';
+                            icon = 'alert-circle-outline';
+                          } else if (strength === 2) {
+                            msg = 'Fair password (add numbers or uppercase)';
+                            color = '#FF944D';
+                            icon = 'alert-circle-outline';
+                          } else if (strength === 3) {
+                            msg = 'Password looks promising';
+                            color = '#FFD700';
+                            icon = 'check-circle-outline';
+                          } else if (strength === 4) {
+                            msg = 'Strong and secure password!';
+                            color = '#34C759';
+                            icon = 'check-circle';
+                          }
+
+                          return (
+                            <>
+                              <MaterialCommunityIcons 
+                                name={icon as any} 
+                                size={14} 
+                                color={color} 
+                              />
+                              <Text style={[styles.strengthText, { color }]}>
+                                {msg}
+                              </Text>
+                            </>
+                          );
+                        })()}
                       </View>
                     </View>
                   )}
                 </View>
 
+                {/* Confirm Password field */}
                 {renderInputCard(
                   'CONFIRM PASSWORD',
                   '••••••••••••',
@@ -483,6 +537,11 @@ const RegisterScreen = () => {
                 </TouchableOpacity>
               </View>
 
+              {/* Innovated By Footer */}
+              <Text style={styles.footerText}>
+                INNOVATED BY ROAM CEYLON
+              </Text>
+
             </View>
           </View>
         </ScrollView>
@@ -494,75 +553,72 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   pageBackground: { 
     flex: 1, 
-    backgroundColor: '#EAF4EF', 
+    backgroundColor: '#ffffff', 
   },
   flex: { flex: 1 },
   scrollContent: {
-    paddingTop: 50,
-    paddingBottom: 200, // Massive bottom padding to accommodate any keyboard pushing
-    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 60,
+    paddingHorizontal: 0,
     flexGrow: 1,
-  },
-  card: {
-    width: '100%',
     backgroundColor: '#ffffff',
-    borderRadius: 36,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 5,
   },
   heroContainer: {
     width: '100%',
-    height: 180,
+    height: 240,
     position: 'relative',
-    backgroundColor: '#e6e6e6',
   },
   heroImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  heroGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
+  logoOverlayContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  logoImage: {
+    width: width * 0.7,
+    height: width * 0.35,
+    resizeMode: 'contain',
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    marginTop: -30,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
   },
   contentContainer: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 24,
     paddingBottom: 40,
-    paddingTop: 10,
-  },
-  brandText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#494034',
-    marginBottom: 20,
-    marginTop: -28,
-    zIndex: 1,
+    paddingTop: 30,
   },
   titleText: {
     fontSize: 32,
-    fontWeight: '800',
-    color: '#1a1a1a',
-    lineHeight: 38,
+    fontWeight: '700',
+    color: '#0E5E2F',
   },
   subtitleText: {
-    fontSize: 15,
-    color: '#666666',
+    fontSize: 16,
+    color: '#494034',
     marginTop: 6,
     lineHeight: 22,
   },
   formGroup: {
-    marginTop: 35,
-    gap: 20,
+    marginTop: 25,
+    gap: 16,
   },
   inputSection: {
-    marginBottom: 5,
+    marginBottom: 0,
   },
   inputLabel: {
     fontSize: 12,
@@ -574,12 +630,12 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F9F7',
-    borderRadius: 12,
-    height: 54,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    height: 58,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#D8E5E0',
   },
   inputError: {
     borderColor: '#dc3545',
@@ -587,7 +643,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: '#494034',
     height: '100%',
   },
   iconContainer: {
@@ -600,72 +656,114 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  genderButtonsContainer: {
+  row: {
     flexDirection: 'row',
-    gap: 8,
-    height: 54,
+    justifyContent: 'space-between',
+    width: '100%',
   },
-  genderBtnNew: {
+  halfCol: {
+    width: '48%',
+  },
+  birthdayText: {
+    fontSize: 15,
+    color: '#494034',
     flex: 1,
+  },
+  placeholderText: {
+    color: '#B5C0BC',
+  },
+  genderContainer: {
     flexDirection: 'row',
-    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    height: 58,
+    borderWidth: 1,
+    borderColor: '#D8E5E0',
+    padding: 4,
+  },
+  genderOptionBtn: {
+    flex: 1,
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderRadius: 12,
   },
-  genderBtnActiveNew: {
-    backgroundColor: '#95F28A',
-    borderColor: '#95F28A',
+  genderOptionBtnActive: {
+    backgroundColor: '#9CEEA4',
   },
-  genderBtnInactiveNew: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#494034',
-  },
-  genderBtnTextNew: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  genderBtnTextActiveNew: {
-    color: '#075A1A',
-  },
-  genderBtnTextInactiveNew: {
+  genderOptionText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#494034',
   },
+  genderOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  visitorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  visitorBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 58,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  visitorBtnActive: {
+    backgroundColor: '#9CEEA4',
+    borderColor: '#9CEEA4',
+  },
+  visitorBtnInactive: {
+    backgroundColor: '#F1F4F9',
+    borderColor: '#E2ECE9',
+  },
+  visitorBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  visitorBtnTextActive: {
+    color: '#0E5E2F',
+  },
+  visitorBtnTextInactive: {
+    color: '#494034',
+  },
+  visitorIcon: {
+    marginRight: 2,
+  },
   strengthContainer: {
-    marginTop: 10,
+    marginTop: 8,
   },
   strengthBars: {
     flexDirection: 'row',
     gap: 6,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   strengthBar: {
     flex: 1,
     height: 4,
-    backgroundColor: '#E0E0E0',
     borderRadius: 2,
-  },
-  activeStrengthBar: {
-    backgroundColor: '#34C759',
   },
   strengthTextRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
   },
   strengthText: {
-    fontSize: 11,
-    color: '#9E9E9E',
+    fontSize: 12,
     fontWeight: '600',
   },
-  activeStrengthText: {
-    color: '#34C759',
-  },
   registerButtonWrapper: {
-    marginTop: 35,
-    borderRadius: 28,
+    marginTop: 30,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#FFD23F',
+    shadowColor: '#FFC83C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -673,14 +771,14 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     width: '100%',
-    height: 56,
+    height: 58,
     justifyContent: 'center',
     alignItems: 'center',
   },
   registerButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#3D3008',
     letterSpacing: 0.5,
   },
   disabled: {
@@ -692,13 +790,21 @@ const styles = StyleSheet.create({
     marginTop: 25,
   },
   loginText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 15,
+    color: '#494034',
   },
   loginLink: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#9E7F47',
+    color: '#0E5E2F',
+  },
+  footerText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9E9E9E',
+    textAlign: 'center',
+    marginTop: 40,
+    letterSpacing: 1.2,
   },
 });
 

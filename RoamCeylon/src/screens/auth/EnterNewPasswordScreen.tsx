@@ -16,7 +16,6 @@ import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { nhost } from '../../config/nhostClient';
 
 const { width } = Dimensions.get('window');
 
@@ -138,7 +137,6 @@ const EnterNewPasswordScreen = () => {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
         <ScrollView
           style={styles.flex}
@@ -146,118 +144,157 @@ const EnterNewPasswordScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Card */}
-          <View style={styles.card}>
-            {/* Soft Green Gradient/Blob in top-right corner */}
-            <LinearGradient
-              colors={['rgba(149, 242, 138, 0.25)', 'rgba(149, 242, 138, 0)']}
-              start={{ x: 1, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.greenBlob}
-            />
-
-            {/* Header */}
+          {/* Header section with Titles */}
+          <View style={styles.header}>
             <Text style={styles.titleText}>Enter New Password</Text>
             <Text style={styles.subtitleText}>
               Please enter your new password below. Make sure it is at least 9 characters long.
             </Text>
+          </View>
 
-            {/* Form Fields */}
-            <View style={styles.formGroup}>
-              {/* Password Input */}
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>NEW PASSWORD</Text>
-                <View style={[styles.inputWrapper, errors.password ? styles.inputError : null]}>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="••••••••••••"
-                    placeholderTextColor="#C4C4C4"
-                    value={password}
-                    onChangeText={(t) => {
-                      setPassword(t);
-                      if (errors.password) setErrors((e) => ({ ...e, password: '' }));
-                    }}
-                    secureTextEntry={!showPassword}
-                    editable={!loading}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity style={styles.iconContainer} onPress={() => setShowPassword(!showPassword)}>
-                    <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
-                  </TouchableOpacity>
-                </View>
-                {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-
-                {/* Password Strength Indicator */}
-                {password.length > 0 && (
-                  <View style={styles.strengthContainer}>
-                    <View style={styles.strengthBars}>
-                      {[1, 2, 3, 4].map(idx => (
-                        <View
-                          key={idx}
-                          style={[
-                            styles.strengthBar,
-                            strength >= idx ? styles.activeStrengthBar : null
-                          ]}
-                        />
-                      ))}
-                    </View>
-                    <View style={styles.strengthTextRow}>
-                      <MaterialCommunityIcons
-                        name="check-circle"
-                        size={14}
-                        color={strength >= 2 ? '#34C759' : '#9E9E9E'}
+          {/* Form Card */}
+          <View style={styles.card}>
+            <View style={styles.contentContainer}>
+              <View style={styles.formGroup}>
+                
+                {/* Password Input */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>NEW PASSWORD</Text>
+                  <View style={[styles.inputWrapper, errors.password ? styles.inputError : null]}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="••••••••••••"
+                      placeholderTextColor="#B5C0BC"
+                      value={password}
+                      onChangeText={(t) => {
+                        setPassword(t);
+                        if (errors.password) setErrors((e) => ({ ...e, password: '' }));
+                      }}
+                      secureTextEntry={!showPassword}
+                      editable={!loading}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity style={styles.iconContainer} onPress={() => setShowPassword(!showPassword)}>
+                      <MaterialCommunityIcons 
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                        size={20} 
+                        color="#8F9B96" 
                       />
-                      <Text style={[styles.strengthText, strength >= 2 && styles.activeStrengthText]}>
-                        Password looks promising
-                      </Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
+                  {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-              {/* Confirm Password Input */}
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
-                <View style={[styles.inputWrapper, errors.confirmPassword ? styles.inputError : null]}>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="••••••••••••"
-                    placeholderTextColor="#C4C4C4"
-                    value={confirmPassword}
-                    onChangeText={(t) => {
-                      setConfirmPassword(t);
-                      if (errors.confirmPassword) setErrors((e) => ({ ...e, confirmPassword: '' }));
-                    }}
-                    secureTextEntry={!showConfirmPassword}
-                    editable={!loading}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity style={styles.iconContainer} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    <MaterialCommunityIcons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9E9E9E" />
-                  </TouchableOpacity>
+                  {/* Dynamic Password Strength Indicator */}
+                  {password.length > 0 && (
+                    <View style={styles.strengthContainer}>
+                      <View style={styles.strengthBars}>
+                        {[1, 2, 3, 4].map(idx => {
+                          let barColor = '#E0E0E0';
+                          if (strength >= idx) {
+                            if (strength === 1) barColor = '#FF4D4D'; // Red
+                            else if (strength === 2) barColor = '#FF944D'; // Orange
+                            else if (strength === 3) barColor = '#FFD700'; // Yellow
+                            else if (strength === 4) barColor = '#34C759'; // Green
+                          }
+                          return (
+                            <View 
+                              key={idx} 
+                              style={[styles.strengthBar, { backgroundColor: barColor }]} 
+                            />
+                          );
+                        })}
+                      </View>
+                      <View style={styles.strengthTextRow}>
+                        {(() => {
+                          let msg = '';
+                          let color = '#9E9E9E';
+                          let icon = 'check-circle-outline';
+
+                          if (strength <= 1) {
+                            msg = 'Weak password (try adding more characters)';
+                            color = '#FF4D4D';
+                            icon = 'alert-circle-outline';
+                          } else if (strength === 2) {
+                            msg = 'Fair password (add numbers or uppercase)';
+                            color = '#FF944D';
+                            icon = 'alert-circle-outline';
+                          } else if (strength === 3) {
+                            msg = 'Password looks promising';
+                            color = '#FFD700';
+                            icon = 'check-circle-outline';
+                          } else if (strength === 4) {
+                            msg = 'Strong and secure password!';
+                            color = '#34C759';
+                            icon = 'check-circle';
+                          }
+
+                          return (
+                            <>
+                              <MaterialCommunityIcons 
+                                name={icon as any} 
+                                size={14} 
+                                color={color} 
+                              />
+                              <Text style={[styles.strengthText, { color }]}>
+                                {msg}
+                              </Text>
+                            </>
+                          );
+                        })()}
+                      </View>
+                    </View>
+                  )}
                 </View>
-                {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
-              </View>
-            </View>
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={[styles.primaryButtonWrapper, loading && styles.disabled]}
-              onPress={handleChangePassword}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#FFDF59', '#FFC83C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryButton}
+                {/* Confirm Password Input */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
+                  <View style={[styles.inputWrapper, errors.confirmPassword ? styles.inputError : null]}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="••••••••••••"
+                      placeholderTextColor="#B5C0BC"
+                      value={confirmPassword}
+                      onChangeText={(t) => {
+                        setConfirmPassword(t);
+                        if (errors.confirmPassword) setErrors((e) => ({ ...e, confirmPassword: '' }));
+                      }}
+                      secureTextEntry={!showConfirmPassword}
+                      editable={!loading}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity style={styles.iconContainer} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      <MaterialCommunityIcons 
+                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} 
+                        size={20} 
+                        color="#8F9B96" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
+                </View>
+
+              </View>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={[styles.primaryButtonWrapper, loading && styles.disabled]}
+                onPress={handleChangePassword}
+                disabled={loading}
+                activeOpacity={0.85}
               >
-                <Text style={styles.primaryButtonText}>
-                  {loading ? 'Updating...' : 'Update Password'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#FFDF59', '#FFC83C']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryButton}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {loading ? 'Updating...' : 'Update Password'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -268,79 +305,81 @@ const EnterNewPasswordScreen = () => {
 const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F6FAF6',
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 60,
-    paddingBottom: 140,
-    paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 60,
+    paddingHorizontal: 0,
     flexGrow: 1,
+    backgroundColor: '#F6FAF6',
     alignItems: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 25,
+    backgroundColor: '#F6FAF6',
+    width: '100%',
+    paddingHorizontal: 24,
+  },
+  titleText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0E5E2F',
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: '#494034',
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   card: {
     width: '100%',
     backgroundColor: '#ffffff',
-    borderRadius: 40,
-    paddingHorizontal: 30,
-    paddingTop: 45,
-    paddingBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.04,
-    shadowRadius: 24,
-    elevation: 4,
-    position: 'relative',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
+    flex: 1,
   },
-  greenBlob: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 160,
-    height: 160,
-    borderTopRightRadius: 40,
-  },
-  titleText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    letterSpacing: -0.5,
-    marginBottom: 12,
-  },
-  subtitleText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#706B63',
-    fontWeight: '400',
-    marginBottom: 35,
+  contentContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 30,
   },
   formGroup: {
     width: '100%',
-    marginBottom: 30,
-    gap: 20,
+    gap: 16,
   },
   inputSection: {
     width: '100%',
   },
   inputLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#A2693F',
+    color: '#494034',
     letterSpacing: 0.8,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     height: 58,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: '#D8E5E0',
   },
   inputError: {
     borderColor: '#dc3545',
@@ -348,7 +387,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 15,
-    color: '#333333',
+    color: '#494034',
     height: '100%',
   },
   iconContainer: {
@@ -359,59 +398,53 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#dc3545',
     fontSize: 12,
-    marginTop: 6,
+    marginTop: 4,
     paddingLeft: 4,
   },
   strengthContainer: {
-    marginTop: 10,
+    marginTop: 8,
   },
   strengthBars: {
     flexDirection: 'row',
     gap: 6,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   strengthBar: {
     flex: 1,
     height: 4,
-    backgroundColor: '#E0E0E0',
     borderRadius: 2,
-  },
-  activeStrengthBar: {
-    backgroundColor: '#34C759',
   },
   strengthTextRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
   },
   strengthText: {
-    fontSize: 11,
-    color: '#9E9E9E',
+    fontSize: 12,
     fontWeight: '600',
-  },
-  activeStrengthText: {
-    color: '#34C759',
   },
   primaryButtonWrapper: {
     width: '100%',
-    borderRadius: 30,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#FFC83C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+    marginTop: 25,
   },
   primaryButton: {
     width: '100%',
-    height: 60,
+    height: 58,
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#3D3008',
+    letterSpacing: 0.5,
   },
   disabled: {
     opacity: 0.6,

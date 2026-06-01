@@ -86,92 +86,80 @@ const PasswordResetScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#333333" />
-          </TouchableOpacity>
+          {/* Header section with Reset Icon and Titles */}
+          <View style={styles.header}>
+            {/* Back button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={24} color="#0E5E2F" />
+            </TouchableOpacity>
 
-          {/* Form Card */}
-          <View style={styles.card}>
-            {/* Soft Green Gradient/Blob in top-right corner */}
-            <LinearGradient
-              colors={['rgba(149, 242, 138, 0.25)', 'rgba(149, 242, 138, 0)']}
-              start={{ x: 1, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.greenBlob}
-            />
-
-            {/* Header */}
+            <View style={styles.iconCircle}>
+              <MaterialCommunityIcons name="lock-reset" size={32} color="#0E5E2F" />
+            </View>
             <Text style={styles.titleText}>Reset Password</Text>
             <Text style={styles.subtitleText}>
               Enter your email address to receive a recovery link.
             </Text>
-
-            {/* Email Input Field */}
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-              <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
-                <MaterialCommunityIcons
-                  name="email-outline"
-                  size={22}
-                  color="#B08E50"
-                  style={styles.leftIcon}
-                />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="traveler@roamceylon.com"
-                  placeholderTextColor="#C4C4C4"
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    if (error) setError('');
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-              </View>
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            </View>
-
-            {/* Send Recovery Link Button */}
-            <TouchableOpacity
-              style={[styles.primaryButtonWrapper, loading && styles.disabled]}
-              onPress={handleSendRecoveryLink}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#FFDF59', '#FFC83C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryButton}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {loading ? 'Sending...' : 'Send Recovery Link'}
-                </Text>
-                <MaterialCommunityIcons
-                  name="send"
-                  size={16}
-                  color="#1a1a1a"
-                  style={styles.buttonIcon}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
 
-          {/* Spam check Warning Banner */}
-          <View style={styles.infoBanner}>
-            <View style={styles.infoIconWrapper}>
-              <MaterialCommunityIcons name="information-outline" size={20} color="#856404" />
+          {/* Form Card */}
+          <View style={styles.card}>
+            <View style={styles.contentContainer}>
+              {/* Email Input Field */}
+              <View style={styles.inputSection}>
+                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+                <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="traveler@roamceylon.com"
+                    placeholderTextColor="#B5C0BC"
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      if (error) setError('');
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <View style={styles.iconContainer}>
+                    <MaterialCommunityIcons name="email-outline" size={20} color="#8F9B96" />
+                  </View>
+                </View>
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              </View>
+
+              {/* Send Recovery Link Button */}
+              <TouchableOpacity
+                style={[styles.primaryButtonWrapper, loading && styles.disabled]}
+                onPress={handleSendRecoveryLink}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#FFDF59', '#FFC83C']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryButton}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {loading ? 'Sending...' : 'Send Recovery Link'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Spam check Warning Banner */}
+              <View style={styles.infoBanner}>
+                <MaterialCommunityIcons name="information-outline" size={20} color="#0E5E2F" style={styles.infoIcon} />
+                <Text style={styles.infoText}>
+                  Check your spam folder if you don't see the email within 2 minutes.
+                </Text>
+              </View>
             </View>
-            <Text style={styles.infoText}>
-              Check your spam folder if you don't see the email within 2 minutes.
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -182,170 +170,169 @@ const PasswordResetScreen = () => {
 const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F6FAF6',
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 60,
-    paddingBottom: 60,
-    paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
     flexGrow: 1,
+    backgroundColor: '#F6FAF6',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingBottom: 25,
+    backgroundColor: '#F6FAF6',
+    width: '100%',
+    position: 'relative',
+    paddingHorizontal: 24,
   },
   backButton: {
-    alignSelf: 'flex-start',
+    position: 'absolute',
+    left: 24,
+    top: 50,
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+    zIndex: 10,
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    backgroundColor: '#EAF7EE',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 20,
+  },
+  titleText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0E5E2F',
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: '#494034',
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   card: {
     width: '100%',
     backgroundColor: '#ffffff',
-    borderRadius: 40,
-    paddingHorizontal: 30,
-    paddingTop: 45,
-    paddingBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.04,
-    shadowRadius: 24,
-    elevation: 4,
-    position: 'relative',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
+    flex: 1,
   },
-  greenBlob: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 160,
-    height: 160,
-    borderTopRightRadius: 40,
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1a1a1a',
-    letterSpacing: -0.5,
-    marginBottom: 12,
-  },
-  subtitleText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#706B63',
-    fontWeight: '400',
-    marginBottom: 35,
+  contentContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 30,
   },
   inputSection: {
+    marginBottom: 20,
     width: '100%',
-    marginBottom: 30,
   },
   inputLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#A2693F',
+    color: '#494034',
     letterSpacing: 0.8,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     height: 58,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: '#D8E5E0',
   },
   inputError: {
     borderColor: '#dc3545',
   },
-  leftIcon: {
-    marginRight: 12,
-  },
   textInput: {
     flex: 1,
     fontSize: 15,
-    color: '#333333',
+    color: '#494034',
     height: '100%',
+  },
+  iconContainer: {
+    marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     color: '#dc3545',
     fontSize: 12,
-    marginTop: 6,
+    marginTop: 4,
     paddingLeft: 4,
   },
   primaryButtonWrapper: {
     width: '100%',
-    borderRadius: 30,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#FFC83C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 5,
-    marginBottom: 18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+    marginTop: 10,
+    marginBottom: 20,
   },
   primaryButton: {
     width: '100%',
-    height: 60,
+    height: 58,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
   },
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  buttonIcon: {
-    marginLeft: 8,
-  },
-  secondaryButton: {
-    width: '100%',
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderColor: '#FFE074',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#3D3008',
+    letterSpacing: 0.5,
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: '#FFF9E6',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    backgroundColor: '#EAF7EE',
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    marginTop: 35,
     width: '100%',
+    gap: 12,
   },
-  infoIconWrapper: {
-    marginRight: 12,
+  infoIcon: {
+    marginRight: 0,
   },
   infoText: {
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    color: '#706B63',
-    fontWeight: '500',
+    color: '#494034',
+    fontWeight: '600',
   },
   disabled: {
     opacity: 0.6,

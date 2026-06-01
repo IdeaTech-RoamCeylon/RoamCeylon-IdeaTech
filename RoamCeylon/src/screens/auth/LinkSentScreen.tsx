@@ -74,60 +74,55 @@ const LinkSentScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Card */}
-          <View style={styles.card}>
-            {/* Soft Green Gradient/Blob in top-right corner */}
-            <LinearGradient
-              colors={['rgba(149, 242, 138, 0.25)', 'rgba(149, 242, 138, 0)']}
-              start={{ x: 1, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.greenBlob}
-            />
-
-            {/* Centered Large Green Circle with Airplane and Check Badge */}
+          {/* Header section with Centered Icon and Titles */}
+          <View style={styles.header}>
             <View style={styles.iconContainer}>
               <View style={styles.iconCircle}>
-                <MaterialCommunityIcons name="airplane-takeoff" size={44} color="#075A1A" />
+                <MaterialCommunityIcons name="airplane-takeoff" size={44} color="#0E5E2F" />
               </View>
               {/* Checkmark Badge */}
               <View style={styles.checkBadge}>
-                <MaterialCommunityIcons name="check-circle" size={20} color="#075A1A" />
+                <MaterialCommunityIcons name="check-circle" size={24} color="#0E5E2F" />
               </View>
             </View>
 
-            {/* Title & Description */}
             <Text style={styles.titleText}>Recovery Link Sent!</Text>
             <Text style={styles.subtitleText}>
               Check your inbox for a link to reset your password. If you don't see it, check your spam folder.
             </Text>
+          </View>
 
-            {/* Back to Login Button */}
-            <TouchableOpacity
-              style={styles.primaryButtonWrapper}
-              onPress={() => navigation.navigate('Login')}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#FFDF59', '#FFC83C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryButton}
+          {/* Form Card */}
+          <View style={styles.card}>
+            <View style={styles.contentContainer}>
+              {/* Back to Login Button */}
+              <TouchableOpacity
+                style={styles.primaryButtonWrapper}
+                onPress={() => navigation.navigate('Login')}
+                activeOpacity={0.85}
               >
-                <Text style={styles.primaryButtonText}>Back to Login</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#FFDF59', '#FFC83C']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryButton}
+                >
+                  <Text style={styles.primaryButtonText}>Back to Login</Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
-            {/* Resend Email Button */}
-            <TouchableOpacity
-              style={[styles.secondaryButton, resending && styles.disabled]}
-              onPress={handleResendEmail}
-              disabled={resending}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryButtonText}>
-                {resending ? 'Resending...' : 'Resend Email'}
-              </Text>
-            </TouchableOpacity>
+              {/* Resend Email Button */}
+              <TouchableOpacity
+                style={[styles.secondaryButton, resending && styles.disabled]}
+                onPress={handleResendEmail}
+                disabled={resending}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {resending ? 'Resending...' : 'Resend Email'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -138,55 +133,40 @@ const LinkSentScreen = () => {
 const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F6FAF6',
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 60,
-    paddingBottom: 60,
-    paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
     flexGrow: 1,
+    backgroundColor: '#F6FAF6',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  card: {
+  header: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 25,
+    backgroundColor: '#F6FAF6',
     width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 40,
-    paddingHorizontal: 30,
-    paddingTop: 45,
-    paddingBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.04,
-    shadowRadius: 24,
-    elevation: 4,
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  greenBlob: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 160,
-    height: 160,
-    borderTopRightRadius: 40,
+    paddingHorizontal: 24,
   },
   iconContainer: {
     position: 'relative',
-    marginBottom: 35,
+    marginBottom: 20,
+    marginTop: 20,
   },
   iconCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#95F28A',
+    backgroundColor: '#9CEEA4',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#95F28A',
+    shadowColor: '#9CEEA4',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -194,12 +174,12 @@ const styles = StyleSheet.create({
   },
   checkBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: 0,
+    right: 0,
     backgroundColor: '#ffffff',
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -210,57 +190,71 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: 32,
-    fontWeight: '800',
-    color: '#1a1a1a',
-    letterSpacing: -0.5,
-    marginBottom: 16,
+    fontWeight: '700',
+    color: '#0E5E2F',
     textAlign: 'center',
   },
   subtitleText: {
     fontSize: 16,
-    lineHeight: 24,
-    color: '#706B63',
-    fontWeight: '400',
-    marginBottom: 40,
+    color: '#494034',
+    marginTop: 6,
     textAlign: 'center',
-    paddingHorizontal: 10,
+    lineHeight: 22,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 40,
+    gap: 16,
   },
   primaryButtonWrapper: {
     width: '100%',
-    borderRadius: 30,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#FFC83C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 5,
-    marginBottom: 18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   primaryButton: {
     width: '100%',
-    height: 60,
+    height: 58,
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#3D3008',
   },
   secondaryButton: {
     width: '100%',
-    height: 56,
-    borderRadius: 28,
+    height: 58,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#FFE074',
+    borderColor: '#FFDF59',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: '#ffffff',
   },
   secondaryButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#3D3008',
   },
   disabled: {
     opacity: 0.6,
