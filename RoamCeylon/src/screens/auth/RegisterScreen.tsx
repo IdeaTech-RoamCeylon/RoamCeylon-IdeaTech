@@ -230,6 +230,7 @@ const RegisterScreen = () => {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
           style={styles.flex}
@@ -558,7 +559,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
     paddingTop: 0,
-    paddingBottom: 60,
+    paddingBottom: 160,
     paddingHorizontal: 0,
     flexGrow: 1,
     backgroundColor: '#ffffff',
