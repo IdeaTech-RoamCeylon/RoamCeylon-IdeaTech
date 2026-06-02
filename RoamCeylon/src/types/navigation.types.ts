@@ -44,10 +44,10 @@ export type MainStackParamList = {
   AIPlannerTesting: undefined;
   Emergency: undefined;
   HotelBooking: {
-    hotel: any;
-    checkIn: string;
-    checkOut: string;
-  };
+    hotel?: any;
+    checkIn?: string;
+    checkOut?: string;
+  } | undefined;
 };
 
 export type LocationSelection = {

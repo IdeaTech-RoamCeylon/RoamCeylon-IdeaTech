@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,10 +24,19 @@ type HotelBookingScreenNavigationProp = StackNavigationProp<MainStackParamList, 
 const HotelBookingScreen = () => {
   const navigation = useNavigation<HotelBookingScreenNavigationProp>();
   const route = useRoute<HotelBookingScreenRouteProp>();
-  const { hotel, checkIn, checkOut } = route.params;
+  const params = route.params || {};
+
+  // Core state
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(params.hotel || null);
+  const [checkInState, setCheckInState] = useState<string>(
+    params.checkIn || new Date().toISOString().split('T')[0]
+  );
+  const [checkOutState, setCheckOutState] = useState<string>(
+    params.checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0]
+  );
 
   const [selectedRoom, setSelectedRoom] = useState<RoomType>(
-    hotel.rooms[0] || { type: 'Deluxe Room', price: hotel.price, capacity: '2 Adults' }
+    params.hotel?.rooms?.[0] || { type: 'Deluxe Room', price: params.hotel?.price || 0, capacity: '2 Adults' }
   );
   const [guestName, setGuestName] = useState('');
   const [guestsCount, setGuestsCount] = useState(2);
@@ -35,27 +44,88 @@ const HotelBookingScreen = () => {
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
 
+  // Browse mode states
+  const [allHotels, setAllHotels] = useState<Hotel[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingHotels, setIsLoadingHotels] = useState(false);
+
+  // Sync selectedRoom if selectedHotel is updated/changed from browser
+  const handleSelectHotel = useCallback((hotel: Hotel) => {
+    setSelectedHotel(hotel);
+    setSelectedRoom(
+      hotel.rooms?.[0] || { type: 'Deluxe Room', price: hotel.price || 0, capacity: '2 Adults' }
+    );
+  }, []);
+
+  const handleSwitchHotel = useCallback(() => {
+    setSelectedHotel(null);
+  }, []);
+
+  // Fetch hotels list if we don't have a pre-selected hotel
+  useEffect(() => {
+    const fetchAllHotels = async () => {
+      if (!params.hotel) {
+        setIsLoadingHotels(true);
+        try {
+          const list = await hotelService.getSuggestions('');
+          setAllHotels(list);
+        } catch (err) {
+          console.error('Error fetching hotels in booking screen:', err);
+        } finally {
+          setIsLoadingHotels(false);
+        }
+      }
+    };
+    fetchAllHotels();
+  }, [params.hotel]);
+
+  // Filtered hotels in browse view
+  const filteredHotels = useMemo(() => {
+    if (!searchQuery.trim()) return allHotels;
+    const query = searchQuery.toLowerCase();
+    return allHotels.filter(
+      (h) =>
+        h.name.toLowerCase().includes(query) ||
+        h.destination.toLowerCase().includes(query) ||
+        h.description.toLowerCase().includes(query)
+    );
+  }, [allHotels, searchQuery]);
+
   // Parse dates and nights
   const nights = useMemo(() => {
-    const start = new Date(checkIn);
-    const end = new Date(checkOut);
+    const start = new Date(checkInState);
+    const end = new Date(checkOutState);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return 1;
+    }
     const diff = end.getTime() - start.getTime();
     return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  }, [checkIn, checkOut]);
+  }, [checkInState, checkOutState]);
 
   const formattedDates = useMemo(() => {
-    const startStr = new Date(checkIn).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    const endStr = new Date(checkOut).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    const start = new Date(checkInState);
+    const end = new Date(checkOutState);
+    const defaultStartStr = checkInState;
+    const defaultEndStr = checkOutState;
+
+    const startStr = !isNaN(start.getTime())
+      ? start.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : defaultStartStr;
+
+    const endStr = !isNaN(end.getTime())
+      ? end.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : defaultEndStr;
+
     return { start: startStr, end: endStr };
-  }, [checkIn, checkOut]);
+  }, [checkInState, checkOutState]);
 
   // Invoice breakdown calculations
   const invoice = useMemo(() => {
@@ -67,6 +137,22 @@ const HotelBookingScreen = () => {
   }, [selectedRoom, nights]);
 
   const handleConfirmBooking = useCallback(async () => {
+    if (!selectedHotel) {
+      Alert.alert('Selection Needed', 'Please choose a hotel first.');
+      return;
+    }
+
+    const start = new Date(checkInState);
+    const end = new Date(checkOutState);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      Alert.alert('Invalid Dates', 'Please enter valid check-in and check-out dates in YYYY-MM-DD format.');
+      return;
+    }
+    if (start.getTime() >= end.getTime()) {
+      Alert.alert('Invalid Schedule', 'Check-out date must be after check-in date.');
+      return;
+    }
+
     if (!guestName.trim()) {
       Alert.alert('Details Needed', 'Please enter a primary guest name.');
       return;
@@ -76,10 +162,10 @@ const HotelBookingScreen = () => {
 
     try {
       const response = await hotelService.bookHotel({
-        hotelId: hotel.id,
+        hotelId: selectedHotel.id,
         roomType: selectedRoom.type,
-        checkIn,
-        checkOut,
+        checkIn: checkInState,
+        checkOut: checkOutState,
         guests: [
           guestName.trim(),
           ...Array.from({ length: guestsCount - 1 }, (_, i) => `Guest ${i + 2}`),
@@ -93,9 +179,10 @@ const HotelBookingScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [hotel, selectedRoom, checkIn, checkOut, guestName, guestsCount]);
+  }, [selectedHotel, selectedRoom, checkInState, checkOutState, guestName, guestsCount]);
 
-  if (bookingConfirmed && bookingDetails) {
+  // SUCCESS VIEW
+  if (bookingConfirmed && bookingDetails && selectedHotel) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.successContainer}>
@@ -116,7 +203,7 @@ const HotelBookingScreen = () => {
 
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Hotel</Text>
-              <Text style={styles.receiptValue}>{hotel.name}</Text>
+              <Text style={styles.receiptValue}>{selectedHotel.name}</Text>
             </View>
 
             <View style={styles.receiptRow}>
@@ -154,9 +241,9 @@ const HotelBookingScreen = () => {
 
             <TouchableOpacity
               style={styles.doneButton}
-              onPress={() => navigation.navigate('AITripPlanner')}
+              onPress={() => navigation.navigate('Home')}
             >
-              <Text style={styles.doneButtonText}>Back to Planner</Text>
+              <Text style={styles.doneButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -164,10 +251,94 @@ const HotelBookingScreen = () => {
     );
   }
 
+  // BROWSE / SELECT HOTEL VIEW
+  if (!selectedHotel) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Select Premium Hotel</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <View style={styles.searchSection}>
+          <View style={styles.searchRow}>
+            <View style={styles.searchIconBubble}>
+              <Ionicons name="search" size={20} color="#9B7B4A" />
+            </View>
+            <View style={styles.searchInputContainer}>
+              <TextInput
+                placeholder="Search by destination or hotel name..."
+                placeholderTextColor="#C7A97B"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={styles.searchInput}
+              />
+            </View>
+          </View>
+        </View>
+
+        {isLoadingHotels ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#FFB300" />
+            <Text style={styles.loadingText}>Loading Sri Lankan sanctuaries...</Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {filteredHotels.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="sad-outline" size={60} color="#888" />
+                <Text style={styles.emptyText}>No premium stays found matching your search</Text>
+              </View>
+            ) : (
+              filteredHotels.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.95}
+                  style={styles.browserHotelCard}
+                  onPress={() => handleSelectHotel(item)}
+                >
+                  <Image source={{ uri: item.image }} style={styles.browserHotelImage} />
+                  <View style={styles.browserHotelOverlay}>
+                    <View style={styles.browserHotelHeaderRow}>
+                      <Text style={styles.browserHotelName} numberOfLines={1}>{item.name}</Text>
+                      <View style={styles.browserRatingBadge}>
+                        <Ionicons name="star" size={12} color="#000" />
+                        <Text style={styles.browserRatingText}>{item.rating}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.browserHotelLocationRow}>
+                      <Ionicons name="location" size={12} color="#FFB300" />
+                      <Text style={styles.browserHotelLocation}>{item.destination}, Sri Lanka</Text>
+                    </View>
+                    <Text style={styles.browserHotelDesc} numberOfLines={2}>{item.description}</Text>
+                    <View style={styles.browserHotelFooter}>
+                      <View>
+                        <Text style={styles.browserPriceLabel}>From LKR {item.price.toLocaleString()}</Text>
+                        <Text style={styles.browserPriceSub}>/ night</Text>
+                      </View>
+                      <View style={styles.selectBtn}>
+                        <Text style={styles.selectBtnText}>Book Now 🏨</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        )}
+      </SafeAreaView>
+    );
+  }
+
+  // BOOKING DETAILS VIEW (WHEN HOTEL SELECTED)
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={handleSwitchHotel}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hotel Booking</Text>
@@ -177,21 +348,28 @@ const HotelBookingScreen = () => {
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hotel Preview */}
         <View style={styles.hotelCard}>
-          <Image source={{ uri: hotel.image }} style={styles.hotelImage} />
+          <Image source={{ uri: selectedHotel.image }} style={styles.hotelImage} />
           <View style={styles.hotelOverlay}>
-            <Text style={styles.hotelName}>{hotel.name}</Text>
-            <View style={styles.hotelLocationRow}>
-              <Ionicons name="location" size={14} color="#FFD700" />
-              <Text style={styles.hotelLocation}>{hotel.destination}, Sri Lanka</Text>
-            </View>
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color="#FFD700" />
-              <Text style={styles.ratingText}>{hotel.rating} • Premium Stay</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={styles.hotelName}>{selectedHotel.name}</Text>
+                <View style={styles.hotelLocationRow}>
+                  <Ionicons name="location" size={14} color="#FFD700" />
+                  <Text style={styles.hotelLocation}>{selectedHotel.destination}, Sri Lanka</Text>
+                </View>
+                <View style={styles.ratingRow}>
+                  <Ionicons name="star" size={14} color="#FFD700" />
+                  <Text style={styles.ratingText}>{selectedHotel.rating} • Premium Stay</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.switchHotelBtn} onPress={handleSwitchHotel}>
+                <Text style={styles.switchHotelBtnText}>Switch Hotel</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Selected Dates */}
+        {/* Selected Dates & Schedule */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>📅 Stay Schedule</Text>
           <View style={styles.dateRow}>
@@ -208,13 +386,36 @@ const HotelBookingScreen = () => {
               <Text style={styles.dateValue}>{formattedDates.end}</Text>
             </View>
           </View>
+
+          <View style={styles.dateInputsRow}>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.inputLabel}>Check-In Date</Text>
+              <TextInput
+                style={styles.dateTextInput}
+                value={checkInState}
+                onChangeText={setCheckInState}
+                placeholder="YYYY-MM-DD"
+                maxLength={10}
+              />
+            </View>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.inputLabel}>Check-Out Date</Text>
+              <TextInput
+                style={styles.dateTextInput}
+                value={checkOutState}
+                onChangeText={setCheckOutState}
+                placeholder="YYYY-MM-DD"
+                maxLength={10}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Room Category Selection */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>🏨 Choose Room Category</Text>
           <View style={styles.roomsList}>
-            {hotel.rooms.map((room: RoomType) => {
+            {selectedHotel.rooms.map((room: RoomType) => {
               const isSelected = selectedRoom.type === room.type;
               return (
                 <TouchableOpacity
@@ -426,6 +627,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 15,
   },
   dateBlock: {
     flex: 1,
@@ -721,6 +923,196 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+
+  // Browse view styles
+  searchSection: {
+    paddingHorizontal: 20,
+    marginVertical: 15,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  searchIconBubble: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#FFF8F0',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchInputContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    height: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchInput: {
+    fontSize: 14,
+    color: '#7F6A51',
+    textAlign: 'left',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 15,
+    color: '#666',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+  },
+  emptyText: {
+    marginTop: 15,
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
+  browserHotelCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  browserHotelImage: {
+    width: '100%',
+    height: 180,
+  },
+  browserHotelOverlay: {
+    padding: 18,
+  },
+  browserHotelHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  browserHotelName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#222',
+    flex: 1,
+    marginRight: 10,
+  },
+  browserRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFE06B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  browserRatingText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  browserHotelLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  browserHotelLocation: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  browserHotelDesc: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 10,
+    lineHeight: 18,
+  },
+  browserHotelFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  browserPriceLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#222',
+  },
+  browserPriceSub: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 2,
+  },
+  selectBtn: {
+    backgroundColor: '#FFB300',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 15,
+  },
+  selectBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  switchHotelBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  switchHotelBtnText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  dateInputsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 10,
+  },
+  dateInputContainer: {
+    flex: 1,
+  },
+  dateTextInput: {
+    borderWidth: 1.5,
+    borderColor: '#EFEFEF',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
   },
 });
 

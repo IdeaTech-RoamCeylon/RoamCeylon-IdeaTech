@@ -52,7 +52,7 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     iconColor: '#1A6A3B',
     iconBackground: '#99efb6ff',
     cardBackground: '#cff6d5ff',
-    route: 'Explore',
+    route: 'HotelBooking',
   },
   {
     id: 'marketplace',
