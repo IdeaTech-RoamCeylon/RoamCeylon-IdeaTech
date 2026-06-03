@@ -23,6 +23,7 @@ import { LatencyTrackerService } from './modules/analytics/latency-tracker.servi
 import { MlModule } from './modules/ml/ml.module';
 import { HealthModule } from './modules/health/health.module';
 import { HotelModule } from './modules/hotel/hotel.module';
+import { AdminUsersModule } from './modules/admin-users/admin-users.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { HotelModule } from './modules/hotel/hotel.module';
     AIModule,
     PlannerModule,
     HotelModule,
+    AdminUsersModule,
     ScheduleModule.forRoot(),
     FeedbackModule,
     AnalyticsModule,

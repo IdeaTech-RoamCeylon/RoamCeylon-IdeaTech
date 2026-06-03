@@ -56,6 +56,18 @@ model User {
   isLocal        Boolean?  @default(true) @map("is_local")
 }
 
+model AdminUser {
+  id          String   @id @default(uuid())
+  name        String?
+  email       String?  @unique
+  phoneNumber String?  @unique @map("phone")
+  role        String   // 'hotel_manager' | 'activity_provider' | 'shop_partner' | 'tour_guide'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("admin_users")
+}
+
 model embeddings {
   id         Int                    @id @default(autoincrement())
   embedding  Unsupported("vector")?
