@@ -130,6 +130,8 @@ const LoginScreen = () => {
       const userRole = syncPayload.role || nhostUser?.metadata?.role || '';
       if (userRole === 'activity_provider' || userRole === 'activity_manager') {
         router.replace('/activities/home' as any);
+      } else if (userRole === 'hotel_manager') {
+        router.replace('/booking/home' as any);
       } else {
         router.replace('/home');
       }
