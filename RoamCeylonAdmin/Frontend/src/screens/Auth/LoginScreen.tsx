@@ -126,8 +126,13 @@ const LoginScreen = () => {
         console.log('[AdminSync] Sync successful:', syncRes.status);
       }
 
-      // Navigate to home (placeholder — will be role-based in future)
-      router.replace('/home');
+      // Navigate to the role-based screen
+      const userRole = syncPayload.role || nhostUser?.metadata?.role || '';
+      if (userRole === 'activity_provider' || userRole === 'activity_manager') {
+        router.replace('/activities/home' as any);
+      } else {
+        router.replace('/home');
+      }
 
     } catch (error: any) {
       console.error('Login error:', error);
