@@ -13,12 +13,23 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 const { width } = Dimensions.get('window');
 
 const ActivitiesHome = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await SecureStore.deleteItemAsync('authToken');
+      await SecureStore.deleteItemAsync('nhostRefreshToken');
+      router.replace('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   // Metrics details
   const metrics = [
@@ -370,6 +381,16 @@ const ActivitiesHome = () => {
             </View>
           </View>
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#dc3545" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -783,6 +804,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 6,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#dc3545',
+    height: 52,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#dc3545',
   },
 });
 
