@@ -78,7 +78,7 @@ const SplashScreen = () => {
     // Navigate to register after 2s
     const timer = setTimeout(() => {
       shimmerLoop.stop();
-      router.replace('/register');
+      router.replace('/login');
     }, 2000);
 
     return () => clearTimeout(timer);
