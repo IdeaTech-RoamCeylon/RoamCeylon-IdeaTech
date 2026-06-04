@@ -1,3 +1,3 @@
-import RegisterScreen from '@/screens/Auth/registerScreen';
+import SplashScreen from '@/screens/Auth/SplashScreen';
 
-export default RegisterScreen;
+export default SplashScreen;

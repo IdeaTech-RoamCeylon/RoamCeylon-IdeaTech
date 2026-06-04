@@ -44,7 +44,7 @@ const PasswordResetScreen = () => {
       const response = await (nhost.auth as any).sendPasswordResetEmail({
         email: email.trim().toLowerCase(),
         options: {
-          redirectTo: 'roamceylonadmin://reset-password',
+          redirectTo: 'roamceylonadmin://enterNewPassword',
         },
       });
 

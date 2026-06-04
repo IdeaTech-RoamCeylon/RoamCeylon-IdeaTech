@@ -21,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 const EnterNewPasswordScreen = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ refreshToken?: string }>();
+  const params = useLocalSearchParams<{ refreshToken?: string; type?: string }>();
   const refreshToken = params?.refreshToken;
 
   const [password, setPassword] = useState('');

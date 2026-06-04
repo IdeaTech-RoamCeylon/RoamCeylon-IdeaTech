@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { showToast } from '@/utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,6 +22,19 @@ const { width } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const router = useRouter();
+  const { type } = useLocalSearchParams<{ type?: string }>();
+
+  // Nhost appends type=emailConfirmation to the redirect URL after email verification
+  useEffect(() => {
+    if (type === 'emailConfirmation') {
+      setTimeout(() => {
+        showToast.success(
+          'Your email has been verified! You can now log in.',
+          'Email Verified ✓',
+        );
+      }, 500);
+    }
+  }, [type]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,40 +73,57 @@ const LoginScreen = () => {
           'Invalid email or password. Please try again.',
         );
       }
-
       await SecureStore.setItemAsync('authToken', session.accessToken);
       if (session.refreshToken) {
         await SecureStore.setItemAsync('nhostRefreshToken', session.refreshToken);
       }
 
-      // Sync admin user profile to backend on login
+      // Build sync payload from the Nhost session (primary source)
+      // Fall back to SecureStore temp data for anything not in the session
+      const nhostUser = (session as any).user;
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+      let syncPayload: Record<string, string> = {
+        email: nhostUser?.email || email.trim().toLowerCase(),
+        name: nhostUser?.displayName || '',
+        phoneNumber: nhostUser?.metadata?.phoneNumber || '',
+        role: nhostUser?.metadata?.role || '',
+      };
+
+      // Merge with SecureStore temp data (may have phone/role if metadata wasn't set)
       try {
-        // Check if we have temp registration data stored during sign-up
         const tempDataStr = await SecureStore.getItemAsync('tempAdminRegistrationData');
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-        
         if (tempDataStr) {
-          const tempData = JSON.parse(tempDataStr);
-          await fetch(`${apiUrl}/admin-users/sync`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.accessToken}`,
-            },
-            body: JSON.stringify(tempData),
-          });
-          // Clear temp data after successful sync
+          const tempData = JSON.parse(tempDataStr) as Record<string, string>;
+          // Only override if session metadata is empty
+          if (!syncPayload.phoneNumber && tempData.phoneNumber) syncPayload.phoneNumber = tempData.phoneNumber;
+          if (!syncPayload.role && tempData.role) syncPayload.role = tempData.role;
+          if (!syncPayload.name && tempData.name) syncPayload.name = tempData.name;
           await SecureStore.deleteItemAsync('tempAdminRegistrationData');
-        } else {
-          // Just call getMe to auto-create the profile if needed
-          await fetch(`${apiUrl}/admin-users/me`, {
-            headers: {
-              'Authorization': `Bearer ${session.accessToken}`,
-            },
-          });
         }
-      } catch (syncErr) {
-        console.warn('Failed to sync admin profile:', syncErr);
+      } catch (storeErr) {
+        console.warn('SecureStore read failed (non-critical):', storeErr);
+      }
+
+      console.log('[AdminSync] Syncing to backend with payload:', JSON.stringify(syncPayload));
+      console.log('[AdminSync] API URL:', apiUrl);
+
+      // Sync to backend — always called on every login to ensure profile exists
+      const syncRes = await fetch(`${apiUrl}/admin-users/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify(syncPayload),
+      });
+
+      if (!syncRes.ok) {
+        const syncError = await syncRes.text().catch(() => 'unknown error');
+        console.error('[AdminSync] Sync failed:', syncRes.status, syncError);
+        // Non-fatal — still navigate to home, but log clearly
+      } else {
+        console.log('[AdminSync] Sync successful:', syncRes.status);
       }
 
       // Navigate to home (placeholder — will be role-based in future)
@@ -299,7 +329,7 @@ const LoginScreen = () => {
               {/* Register Link */}
               <View style={styles.registerRow}>
                 <Text style={styles.registerText}>New to the expedition? </Text>
-                <TouchableOpacity onPress={() => router.push('/')}>
+                <TouchableOpacity onPress={() => router.push('/register')}>
                   <Text style={styles.registerLink}>Create account</Text>
                 </TouchableOpacity>
               </View>

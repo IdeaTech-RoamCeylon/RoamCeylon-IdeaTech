@@ -27,7 +27,7 @@ const EmailVerificationScreen = () => {
     try {
       await nhost.auth.sendVerificationEmail({ 
         email, 
-        options: { redirectTo: 'roamceylonadmin://verify-email' }
+        options: { redirectTo: 'roamceylonadmin://login' }
       });
       showToast.success('Verification email sent!', 'Check Your Inbox');
     } catch (error: any) {

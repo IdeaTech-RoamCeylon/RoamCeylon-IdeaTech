@@ -76,7 +76,7 @@ const PartnerScreen = () => {
         password: params.password,
         options: {
           displayName: params.name,
-          redirectTo: 'roamceylonadmin://verify-email',
+          redirectTo: 'roamceylonadmin://login',
           metadata: {
             phoneNumber: params.phoneNumber,
             role: selectedRole,
