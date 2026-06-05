@@ -151,7 +151,7 @@ const EditProfile = () => {
       }
 
       showToast.success('Profile updated successfully!', 'Success ✓');
-      router.replace('/activities/settings');
+      router.back();
     } catch (err: any) {
       console.error('[EditProfile] Save profile error:', err);
       showToast.error(err.message || 'Failed to update profile.', 'Error');
