@@ -86,11 +86,11 @@ const Packages = () => {
   };
 
   const handleCreatePackagePress = () => {
-    Alert.alert('Create Package', 'Opening package builder...');
+    router.push('/tour-guide/addPackage' as any);
   };
 
   const handleEditPackagePress = (title: string) => {
-    Alert.alert('Edit Package', `Opening editor for ${title}...`);
+    router.push('/tour-guide/editPackage' as any);
   };
 
   return (
@@ -102,9 +102,9 @@ const Packages = () => {
         <TouchableOpacity
           style={styles.headerIconButton}
           activeOpacity={0.7}
-          onPress={handleMenuPress}
+          onPress={() => router.back()}
         >
-          <Ionicons name="menu-outline" size={28} color="#1C1917" />
+          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
         </TouchableOpacity>
 
         <View style={styles.logoContainer}>
@@ -123,10 +123,19 @@ const Packages = () => {
           >
             <Ionicons name="notifications-outline" size={24} color="#1C1917" />
           </TouchableOpacity>
-          <View style={styles.profileButton}>
-            {/* Generic silhouette avatar to match the mockup exactly */}
-            <Ionicons name="person" size={20} color="#FFFFFF" />
-          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/tour-guide/settings' as any)}
+          >
+            <Image
+              source={{
+                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
+              }}
+              style={styles.profileImage}
+              contentFit="cover"
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -375,6 +384,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
   },
   scrollView: {
     flex: 1,

@@ -103,9 +103,9 @@ const Insights = () => {
         <TouchableOpacity
           style={styles.headerIconButton}
           activeOpacity={0.7}
-          onPress={handleMenuPress}
+          onPress={() => router.back()}
         >
-          <Ionicons name="menu-outline" size={28} color="#1C1917" />
+          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
         </TouchableOpacity>
 
         <View style={styles.logoContainer}>
@@ -124,7 +124,11 @@ const Insights = () => {
           >
             <Ionicons name="notifications-outline" size={24} color="#1C1917" />
           </TouchableOpacity>
-          <View style={styles.profileButton}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/tour-guide/settings' as any)}
+          >
             <Image
               source={{
                 uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
@@ -132,7 +136,7 @@ const Insights = () => {
               style={styles.profileImage}
               contentFit="cover"
             />
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 

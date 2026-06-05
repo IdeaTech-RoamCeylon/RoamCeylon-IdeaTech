@@ -122,9 +122,9 @@ const Revenue = () => {
         <TouchableOpacity
           style={styles.headerIconButton}
           activeOpacity={0.7}
-          onPress={handleMenuPress}
+          onPress={() => router.back()}
         >
-          <Ionicons name="menu-outline" size={28} color="#1C1917" />
+          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
         </TouchableOpacity>
 
         <View style={styles.logoContainer}>
@@ -143,7 +143,11 @@ const Revenue = () => {
           >
             <Ionicons name="notifications-outline" size={24} color="#1C1917" />
           </TouchableOpacity>
-          <View style={styles.profileButton}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/tour-guide/settings' as any)}
+          >
             <Image
               source={{
                 uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
@@ -151,7 +155,7 @@ const Revenue = () => {
               style={styles.profileImage}
               contentFit="cover"
             />
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -277,7 +281,7 @@ const Revenue = () => {
         <View style={[styles.sectionHeader, { marginTop: 12 }]}>
           <Text style={styles.sectionTitle}>Recent High-Value Bookings</Text>
           <TouchableOpacity activeOpacity={0.6} onPress={handleViewAllBookingsPress}>
-            <Text style={styles.viewAllLinkText}>VIEW ALL BOOKINGS</Text>
+            <Text style={styles.viewAllLinkText}>VIEW BOOKINGS</Text>
           </TouchableOpacity>
         </View>
 

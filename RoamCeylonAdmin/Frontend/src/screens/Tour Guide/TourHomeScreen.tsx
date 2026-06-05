@@ -143,13 +143,22 @@ const TourHomeScreen = () => {
             contentFit="contain"
           />
         </View>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          activeOpacity={0.7}
-          onPress={handleNotificationPress}
-        >
-          <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={[styles.notificationButton, { marginRight: 8 }]}
+            activeOpacity={0.7}
+            onPress={handleNotificationPress}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/tour-guide/settings' as any)}
+          >
+            <Ionicons name="person-circle-outline" size={28} color="#1C1917" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -164,7 +173,7 @@ const TourHomeScreen = () => {
         <View style={styles.sectionHeadingBlock}>
           <Text style={styles.mainTitle}>Overview</Text>
           <Text style={styles.mainSubtitle}>
-            Welcome back. Here is your agency's performance at a glance.
+            Welcome back. Here is tours performance at a glance.
           </Text>
         </View>
 
@@ -247,7 +256,7 @@ const TourHomeScreen = () => {
               Manage visibility of your top itineraries.
             </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.6}>
+          <TouchableOpacity activeOpacity={0.6} onPress={() => router.push('/tour-guide/packages' as any)}>
             <Text style={styles.viewAllText}>View All</Text>
           </TouchableOpacity>
         </View>
