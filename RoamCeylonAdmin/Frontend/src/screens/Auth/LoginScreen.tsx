@@ -150,6 +150,8 @@ const LoginScreen = () => {
         router.replace('/booking/home' as any);
       } else if (userRole === 'tour_guide') {
         router.replace('/tour-guide/home' as any);
+      } else if (userRole === 'shop_partner') {
+        router.replace('/shopping/home' as any);
       } else {
         router.replace('/home');
       }
