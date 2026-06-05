@@ -33,8 +33,12 @@ const GuestDetails = () => {
           <Ionicons name="arrow-back" size={24} color="#1C1917" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Guest Details</Text>
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#1C1917" />
+        <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
+            style={styles.headerAvatar}
+            contentFit="cover"
+          />
         </TouchableOpacity>
       </View>
 
@@ -290,6 +294,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1917',
     textAlign: 'center',
+  },
+  avatarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  headerAvatar: {
+    width: '100%',
+    height: '100%',
   },
   scrollView: {
     flex: 1,

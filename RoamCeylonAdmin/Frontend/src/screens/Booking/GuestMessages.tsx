@@ -62,13 +62,13 @@ const GuestMessages = () => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-          <Ionicons name="menu-outline" size={28} color="#000000" />
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={28} color="#000000" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Guest Messages</Text>
 
-        <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7} onPress={() => router.push('/booking/settings' as any)}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
             style={styles.headerAvatar}
@@ -159,19 +159,17 @@ const GuestMessages = () => {
                 >
                   {thread.message}
                 </Text>
+
+                {/* Reply Button */}
+                <TouchableOpacity style={styles.replyButton} activeOpacity={0.7}>
+                  <Ionicons name="arrow-undo-outline" size={14} color="#0E5E2F" />
+                  <Text style={styles.replyButtonText}>Reply</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 20 }]}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="create-outline" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -347,6 +345,22 @@ const styles = StyleSheet.create({
   messageRead: {
     color: '#60646C',
     fontWeight: '400',
+  },
+  replyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EAF2EC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  replyButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0E5E2F',
+    marginLeft: 4,
   },
   fab: {
     position: 'absolute',

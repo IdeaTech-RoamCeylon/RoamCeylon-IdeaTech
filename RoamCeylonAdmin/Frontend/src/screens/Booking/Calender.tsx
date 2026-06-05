@@ -68,19 +68,19 @@ const Calender = () => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-          <Ionicons name="menu-outline" size={28} color="#1C1917" />
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={28} color="#1C1917" />
         </TouchableOpacity>
 
         {/* Center Logo */}
-        <Text style={styles.logoText}>Roam Ceylon</Text>
+        <Text style={styles.logoText}>Booking Calendar</Text>
 
         {/* Right Bell & Avatar */}
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
             <Ionicons name="notifications-outline" size={24} color="#5B600A" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7} onPress={() => router.push('/booking/settings' as any)}>
             <Image
               source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
               style={styles.headerAvatar}
@@ -100,7 +100,6 @@ const Calender = () => {
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Booking Calendar</Text>
           <Text style={styles.subtitle}>
             Manage room availability and guest itineraries.
           </Text>
@@ -281,13 +280,6 @@ const Calender = () => {
           </View>
         </View>
       </ScrollView>
-
-      {/* Floating Action Button - Center Bottom */}
-      <View style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fab} activeOpacity={0.8}>
-          <Ionicons name="add" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };

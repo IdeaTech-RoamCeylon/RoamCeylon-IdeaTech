@@ -59,19 +59,21 @@ const ViewRooms = () => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        {/* Left custom dark logo button */}
-        <TouchableOpacity style={styles.logoCircleButton} activeOpacity={0.7}>
-          <View style={styles.logoDarkCircle}>
-            <Ionicons name="compass" size={20} color="#66BB6A" />
-          </View>
+        {/* Back Button */}
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={28} color="#1C1917" />
         </TouchableOpacity>
 
         {/* Center Title */}
         <Text style={styles.headerTitle}>Manage Rooms</Text>
 
-        {/* Right Settings Filter Slider Icon */}
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-          <Ionicons name="options-outline" size={24} color="#1C1917" />
+        {/* Right Avatar Button */}
+        <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7} onPress={() => router.push('/booking/settings' as any)}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
+            style={styles.headerAvatar}
+            contentFit="cover"
+          />
         </TouchableOpacity>
       </View>
 
@@ -158,7 +160,7 @@ const ViewRooms = () => {
                 )}
 
                 {/* Edit Button */}
-                <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.editButton} onPress={() => router.push('/booking/editRoom' as any)} activeOpacity={0.7}>
                   <Ionicons name="pencil" size={16} color="#0D4F2E" />
                 </TouchableOpacity>
               </View>
@@ -169,7 +171,7 @@ const ViewRooms = () => {
 
       {/* Floating Action Plus Button */}
       <View style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fab} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.fab} onPress={() => router.push('/booking/addRoom' as any)} activeOpacity={0.8}>
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -220,6 +222,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: -10,
+  },
+  avatarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  headerAvatar: {
+    width: '100%',
+    height: '100%',
   },
   scrollView: {
     flex: 1,

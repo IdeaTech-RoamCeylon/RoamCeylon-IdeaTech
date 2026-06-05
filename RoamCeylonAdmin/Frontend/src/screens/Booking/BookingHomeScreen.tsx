@@ -20,16 +20,6 @@ const BookingHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('nhostRefreshToken');
-      router.replace('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
-
   // Mock data for check-ins
   const checkIns = [
     {
@@ -58,63 +48,32 @@ const BookingHomeScreen = () => {
     },
   ];
 
-  // Quick Action list
-  const quickActions = [
-    {
-      id: 'update_inventory',
-      title: 'Update Inventory',
-      icon: 'archive-outline',
-      route: '/booking/rooms',
-    },
-    {
-      id: 'view_calendar',
-      title: 'View Calendar',
-      icon: 'calendar-outline',
-      route: '/booking/calendar',
-    },
-    {
-      id: 'guest_messages',
-      title: 'Guest Messages',
-      icon: 'chatbubble-ellipses-outline',
-      route: '/booking/messages',
-    },
-    {
-      id: 'manage_rooms',
-      title: 'Manage Rooms',
-      icon: 'bed-outline',
-      route: '/booking/rooms',
-    },
-    {
-      id: 'view_hotel_details',
-      title: 'View Hotel Details',
-      icon: 'business-outline',
-      route: '/booking/details',
-    },
-  ];
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        {/* Left Custom Globe + Search Icon */}
+        {/* Left Notification Bell */}
         <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-          <View style={styles.globeIconContainer}>
-            <Ionicons name="earth-outline" size={24} color="#5B600A" />
-            <View style={styles.searchOverlay}>
-              <Ionicons name="search" size={10} color="#5B600A" />
-            </View>
-          </View>
+          <Ionicons name="notifications-outline" size={24} color="#5B600A" />
+          <View style={styles.notificationBadge} />
         </TouchableOpacity>
 
         {/* Center Logo Text */}
         <Text style={styles.logoText}>RoamCeylon</Text>
 
-        {/* Right Notification Bell */}
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-          <Ionicons name="notifications-outline" size={24} color="#5B600A" />
-          <View style={styles.notificationBadge} />
+        {/* Right Profile Icon */}
+        <TouchableOpacity 
+          style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden' }} 
+          activeOpacity={0.7}
+          onPress={() => router.push('/booking/settings' as any)}
+        >
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=150&q=80' }}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+          />
         </TouchableOpacity>
       </View>
 
@@ -132,6 +91,70 @@ const BookingHomeScreen = () => {
           <Text style={styles.welcomeSubtitle}>
             Here is what's happening at your property today.
           </Text>
+        </View>
+
+        {/* Quick Navigation / Preview Section */}
+        <View style={styles.navSection}>
+          <Text style={styles.navSectionTitle}>Quick Navigation</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.navScrollContent}
+          >
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => router.push('/booking/management' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="list-outline" size={20} color="#0E5E2F" />
+              <Text style={styles.navCardText}>Manage Bookings</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => router.push('/booking/availableRooms' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="archive-outline" size={20} color="#0E5E2F" />
+              <Text style={styles.navCardText}>Available Rooms</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => router.push('/booking/calendar' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#0E5E2F" />
+              <Text style={styles.navCardText}>View Calendar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => router.push('/booking/messages' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0E5E2F" />
+              <Text style={styles.navCardText}>Guest Messages</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => router.push('/booking/rooms' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="bed-outline" size={20} color="#0E5E2F" />
+              <Text style={styles.navCardText}>Manage Rooms</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => router.push('/booking/hotelDetails' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="business-outline" size={20} color="#0E5E2F" />
+              <Text style={styles.navCardText}>View Hotel Details</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
         {/* Metrics Grid */}
@@ -238,35 +261,6 @@ const BookingHomeScreen = () => {
             </View>
           ))}
         </View>
-
-        {/* Quick Actions Section */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionsContainer}>
-          {quickActions.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              style={styles.actionCard}
-              onPress={() => router.push(action.route as any)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.actionIconContainer}>
-                <Ionicons name={action.icon as any} size={22} color="#0E5E2F" />
-              </View>
-              <Text style={styles.actionTitle}>{action.title}</Text>
-              <Ionicons name="chevron-forward-outline" size={18} color="#A3A3A3" />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#dc3545" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -540,33 +534,44 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F1F5F2',
   },
-  quickActionsContainer: {
-    gap: 12,
+  navSection: {
+    marginTop: 0,
     marginBottom: 20,
+    paddingHorizontal: 0,
   },
-  actionCard: {
+  navSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#7D8A82',
+    textTransform: 'uppercase',
+    marginBottom: 10,
+    letterSpacing: 0.8,
+  },
+  navScrollContent: {
+    paddingRight: 24,
+    paddingVertical: 4,
+  },
+  navCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1.2,
     borderColor: '#EAF2EC',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  actionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F5F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionTitle: {
-    flex: 1,
-    fontSize: 16,
+  navCardText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: '#1C1917',
-    marginLeft: 14,
+    color: '#172B1E',
+    marginLeft: 8,
   },
   logoutButton: {
     flexDirection: 'row',
