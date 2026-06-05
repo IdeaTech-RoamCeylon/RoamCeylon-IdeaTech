@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,6 +24,21 @@ const { width } = Dimensions.get('window');
 const LoginScreen = () => {
   const router = useRouter();
   const { type } = useLocalSearchParams<{ type?: string }>();
+
+  // Exit app on back button press on Login Screen (Android)
+  useEffect(() => {
+    const onBackPress = () => {
+      BackHandler.exitApp();
+      return true; // prevent default behavior (navigation back)
+    };
+
+    const backHandlerSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress
+    );
+
+    return () => backHandlerSubscription.remove();
+  }, []);
 
   // Nhost appends type=emailConfirmation to the redirect URL after email verification
   useEffect(() => {
