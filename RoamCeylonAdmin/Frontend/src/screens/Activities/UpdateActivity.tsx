@@ -11,9 +11,11 @@ import {
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const UpdateActivity = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [title, setTitle] = useState('Sunrise Yoga & Meditation');
   const [description, setDescription] = useState(
     'Begin your day with tranquility as the sun rises over the historic ramparts of Galle Fort. This session combines gentle Hatha yoga flows with guided mindfulness meditation, designed to rejuvenate...'
@@ -29,7 +31,12 @@ const UpdateActivity = () => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          activeOpacity={0.7}
+          onPress={() => router.replace('/activities/home' as any)}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
           <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Activity</Text>

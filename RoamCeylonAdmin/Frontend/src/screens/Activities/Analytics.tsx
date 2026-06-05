@@ -11,9 +11,11 @@ import {
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const Analytics = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   // Metrics data
   const metrics = [
@@ -61,20 +63,24 @@ const Analytics = () => {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Ionicons name="menu-outline" size={28} color="#172B1E" />
+          <TouchableOpacity
+            style={styles.menuButton}
+            activeOpacity={0.7}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back-outline" size={28} color="#172B1E" />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Business</Text>
             <Text style={styles.headerTitle}>Analytics</Text>
           </View>
         </View>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
-            <Ionicons name="notifications-outline" size={24} color="#172B1E" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.profileButton} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/activities/settings' as any)}
+          >
             <Image
               source={{
                 uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80',

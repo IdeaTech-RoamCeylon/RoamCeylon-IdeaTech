@@ -21,16 +21,6 @@ const ActivitiesHome = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('nhostRefreshToken');
-      router.replace('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
-
   // Metrics details
   const metrics = [
     {
@@ -88,10 +78,21 @@ const ActivitiesHome = () => {
             contentFit="contain"
           />
         </View>
-        <TouchableOpacity style={styles.notificationButton} activeOpacity={0.7}>
-          <Ionicons name="notifications-outline" size={24} color="#0E5E2F" />
-          <View style={styles.notificationBadge} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/activities/settings' as any)}
+          >
+            <Image
+              source={{
+                uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
+              }}
+              style={styles.profileImage}
+              contentFit="cover"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -106,7 +107,7 @@ const ActivitiesHome = () => {
         <View style={styles.titleSection}>
           <Text style={styles.title}>Overview</Text>
           <Text style={styles.subtitle}>
-            Manage your luxury experiences and schedule.
+            Manage your activites in one place.
           </Text>
         </View>
 
@@ -161,24 +162,6 @@ const ActivitiesHome = () => {
             >
               <Ionicons name="star-outline" size={20} color="#0E5E2F" />
               <Text style={styles.navCardText}>Reviews</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/activities/new' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add-circle-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>New Act.</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/activities/update' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="create-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>Edit Act.</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -382,15 +365,6 @@ const ActivitiesHome = () => {
           </View>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#dc3545" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -413,7 +387,7 @@ const styles = StyleSheet.create({
   navSection: {
     marginTop: 16,
     marginBottom: 8,
-    paddingHorizontal: 24,
+    paddingHorizontal: 0,
   },
   navSectionTitle: {
     fontSize: 11,
@@ -468,23 +442,30 @@ const styles = StyleSheet.create({
     width: 140,
     height: 32,
   },
-  notificationButton: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F7FAF8',
-    position: 'relative',
+    marginRight: 8,
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 11,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#dc3545',
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#0E5E2F',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
   },
   scrollView: {
     flex: 1,

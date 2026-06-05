@@ -12,16 +12,18 @@ import {
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const Finance = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const transactions = [
     {
       initials: 'SJ',
       avatarBg: '#F5EBE1',
       avatarColor: '#8A5A52',
-      name: 'Samantha Jones',
+      name: 'Samantha Jones', 
       date: 'Oct 12, 2023',
       amount: '$450.00',
       status: 'PROCESSED',
@@ -59,13 +61,21 @@ const Finance = () => {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <Ionicons name="menu-outline" size={28} color="#172B1E" />
+          <TouchableOpacity
+            style={styles.menuButton}
+            activeOpacity={0.7}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back-outline" size={28} color="#172B1E" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Roam Ceylon</Text>
+          <Text style={styles.headerTitle}>Financial Overview</Text>
         </View>
 
-        <TouchableOpacity style={styles.profileButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.profileButton}
+          activeOpacity={0.7}
+          onPress={() => router.push('/activities/settings' as any)}
+        >
           <Image
             source={{
               uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80',
@@ -86,9 +96,8 @@ const Finance = () => {
       >
         {/* Title Block */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Financial Overview</Text>
           <Text style={styles.subtitle}>
-            Manage your hotel's performance and payout schedules.
+            All the earnings from activities
           </Text>
 
           {/* Download Report Button */}

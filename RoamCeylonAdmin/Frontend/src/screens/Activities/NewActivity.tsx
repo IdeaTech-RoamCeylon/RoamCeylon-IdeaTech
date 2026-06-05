@@ -11,12 +11,18 @@ import {
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const NewActivity = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'moderate' | 'hard'>('easy');
+  const [startTime, setStartTime] = useState('09:00 AM');
+  const [endTime, setEndTime] = useState('10:00 AM');
+  const [location, setLocation] = useState('');
+  const [price, setPrice] = useState('');
   const [participants, setParticipants] = useState('');
 
   return (
@@ -25,8 +31,13 @@ const NewActivity = () => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
-          <Ionicons name="close" size={26} color="#1C1917" />
+        <TouchableOpacity
+          style={styles.iconButton}
+          activeOpacity={0.7}
+          onPress={() => router.replace('/activities/home' as any)}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="arrow-back-outline" size={26} color="#1C1917" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Activity</Text>
         <TouchableOpacity activeOpacity={0.7}>
@@ -77,7 +88,7 @@ const NewActivity = () => {
 
         {/* Logistics & Requirements Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Logistics & Requirements</Text>
+          <Text style={styles.cardTitle}>Schedule and Details</Text>
 
           {/* Difficulty Level Segment Selector */}
           <View style={styles.inputContainer}>
@@ -119,14 +130,55 @@ const NewActivity = () => {
             </View>
           </View>
 
-          {/* Duration Dropdown */}
+          {/* Start & End Time Row */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.inputLabel}>Start Time</Text>
+              <TouchableOpacity style={styles.dropdownBox} activeOpacity={0.7}>
+                <Ionicons name="time-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
+                <Text style={styles.dropdownText}>{startTime}</Text>
+                <Ionicons name="chevron-down" size={16} color="#60646C" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={styles.inputLabel}>End Time</Text>
+              <TouchableOpacity style={styles.dropdownBox} activeOpacity={0.7}>
+                <Ionicons name="time-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
+                <Text style={styles.dropdownText}>{endTime}</Text>
+                <Ionicons name="chevron-down" size={16} color="#60646C" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Location Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Duration</Text>
-            <TouchableOpacity style={styles.dropdownBox} activeOpacity={0.7}>
-              <Ionicons name="time-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
-              <Text style={styles.dropdownText}>1 Hour</Text>
-              <Ionicons name="chevron-down" size={16} color="#60646C" />
-            </TouchableOpacity>
+            <Text style={styles.inputLabel}>Location</Text>
+            <View style={styles.iconInputBox}>
+              <Ionicons name="location-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
+              <TextInput
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g., Galle Fort Deck"
+                placeholderTextColor="#9CA3AF"
+                style={styles.iconTextInput}
+              />
+            </View>
+          </View>
+
+          {/* Price Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Price (LKR)</Text>
+            <View style={styles.iconInputBox}>
+              <Ionicons name="cash-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
+              <TextInput
+                value={price}
+                onChangeText={setPrice}
+                placeholder="e.g., 5000"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+                style={styles.iconTextInput}
+              />
+            </View>
           </View>
 
           {/* Max Participants Input */}
