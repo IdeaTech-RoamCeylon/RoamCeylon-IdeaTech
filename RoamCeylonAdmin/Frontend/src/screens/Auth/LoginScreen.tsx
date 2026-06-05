@@ -148,6 +148,8 @@ const LoginScreen = () => {
         router.replace('/activities/home' as any);
       } else if (userRole === 'hotel_manager') {
         router.replace('/booking/home' as any);
+      } else if (userRole === 'tour_guide') {
+        router.replace('/tour-guide/home' as any);
       } else {
         router.replace('/home');
       }
