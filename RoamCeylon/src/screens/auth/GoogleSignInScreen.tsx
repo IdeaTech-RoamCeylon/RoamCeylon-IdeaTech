@@ -16,6 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 // Nhost (signInIdToken) instead of exchanging a serverAuthCode on the backend.
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
   scopes: ['profile', 'email'],
 });
 
