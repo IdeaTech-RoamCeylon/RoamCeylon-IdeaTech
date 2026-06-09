@@ -8,25 +8,135 @@ import {
   TextInput,
   Switch,
   StatusBar,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
+
+import { nhost } from '../../config/nhostClient';
+
+const CATEGORIES = [
+  'Artisan Goods',
+  'Clothing & Apparel',
+  'Jewelry & Accessories',
+  'Food & Beverages',
+  'Souvenirs & Gifts',
+  'Health & Wellness',
+  'Other',
+];
 
 const AddShop = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [shopName, setShopName] = useState('Ceylon Spices & Tea');
+  const [shopName, setShopName] = useState('');
   const [category, setCategory] = useState('Artisan Goods');
-  const [description, setDescription] = useState('Premium organic spices and hand-picked teas from the central highlands.');
+  const [description, setDescription] = useState('');
   const [hoursEnabled, setHoursEnabled] = useState(true);
+  const [hoursList, setHoursList] = useState([
+    { day: 'Monday', hours: '9 AM - 6 PM' },
+    { day: 'Tuesday', hours: '9 AM - 6 PM' },
+    { day: 'Wednesday', hours: '9 AM - 6 PM' },
+    { day: 'Thursday', hours: '9 AM - 6 PM' },
+    { day: 'Friday', hours: '9 AM - 6 PM' },
+    { day: 'Saturday', hours: '9 AM - 6 PM' },
+    { day: 'Sunday', hours: 'Closed' }
+  ]);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
 
-  const [website, setWebsite] = useState('ceylonspices.com');
-  const [instagram, setInstagram] = useState('ceylon_spices');
-  const [facebook, setFacebook] = useState('CeylonSpicesTea');
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [facebook, setFacebook] = useState('');
   const [tiktok, setTiktok] = useState('');
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (result.assets[0].base64) {
+        setCoverImageUrl(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      } else {
+        setCoverImageUrl(result.assets[0].uri);
+      }
+    }
+  };
+
+  const updateHour = (index: number, newHours: string) => {
+    const updatedList = [...hoursList];
+    updatedList[index].hours = newHours;
+    setHoursList(updatedList);
+  };
+
+  const handleSave = async () => {
+    if (!shopName.trim() || !category.trim()) {
+      Alert.alert('Missing Fields', 'Please enter a shop name and category.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      if (!accessToken) {
+        Alert.alert('Authentication Error', 'You must be logged in to add a shop.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      let finalCoverImageUrl = coverImageUrl;
+      // Image is already base64 string, so we just pass it to the backend as is!
+
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const response = await fetch(`${apiUrl}/shops`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: shopName,
+          category,
+          description,
+          hoursEnabled,
+          hoursText: JSON.stringify(hoursList),
+          coverImageUrl: finalCoverImageUrl,
+          website,
+          instagram,
+          facebook,
+          tiktok,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text().catch(() => 'Unknown error');
+        throw new Error(errorData);
+      }
+
+      // Automatically go back to the home screen after success
+      router.back();
+    } catch (error: any) {
+      console.error('[AddShop] Failed to create shop:', error);
+      Alert.alert('Error', 'Could not create shop. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -38,12 +148,17 @@ const AddShop = () => {
           <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Shop</Text>
-        <TouchableOpacity style={styles.profileImageContainer} activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
-          <Image
-            source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-            style={styles.profileImage}
-            contentFit="cover"
-          />
+        <TouchableOpacity 
+          style={styles.saveButton} 
+          activeOpacity={0.7} 
+          onPress={handleSave}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -55,16 +170,6 @@ const AddShop = () => {
         <Text style={styles.pageTitle}>Partner Settings</Text>
         <Text style={styles.pageSubtitle}>Manage your shop profile and digital{'\n'}presence.</Text>
 
-        <TouchableOpacity style={styles.previewButton} activeOpacity={0.85}>
-          <Ionicons name="eye-outline" size={20} color="#493D1B" style={{ marginRight: 8 }} />
-          <Text style={styles.previewButtonText}>View Shop Preview</Text>
-        </TouchableOpacity>
-
-        {/* Separator / Drag Handle */}
-        <View style={styles.separatorContainer}>
-          <View style={styles.dragHandle} />
-        </View>
-
         {/* Shop Profile Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -73,11 +178,17 @@ const AddShop = () => {
           </View>
           <View style={styles.cardDivider} />
 
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1590426189955-46733ec6b1d4?auto=format&fit=crop&q=80&w=800' }}
-            style={styles.shopCoverImage}
-            contentFit="cover"
-          />
+          <Text style={styles.inputLabel}>Cover Photo</Text>
+          <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8}>
+            {coverImageUrl ? (
+              <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Feather name="camera" size={24} color="#9CA3AF" />
+                <Text style={styles.imagePlaceholderText}>Tap to add a photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Shop Name</Text>
@@ -85,18 +196,63 @@ const AddShop = () => {
               style={styles.textInput}
               value={shopName}
               onChangeText={setShopName}
-              placeholder="Enter shop name"
+              placeholder="e.g. Ceylon Spices & Tea"
               placeholderTextColor="#9CA3AF"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Business Category</Text>
-            <TouchableOpacity style={styles.dropdownInput} activeOpacity={0.7}>
+            <TouchableOpacity 
+              style={styles.dropdownInput} 
+              activeOpacity={0.7}
+              onPress={() => setCategoryModalVisible(true)}
+            >
               <Text style={styles.dropdownText}>{category}</Text>
               <Feather name="chevron-down" size={20} color="#60646C" />
             </TouchableOpacity>
           </View>
+
+          {/* Category Selection Modal */}
+          <Modal
+            visible={isCategoryModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setCategoryModalVisible(false)}
+          >
+            <TouchableWithoutFeedback onPress={() => setCategoryModalVisible(false)}>
+              <View style={styles.modalOverlay}>
+                <TouchableWithoutFeedback>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Category</Text>
+                    {CATEGORIES.map((item) => (
+                      <TouchableOpacity
+                        key={item}
+                        style={[
+                          styles.categoryOption,
+                          category === item && styles.categoryOptionSelected
+                        ]}
+                        onPress={() => {
+                          setCategory(item);
+                          setCategoryModalVisible(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.categoryOptionText,
+                          category === item && styles.categoryOptionTextSelected
+                        ]}>
+                          {item}
+                        </Text>
+                        {category === item && (
+                          <Feather name="check" size={20} color="#0E5E2F" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Short Description</Text>
@@ -104,7 +260,7 @@ const AddShop = () => {
               style={[styles.textInput, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Describe your shop"
+              placeholder="Describe your shop..."
               placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={3}
@@ -112,17 +268,36 @@ const AddShop = () => {
             />
           </View>
 
-          <View style={styles.switchCard}>
-            <View style={styles.switchInfo}>
-              <Text style={styles.switchTitle}>Business Hours</Text>
-              <Text style={styles.switchSubtitle}>Currently set to Mon-Sat, 9AM -{'\n'}6PM</Text>
+          <View style={styles.switchCardContainer}>
+            <View style={styles.switchCard}>
+              <View style={styles.switchInfo}>
+                <Text style={styles.switchTitle}>Business Hours</Text>
+                <Text style={styles.switchSubtitle}>Display opening hours on your shop page</Text>
+              </View>
+              <Switch
+                value={hoursEnabled}
+                onValueChange={setHoursEnabled}
+                trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
+                thumbColor="#FFFFFF"
+              />
             </View>
-            <Switch
-              value={hoursEnabled}
-              onValueChange={setHoursEnabled}
-              trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
-              thumbColor="#FFFFFF"
-            />
+            
+            {hoursEnabled && (
+              <View style={styles.hoursInputContainer}>
+                {hoursList.map((item, index) => (
+                  <View key={item.day} style={styles.dayRow}>
+                    <Text style={styles.dayText}>{item.day}</Text>
+                    <TextInput
+                      style={styles.dayInput}
+                      value={item.hours}
+                      onChangeText={(text) => updateHour(index, text)}
+                      placeholder="e.g. 9 AM - 6 PM or Closed"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -239,21 +414,19 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
-  profileImageContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#A7F3D0',
+  saveButton: {
+    backgroundColor: '#0E5E2F',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 2,
+    minWidth: 64,
   },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#0F3D26',
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
@@ -326,7 +499,33 @@ const styles = StyleSheet.create({
   cardDivider: {
     height: 1,
     backgroundColor: '#F3F4F6',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  imagePicker: {
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 160,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+  },
+  imagePlaceholderText: {
+    marginTop: 8,
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
   },
   shopCoverImage: {
     width: '100%',
@@ -372,6 +571,37 @@ const styles = StyleSheet.create({
   dropdownText: {
     fontSize: 15,
     color: '#1C1917',
+  },
+  switchCardContainer: {
+    marginBottom: 24,
+  },
+  hoursInputContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dayText: {
+    width: 100,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#4A4A4A',
+  },
+  dayInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    height: 40,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1C1917',
+    backgroundColor: '#FFFFFF',
   },
   switchCard: {
     flexDirection: 'row',
@@ -432,6 +662,47 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1C1917',
     paddingRight: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C1917',
+    marginBottom: 16,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  categoryOptionSelected: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: -12,
+    borderBottomWidth: 0,
+  },
+  categoryOptionText: {
+    fontSize: 16,
+    color: '#4A4A4A',
+  },
+  categoryOptionTextSelected: {
+    color: '#0E5E2F',
+    fontWeight: '600',
   },
 });
 

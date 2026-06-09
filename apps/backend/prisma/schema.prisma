@@ -61,7 +61,7 @@ model AdminUser {
   name        String?
   email       String?  @unique
   phoneNumber String?  @unique @map("phone")
-  role        String   // 'hotel_manager' | 'activity_provider' | 'shop_partner' | 'tour_guide'
+  role        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
@@ -88,18 +88,18 @@ model spatial_ref_sys {
 }
 
 model SavedTrip {
-  userId      String
-  name        String
-  destination String
-  startDate   DateTime
-  endDate     DateTime
-  itinerary   Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  preferences Json?
-  id          String   @id
-  chatSessionId String?  @map("chat_session_id")
-  chatSession   ChatSession? @relation(fields: [chatSessionId], references: [id], onDelete: SetNull)
+  userId        String
+  name          String
+  destination   String
+  startDate     DateTime
+  endDate       DateTime
+  itinerary     Json
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  preferences   Json?
+  id            String       @id
+  chatSessionId String?      @map("chat_session_id")
+  chatSession   ChatSession? @relation(fields: [chatSessionId], references: [id])
 
   @@index([userId, createdAt])
   @@index([destination])
@@ -312,8 +312,8 @@ model ChatSession {
   userId    String      @map("user_id")
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
-  tripPlans SavedTrip[]
   messages  Message[]
+  tripPlans SavedTrip[]
 
   @@index([userId])
   @@map("ChatSession")
@@ -322,10 +322,10 @@ model ChatSession {
 model Message {
   id        String      @id @default(uuid())
   sessionId String      @map("session_id")
-  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sender    String      // 'user' | 'ai'
-  content   Json        // stores the message text, type, and any extracted data
+  sender    String
+  content   Json
   createdAt DateTime    @default(now()) @map("created_at")
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([createdAt])
@@ -339,4 +339,26 @@ model PlaceCache {
   updatedAt DateTime @default(now())
 
   @@map("PlaceCache")
+}
+
+model shops {
+  id              String   @id
+  owner_id        String
+  name            String
+  category        String
+  description     String   @default("")
+  cover_image_url String   @default("")
+  status          String   @default("under_review")
+  hours_enabled   Boolean  @default(false)
+  hours_text      String   @default("")
+  website         String   @default("")
+  instagram       String   @default("")
+  facebook        String   @default("")
+  tiktok          String   @default("")
+  location        String   @default("")
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+
+  @@index([owner_id])
+  @@index([status])
 }

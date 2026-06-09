@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export interface Product {
   id: string;
@@ -31,7 +32,10 @@ export interface Wrapper<T> {
 export class MarketplaceService {
   private readonly logger = new Logger('MarketplaceService');
 
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly prisma: PrismaService,
+  ) {}
 
   private wrapResponse<T>(data: T, cached: boolean = false): Wrapper<T> {
     return {
@@ -55,25 +59,25 @@ export class MarketplaceService {
     const categories = [
       {
         id: '1',
-        name: 'Electronics',
+        name: 'Artisan Goods',
         image:
           'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500',
       },
       {
         id: '2',
-        name: 'Souvenirs',
+        name: 'Souvenirs & Gifts',
         image:
           'https://images.unsplash.com/photo-1512411516053-125028080a2b?w=500',
       },
       {
         id: '3',
-        name: 'Food & Spices',
+        name: 'Food & Beverages',
         image:
           'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=500',
       },
       {
         id: '4',
-        name: 'Clothing',
+        name: 'Clothing & Apparel',
         image:
           'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500',
       },
@@ -96,55 +100,23 @@ export class MarketplaceService {
       return this.wrapResponse(cached, true);
     }
 
-    const allProducts: Product[] = [
-      {
-        id: '101',
-        name: 'Hand-carved Wooden Elephant',
-        category: 'Souvenirs',
-        price: 4500.0,
-        description: 'Traditional Sri Lankan wooden elephant carving.',
-        image:
-          'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+    const shops = await this.prisma.shop.findMany({
+      where: {
+        status: 'active',
+        ...(category && { category }),
       },
-      {
-        id: '102',
-        name: 'Pure Ceylon Tea (BOPF)',
-        category: 'Food & Spices',
-        price: 1200.0,
-        description: 'Premium Ceylon black tea, 500g pack.',
-        image:
-          'https://images.unsplash.com/photo-1576091160550-2173bdd99825?w=500',
-      },
-      {
-        id: '103',
-        name: 'Cinnamon Sticks (Alba)',
-        category: 'Food & Spices',
-        price: 850.0,
-        description: 'High-quality Ceylon Cinnamon sticks.',
-        image:
-          'https://images.unsplash.com/photo-1599940859674-a7fef6342ee0?w=500',
-      },
-      {
-        id: '104',
-        name: 'Batik Sarong',
-        category: 'Clothing',
-        price: 2500.0,
-        description: 'Traditional handmade Batik sarong.',
-        image:
-          'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500',
-      },
-    ];
+    });
 
-    let result = [...allProducts];
-    if (category) {
-      result = allProducts.filter(
-        (p) => p.category.toLowerCase() === category.toLowerCase(),
-      );
-    }
+    let result: Product[] = shops.map((shop) => ({
+      id: shop.id,
+      name: shop.name,
+      category: shop.category,
+      price: 0.0, // Shops don't have a specific item price, defaulting to 0
+      description: shop.description || 'No description available.',
+      image: shop.coverImageUrl || 'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+    }));
 
-    if (sortBy === 'price') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'name') {
+    if (sortBy === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     }
 
@@ -160,11 +132,20 @@ export class MarketplaceService {
       return this.wrapResponse(cached, true);
     }
 
-    // Since it's mock, we fetch all and find
-    const { data: all } = await this.getProducts();
-    const product = all.find((p) => p.id === id);
+    const shop = await this.prisma.shop.findUnique({
+      where: { id },
+    });
 
-    if (product) {
+    let product: Product | undefined;
+    if (shop) {
+      product = {
+        id: shop.id,
+        name: shop.name,
+        category: shop.category,
+        price: 0.0,
+        description: shop.description || 'No description available.',
+        image: shop.coverImageUrl || 'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+      };
       await this.cacheManager.set(cacheKey, product, 3600000);
     }
 

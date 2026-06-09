@@ -104,7 +104,8 @@ const RegisterScreen = () => {
     showSecure?: boolean,
     onToggleSecure?: () => void,
     keyboardType: any = 'default',
-    autoCapitalize: any = 'words'
+    autoCapitalize: any = 'words',
+    textContentType: any = 'none'
   ) => {
     return (
       <View style={styles.inputSection}>
@@ -122,6 +123,7 @@ const RegisterScreen = () => {
             secureTextEntry={isSecure && !showSecure}
             keyboardType={isSecure ? 'default' : keyboardType}
             autoCapitalize={isSecure ? 'none' : autoCapitalize}
+            textContentType={textContentType}
             editable={!loading}
           />
           {isSecure && onToggleSecure ? (
@@ -234,6 +236,7 @@ const RegisterScreen = () => {
                       secureTextEntry={!showPassword}
                       keyboardType="default"
                       autoCapitalize="none"
+                      textContentType="newPassword"
                       editable={!loading}
                     />
                     <TouchableOpacity style={styles.iconContainer} onPress={() => setShowPassword(!showPassword)}>
@@ -315,7 +318,10 @@ const RegisterScreen = () => {
                   'confirmPassword',
                   true,
                   showConfirmPassword,
-                  () => setShowConfirmPassword(!showConfirmPassword)
+                  () => setShowConfirmPassword(!showConfirmPassword),
+                  'default',
+                  'none',
+                  'oneTimeCode'
                 )}
 
               </View>

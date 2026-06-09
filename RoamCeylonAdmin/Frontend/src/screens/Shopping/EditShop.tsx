@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,25 +8,160 @@ import {
   TextInput,
   Switch,
   StatusBar,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
+
+import { nhost } from '../../config/nhostClient';
 
 const EditShop = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { id } = useLocalSearchParams();
 
-  const [shopName, setShopName] = useState('Ceylon Spices & Tea');
-  const [category, setCategory] = useState('Artisan Goods');
-  const [description, setDescription] = useState('Premium organic spices and hand-picked teas from the central highlands.');
+  const [shopName, setShopName] = useState('');
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
   const [hoursEnabled, setHoursEnabled] = useState(true);
+  const [hoursList, setHoursList] = useState([
+    { day: 'Monday', hours: '9 AM - 6 PM' },
+    { day: 'Tuesday', hours: '9 AM - 6 PM' },
+    { day: 'Wednesday', hours: '9 AM - 6 PM' },
+    { day: 'Thursday', hours: '9 AM - 6 PM' },
+    { day: 'Friday', hours: '9 AM - 6 PM' },
+    { day: 'Saturday', hours: '9 AM - 6 PM' },
+    { day: 'Sunday', hours: 'Closed' }
+  ]);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
 
-  const [website, setWebsite] = useState('ceylonspices.com');
-  const [instagram, setInstagram] = useState('ceylon_spices');
-  const [facebook, setFacebook] = useState('CeylonSpicesTea');
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [facebook, setFacebook] = useState('');
   const [tiktok, setTiktok] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPreviewVisible, setPreviewVisible] = useState(false);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (result.assets[0].base64) {
+        setCoverImageUrl(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      } else {
+        setCoverImageUrl(result.assets[0].uri);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchShop = async () => {
+      try {
+        const accessToken = await SecureStore.getItemAsync('authToken');
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+        
+        const response = await fetch(`${apiUrl}/shops/${id}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        
+        if (response.ok) {
+          const shop = await response.json();
+          setShopName(shop.name || '');
+          setCategory(shop.category || '');
+          setDescription(shop.description || '');
+          setHoursEnabled(shop.hoursEnabled !== false);
+          
+          if (shop.hoursText) {
+            try {
+              const parsed = JSON.parse(shop.hoursText);
+              if (Array.isArray(parsed)) {
+                setHoursList(parsed);
+              }
+            } catch (e) {
+              // Ignore parse error, keep default
+            }
+          }
+          
+          setCoverImageUrl(shop.coverImageUrl || '');
+          setWebsite(shop.website || '');
+          setInstagram(shop.instagram || '');
+          setFacebook(shop.facebook || '');
+          setTiktok(shop.tiktok || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch shop details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchShop();
+  }, [id]);
+
+  const handleSave = async () => {
+    if (!id || !shopName.trim() || !category.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      
+      let finalCoverImageUrl = coverImageUrl;
+      // Image is already base64 string, so we just pass it to the backend as is!
+
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      
+      const response = await fetch(`${apiUrl}/shops/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: shopName,
+          category,
+          description,
+          hoursEnabled,
+          hoursText: JSON.stringify(hoursList),
+          coverImageUrl: finalCoverImageUrl,
+          website,
+          instagram,
+          facebook,
+          tiktok,
+        }),
+      });
+
+      if (response.ok) {
+        router.back();
+      }
+    } catch (error) {
+      console.error('Failed to update shop:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#0E5E2F" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -55,7 +190,7 @@ const EditShop = () => {
         <Text style={styles.pageTitle}>Partner Settings</Text>
         <Text style={styles.pageSubtitle}>Manage your shop profile and digital{'\n'}presence.</Text>
 
-        <TouchableOpacity style={styles.previewButton} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.previewButton} activeOpacity={0.85} onPress={() => setPreviewVisible(true)}>
           <Ionicons name="eye-outline" size={20} color="#493D1B" style={{ marginRight: 8 }} />
           <Text style={styles.previewButtonText}>View Shop Preview</Text>
         </TouchableOpacity>
@@ -73,11 +208,17 @@ const EditShop = () => {
           </View>
           <View style={styles.cardDivider} />
 
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1590426189955-46733ec6b1d4?auto=format&fit=crop&q=80&w=800' }}
-            style={styles.shopCoverImage}
-            contentFit="cover"
-          />
+          <Text style={styles.inputLabel}>Cover Photo</Text>
+          <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8}>
+            {coverImageUrl ? (
+              <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Feather name="camera" size={24} color="#9CA3AF" />
+                <Text style={styles.imagePlaceholderText}>Tap to add a photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Shop Name</Text>
@@ -112,17 +253,40 @@ const EditShop = () => {
             />
           </View>
 
-          <View style={styles.switchCard}>
-            <View style={styles.switchInfo}>
-              <Text style={styles.switchTitle}>Business Hours</Text>
-              <Text style={styles.switchSubtitle}>Currently set to Mon-Sat, 9AM -{'\n'}6PM</Text>
+          <View style={styles.switchCardContainer}>
+            <View style={styles.switchCard}>
+              <View style={styles.switchInfo}>
+                <Text style={styles.switchTitle}>Business Hours</Text>
+                <Text style={styles.switchSubtitle}>Display opening hours on your shop page</Text>
+              </View>
+              <Switch
+                value={hoursEnabled}
+                onValueChange={setHoursEnabled}
+                trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
+                thumbColor="#FFFFFF"
+              />
             </View>
-            <Switch
-              value={hoursEnabled}
-              onValueChange={setHoursEnabled}
-              trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
-              thumbColor="#FFFFFF"
-            />
+            
+            {hoursEnabled && (
+              <View style={styles.hoursInputContainer}>
+                {hoursList.map((item, index) => (
+                  <View key={item.day} style={styles.dayRow}>
+                    <Text style={styles.dayText}>{item.day}</Text>
+                    <TextInput
+                      style={styles.dayInput}
+                      value={item.hours}
+                      onChangeText={(text) => {
+                        const updatedList = [...hoursList];
+                        updatedList[index].hours = text;
+                        setHoursList(updatedList);
+                      }}
+                      placeholder="e.g. 9 AM - 6 PM or Closed"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -204,7 +368,156 @@ const EditShop = () => {
           </View>
 
         </View>
+
+        {/* Save Button */}
+        <TouchableOpacity 
+          style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]} 
+          activeOpacity={0.85} 
+          onPress={handleSave}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save Changes</Text>
+          )}
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Premium Shop Preview Modal */}
+      <Modal
+        visible={isPreviewVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPreviewVisible(false)}
+      >
+        <View style={styles.previewModalOverlay}>
+          <View style={[styles.previewModalContent, { paddingBottom: insets.bottom }]}>
+            
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              
+              {/* Hero Image Section */}
+              <View style={styles.previewHeroContainer}>
+                <Image 
+                  source={{ uri: coverImageUrl || 'https://images.unsplash.com/photo-1590426189955-46733ec6b1d4?auto=format&fit=crop&q=80&w=800' }} 
+                  style={styles.previewModalImage} 
+                  contentFit="cover" 
+                />
+                <LinearGradient
+                  colors={['transparent', 'rgba(255,255,255,0.8)', '#FFFFFF']}
+                  style={styles.previewGradientOverlay}
+                />
+                
+                {/* Floating Close Button */}
+                <TouchableOpacity onPress={() => setPreviewVisible(false)} style={styles.previewFloatingClose}>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.previewModalBody}>
+                {/* Header Information */}
+                <View style={styles.previewHeaderInfo}>
+                  <View style={styles.previewCategoryBadge}>
+                    <Text style={styles.previewCategoryText}>{category || 'Category'}</Text>
+                  </View>
+                  <Text style={styles.previewShopName}>{shopName || 'Your Shop Name'}</Text>
+                  
+                  <View style={styles.previewRatingRow}>
+                    <Ionicons name="star" size={18} color="#FBBF24" />
+                    <Text style={styles.previewRatingText}>New Shop</Text>
+                    <Text style={styles.previewRatingDot}>•</Text>
+                    <Ionicons name="location" size={16} color="#6B7280" style={{ marginRight: 4 }} />
+                    <Text style={styles.previewLocationText}>Colombo, Sri Lanka</Text>
+                  </View>
+                </View>
+
+                {/* About Section */}
+                <View style={styles.previewSection}>
+                  <Text style={styles.previewSectionTitle}>About</Text>
+                  <Text style={styles.previewDescriptionText}>
+                    {description || 'Welcome to our shop! Your premium description will appear here, telling travelers exactly what makes your experience special.'}
+                  </Text>
+                </View>
+
+                {/* Hours Section */}
+                {hoursEnabled && (
+                  <View style={styles.previewSection}>
+                    <Text style={styles.previewSectionTitle}>Opening Hours</Text>
+                    <View style={styles.previewHoursContainer}>
+                      {hoursList.map((item, index) => (
+                        <View key={item.day} style={[styles.previewHourRow, index === hoursList.length - 1 && { borderBottomWidth: 0 }]}>
+                          <Text style={styles.previewHourDay}>{item.day}</Text>
+                          <Text style={[styles.previewHourTime, item.hours === 'Closed' && { color: '#EF4444' }]}>{item.hours}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Integrations Section */}
+                {(website || instagram || facebook || tiktok) && (
+                  <View style={styles.previewSection}>
+                    <Text style={styles.previewSectionTitle}>Connect with us</Text>
+                    <View style={styles.previewLinksContainer}>
+                      {website ? (
+                        <View style={styles.previewLinkCard}>
+                          <View style={[styles.previewLinkIconWrap, { backgroundColor: '#F3F4F6' }]}>
+                            <Feather name="globe" size={20} color="#1C1917" />
+                          </View>
+                          <View style={styles.previewLinkCardContent}>
+                            <Text style={styles.previewLinkCardTitle}>Website</Text>
+                            <Text style={styles.previewLinkCardSubtitle}>{website}</Text>
+                          </View>
+                          <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                        </View>
+                      ) : null}
+                      
+                      {instagram ? (
+                        <View style={styles.previewLinkCard}>
+                          <View style={[styles.previewLinkIconWrap, { backgroundColor: '#FDF2F8' }]}>
+                            <Feather name="instagram" size={20} color="#DB2777" />
+                          </View>
+                          <View style={styles.previewLinkCardContent}>
+                            <Text style={styles.previewLinkCardTitle}>Instagram</Text>
+                            <Text style={styles.previewLinkCardSubtitle}>@{instagram}</Text>
+                          </View>
+                          <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                        </View>
+                      ) : null}
+
+                      {facebook ? (
+                        <View style={styles.previewLinkCard}>
+                          <View style={[styles.previewLinkIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                            <Feather name="facebook" size={20} color="#2563EB" />
+                          </View>
+                          <View style={styles.previewLinkCardContent}>
+                            <Text style={styles.previewLinkCardTitle}>Facebook</Text>
+                            <Text style={styles.previewLinkCardSubtitle}>{facebook}</Text>
+                          </View>
+                          <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                        </View>
+                      ) : null}
+
+                      {tiktok ? (
+                        <View style={styles.previewLinkCard}>
+                          <View style={[styles.previewLinkIconWrap, { backgroundColor: '#F3F4F6' }]}>
+                            <MaterialCommunityIcons name="music-note" size={20} color="#000000" />
+                          </View>
+                          <View style={styles.previewLinkCardContent}>
+                            <Text style={styles.previewLinkCardTitle}>TikTok</Text>
+                            <Text style={styles.previewLinkCardSubtitle}>@{tiktok}</Text>
+                          </View>
+                          <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -326,13 +639,33 @@ const styles = StyleSheet.create({
   cardDivider: {
     height: 1,
     backgroundColor: '#F3F4F6',
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  shopCoverImage: {
+  imagePicker: {
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+  },
+  previewImage: {
     width: '100%',
-    height: 180,
-    borderRadius: 16,
-    marginBottom: 24,
+    height: 200,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 160,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+  },
+  imagePlaceholderText: {
+    marginTop: 8,
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
   },
   inputGroup: {
     marginBottom: 20,
@@ -372,6 +705,37 @@ const styles = StyleSheet.create({
   dropdownText: {
     fontSize: 15,
     color: '#1C1917',
+  },
+  switchCardContainer: {
+    marginBottom: 24,
+  },
+  hoursInputContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dayText: {
+    width: 100,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#4A4A4A',
+  },
+  dayInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    height: 40,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1C1917',
+    backgroundColor: '#FFFFFF',
   },
   switchCard: {
     flexDirection: 'row',
@@ -432,6 +796,197 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1C1917',
     paddingRight: 16,
+  },
+  saveButton: {
+    backgroundColor: '#0E5E2F',
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 40,
+    marginHorizontal: 20,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  previewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  previewModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    height: '92%',
+    overflow: 'hidden',
+  },
+  previewHeroContainer: {
+    position: 'relative',
+    height: 320,
+    width: '100%',
+  },
+  previewModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  previewGradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  previewFloatingClose: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  previewModalBody: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 40,
+  },
+  previewHeaderInfo: {
+    marginBottom: 32,
+  },
+  previewCategoryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  previewCategoryText: {
+    color: '#059669',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  previewShopName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  previewRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  previewRatingText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1C1917',
+    marginLeft: 6,
+  },
+  previewRatingDot: {
+    fontSize: 15,
+    color: '#D1D5DB',
+    marginHorizontal: 12,
+  },
+  previewLocationText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  previewSection: {
+    marginBottom: 32,
+  },
+  previewSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C1917',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  previewDescriptionText: {
+    fontSize: 16,
+    color: '#4A4A4A',
+    lineHeight: 26,
+  },
+  previewHoursContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  previewHourRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  previewHourDay: {
+    fontSize: 15,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  previewHourTime: {
+    fontSize: 15,
+    color: '#1C1917',
+    fontWeight: '700',
+  },
+  previewLinksContainer: {
+    gap: 12,
+  },
+  previewLinkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  previewLinkIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  previewLinkCardContent: {
+    flex: 1,
+  },
+  previewLinkCardTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  previewLinkCardSubtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1C1917',
   },
 });
 

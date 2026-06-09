@@ -1,0 +1,349 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model AdminUser {
+  id          String   @id @default(uuid())
+  name        String?
+  email       String?  @unique
+  phoneNumber String?  @unique @map("phone")
+  role        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("admin_users")
+}
+
+model ChatSession {
+  id         String      @id
+  user_id    String
+  created_at DateTime    @default(now())
+  updated_at DateTime
+  Message    Message[]
+  SavedTrip  SavedTrip[]
+
+  @@index([user_id])
+}
+
+model DriverLocation {
+  id        Int                     @id @default(autoincrement())
+  driverId  String
+  location  Unsupported("geometry")
+  updatedAt DateTime
+
+  @@index([driverId], map: "driver_id_idx")
+  @@index([location], map: "driver_location_idx", type: Gist)
+}
+
+model FeedbackEvent {
+  id        String   @id
+  userId    String?
+  eventType String
+  metadata  Json     @default("{}")
+  timestamp DateTime @default(now())
+
+  @@index([eventType])
+  @@index([eventType, timestamp])
+  @@index([timestamp])
+  @@index([userId])
+}
+
+model MarketPlace {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  category    String
+  price       Decimal  @db.Decimal(10, 2)
+  description String
+  highlights  Json     @db.Json
+  review      Decimal  @db.Decimal(2, 1)
+  image_url   String
+  created_at  DateTime @db.Timestamp(6)
+}
+
+model Message {
+  id          String      @id
+  session_id  String
+  sender      String
+  content     Json
+  created_at  DateTime    @default(now())
+  ChatSession ChatSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at])
+  @@index([session_id])
+}
+
+model PendingFeedbackLearning {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  tripId       String
+  rating       Int
+  category     String
+  queuedAt     DateTime @default(now())
+  processAfter DateTime
+
+  @@unique([userId, tripId])
+  @@index([processAfter])
+  @@index([userId])
+}
+
+model PlaceCache {
+  id        String   @id
+  placeName String   @unique
+  imageUrl  String
+  updatedAt DateTime @default(now())
+}
+
+model PlannerEvent {
+  id        String   @id
+  userId    String?
+  eventType String
+  metadata  Json     @default("{}")
+  timestamp DateTime @default(now())
+
+  @@index([eventType])
+  @@index([eventType, timestamp])
+  @@index([timestamp])
+  @@index([userId])
+}
+
+model PlannerFeedback {
+  userId        String
+  tripId        String
+  createdAt     DateTime @default(now())
+  feedbackValue Json
+  id            Int      @id @default(autoincrement())
+  updatedAt     DateTime @default(now())
+
+  @@unique([userId, tripId])
+  @@index([createdAt])
+  @@index([tripId])
+  @@index([userId])
+}
+
+model PlannerMetadata {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime
+}
+
+model RideRequest {
+  id             Int                     @id @default(autoincrement())
+  passengerId    String
+  pickupLocation Unsupported("geometry")
+  destination    Unsupported("geometry")
+  status         String
+  createdAt      DateTime                @default(now())
+
+  @@index([destination], map: "ride_request_dest_idx", type: Gist)
+  @@index([passengerId], map: "ride_request_passenger_idx")
+  @@index([pickupLocation], map: "ride_request_pickup_idx", type: Gist)
+  @@index([status], map: "ride_request_status_idx")
+}
+
+model SavedTrip {
+  userId          String
+  name            String
+  destination     String
+  startDate       DateTime
+  endDate         DateTime
+  itinerary       Json
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  preferences     Json?
+  id              String       @id
+  chat_session_id String?
+  ChatSession     ChatSession? @relation(fields: [chat_session_id], references: [id])
+
+  @@index([chat_session_id])
+  @@index([destination])
+  @@index([userId, createdAt])
+}
+
+model SystemAlert {
+  id          String    @id
+  type        String
+  severity    String
+  metricValue Float
+  threshold   Float
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([createdAt])
+  @@index([resolvedAt])
+  @@index([severity])
+  @@index([type])
+}
+
+model SystemMetadata {
+  key       String   @id
+  value     String
+  updatedAt DateTime
+}
+
+model SystemMetric {
+  id        String   @id
+  userId    String?
+  eventType String
+  metadata  Json     @default("{}")
+  timestamp DateTime @default(now())
+
+  @@index([eventType])
+  @@index([eventType, timestamp])
+  @@index([timestamp])
+}
+
+model TransportSession {
+  id             String    @id
+  passengerId    String
+  driverId       String?
+  status         String
+  pickupLocation Json
+  destination    Json
+  fare           Decimal?
+  startTime      DateTime  @default(now())
+  endTime        DateTime?
+  statusUpdates  Json[]    @default([])
+
+  @@index([driverId])
+  @@index([passengerId])
+  @@index([status])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model User {
+  id              String    @id
+  phone           String?   @unique
+  name            String?
+  createdAt       DateTime  @default(now())
+  email           String?
+  updatedAt       DateTime  @default(now())
+  birthday        DateTime?
+  gender          String?
+  preferences     Json?
+  auth_provider   String?   @default("phone")
+  google_id       String?   @unique
+  profile_picture String?
+  is_local        Boolean?  @default(true)
+}
+
+model UserCategoryWeight {
+  id            Int      @id @default(autoincrement())
+  userId        String
+  category      String
+  weight        Float    @default(1.0)
+  feedbackCount Int      @default(0)
+  lastUpdated   DateTime @default(now())
+
+  @@unique([userId, category])
+  @@index([userId])
+}
+
+model UserFeedbackSignal {
+  id            Int      @id @default(autoincrement())
+  userId        String   @unique
+  positiveCount Int      @default(0)
+  negativeCount Int      @default(0)
+  neutralCount  Int      @default(0)
+  trustScore    Float    @default(0.5)
+  updatedAt     DateTime
+
+  @@index([userId])
+}
+
+model destination_category_scores {
+  destination_id   String   @id
+  category         String
+  popularity_score Float
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model embeddings {
+  id         Int                    @id @default(autoincrement())
+  embedding  Unsupported("vector")?
+  created_at DateTime               @default(now())
+  content    String?
+  title      String?
+
+  @@index([title])
+}
+
+model feedback_summary {
+  user_id           String   @id
+  positive_feedback Int      @default(0)
+  negative_feedback Int      @default(0)
+  updated_at        DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model recommendation_logs {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String
+  recommendation_id String?
+  item_id           String?
+  score             Float?
+  ml_score          Float?
+  rule_score        Float?
+  final_score       Float?
+  source            String?  @default("rule-based")
+  clicked           Boolean? @default(false)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model user_behavior_events {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String
+  event_type String
+  item_id    String?
+  metadata   Json?    @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model user_interest_profile {
+  user_id            String   @id
+  cultural_score     Int      @default(0)
+  adventure_score    Int      @default(0)
+  relaxation_score   Int      @default(0)
+  time_of_day_prefs  Json?
+  category_diversity Float?   @default(0)
+  updated_at         DateTime @default(now()) @db.Timestamptz(6)
+}
+
+// ─── Shop Partner shops ───────────────────────────────────────────────────────
+
+model Shop {
+  id            String   @id @default(uuid())
+  ownerId       String   @map("owner_id")          // Nhost user ID of the shop_partner
+  name          String
+  category      String
+  description   String   @default("")
+  coverImageUrl String   @default("") @map("cover_image_url")
+  status        String   @default("under_review")  // active | under_review | inactive
+  hoursEnabled  Boolean  @default(false) @map("hours_enabled")
+  hoursText     String   @default("") @map("hours_text")
+  website       String   @default("")
+  instagram     String   @default("")
+  facebook      String   @default("")
+  tiktok        String   @default("")
+  location      String   @default("")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("shops")
+}

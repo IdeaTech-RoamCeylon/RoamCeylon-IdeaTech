@@ -124,22 +124,26 @@ const LoginScreen = () => {
       console.log('[AdminSync] Syncing to backend with payload:', JSON.stringify(syncPayload));
       console.log('[AdminSync] API URL:', apiUrl);
 
-      // Sync to backend — always called on every login to ensure profile exists
-      const syncRes = await fetch(`${apiUrl}/admin-users/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.accessToken}`,
-        },
-        body: JSON.stringify(syncPayload),
-      });
+      // Sync to backend — non-fatal; wrap in its own try/catch so a network
+      // error (backend unreachable, no Wi-Fi, etc.) doesn't break the login flow.
+      try {
+        const syncRes = await fetch(`${apiUrl}/admin-users/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.accessToken}`,
+          },
+          body: JSON.stringify(syncPayload),
+        });
 
-      if (!syncRes.ok) {
-        const syncError = await syncRes.text().catch(() => 'unknown error');
-        console.error('[AdminSync] Sync failed:', syncRes.status, syncError);
-        // Non-fatal — still navigate to home, but log clearly
-      } else {
-        console.log('[AdminSync] Sync successful:', syncRes.status);
+        if (!syncRes.ok) {
+          const syncError = await syncRes.text().catch(() => 'unknown error');
+          console.error('[AdminSync] Sync failed:', syncRes.status, syncError);
+        } else {
+          console.log('[AdminSync] Sync successful:', syncRes.status);
+        }
+      } catch (syncErr) {
+        console.warn('[AdminSync] Network error during sync (non-fatal):', syncErr);
       }
 
       // Navigate to the role-based screen

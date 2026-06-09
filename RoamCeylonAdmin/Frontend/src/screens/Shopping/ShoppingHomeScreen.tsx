@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,60 +6,56 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-
-const DATA = [
-  {
-    id: '1',
-    title: 'Ceylon Spices & Tea',
-    category: 'Artisan Goods',
-    status: 'Active',
-    image: require('../../assets/Shopping/Ceylon Spices.png'),
-    badges: [
-      { text: 'SP', color: '#D9C55C', bgColor: '#EAD26B' },
-      { text: 'TEA', color: '#1B5E20', bgColor: '#9DEB9A' },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Galle Gem Artisans',
-    category: 'Jewelry & Gems',
-    status: 'Under Review',
-    image: require('../../assets/Shopping/Galle Gems.png'),
-    badges: [
-      { text: 'GEM', color: '#374151', bgColor: '#D1E0DA' },
-    ],
-  },
-  {
-    id: '3',
-    title: 'Lanka Handloom Co.',
-    category: 'Textiles & Apparel',
-    status: 'Active',
-    image: require('../../assets/Shopping/Lanka Handloom.png'),
-    badges: [
-      { text: 'TEX', color: '#1B5E20', bgColor: '#9DEB9A' },
-      { text: 'ECO', color: '#7E691A', bgColor: '#E0CC5C' },
-    ],
-  },
-  {
-    id: '4',
-    title: 'Sigiriya Pottery',
-    category: 'Home & Decor',
-    status: 'Active',
-    image: require('../../assets/Shopping/Pottery.png'),
-    badges: [
-      { text: 'POT', color: '#374151', bgColor: '#D1E0DA' },
-    ],
-  },
-];
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 const ShoppingHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const [shops, setShops] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, underReview: 0, networkGrowthPercent: 0 });
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      // Fetch stats (public)
+      const statsRes = await fetch(`${apiUrl}/shops/stats`);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+
+      // Fetch my shops (requires auth)
+      if (accessToken) {
+        const shopsRes = await fetch(`${apiUrl}/shops/my`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (shopsRes.ok) {
+          const shopsData = await shopsRes.json();
+          setShops(shopsData);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -76,10 +72,9 @@ const ShoppingHomeScreen = () => {
             <Ionicons name="search-outline" size={22} color="#103B2E" />
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
-            <Image
-              source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }}
-              style={styles.profileImage}
-            />
+            <View style={styles.avatarCircle}>
+              <MaterialCommunityIcons name="account-outline" size={20} color="#103B2E" />
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -101,7 +96,7 @@ const ShoppingHomeScreen = () => {
         <View style={styles.statCard}>
           <View>
             <Text style={styles.statLabel}>Total Shops</Text>
-            <Text style={styles.statValue}>124</Text>
+            <Text style={styles.statValue}>{stats.total}</Text>
           </View>
           <MaterialCommunityIcons name="storefront-outline" size={24} color="#4F7962" />
         </View>
@@ -109,7 +104,7 @@ const ShoppingHomeScreen = () => {
         <View style={styles.statCard}>
           <View>
             <Text style={styles.statLabel}>Pending Reviews</Text>
-            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statValue}>{stats.underReview}</Text>
           </View>
           <Ionicons name="notifications-outline" size={22} color="#4F7962" />
         </View>
@@ -118,63 +113,30 @@ const ShoppingHomeScreen = () => {
           <View>
             <Text style={styles.growthLabel}>Network Growth</Text>
             <View style={styles.growthValueContainer}>
-              <Text style={styles.growthValue}>+8.4%</Text>
+              <Text style={styles.growthValue}>+{stats.networkGrowthPercent}%</Text>
               <Text style={styles.growthSubtext}>this month</Text>
             </View>
           </View>
           <Feather name="trending-up" size={24} color="#FFFFFF" />
         </View>
 
-        {/* Shop List */}
-        {DATA.map((item) => (
-          <View key={item.id} style={styles.shopCard}>
-            <View style={styles.imageContainer}>
-              <Image source={item.image} style={styles.shopImage} contentFit="cover" />
-              <View
-                style={[
-                  styles.statusBadge,
-                  item.status === 'Active' ? styles.statusActive : styles.statusReview,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.statusDot,
-                    item.status === 'Active' ? styles.dotActive : styles.dotReview,
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.statusText,
-                    item.status === 'Active' ? styles.statusTextActive : styles.statusTextReview,
-                  ]}
-                >
-                  {item.status}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.shopInfo}>
-              <Text style={styles.shopTitle}>{item.title}</Text>
-              <Text style={styles.shopCategory}>{item.category}</Text>
-
-              <View style={styles.shopFooter}>
-                <View style={styles.badgesContainer}>
-                  {item.badges.map((badge, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.categoryBadge,
-                        { backgroundColor: badge.bgColor, marginLeft: index > 0 ? -6 : 0, zIndex: 10 - index },
-                      ]}
-                    >
-                      <Text style={[styles.categoryBadgeText, { color: badge.color }]}>
-                        {badge.text}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
+        {/* Shop List or Empty State */}
+        {shops.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="storefront-outline" size={56} color="#D0DDD7" />
+            <Text style={styles.emptyTitle}>No shops yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Tap <Text style={styles.emptyHighlight}>+ Add New Shop</Text> to register your first shop.
+            </Text>
+          </View>
+        ) : (
+          shops.map((item) => (
+            <View key={item.id} style={styles.shopCard}>
+              <View style={styles.shopInfo}>
+                <Text style={styles.shopTitle}>{item.name}</Text>
+                <Text style={styles.shopCategory}>{item.category}</Text>
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity style={styles.actionIcon} activeOpacity={0.7} onPress={() => router.push('/shopping/edit' as any)}>
+                  <TouchableOpacity style={styles.actionIcon} activeOpacity={0.7} onPress={() => router.push({ pathname: '/shopping/edit', params: { id: item.id } } as any)}>
                     <Ionicons name="pencil" size={20} color="#4A4A4A" />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionIcon} activeOpacity={0.7}>
@@ -183,8 +145,8 @@ const ShoppingHomeScreen = () => {
                 </View>
               </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -336,52 +298,15 @@ const styles = StyleSheet.create({
     elevation: 3,
     overflow: 'hidden',
   },
-  imageContainer: {
-    height: 180,
-    width: '100%',
-    position: 'relative',
-  },
-  shopImage: {
-    width: '100%',
-    height: '100%',
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#EAD26B',
+    backgroundColor: '#F0F7F3',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 100,
-  },
-  statusActive: {
-    backgroundColor: '#A7F3D0',
-  },
-  statusReview: {
-    backgroundColor: '#FDE047',
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  dotActive: {
-    backgroundColor: '#059669',
-  },
-  dotReview: {
-    backgroundColor: '#B45309',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  statusTextActive: {
-    color: '#065F46',
-  },
-  statusTextReview: {
-    color: '#854D0E',
   },
   shopInfo: {
     padding: 20,
@@ -397,33 +322,34 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     marginBottom: 16,
   },
-  shopFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  badgesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  categoryBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
   actionButtons: {
     flexDirection: 'row',
   },
   actionIcon: {
     marginLeft: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 24,
+  },
+  emptyHighlight: {
+    color: '#0E5E2F',
+    fontWeight: '700',
   },
 });
 
