@@ -182,11 +182,15 @@ export class EmbeddingService {
       // Deterministic seeding: stable IDs every time
       // Using DELETE instead of TRUNCATE to avoid ACCESS EXCLUSIVE locks that can hang
       await client.query(`DELETE FROM embeddings`);
-      await client.query(`ALTER SEQUENCE IF EXISTS embeddings_id_seq RESTART WITH 1`);
+      await client.query(
+        `ALTER SEQUENCE IF EXISTS embeddings_id_seq RESTART WITH 1`,
+      );
       console.log('Old embeddings cleared and sequence reset.');
 
       const dataset = parseTourismSamples(rawTourismData);
-      console.log(`Loaded ${dataset.length} Sri Lanka travel locations to seed.`);
+      console.log(
+        `Loaded ${dataset.length} Sri Lanka travel locations to seed.`,
+      );
 
       // Deterministic order
       dataset.sort((a, b) => this.collator.compare(a.title, b.title));
@@ -212,7 +216,9 @@ export class EmbeddingService {
 
           const vectorLiteral = this.vectorToLiteral(embedding);
 
-          valueStrings.push(`($${valIdx}, $${valIdx + 1}, $${valIdx + 2}::vector)`);
+          valueStrings.push(
+            `($${valIdx}, $${valIdx + 1}, $${valIdx + 2}::vector)`,
+          );
           values.push(title, contentWithMeta, vectorLiteral);
           valIdx += 3;
         }
@@ -221,7 +227,9 @@ export class EmbeddingService {
         await client.query(query, values);
 
         insertedCount += batch.length;
-        console.log(`Progress: Seeded ${insertedCount}/${dataset.length} items...`);
+        console.log(
+          `Progress: Seeded ${insertedCount}/${dataset.length} items...`,
+        );
       }
       console.log('Database seeding process completed successfully!');
     } catch (err) {

@@ -107,13 +107,15 @@ export class MarketplaceService {
       },
     });
 
-    let result: Product[] = shops.map((shop) => ({
+    const result: Product[] = shops.map((shop) => ({
       id: shop.id,
       name: shop.name,
       category: shop.category,
       price: 0.0, // Shops don't have a specific item price, defaulting to 0
       description: shop.description || 'No description available.',
-      image: shop.coverImageUrl || 'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+      image:
+        shop.coverImageUrl ||
+        'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
     }));
 
     if (sortBy === 'name') {
@@ -144,7 +146,9 @@ export class MarketplaceService {
         category: shop.category,
         price: 0.0,
         description: shop.description || 'No description available.',
-        image: shop.coverImageUrl || 'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+        image:
+          shop.coverImageUrl ||
+          'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
       };
       await this.cacheManager.set(cacheKey, product, 3600000);
     }

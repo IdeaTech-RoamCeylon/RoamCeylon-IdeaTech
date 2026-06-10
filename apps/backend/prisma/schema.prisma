@@ -341,24 +341,25 @@ model PlaceCache {
   @@map("PlaceCache")
 }
 
-model shops {
-  id              String   @id
-  owner_id        String
-  name            String
-  category        String
-  description     String   @default("")
-  cover_image_url String   @default("")
-  status          String   @default("under_review")
-  hours_enabled   Boolean  @default(false)
-  hours_text      String   @default("")
-  website         String   @default("")
-  instagram       String   @default("")
-  facebook        String   @default("")
-  tiktok          String   @default("")
-  location        String   @default("")
-  created_at      DateTime @default(now())
-  updated_at      DateTime
+model Shop {
+  id            String   @id @default(uuid())
+  ownerId       String   @map("owner_id")
+  name          String
+  category      String
+  description   String   @default("")
+  coverImageUrl String   @default("") @map("cover_image_url")
+  status        String   @default("under_review")
+  hoursEnabled  Boolean  @default(false) @map("hours_enabled")
+  hoursText     String   @default("") @map("hours_text")
+  website       String   @default("")
+  instagram     String   @default("")
+  facebook      String   @default("")
+  tiktok        String   @default("")
+  location      String   @default("")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  @@index([owner_id])
+  @@index([ownerId])
   @@index([status])
+  @@map("shops")
 }
