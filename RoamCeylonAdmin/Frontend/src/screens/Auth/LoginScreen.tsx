@@ -96,7 +96,7 @@ const LoginScreen = () => {
 
       // Build sync payload from the Nhost session (primary source)
       // Fall back to SecureStore temp data for anything not in the session
-      const nhostUser = (session as any).user;
+      const nhostUser = (session as any).user || (response.body as any)?.session?.user || (response as any)?.body?.session?.user;
       const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
       let syncPayload: Record<string, string> = {
@@ -119,6 +119,20 @@ const LoginScreen = () => {
         }
       } catch (storeErr) {
         console.warn('SecureStore read failed (non-critical):', storeErr);
+      }
+
+      // Always ensure email is set from the form input as reliable fallback
+      if (!syncPayload.email) syncPayload.email = email.trim().toLowerCase();
+
+      // Persist user profile locally for offline/instant access in Profile Setup
+      try {
+        await SecureStore.setItemAsync('userProfile', JSON.stringify({
+          name: syncPayload.name,
+          email: syncPayload.email,
+          phoneNumber: syncPayload.phoneNumber,
+        }));
+      } catch (e) {
+        console.warn('Failed to persist user profile locally:', e);
       }
 
       console.log('[AdminSync] Syncing to backend with payload:', JSON.stringify(syncPayload));

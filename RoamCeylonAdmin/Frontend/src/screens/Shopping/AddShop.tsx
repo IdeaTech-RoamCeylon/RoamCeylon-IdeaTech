@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   Modal,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,6 +57,7 @@ const AddShop = () => {
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
   const [tiktok, setTiktok] = useState('');
+  const [location, setLocation] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -120,6 +123,7 @@ const AddShop = () => {
           instagram,
           facebook,
           tiktok,
+          location,
         }),
       });
 
@@ -142,55 +146,46 @@ const AddShop = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.iconButton} activeOpacity={0.7} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Shop</Text>
-        <TouchableOpacity 
-          style={styles.saveButton} 
-          activeOpacity={0.7} 
-          onPress={handleSave}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        <Text style={styles.pageTitle}>Partner Settings</Text>
-        <Text style={styles.pageSubtitle}>Manage your shop profile and digital{'\n'}presence.</Text>
-
-        {/* Shop Profile Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="storefront" size={22} color="#0E5E2F" />
-            <Text style={styles.cardTitle}>Shop Profile</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          {/* Header */}
+          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+            <TouchableOpacity style={styles.iconButton} activeOpacity={0.7} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={26} color="#1C1917" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>New Shop</Text>
+            <View style={{ width: 42 }} />
           </View>
-          <View style={styles.cardDivider} />
+          <View style={styles.formContainer}>
+            <Text style={styles.pageTitle}>Shop Details</Text>
+            <Text style={styles.pageSubtitle}>Enter the basic information about your business to get started.</Text>
 
-          <Text style={styles.inputLabel}>Cover Photo</Text>
-          <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8}>
-            {coverImageUrl ? (
-              <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Feather name="camera" size={24} color="#9CA3AF" />
-                <Text style={styles.imagePlaceholderText}>Tap to add a photo</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            {/* Basic Info Card */}
+            <View style={styles.card}>
+              <Text style={styles.inputLabel}>Cover Photo</Text>
+              <TouchableOpacity style={styles.imagePickerCard} onPress={pickImage} activeOpacity={0.8}>
+                {coverImageUrl ? (
+                  <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <View style={styles.cameraIconContainer}>
+                      <Feather name="camera" size={24} color="#0E5E2F" />
+                    </View>
+                    <Text style={styles.imagePlaceholderText}>Tap to upload a high-quality cover photo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-          <View style={styles.inputGroup}>
+              <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Shop Name</Text>
             <TextInput
               style={styles.textInput}
@@ -260,11 +255,22 @@ const AddShop = () => {
               style={[styles.textInput, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Describe your shop..."
+              placeholder="Describe your shop"
               placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Location</Text>
+            <TextInput
+              style={styles.textInput}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="e.g. Colombo, Sri Lanka"
+              placeholderTextColor="#9CA3AF"
             />
           </View>
 
@@ -378,8 +384,25 @@ const AddShop = () => {
             />
           </View>
 
-        </View>
-      </ScrollView>
+          </View>
+
+            <View style={{ marginTop: 8, marginBottom: 40 }}>
+              <TouchableOpacity 
+                style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]} 
+                activeOpacity={0.8} 
+                onPress={handleSave}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Create Shop</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -387,7 +410,7 @@ const AddShop = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFCFB',
+    backgroundColor: '#FAFAFA',
   },
   header: {
     flexDirection: 'row',
@@ -395,223 +418,211 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
     zIndex: 10,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   iconButton: {
-    padding: 4,
+    padding: 8,
+    marginLeft: -8,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#0E5E2F',
+    color: '#1C1917',
     flex: 1,
-    marginLeft: 12,
+    textAlign: 'center',
   },
   saveButton: {
     backgroundColor: '#0E5E2F',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    height: 54,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 64,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
   saveButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingBottom: 100,
+  },
+  formContainer: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },
   pageTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     color: '#1C1917',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   pageSubtitle: {
     fontSize: 15,
-    color: '#60646C',
+    color: '#6B7280',
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: 24,
     fontWeight: '500',
-  },
-  previewButton: {
-    backgroundColor: '#EAD26B',
-    borderRadius: 100,
-    flexDirection: 'row',
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  previewButtonText: {
-    color: '#493D1B',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  separatorContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dragHandle: {
-    width: 32,
-    height: 4,
-    backgroundColor: '#F472B6', // the pinkish handle from screenshot
-    borderRadius: 2,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#F0F3F1',
+    borderWidth: 0,
     padding: 24,
     marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1C1917',
     marginLeft: 12,
+    letterSpacing: -0.3,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginBottom: 16,
-  },
-  imagePicker: {
+    backgroundColor: '#E5E7EB',
     marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
   },
-  previewImage: {
-    width: '100%',
-    height: 200,
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: 160,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-  },
-  imagePlaceholderText: {
-    marginTop: 8,
-    color: '#6B7280',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  shopCoverImage: {
+  imagePickerCard: {
     width: '100%',
     height: 180,
     borderRadius: 16,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    overflow: 'hidden',
     marginBottom: 24,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  cameraIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  imagePlaceholderText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   inputGroup: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#4A4A4A',
     marginBottom: 8,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 16,
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
     fontSize: 15,
     color: '#1C1917',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
   textArea: {
-    height: 90,
-    paddingTop: 14,
-    paddingBottom: 14,
+    height: 100,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   dropdownInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
+    backgroundColor: '#F3F4F6',
   },
   dropdownText: {
     fontSize: 15,
     color: '#1C1917',
   },
   switchCardContainer: {
-    marginBottom: 24,
+    marginBottom: 8,
   },
   hoursInputContainer: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: 20,
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
   dayRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   dayText: {
     width: 100,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#4A4A4A',
   },
   dayInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    height: 40,
-    paddingHorizontal: 12,
-    fontSize: 14,
+    borderWidth: 0,
+    borderRadius: 12,
+    height: 48,
+    paddingHorizontal: 16,
+    fontSize: 15,
     color: '#1C1917',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
   switchCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#FAFAFA',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
-    marginTop: 4,
   },
   switchInfo: {
     flex: 1,
@@ -619,30 +630,29 @@ const styles = StyleSheet.create({
   },
   switchTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1C1917',
     marginBottom: 4,
   },
   switchSubtitle: {
-    fontSize: 13,
-    color: '#60646C',
-    lineHeight: 18,
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
   },
   integrationDesc: {
-    fontSize: 15,
-    color: '#60646C',
+    fontSize: 14,
+    color: '#6B7280',
     lineHeight: 22,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   integrationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    height: 52,
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
     overflow: 'hidden',
   },
   integrationPrefix: {
@@ -655,13 +665,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#6B7280',
     marginLeft: 10,
+    fontWeight: '500',
   },
   integrationInput: {
     flex: 1,
     height: '100%',
-    fontSize: 15,
+    fontSize: 16,
     color: '#1C1917',
-    paddingRight: 16,
+    paddingRight: 20,
   },
   modalOverlay: {
     flex: 1,
@@ -670,39 +681,41 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     padding: 24,
     paddingBottom: 40,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#1C1917',
-    marginBottom: 16,
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
   categoryOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   categoryOptionSelected: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginHorizontal: -12,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginHorizontal: -16,
     borderBottomWidth: 0,
   },
   categoryOptionText: {
     fontSize: 16,
     color: '#4A4A4A',
+    fontWeight: '500',
   },
   categoryOptionTextSelected: {
-    color: '#0E5E2F',
-    fontWeight: '600',
+    color: '#059669',
+    fontWeight: '700',
   },
 });
 

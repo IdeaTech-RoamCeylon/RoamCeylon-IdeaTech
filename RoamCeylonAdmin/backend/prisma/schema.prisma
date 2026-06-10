@@ -9,13 +9,15 @@ datasource db {
 }
 
 model AdminUser {
-  id          String   @id @default(uuid())
-  name        String?
-  email       String?  @unique
-  phoneNumber String?  @unique @map("phone")
-  role        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id              String   @id @default(uuid())
+  name            String?
+  email           String?  @unique
+  phoneNumber     String?  @unique @map("phone")
+  role            String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  profile_picture String?
+  preferences     Json?
 
   @@map("admin_users")
 }
@@ -323,16 +325,14 @@ model user_interest_profile {
   updated_at         DateTime @default(now()) @db.Timestamptz(6)
 }
 
-// ─── Shop Partner shops ───────────────────────────────────────────────────────
-
 model Shop {
   id            String   @id @default(uuid())
-  ownerId       String   @map("owner_id")          // Nhost user ID of the shop_partner
+  ownerId       String   @map("owner_id")
   name          String
   category      String
   description   String   @default("")
   coverImageUrl String   @default("") @map("cover_image_url")
-  status        String   @default("under_review")  // active | under_review | inactive
+  status        String   @default("under_review")
   hoursEnabled  Boolean  @default(false) @map("hours_enabled")
   hoursText     String   @default("") @map("hours_text")
   website       String   @default("")

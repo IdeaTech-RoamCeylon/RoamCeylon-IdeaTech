@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,10 +9,11 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
@@ -26,6 +27,132 @@ const Settings = () => {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [weeklyReports, setWeeklyReports] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    avatarUrl?: string;
+    preferences?: any;
+  }>({});
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchUser = async () => {
+        try {
+          let dbEmail = '';
+          let dbPhone = '';
+          let dbAvatarUrl = '';
+          let dbName = '';
+          let dbPrefs: any = {};
+
+          // 1. Read from locally cached profile (set during login) — instant, no network
+          try {
+            const cachedProfile = await SecureStore.getItemAsync('userProfile');
+            if (cachedProfile) {
+              const parsed = JSON.parse(cachedProfile);
+              dbName = parsed.name || '';
+              dbEmail = parsed.email || '';
+              dbPhone = parsed.phoneNumber || '';
+              dbAvatarUrl = parsed.profile_picture || '';
+              dbPrefs = parsed.preferences || {};
+              
+              setDarkMode(!!dbPrefs.darkMode);
+              setPushNotifications(dbPrefs.pushNotifications !== false); // default to true
+              setWeeklyReports(!!dbPrefs.weeklyReports);
+            }
+          } catch (cacheErr) {
+            console.warn('[Settings] Cache read failed:', cacheErr);
+          }
+
+          // 2. Enrich from backend DB
+          try {
+            const token = await SecureStore.getItemAsync('authToken');
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+            if (token) {
+              const res = await fetch(`${apiUrl}/admin-users/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (res.ok) {
+                const resJson = await res.json();
+                const profileData = resJson.data || {};
+                if (profileData.name) dbName = profileData.name;
+                if (profileData.email) dbEmail = profileData.email;
+                if (profileData.phoneNumber) dbPhone = profileData.phoneNumber;
+                dbAvatarUrl = profileData.profile_picture || '';
+                dbPrefs = profileData.preferences || {};
+                
+                setDarkMode(!!dbPrefs.darkMode);
+                setPushNotifications(dbPrefs.pushNotifications !== false);
+                setWeeklyReports(!!dbPrefs.weeklyReports);
+              }
+            }
+          } catch (dbErr) {
+            console.warn('[Settings] Failed to fetch profile from DB:', dbErr);
+          }
+
+          setUserProfile({
+            name: dbName,
+            email: dbEmail,
+            phone: dbPhone,
+            avatarUrl: dbAvatarUrl,
+            preferences: dbPrefs,
+          });
+
+        } catch (error) {
+          console.error('Failed to load user profile:', error);
+        }
+      };
+      fetchUser();
+    }, [])
+  );
+
+  const updatePreference = async (key: string, value: boolean) => {
+    if (key === 'darkMode') setDarkMode(value);
+    else if (key === 'pushNotifications') setPushNotifications(value);
+    else if (key === 'weeklyReports') setWeeklyReports(value);
+
+    try {
+      const token = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      if (!token) return;
+
+      const currentPrefs = userProfile.preferences || {};
+      const newPrefs = {
+        ...currentPrefs,
+        [key]: value,
+      };
+
+      const res = await fetch(`${apiUrl}/admin-users/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          preferences: newPrefs,
+        }),
+      });
+
+      if (res.ok) {
+        setUserProfile((prev) => ({
+          ...prev,
+          preferences: newPrefs,
+        }));
+
+        const cachedProfile = await SecureStore.getItemAsync('userProfile');
+        if (cachedProfile) {
+          const parsed = JSON.parse(cachedProfile);
+          parsed.preferences = newPrefs;
+          await SecureStore.setItemAsync('userProfile', JSON.stringify(parsed));
+        }
+      } else {
+        console.warn('[Settings] Failed to update preference on backend');
+      }
+    } catch (err) {
+      console.error('[Settings] Error updating preference:', err);
+    }
+  };
 
   const handleLogout = async () => {
     setLoading(true);
@@ -51,7 +178,7 @@ const Settings = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
 
-      {/* Header */}
+
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -62,7 +189,7 @@ const Settings = () => {
           <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 32 }} /> {/* Balance header layout */}
+        <View style={{ width: 32 }} />
       </View>
 
       <ScrollView
@@ -73,65 +200,82 @@ const Settings = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Card Section */}
-        <View style={styles.profileSection}>
-          {/* Avatar Container with Verified Badge */}
+
+        <LinearGradient
+          colors={['#0F3D26', '#145334']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.profileSection}
+        >
+
           <View style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: 'https://randomuser.me/api/portraits/women/44.jpg',
-              }}
-              style={styles.avatarImage}
-              contentFit="cover"
-            />
+            {userProfile.avatarUrl ? (
+              <Image
+                source={{ uri: userProfile.avatarUrl }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.avatarInitial}>
+                <Text style={styles.avatarInitialText}>
+                  {userProfile.name ? userProfile.name.charAt(0).toUpperCase() : '?'}
+                </Text>
+              </View>
+            )}
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-sharp" size={12} color="#FFFFFF" />
+              <Ionicons name="checkmark-sharp" size={12} color="#0F3D26" />
             </View>
           </View>
           
-          {/* Verified Admin Label */}
+
           <View style={styles.adminBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#0E5E2F" style={{ marginRight: 4 }} />
+            <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
             <Text style={styles.adminBadgeText}>SHOP PARTNER</Text>
           </View>
 
-          {/* Contact Information */}
+          {userProfile.name ? (
+            <Text style={styles.profileName}>{userProfile.name}</Text>
+          ) : null}
+
           <View style={styles.contactContainer}>
             <View style={styles.contactRow}>
-              <Ionicons name="mail-outline" size={16} color="#60646C" style={{ marginRight: 8 }} />
-              <Text style={styles.contactText}>partner@roamceylon.lk</Text>
+              <Ionicons name="mail-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+              <Text style={styles.contactText}>{userProfile.email || 'No email provided'}</Text>
             </View>
             <View style={styles.contactRow}>
-              <Ionicons name="call-outline" size={16} color="#60646C" style={{ marginRight: 8 }} />
-              <Text style={styles.contactText}>+94 77 987 6543</Text>
+              <Ionicons name="call-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+              <Text style={styles.contactText}>{userProfile.phone || 'No phone provided'}</Text>
             </View>
           </View>
 
-          {/* Actions */}
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.8}
-            onPress={() => router.push('/shopping/editProfile' as any)}
-          >
-            <Text style={styles.primaryButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.8}
-            onPress={() => router.push('/shopping/businessVerification' as any)}
-          >
-            <Text style={styles.primaryButtonText}>Verify Business</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* System Preferences Section */}
+
+          <View style={styles.profileActionsRow}>
+            <TouchableOpacity
+              style={[styles.primaryButton, { flex: 1, marginRight: 8 }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/shopping/editProfile' as any)}
+            >
+              <Text style={styles.primaryButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, styles.secondaryButton, { flex: 1, marginLeft: 8 }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/shopping/businessVerification' as any)}
+            >
+              <Text style={styles.secondaryButtonText}>Verify Business</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+
         <Text style={styles.sectionHeader}>System Preferences</Text>
         <View style={styles.card}>
-          {/* Dark Mode */}
+
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="moon-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#1C1917' }]}>
+                <Ionicons name="moon" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Dark Mode</Text>
@@ -140,7 +284,7 @@ const Settings = () => {
             </View>
             <Switch
               value={darkMode}
-              onValueChange={setDarkMode}
+              onValueChange={(val) => updatePreference('darkMode', val)}
               trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
               thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
@@ -148,11 +292,11 @@ const Settings = () => {
 
           <View style={styles.cardDivider} />
 
-          {/* Push Notifications */}
+
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="notifications-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#EF4444' }]}>
+                <Ionicons name="notifications" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Push Notifications</Text>
@@ -161,7 +305,7 @@ const Settings = () => {
             </View>
             <Switch
               value={pushNotifications}
-              onValueChange={setPushNotifications}
+              onValueChange={(val) => updatePreference('pushNotifications', val)}
               trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
               thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
@@ -169,11 +313,11 @@ const Settings = () => {
 
           <View style={styles.cardDivider} />
 
-          {/* Weekly Reports */}
+
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="document-text-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#3B82F6' }]}>
+                <Ionicons name="document-text" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Weekly Reports</Text>
@@ -182,25 +326,25 @@ const Settings = () => {
             </View>
             <Switch
               value={weeklyReports}
-              onValueChange={setWeeklyReports}
+              onValueChange={(val) => updatePreference('weeklyReports', val)}
               trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
               thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           </View>
         </View>
 
-        {/* Security & Privacy Section */}
+
         <Text style={styles.sectionHeader}>Security & Privacy</Text>
         <View style={styles.card}>
-          {/* Change Password */}
+
           <TouchableOpacity
             style={styles.settingRow}
             activeOpacity={0.7}
             onPress={() => router.push('/shopping/changePassword' as any)}
           >
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#F59E0B' }]}>
+                <Ionicons name="lock-closed" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Change Password</Text>
@@ -211,11 +355,11 @@ const Settings = () => {
 
           <View style={styles.cardDivider} />
 
-          {/* Two-Factor Auth */}
+
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="shield-checkmark-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#10B981' }]}>
+                <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Two-Factor Auth</Text>
@@ -225,14 +369,14 @@ const Settings = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Linked Properties Section */}
+
         <Text style={styles.sectionHeader}>Linked Shops</Text>
         <View style={styles.card}>
-          {/* Manage Properties */}
+
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="business-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#8B5CF6' }]}>
+                <Ionicons name="business" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Manage Shops</Text>
@@ -243,7 +387,7 @@ const Settings = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Danger Zone Section */}
+
         <View style={styles.dangerZoneCard}>
           <View style={styles.dangerHeader}>
             <Ionicons name="warning-outline" size={20} color="#DC3545" style={{ marginRight: 8 }} />
@@ -309,49 +453,63 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 32,
+    padding: 24,
+    marginBottom: 32,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   avatarContainer: {
     position: 'relative',
     marginBottom: 16,
   },
   avatarImage: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#EAEAEA',
+    borderWidth: 3,
+    borderColor: '#EAD26B',
+  },
+  avatarInitial: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#0F3D26',
+    borderWidth: 3,
+    borderColor: '#EAD26B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#EAD26B',
   },
   verifiedBadge: {
     position: 'absolute',
     bottom: 0,
     right: 4,
-    backgroundColor: '#0E5E2F',
+    backgroundColor: '#EAD26B',
     width: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#0F3D26',
   },
   userName: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1C1917',
+    color: '#FFFFFF',
   },
   userSubtitle: {
     fontSize: 14,
-    color: '#60646C',
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
     marginTop: 4,
     textAlign: 'center',
@@ -359,52 +517,77 @@ const styles = StyleSheet.create({
   adminBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EAF7EE',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    marginTop: 10,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   adminBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0E5E2F',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
+  profileName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 10,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
   contactContainer: {
-    marginTop: 16,
+    marginTop: 20,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   contactText: {
     fontSize: 14,
-    color: '#49504B',
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
+  },
+  profileActionsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 8,
   },
   primaryButton: {
     backgroundColor: '#EAD26B',
-    borderRadius: 14,
-    width: '85%',
-    height: 44,
+    borderRadius: 16,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
-    shadowColor: '#EAD26B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 2,
   },
   primaryButtonText: {
     color: '#493D1B',
     fontSize: 14,
     fontWeight: '800',
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  secondaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   sectionHeader: {
     fontSize: 12,

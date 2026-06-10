@@ -1,6 +1,8 @@
 import {
   Controller,
   Post,
+  Get,
+  Patch,
   Body,
   Req,
   UseGuards,
@@ -46,5 +48,36 @@ export class AdminUsersController {
       ...dto,
       role: dto.role || jwtRole,
     });
+  }
+
+  /**
+   * GET /admin-users/me
+   *
+   * Returns the current authenticated user's profile.
+   */
+  @UseGuards(NhostJwtGuard)
+  @Get('me')
+  async getMe(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Fetching profile for user ${userId}`);
+    const user = await this.adminUsersService.findById(userId);
+    return { data: user || {} };
+  }
+
+  /**
+   * PATCH /admin-users/me
+   *
+   * Updates the current authenticated user's profile fields.
+   */
+  @UseGuards(NhostJwtGuard)
+  @Patch('me')
+  async updateMe(
+    @Req() req: AuthRequest,
+    @Body() dto: { name?: string; phoneNumber?: string; profile_picture?: string; preferences?: any },
+  ) {
+    const { userId } = req.user;
+    this.logger.log(`Updating profile for user ${userId}`);
+    const updated = await this.adminUsersService.updateProfile(userId, dto);
+    return { data: updated };
   }
 }

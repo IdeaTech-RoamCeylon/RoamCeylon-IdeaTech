@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -59,95 +62,151 @@ const ShoppingHomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
-          <Feather name="menu" size={24} color="#103B2E" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Manage Shops</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.searchButton} activeOpacity={0.7}>
-            <Ionicons name="search-outline" size={22} color="#103B2E" />
-          </TouchableOpacity>
+      {/* Premium Header Gradient */}
+      <LinearGradient
+        colors={['#0F3D26', '#145334', '#0E5E2F']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+      >
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greetingText}>Welcome back,</Text>
+            <Text style={styles.headerTitle}>Partner Dashboard</Text>
+          </View>
           <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
             <View style={styles.avatarCircle}>
-              <MaterialCommunityIcons name="account-outline" size={20} color="#103B2E" />
+              <MaterialCommunityIcons name="account" size={24} color="#0F3D26" />
             </View>
           </TouchableOpacity>
         </View>
-      </View>
+
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <MaterialCommunityIcons name="storefront-outline" size={20} color="#0E5E2F" />
+            </View>
+            <View>
+              <Text style={styles.statValue}>{stats.total}</Text>
+              <Text style={styles.statLabel}>Total Shops</Text>
+            </View>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
+              <Ionicons name="time-outline" size={20} color="#D97706" />
+            </View>
+            <View>
+              <Text style={styles.statValue}>{stats.underReview}</Text>
+              <Text style={styles.statLabel}>Pending</Text>
+            </View>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <Feather name="trending-up" size={20} color="#2563EB" />
+            </View>
+            <View>
+              <Text style={styles.statValue}>+{stats.networkGrowthPercent}%</Text>
+              <Text style={styles.statLabel}>Growth</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>Partner{'\n'}Network</Text>
-        <Text style={styles.pageSubtitle}>Curating premium Sri Lankan{'\n'}experiences</Text>
-
-        <TouchableOpacity style={styles.addButton} activeOpacity={0.85} onPress={() => router.push('/shopping/add' as any)}>
-          <Feather name="plus" size={18} color="#493D1B" style={styles.addIcon} />
-          <Text style={styles.addButtonText}>Add New Shop</Text>
-        </TouchableOpacity>
-
-        {/* Stats Cards */}
-        <View style={styles.statCard}>
-          <View>
-            <Text style={styles.statLabel}>Total Shops</Text>
-            <Text style={styles.statValue}>{stats.total}</Text>
-          </View>
-          <MaterialCommunityIcons name="storefront-outline" size={24} color="#4F7962" />
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Your Shops</Text>
         </View>
 
-        <View style={styles.statCard}>
-          <View>
-            <Text style={styles.statLabel}>Pending Reviews</Text>
-            <Text style={styles.statValue}>{stats.underReview}</Text>
-          </View>
-          <Ionicons name="notifications-outline" size={22} color="#4F7962" />
-        </View>
-
-        <View style={styles.growthCard}>
-          <View>
-            <Text style={styles.growthLabel}>Network Growth</Text>
-            <View style={styles.growthValueContainer}>
-              <Text style={styles.growthValue}>+{stats.networkGrowthPercent}%</Text>
-              <Text style={styles.growthSubtext}>this month</Text>
-            </View>
-          </View>
-          <Feather name="trending-up" size={24} color="#FFFFFF" />
-        </View>
-
-        {/* Shop List or Empty State */}
-        {shops.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+        ) : shops.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="storefront-outline" size={56} color="#D0DDD7" />
+            <View style={styles.emptyIconContainer}>
+              <MaterialCommunityIcons name="storefront-outline" size={48} color="#9CA3AF" />
+            </View>
             <Text style={styles.emptyTitle}>No shops yet</Text>
             <Text style={styles.emptySubtitle}>
-              Tap <Text style={styles.emptyHighlight}>+ Add New Shop</Text> to register your first shop.
+              You haven't added any shops. Tap the button below to register your first business.
             </Text>
           </View>
         ) : (
           shops.map((item) => (
-            <View key={item.id} style={styles.shopCard}>
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.shopCard}
+              activeOpacity={0.9}
+              onPress={() => router.push({ pathname: '/shopping/edit', params: { id: item.id } } as any)}
+            >
+              {item.coverImageUrl && item.coverImageUrl.length > 10 ? (
+                <Image 
+                  source={{ uri: item.coverImageUrl }} 
+                  style={styles.shopImage} 
+                  contentFit="cover" 
+                  transition={200}
+                />
+              ) : (
+                <View style={[styles.shopImage, styles.shopImagePlaceholder]}>
+                  <MaterialCommunityIcons name="storefront" size={32} color="#9CA3AF" />
+                </View>
+              )}
+              
               <View style={styles.shopInfo}>
-                <Text style={styles.shopTitle}>{item.name}</Text>
-                <Text style={styles.shopCategory}>{item.category}</Text>
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity style={styles.actionIcon} activeOpacity={0.7} onPress={() => router.push({ pathname: '/shopping/edit', params: { id: item.id } } as any)}>
-                    <Ionicons name="pencil" size={20} color="#4A4A4A" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionIcon} activeOpacity={0.7}>
-                    <Ionicons name="trash-outline" size={20} color="#4A4A4A" />
-                  </TouchableOpacity>
+                <View style={styles.shopHeaderRow}>
+                  <Text style={styles.shopTitle} numberOfLines={1}>{item.name}</Text>
+                  <View style={[
+                    styles.statusBadge, 
+                    item.status === 'active' ? styles.statusActive : 
+                    item.status === 'inactive' ? styles.statusInactive : 
+                    styles.statusReview
+                  ]}>
+                    <Text style={[
+                      styles.statusText,
+                      item.status === 'active' ? styles.statusTextActive : 
+                      item.status === 'inactive' ? styles.statusTextInactive : 
+                      styles.statusTextReview
+                    ]}>
+                      {item.status === 'under_review' ? 'Review' : item.status}
+                    </Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.shopCategory}>{item.category || 'Category'}</Text>
+                
+                <View style={styles.shopFooter}>
+                  <View style={styles.shopFooterItem}>
+                    <Ionicons name="location-outline" size={14} color="#6B7280" />
+                    <Text style={styles.shopFooterText} numberOfLines={1}>{item.location || 'No location'}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color="#D1D5DB" />
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={[styles.fab, { bottom: insets.bottom + 24 }]} 
+        activeOpacity={0.8}
+        onPress={() => router.push('/shopping/add' as any)}
+      >
+        <LinearGradient
+          colors={['#10B981', '#059669']}
+          style={styles.fabGradient}
+        >
+          <Feather name="plus" size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -155,201 +214,242 @@ const ShoppingHomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
-  header: {
+  headerGradient: {
+    paddingBottom: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    zIndex: 10,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    zIndex: 10,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
-  iconButton: {
-    padding: 4,
+  greetingText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+    fontWeight: '500',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#103B2E',
-    marginLeft: 12,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  headerRight: {
-    flexDirection: 'row',
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  statCard: {
     flex: 1,
-    justifyContent: 'flex-end',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  searchButton: {
-    padding: 8,
-    marginRight: 12,
-  },
-  profileImage: {
+  statIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#EAD26B',
+    borderRadius: 12,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
+    marginTop: -20,
+    zIndex: 1,
   },
   scrollContent: {
+    paddingTop: 40,
     paddingHorizontal: 20,
-    paddingTop: 16,
   },
-  pageTitle: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    lineHeight: 46,
-    marginBottom: 8,
-    letterSpacing: -1,
-  },
-  pageSubtitle: {
-    fontSize: 16,
-    color: '#4A4A4A',
-    lineHeight: 24,
-    marginBottom: 24,
-    fontWeight: '500',
-  },
-  addButton: {
-    backgroundColor: '#EAD26B',
-    borderRadius: 100,
+  sectionHeader: {
     flexDirection: 'row',
-    height: 52,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
-  addIcon: {
-    marginRight: 8,
-  },
-  addButtonText: {
-    color: '#493D1B',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  statCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#4A4A4A',
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  growthCard: {
-    backgroundColor: '#0F3D26',
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-  },
-  growthLabel: {
-    fontSize: 14,
-    color: '#A0B4AA',
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  growthValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  growthValue: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginRight: 8,
-  },
-  growthSubtext: {
-    fontSize: 14,
-    color: '#A0B4AA',
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C1917',
+    letterSpacing: -0.3,
   },
   shopCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    marginBottom: 20,
+    flexDirection: 'row',
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 12,
-    elevation: 3,
-    overflow: 'hidden',
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
   },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#EAD26B',
-    backgroundColor: '#F0F7F3',
+  shopImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+  },
+  shopImagePlaceholder: {
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   shopInfo: {
-    padding: 20,
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  shopHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 2,
   },
   shopTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    color: '#1C1917',
+    flex: 1,
+    marginRight: 8,
   },
   shopCategory: {
-    fontSize: 14,
-    color: '#4A4A4A',
-    marginBottom: 16,
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 8,
   },
-  actionButtons: {
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusActive: { backgroundColor: '#ECFDF5' },
+  statusInactive: { backgroundColor: '#FEF2F2' },
+  statusReview: { backgroundColor: '#FFFBEB' },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusTextActive: { color: '#059669' },
+  statusTextInactive: { color: '#DC2626' },
+  statusTextReview: { color: '#D97706' },
+  shopFooter: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 8,
   },
-  actionIcon: {
-    marginLeft: 16,
+  shopFooterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  shopFooterText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 4,
+    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingTop: 40,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A1A',
-    marginTop: 16,
-    marginBottom: 8,
+    color: '#1C1917',
+    marginBottom: 12,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 24,
+    lineHeight: 24,
   },
-  emptyHighlight: {
-    color: '#0E5E2F',
-    fontWeight: '700',
+  fab: {
+    position: 'absolute',
+    right: 24,
+    zIndex: 100,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

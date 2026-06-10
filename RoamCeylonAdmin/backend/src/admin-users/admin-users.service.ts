@@ -7,7 +7,9 @@ export interface AdminUser {
   email: string | null;
   name: string | null;
   phoneNumber: string | null;
+  profile_picture: string | null;
   role: string;
+  preferences: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,7 +26,7 @@ export class AdminUsersService {
    */
   async sync(
     userId: string, // Nhost sub claim
-    dto: { email?: string; name?: string; phoneNumber?: string; role?: string },
+    dto: { email?: string; name?: string; phoneNumber?: string; role?: string; profile_picture?: string; preferences?: any },
   ) {
     // 1. Try to find existing by email or phone (since they are unique in DB)
     // For admin app, we generally assume email is the primary identifier if userId isn't an exact match.
@@ -48,6 +50,8 @@ export class AdminUsersService {
           email: dto.email || existing.email,
           name: dto.name || existing.name,
           phoneNumber: dto.phoneNumber || existing.phoneNumber,
+          profile_picture: dto.profile_picture || existing.profile_picture,
+          preferences: dto.preferences || existing.preferences,
           role: dto.role || existing.role,
         },
       });
@@ -62,7 +66,9 @@ export class AdminUsersService {
         email: dto.email || null,
         name: dto.name || null,
         phoneNumber: dto.phoneNumber || null,
+        profile_picture: dto.profile_picture || null,
         role: dto.role || 'shop_partner',
+        preferences: dto.preferences || null,
       },
     });
     
@@ -75,6 +81,23 @@ export class AdminUsersService {
       where: { id: userId },
     });
     return user ? { ...user, userId: user.id } : undefined;
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: { name?: string; phoneNumber?: string; profile_picture?: string; preferences?: any },
+  ) {
+    const updated = await this.prisma.adminUser.update({
+      where: { id: userId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.phoneNumber !== undefined && { phoneNumber: dto.phoneNumber }),
+        ...(dto.profile_picture !== undefined && { profile_picture: dto.profile_picture }),
+        ...(dto.preferences !== undefined && { preferences: dto.preferences }),
+      },
+    });
+    this.logger.log(`Admin user profile updated: ${updated.email}`);
+    return { ...updated, userId: updated.id };
   }
 
   async findAll() {

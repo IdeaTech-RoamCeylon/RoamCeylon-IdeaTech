@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
 
@@ -27,10 +29,35 @@ const EditProfile = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [profilePicture, setProfilePicture] = useState('');
 
   // UI state
   const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showToast.error('Gallery permission is required to choose a profile picture.', 'Permission Denied');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (result.assets[0].base64) {
+        setProfilePicture(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      } else {
+        setProfilePicture(result.assets[0].uri);
+      }
+    }
+  };
 
   // Fetch current user details from backend
   useEffect(() => {
@@ -48,36 +75,43 @@ const EditProfile = () => {
         let dbName = '';
         let dbEmail = '';
         let dbPhone = '';
+        let dbProfilePic = '';
 
-        const res = await fetch(`${apiUrl}/admin-users/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const resJson = await res.json();
-          const profileData = resJson.data || {};
-          dbName = profileData.name || '';
-          dbEmail = profileData.email || '';
-          dbPhone = profileData.phoneNumber || '';
-        } else {
-          console.warn('[EditProfile] Failed to fetch profile from database, trying Nhost fallback');
+        // 1. Read from locally cached profile (set during login) — instant, no network
+        try {
+          const cachedProfile = await SecureStore.getItemAsync('userProfile');
+          if (cachedProfile) {
+            const parsed = JSON.parse(cachedProfile);
+            dbName = parsed.name || '';
+            dbEmail = parsed.email || '';
+            dbPhone = parsed.phoneNumber || '';
+            dbProfilePic = parsed.profile_picture || '';
+          }
+        } catch (cacheErr) {
+          console.warn('[EditProfile] Cache read failed:', cacheErr);
         }
 
-        // Fallback to Nhost user info if database values are empty
-        const nhostUser = nhost.auth.getUser() as any;
-        if (nhostUser) {
-          if (!dbName) dbName = nhostUser.displayName || '';
-          if (!dbEmail) dbEmail = nhostUser.email || '';
-          if (!dbPhone) {
-            dbPhone = nhostUser.metadata?.phoneNumber || nhostUser.phoneNumber || '';
+        // 2. Enrich from backend DB (has latest phone updates)
+        try {
+          const res = await fetch(`${apiUrl}/admin-users/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const resJson = await res.json();
+            const profileData = resJson.data || {};
+            if (profileData.name) dbName = profileData.name;
+            if (profileData.email) dbEmail = profileData.email;
+            if (profileData.phoneNumber) dbPhone = profileData.phoneNumber;
+            if (profileData.profile_picture) dbProfilePic = profileData.profile_picture;
           }
+        } catch (dbErr) {
+          console.warn('[EditProfile] DB fetch failed (non-critical):', dbErr);
         }
 
         setName(dbName);
         setEmail(dbEmail);
         setPhoneNumber(dbPhone);
+        setProfilePicture(dbProfilePic);
       } catch (err) {
         console.error('[EditProfile] Error loading user profile:', err);
         showToast.error('Network error. Failed to load profile.', 'Error');
@@ -115,6 +149,7 @@ const EditProfile = () => {
         body: JSON.stringify({
           name: name.trim(),
           phoneNumber: phoneNumber.trim(),
+          profile_picture: profilePicture,
         }),
       });
 
@@ -124,7 +159,19 @@ const EditProfile = () => {
         throw new Error('Failed to update profile on backend database');
       }
 
-      // 2. Update Nhost user auth metadata via GraphQL (optional fallback)
+      // 2. Cache updated profile in SecureStore for instant UI synchronization
+      try {
+        await SecureStore.setItemAsync('userProfile', JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phoneNumber: phoneNumber.trim(),
+          profile_picture: profilePicture,
+        }));
+      } catch (cacheErr) {
+        console.warn('[EditProfile] SecureStore userProfile caching failed:', cacheErr);
+      }
+
+      // 3. Update Nhost user auth metadata via GraphQL (optional fallback)
       try {
         const UPDATE_USER_MUTATION = `
           mutation($id: uuid!, $displayName: String!, $metadata: jsonb!) {
@@ -135,11 +182,14 @@ const EditProfile = () => {
         `;
         const nhostUser = nhost.auth.getUser() as any;
         if (nhostUser && nhostUser.id) {
-          const nhostRes = await nhost.graphql.request(UPDATE_USER_MUTATION, {
-            id: nhostUser.id,
-            displayName: name.trim(),
-            metadata: {
-              phoneNumber: phoneNumber.trim(),
+          const nhostRes = await nhost.graphql.request({
+            query: UPDATE_USER_MUTATION,
+            variables: {
+              id: nhostUser.id,
+              displayName: name.trim(),
+              metadata: {
+                phoneNumber: phoneNumber.trim(),
+              },
             },
           }) as any;
           if (nhostRes.error) {
@@ -171,21 +221,7 @@ const EditProfile = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F6FAF6" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile Setup</Text>
-        <View style={{ width: 32 }} /> {/* Balance header layout */}
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -200,61 +236,97 @@ const EditProfile = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Top Green Tint Panel */}
-          <View style={styles.topInfoContainer}>
-            <Text style={styles.titleText}>Profile Setup</Text>
-            <Text style={styles.subtitleText}>
-              Edit your admin profile details
-            </Text>
-          </View>
-
-          {/* Form Content Card */}
-          <View style={styles.formCard}>
-            {/* Avatar Circle Container */}
+          {/* Elegant Gradient Hero Banner */}
+          <LinearGradient
+            colors={['#0F3D26', '#145334']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroBanner, { paddingTop: insets.top + 20 }]}
+          >
+            {/* Header Row */}
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.7}
+                onPress={() => router.back()}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
             <View style={styles.avatarWrapper}>
-              <View style={styles.avatarCircle}>
-                <Ionicons name="person-outline" size={42} color="#7D8A82" />
-              </View>
-              <TouchableOpacity style={styles.avatarAddButton} activeOpacity={0.7}>
-                <Ionicons name="add" size={16} color="#FFFFFF" />
+              <TouchableOpacity
+                style={styles.avatarCircle}
+                onPress={pickImage}
+                activeOpacity={0.8}
+              >
+                {profilePicture ? (
+                  <Image
+                    source={{ uri: profilePicture }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={styles.avatarInitial}>
+                    <Text style={styles.avatarInitialText}>
+                      {name ? name.charAt(0).toUpperCase() : '?'}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.avatarAddButton}
+                activeOpacity={0.7}
+                onPress={pickImage}
+              >
+                <Ionicons name="camera" size={16} color="#493D1B" />
               </TouchableOpacity>
             </View>
 
-            {/* Inputs Block */}
+            <Text style={styles.heroName}>{name || 'Admin User'}</Text>
+            <Text style={styles.heroEmail}>{email || 'Not verified'}</Text>
+          </LinearGradient>
+
+          {/* Form Card */}
+          <View style={styles.formCard}>
             <View style={styles.formGroup}>
-              {/* Full Name */}
+              {/* Full Name Section */}
               <View style={styles.inputSection}>
                 <Text style={styles.inputLabel}>FULL NAME</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, styles.readOnlyInput]}>
+                  <Feather name="user" size={18} color="#8F9B96" style={{ marginRight: 12 }} />
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { color: '#7D8A82' }]}
                     value={name}
-                    onChangeText={setName}
-                    placeholder="Enter your full name"
+                    editable={false}
+                    placeholder="No name provided"
                     placeholderTextColor="#B5C0BC"
                   />
+                  <Feather name="lock" size={14} color="#B5C0BC" style={{ marginLeft: 10 }} />
                 </View>
               </View>
 
-              {/* Email Address */}
+              {/* Email Address Section */}
               <View style={styles.inputSection}>
                 <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
                 <View style={[styles.inputWrapper, styles.readOnlyInput]}>
+                  <Feather name="mail" size={18} color="#8F9B96" style={{ marginRight: 12 }} />
                   <TextInput
-                    style={[styles.textInput, { color: '#88928E' }]}
+                    style={[styles.textInput, { color: '#7D8A82' }]}
                     value={email}
                     editable={false}
                     placeholder="hello@roamceylon.lk"
                     placeholderTextColor="#B5C0BC"
                   />
-                  <Ionicons name="mail-outline" size={20} color="#8F9B96" style={{ marginLeft: 10 }} />
+                  <Feather name="lock" size={14} color="#B5C0BC" style={{ marginLeft: 10 }} />
                 </View>
               </View>
 
-              {/* Phone Number */}
+              {/* Phone Number Section */}
               <View style={styles.inputSection}>
                 <Text style={styles.inputLabel}>PHONE NUMBER</Text>
                 <View style={styles.inputWrapper}>
+                  <Feather name="phone" size={18} color="#0E5E2F" style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.textInput}
                     value={phoneNumber}
@@ -263,12 +335,11 @@ const EditProfile = () => {
                     placeholderTextColor="#B5C0BC"
                     keyboardType="phone-pad"
                   />
-                  <Ionicons name="call-outline" size={20} color="#8F9B96" style={{ marginLeft: 10 }} />
                 </View>
               </View>
             </View>
 
-            {/* Submit Action Button */}
+            {/* Save Changes Button */}
             <TouchableOpacity
               style={[styles.submitButton, loading && styles.disabledButton]}
               onPress={handleSave}
@@ -276,11 +347,11 @@ const EditProfile = () => {
               activeOpacity={0.85}
             >
               <Text style={styles.submitButtonText}>
-                {loading ? 'Saving Changes...' : 'Update'}
+                {loading ? 'Saving Changes...' : 'Update Details'}
               </Text>
             </TouchableOpacity>
 
-            {/* Secure Portal Info */}
+            {/* Safe/Secure Badge Footer */}
             <View style={styles.footerContainer}>
               <View style={styles.badgeContainer}>
                 <MaterialCommunityIcons name="shield-check" size={14} color="#0E5E2F" />
@@ -302,25 +373,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#F6FAF6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAF2EC',
-    zIndex: 10,
+    height: 44,
+    width: '100%',
+    marginBottom: 8,
   },
   backButton: {
     padding: 4,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: -0.3,
   },
   loadingContainer: {
     flex: 1,
@@ -342,82 +403,105 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#FFFFFF',
   },
-  topInfoContainer: {
-    backgroundColor: '#F6FAF6',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 30,
+  heroBanner: {
     alignItems: 'center',
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    textAlign: 'center',
-  },
-  subtitleText: {
-    fontSize: 15,
-    color: '#60646C',
-    marginTop: 10,
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500',
-    paddingHorizontal: 12,
-  },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    marginTop: -20,
+    paddingTop: 16,
+    paddingBottom: 64,
     paddingHorizontal: 24,
-    paddingTop: 30,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
   },
   avatarWrapper: {
-    alignSelf: 'center',
     position: 'relative',
-    marginBottom: 28,
+    marginBottom: 16,
   },
   avatarCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E2ECE9',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#0E5E2F',
+    borderWidth: 3,
+    borderColor: '#EAD26B',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+  },
+  avatarInitial: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#0E5E2F',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialText: {
+    fontSize: 44,
+    fontWeight: 'bold',
+    color: '#EAD26B',
   },
   avatarAddButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 4,
-    backgroundColor: '#5B600A',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#EAD26B',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#0F3D26',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  heroName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 4,
+    letterSpacing: 0.2,
+  },
+  heroEmail: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
   },
   formGroup: {
-    gap: 18,
-    marginBottom: 20,
+    gap: 20,
+    marginBottom: 24,
   },
   inputSection: {
     marginBottom: 0,
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#60646C',
-    letterSpacing: 0.8,
+    color: '#0E5E2F',
+    letterSpacing: 1.0,
     marginBottom: 8,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    height: 58,
+    height: 56,
     paddingHorizontal: 16,
     borderWidth: 1.2,
     borderColor: '#D8E5E0',
@@ -433,46 +517,6 @@ const styles = StyleSheet.create({
     height: '100%',
     fontWeight: '600',
   },
-  preferencesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F7FAF8',
-    borderRadius: 20,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 16,
-    marginTop: 10,
-    marginBottom: 24,
-  },
-  preferencesLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  leafIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EAF7EE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  preferencesTextContainer: {
-    flex: 1,
-  },
-  preferencesTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0E5E2F',
-  },
-  preferencesSubtitle: {
-    fontSize: 12,
-    color: '#7D8A82',
-    marginTop: 2,
-    fontWeight: '600',
-  },
   submitButton: {
     backgroundColor: '#EAD26B',
     borderRadius: 16,
@@ -481,10 +525,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#EAD26B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 3,
-    marginBottom: 28,
+    elevation: 4,
+    marginBottom: 24,
   },
   disabledButton: {
     opacity: 0.6,
@@ -493,11 +537,11 @@ const styles = StyleSheet.create({
     color: '#493D1B',
     fontSize: 16,
     fontWeight: '800',
+    letterSpacing: 0.2,
   },
   footerContainer: {
     width: '100%',
     alignItems: 'center',
-    paddingBottom: 20,
   },
   badgeContainer: {
     flexDirection: 'row',

@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const BusinessVerification = () => {
   const insets = useSafeAreaInsets();
@@ -17,21 +18,7 @@ const BusinessVerification = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#1C1917" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Business Verification</Text>
-        <View style={{ width: 32 }} /> {/* Balance header layout */}
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
@@ -41,30 +28,55 @@ const BusinessVerification = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <Text style={styles.statusTitle}>In Review</Text>
-          <Text style={styles.statusSubtitle}>
+        {/* Elegant Gradient Hero Banner */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroBanner, { paddingTop: insets.top + 20 }]}
+        >
+          {/* Header Row */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              activeOpacity={0.7}
+              onPress={() => router.back()}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.bannerHeader}>
+            <View style={styles.bannerIconBox}>
+              <Ionicons name="time-outline" size={24} color="#EAD26B" />
+            </View>
+            <View>
+              <Text style={styles.bannerTitle}>Account In Review</Text>
+              <Text style={styles.bannerSubtitle}>Verification process is active</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.bannerDescription}>
             Your profile is currently being reviewed by our team. Please complete any pending document uploads below to expedite the process.
           </Text>
 
-          {/* Stepper */}
+          {/* Elegant Stepper */}
           <View style={styles.stepperWrapper}>
-            {/* Background connecting lines */}
             <View style={styles.progressLineBg}>
               <View style={styles.progressLineFill} />
             </View>
 
             <View style={styles.stepsRow}>
-              {/* Step 1: Details */}
+              {/* Step 1 */}
               <View style={styles.stepNode}>
                 <View style={styles.circleCheck}>
-                  <Ionicons name="checkmark" size={14} color="#493D1B" />
+                  <Ionicons name="checkmark" size={14} color="#EAD26B" />
                 </View>
-                <Text style={styles.stepNodeText}>Details</Text>
+                <Text style={[styles.stepNodeText, styles.stepNodeTextCompleted]}>Details</Text>
               </View>
 
-              {/* Step 2: Verification */}
+              {/* Step 2 */}
               <View style={styles.stepNode}>
                 <View style={styles.circleNumberActive}>
                   <Text style={styles.circleNumberTextActive}>2</Text>
@@ -72,7 +84,7 @@ const BusinessVerification = () => {
                 <Text style={[styles.stepNodeText, styles.stepNodeTextActive]}>Verification</Text>
               </View>
 
-              {/* Step 3: Approval */}
+              {/* Step 3 */}
               <View style={styles.stepNode}>
                 <View style={styles.circleNumberInactive}>
                   <Text style={styles.circleNumberTextInactive}>3</Text>
@@ -81,9 +93,9 @@ const BusinessVerification = () => {
               </View>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Required Documents Section Header */}
+        {/* Section Header */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Required Documents</Text>
           <View style={styles.completedBadge}>
@@ -91,71 +103,69 @@ const BusinessVerification = () => {
           </View>
         </View>
 
-        {/* Document Card 1: NIC / Passport (Success) */}
-        <View style={styles.documentCard}>
-          <View style={styles.docHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="id-card-outline" size={22} color="#5B600A" />
+        {/* Document List */}
+        <View style={styles.docList}>
+          {/* Document 1: NIC / Passport (Success) */}
+          <View style={styles.docRow}>
+            <View style={styles.docRowLeft}>
+              <View style={[styles.docIconBox, styles.docIconBoxSuccess]}>
+                <Ionicons name="id-card-outline" size={22} color="#0E5E2F" />
+              </View>
+              <View style={styles.docInfo}>
+                <Text style={styles.docTitle}>NIC / Passport</Text>
+                <Text style={styles.docStatusSuccess}>Identity document verified</Text>
+              </View>
             </View>
-            <View style={styles.docTextContainer}>
-              <Text style={styles.docTitle}>NIC / Passport</Text>
-              <Text style={styles.docSubtitle}>Identity document uploaded</Text>
+
+            <View style={styles.docActions}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.viewDocBtn}>
+                <Text style={styles.viewDocLink}>View</Text>
+              </TouchableOpacity>
+              <View style={styles.inlineSuccessBadge}>
+                <Ionicons name="checkmark-circle" size={18} color="#0E5E2F" />
+              </View>
             </View>
           </View>
-          
-          <View style={styles.cardDivider} />
 
-          <View style={styles.docFooterRow}>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text style={styles.viewDocLink}>View Document</Text>
+          <View style={styles.rowDivider} />
+
+          {/* Document 2: Business License (Pending) */}
+          <View style={styles.docRow}>
+            <View style={styles.docRowLeft}>
+              <View style={[styles.docIconBox, styles.docIconBoxPending]}>
+                <Ionicons name="business-outline" size={22} color="#D32F2F" />
+              </View>
+              <View style={styles.docInfo}>
+                <Text style={styles.docTitle}>Business License</Text>
+                <Text style={styles.docStatusPending}>Pending document upload</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.rowUploadButton} activeOpacity={0.8}>
+              <Ionicons name="cloud-upload-outline" size={15} color="#493D1B" style={{ marginRight: 6 }} />
+              <Text style={styles.rowUploadButtonText}>Upload</Text>
             </TouchableOpacity>
-            <View style={styles.successBadge}>
-              <Ionicons name="checkmark-circle" size={14} color="#0E5E2F" style={{ marginRight: 4 }} />
-              <Text style={styles.successBadgeText}>Success</Text>
-            </View>
           </View>
-        </View>
 
-        {/* Document Card 2: Business License (Pending) */}
-        <View style={styles.documentCard}>
-          <View style={styles.docHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="business-outline" size={22} color="#5B600A" />
-            </View>
-            <View style={styles.docTextContainer}>
-              <Text style={styles.docTitle}>Business License</Text>
-              <View style={styles.pendingRow}>
-                <Ionicons name="alert-circle-outline" size={14} color="#DC3545" style={{ marginRight: 4 }} />
-                <Text style={styles.pendingText}>Pending upload</Text>
+          <View style={styles.rowDivider} />
+
+          {/* Document 3: Selfie Verification (Pending) */}
+          <View style={styles.docRow}>
+            <View style={styles.docRowLeft}>
+              <View style={[styles.docIconBox, styles.docIconBoxPending]}>
+                <Ionicons name="camera-outline" size={22} color="#D32F2F" />
+              </View>
+              <View style={styles.docInfo}>
+                <Text style={styles.docTitle}>Selfie Verification</Text>
+                <Text style={styles.docStatusPending}>Pending photo upload</Text>
               </View>
             </View>
+
+            <TouchableOpacity style={styles.rowUploadButton} activeOpacity={0.8}>
+              <Ionicons name="camera-outline" size={15} color="#493D1B" style={{ marginRight: 6 }} />
+              <Text style={styles.rowUploadButtonText}>Upload</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.uploadButton} activeOpacity={0.8}>
-            <Ionicons name="document-text-outline" size={18} color="#493D1B" style={{ marginRight: 8 }} />
-            <Text style={styles.uploadButtonText}>Upload</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Document Card 3: Selfie Verification (Pending) */}
-        <View style={styles.documentCard}>
-          <View style={styles.docHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="person-outline" size={22} color="#5B600A" />
-            </View>
-            <View style={styles.docTextContainer}>
-              <Text style={styles.docTitle}>Selfie Verification</Text>
-              <View style={styles.pendingRow}>
-                <Ionicons name="alert-circle-outline" size={14} color="#DC3545" style={{ marginRight: 4 }} />
-                <Text style={styles.pendingText}>Pending upload</Text>
-              </View>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.uploadButton} activeOpacity={0.8}>
-            <Ionicons name="camera-outline" size={18} color="#493D1B" style={{ marginRight: 8 }} />
-            <Text style={styles.uploadButtonText}>Upload</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -167,74 +177,70 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
-    zIndex: 10,
+    height: 44,
+    width: '100%',
+    marginBottom: 8,
   },
   backButton: {
     padding: 4,
   },
-  headerTitle: {
-    fontSize: 22,
+  heroBanner: {
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+  },
+  bannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+    marginTop: 10,
+  },
+  bannerIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EAD26B',
+  },
+  bannerTitle: {
+    fontSize: 20,
     fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.3,
+    color: '#FFFFFF',
   },
-  scrollView: {
-    flex: 1,
-    backgroundColor: '#F8FAF8',
+  bannerSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EAD26B',
+    marginTop: 2,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  statusCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statusTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1C1917',
-    marginBottom: 8,
-  },
-  statusSubtitle: {
+  bannerDescription: {
     fontSize: 14,
-    color: '#60646C',
+    color: 'rgba(255, 255, 255, 0.85)',
     lineHeight: 22,
     fontWeight: '500',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   stepperWrapper: {
     position: 'relative',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 8,
     width: '100%',
-    height: 60,
+    height: 56,
   },
   progressLineBg: {
     position: 'absolute',
     top: 15,
     left: '15%',
     right: '15%',
-    height: 3,
-    backgroundColor: '#E5E7EB',
+    height: 2.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     zIndex: 1,
   },
   progressLineFill: {
@@ -257,167 +263,175 @@ const styles = StyleSheet.create({
     width: '30%',
   },
   circleCheck: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EAD26B',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1.5,
+    borderColor: '#EAD26B',
     justifyContent: 'center',
     alignItems: 'center',
   },
   circleNumberActive: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#5B600A',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#EAD26B',
     justifyContent: 'center',
     alignItems: 'center',
   },
   circleNumberTextActive: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: '#0F3D26',
+    fontSize: 12,
     fontWeight: '800',
   },
   circleNumberInactive: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E5E7EB',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   circleNumberTextInactive: {
-    color: '#60646C',
-    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: 12,
     fontWeight: '800',
   },
   stepNodeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#60646C',
+    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 8,
   },
   stepNodeTextActive: {
-    color: '#5B600A',
+    color: '#EAD26B',
+  },
+  stepNodeTextCompleted: {
+    color: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    backgroundColor: '#FFFFFF',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: '#1C1917',
   },
   completedBadge: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  completedBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4B5563',
-  },
-  documentCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  docHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  docTextContainer: {
-    flex: 1,
-  },
-  docTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  docSubtitle: {
-    fontSize: 13,
-    color: '#7D8A82',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  pendingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  pendingText: {
-    fontSize: 13,
-    color: '#DC3545',
-    fontWeight: '700',
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 14,
-  },
-  docFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  viewDocLink: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#5B600A',
-  },
-  successBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#EAF7EE',
     borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
-  successBadgeText: {
-    fontSize: 12,
+  completedBadgeText: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#0E5E2F',
   },
-  uploadButton: {
+  docList: {
+    paddingHorizontal: 24,
+  },
+  docRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 18,
+  },
+  docRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  docIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  docIconBoxSuccess: {
+    backgroundColor: '#EAF7EE',
+  },
+  docIconBoxPending: {
+    backgroundColor: '#FFF5F5',
+  },
+  docInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  docTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1C1917',
+  },
+  docStatusSuccess: {
+    fontSize: 12,
+    color: '#0E5E2F',
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  docStatusPending: {
+    fontSize: 12,
+    color: '#DC3545',
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  docActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewDocBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  viewDocLink: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0E5E2F',
+  },
+  inlineSuccessBadge: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rowUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EAD26B',
-    borderRadius: 16,
-    height: 48,
-    marginTop: 16,
+    borderRadius: 12,
+    height: 38,
+    paddingHorizontal: 14,
     shadowColor: '#EAD26B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 2,
   },
-  uploadButtonText: {
+  rowUploadButtonText: {
     color: '#493D1B',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800',
+  },
+  rowDivider: {
+    height: 1.2,
+    backgroundColor: '#F0F3F1',
   },
 });
 

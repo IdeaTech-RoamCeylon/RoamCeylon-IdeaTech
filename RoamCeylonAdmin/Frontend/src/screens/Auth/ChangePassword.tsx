@@ -11,9 +11,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { LinearGradient } from 'expo-linear-gradient';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
 
@@ -131,21 +132,7 @@ const ChangePassword = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F6FAF6" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Change Password</Text>
-        <View style={{ width: 32 }} /> {/* Balance header layout */}
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -160,22 +147,42 @@ const ChangePassword = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Top Green Tint Panel */}
-          <View style={styles.topInfoContainer}>
-            <Text style={styles.titleText}>Update Credentials</Text>
-            <Text style={styles.subtitleText}>
+          {/* Elegant Gradient Hero Banner */}
+          <LinearGradient
+            colors={['#0F3D26', '#145334']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroBanner, { paddingTop: insets.top + 20 }]}
+          >
+            {/* Header Row */}
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.7}
+                onPress={() => router.back()}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.lockIconCircle}>
+              <MaterialCommunityIcons name="shield-lock" size={44} color="#EAD26B" />
+            </View>
+
+            <Text style={styles.heroTitle}>Update Credentials</Text>
+            <Text style={styles.heroSubtitle}>
               Ensure your account is secure by setting a strong, unique password.
             </Text>
-          </View>
+          </LinearGradient>
 
-          {/* Form Content Card */}
           <View style={styles.formCard}>
             <View style={styles.formGroup}>
               
-              {/* New Password */}
               <View style={styles.inputSection}>
                 <Text style={styles.inputLabel}>NEW PASSWORD</Text>
                 <View style={[styles.inputWrapper, errors.password ? styles.inputError : null]}>
+                  <Feather name="lock" size={18} color="#0E5E2F" style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="••••••••••••"
@@ -202,7 +209,6 @@ const ChangePassword = () => {
                 </View>
                 {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-                {/* Password Strength Indicator */}
                 {password.length > 0 && (
                   <View style={styles.strengthContainer}>
                     <View style={styles.strengthBars}>
@@ -264,10 +270,10 @@ const ChangePassword = () => {
                 )}
               </View>
 
-              {/* Confirm Password */}
               <View style={styles.inputSection}>
                 <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
                 <View style={[styles.inputWrapper, errors.confirmPassword ? styles.inputError : null]}>
+                  <Feather name="lock" size={18} color="#0E5E2F" style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="••••••••••••"
@@ -297,7 +303,6 @@ const ChangePassword = () => {
 
             </View>
 
-            {/* Submit Action Button */}
             <TouchableOpacity
               style={[styles.submitButton, loading && styles.disabledButton]}
               onPress={handleChangePassword}
@@ -309,7 +314,6 @@ const ChangePassword = () => {
               </Text>
             </TouchableOpacity>
 
-            {/* Secure Portal Info */}
             <View style={styles.footerContainer}>
               <View style={styles.badgeContainer}>
                 <MaterialCommunityIcons name="shield-check" size={14} color="#0E5E2F" />
@@ -332,25 +336,52 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#F6FAF6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAF2EC',
-    zIndex: 10,
+    height: 44,
+    width: '100%',
+    marginBottom: 8,
   },
   backButton: {
     padding: 4,
   },
-  headerTitle: {
-    fontSize: 22,
+  heroBanner: {
+    alignItems: 'center',
+    paddingTop: 16,
+    paddingBottom: 48,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+  },
+  lockIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 2,
+    borderColor: '#EAD26B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 10,
+  },
+  heroTitle: {
+    fontSize: 24,
     fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: -0.3,
+    color: '#FFFFFF',
+    marginTop: 4,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 16,
   },
   scrollView: {
     flex: 1,
@@ -360,35 +391,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#FFFFFF',
   },
-  topInfoContainer: {
-    backgroundColor: '#F6FAF6',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 30,
-    alignItems: 'center',
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    textAlign: 'center',
-  },
-  subtitleText: {
-    fontSize: 15,
-    color: '#60646C',
-    marginTop: 10,
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500',
-    paddingHorizontal: 12,
-  },
   formCard: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    marginTop: -20,
     paddingHorizontal: 24,
-    paddingTop: 30,
+    paddingTop: 28,
+    paddingBottom: 24,
   },
   formGroup: {
     gap: 18,
