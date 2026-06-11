@@ -43,6 +43,11 @@ export class AdminUsersService {
       });
     }
 
+    // System roles from Nhost JWT (e.g. 'user', 'me') should never overwrite
+    // a real app role already stored in the DB.
+    const SYSTEM_ROLES = ['user', 'me', 'anonymous', 'public'];
+    const isRealRole = (role?: string) => !!role && !SYSTEM_ROLES.includes(role);
+
     if (existing) {
       const updated = await this.prisma.adminUser.update({
         where: { id: existing.id },
@@ -52,7 +57,8 @@ export class AdminUsersService {
           phoneNumber: dto.phoneNumber || existing.phoneNumber,
           profile_picture: dto.profile_picture || existing.profile_picture,
           preferences: dto.preferences || existing.preferences,
-          role: dto.role || existing.role,
+          // Only update role if incoming is a real app role; never downgrade to a system role
+          role: isRealRole(dto.role) ? dto.role : existing.role,
         },
       });
       this.logger.log(`Admin user updated: ${updated.email} (role: ${updated.role})`);
