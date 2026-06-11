@@ -62,15 +62,10 @@ const EditShop = () => {
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
-      base64: true,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      if (result.assets[0].base64) {
-        setCoverImageUrl(`data:image/jpeg;base64,${result.assets[0].base64}`);
-      } else {
-        setCoverImageUrl(result.assets[0].uri);
-      }
+      setCoverImageUrl(result.assets[0].uri);
     }
   };
 
@@ -129,7 +124,38 @@ const EditShop = () => {
       const accessToken = await SecureStore.getItemAsync('authToken');
       
       let finalCoverImageUrl = coverImageUrl;
-      // Image is already base64 string, so we just pass it to the backend as is!
+      
+      if (coverImageUrl && !coverImageUrl.startsWith('http')) {
+        const formData = new FormData();
+        formData.append('bucket-id', 'Shops');
+        formData.append('file', {
+          name: `shop_${Date.now()}.jpg`,
+          type: 'image/jpeg',
+          uri: coverImageUrl,
+        } as any);
+
+        const subdomain = process.env.EXPO_PUBLIC_NHOST_SUBDOMAIN;
+        const region = process.env.EXPO_PUBLIC_NHOST_REGION;
+        const storageUrl = `https://${subdomain}.storage.${region}.nhost.run/v1/files`;
+        const uploadRes = await fetch(storageUrl, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error(`Image upload failed: ${errText}`);
+        }
+
+        const data = await uploadRes.json();
+        // data could be { id: '...' } or { processedFiles: [{ id: '...' }] }
+        const fileId = data.id || data.processedFiles?.[0]?.id || data[0]?.id;
+        
+        finalCoverImageUrl = `${storageUrl}/${fileId}`;
+      }
 
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
       

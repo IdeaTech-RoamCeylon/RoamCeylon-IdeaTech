@@ -68,15 +68,10 @@ const AddShop = () => {
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
-      base64: true,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      if (result.assets[0].base64) {
-        setCoverImageUrl(`data:image/jpeg;base64,${result.assets[0].base64}`);
-      } else {
-        setCoverImageUrl(result.assets[0].uri);
-      }
+      setCoverImageUrl(result.assets[0].uri);
     }
   };
 
@@ -103,7 +98,43 @@ const AddShop = () => {
       }
 
       let finalCoverImageUrl = coverImageUrl;
-      // Image is already base64 string, so we just pass it to the backend as is!
+
+      if (coverImageUrl && !coverImageUrl.startsWith('http')) {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+        // Convert local file URI to base64 and send to our backend.
+        // The backend uploads to Nhost Storage using the admin secret,
+        // bypassing the frontend storage permission issues.
+        const fileRes = await fetch(coverImageUrl);
+        const blob = await fileRes.blob();
+        const base64: string = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); // strip data:image/jpeg;base64, prefix
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        const uploadRes = await fetch(`${apiUrl}/shops/upload-image`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ base64, mimeType: 'image/jpeg' }),
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error(`Image upload failed: ${errText}`);
+        }
+
+        const { url } = await uploadRes.json();
+        finalCoverImageUrl = url;
+      }
+
 
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
       const response = await fetch(`${apiUrl}/shops`, {

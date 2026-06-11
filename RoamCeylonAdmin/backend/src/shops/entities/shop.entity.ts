@@ -2,7 +2,7 @@ export type ShopStatus = 'active' | 'under_review' | 'inactive';
 
 export interface Shop {
   id: string;
-  ownerId: string;         // Nhost user ID of the shop_partner
+  ownerId: string; // Nhost user ID of the shop_partner
   name: string;
   category: string;
   description: string;

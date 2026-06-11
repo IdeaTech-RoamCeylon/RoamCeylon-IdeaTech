@@ -16,6 +16,42 @@ export class ShopsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  // ── Upload image to Nhost Storage via admin secret ────────────────────────
+
+  async uploadImage(base64: string, mimeType: string = 'image/jpeg'): Promise<{ url: string }> {
+    const subdomain = process.env.NHOST_SUBDOMAIN;
+    const region = process.env.NHOST_REGION;
+    const adminSecret = process.env.NHOST_ADMIN_SECRET;
+    const storageUrl = `https://${subdomain}.storage.${region}.nhost.run/v1/files`;
+
+    const buffer = Buffer.from(base64, 'base64');
+    const blob = new Blob([buffer], { type: mimeType });
+
+    const formData = new FormData();
+    formData.append('bucket-id', 'Shops');
+    formData.append('file[]', blob, `shop_${Date.now()}.jpg`);
+
+    const response = await fetch(storageUrl, {
+      method: 'POST',
+      headers: { 'x-hasura-admin-secret': adminSecret! },
+      body: formData as any,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      this.logger.error(`Nhost Storage upload failed: ${errorText}`);
+      throw new Error(`Storage upload failed: ${errorText}`);
+    }
+
+    const data = await response.json() as any;
+    const fileId = data.processedFiles?.[0]?.id ?? data[0]?.id ?? data.id;
+
+    if (!fileId) throw new Error('Upload succeeded but no file ID returned');
+
+    this.logger.log(`Image uploaded to Nhost Storage: ${fileId}`);
+    return { url: `${storageUrl}/${fileId}` };
+  }
+
   // ── List all shops (admin view) ───────────────────────────────────────────
 
   async findAll(status?: ShopStatus) {
@@ -125,12 +161,12 @@ export class ShopsService {
 
   // ── Dashboard stats ───────────────────────────────────────────────────────
 
-  async getStats() {
+  async getStats(ownerId: string) {
     const [total, active, underReview, inactive] = await Promise.all([
-      this.prisma.shop.count(),
-      this.prisma.shop.count({ where: { status: 'active' } }),
-      this.prisma.shop.count({ where: { status: 'under_review' } }),
-      this.prisma.shop.count({ where: { status: 'inactive' } }),
+      this.prisma.shop.count({ where: { ownerId } }),
+      this.prisma.shop.count({ where: { ownerId, status: 'active' } }),
+      this.prisma.shop.count({ where: { ownerId, status: 'under_review' } }),
+      this.prisma.shop.count({ where: { ownerId, status: 'inactive' } }),
     ]);
 
     return { total, active, underReview, inactive, networkGrowthPercent: 0 };

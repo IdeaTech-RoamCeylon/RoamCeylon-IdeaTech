@@ -54,10 +54,12 @@ export class ShopsController {
 
   // ── Stats (public) ───────────────────────────────────────────────────────
 
+  @UseGuards(NhostJwtGuard)
   @Get('stats')
-  getStats() {
-    this.logger.log('Fetching shop dashboard stats');
-    return this.shopsService.getStats();
+  getStats(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Fetching shop dashboard stats for user ${userId}`);
+    return this.shopsService.getStats(userId);
   }
 
   // ── Partner: own shops ───────────────────────────────────────────────────
@@ -74,7 +76,9 @@ export class ShopsController {
 
   @Get()
   findAll(@Query('status') status?: string) {
-    this.logger.log(`Fetching all shops${status ? ` with status="${status}"` : ''}`);
+    this.logger.log(
+      `Fetching all shops${status ? ` with status="${status}"` : ''}`,
+    );
     return this.shopsService.findAll(status as ShopStatus | undefined);
   }
 
@@ -82,6 +86,17 @@ export class ShopsController {
   findOne(@Param('id') id: string) {
     this.logger.log(`Fetching shop ${id}`);
     return this.shopsService.findOne(id);
+  }
+
+  // ── Upload image (proxy to Nhost Storage via admin secret) ──────────────
+
+  @UseGuards(NhostJwtGuard)
+  @Post('upload-image')
+  @HttpCode(HttpStatus.OK)
+  uploadImage(
+    @Body() body: { base64: string; mimeType?: string },
+  ) {
+    return this.shopsService.uploadImage(body.base64, body.mimeType ?? 'image/jpeg');
   }
 
   // ── Create ───────────────────────────────────────────────────────────────
@@ -131,7 +146,9 @@ export class ShopsController {
     @Body('status') status: ShopStatus,
     @Req() req: AuthRequest,
   ) {
-    this.logger.log(`User ${req.user.userId} updating shop ${id} status to "${status}"`);
+    this.logger.log(
+      `User ${req.user.userId} updating shop ${id} status to "${status}"`,
+    );
     return this.shopsService.updateStatus(id, status);
   }
 }
