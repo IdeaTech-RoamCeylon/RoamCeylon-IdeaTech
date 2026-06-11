@@ -30,15 +30,15 @@ const ShoppingHomeScreen = () => {
       const accessToken = await SecureStore.getItemAsync('authToken');
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
-      // Fetch stats (public)
-      const statsRes = await fetch(`${apiUrl}/shops/stats`);
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-
-      // Fetch my shops (requires auth)
+      // Fetch my stats and shops (requires auth)
       if (accessToken) {
+        const statsRes = await fetch(`${apiUrl}/shops/stats`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
         const shopsRes = await fetch(`${apiUrl}/shops/my`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });

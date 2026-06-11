@@ -62,7 +62,8 @@ const Settings = () => {
           <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 32 }} /> {/* Balance header layout */}
+        <View style={{ width: 32 }} />
+        {/* Balance header layout */}
       </View>
 
       <ScrollView
