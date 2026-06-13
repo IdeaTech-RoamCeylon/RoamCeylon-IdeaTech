@@ -63,7 +63,6 @@ const Settings = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 32 }} />
-        {/* Balance header layout */}
       </View>
 
       <ScrollView

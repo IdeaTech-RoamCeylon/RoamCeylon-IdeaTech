@@ -115,10 +115,28 @@ const PartnerScreen = () => {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      Alert.alert(
-        'Registration Failed',
-        error?.message || 'Registration failed. Please try again.',
-      );
+      const isEmailInUse = error?.message && error.message.toLowerCase().includes('email already in use');
+      if (isEmailInUse) {
+        Alert.alert(
+          'Email Already in Use',
+          'An account with this email address already exists. Would you like to log in instead?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Log In',
+              onPress: () => router.push('/login'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Registration Failed',
+          error?.message || 'Registration failed. Please try again.',
+        );
+      }
     } finally {
       setLoading(false);
     }

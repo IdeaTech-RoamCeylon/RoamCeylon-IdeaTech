@@ -165,6 +165,7 @@ const RegisterScreen = () => {
             <Image 
               source={require('@/assets/images/registerscreen.png')} 
               style={styles.heroImage} 
+              contentFit="cover"
             />
           </View>
 
@@ -390,7 +391,6 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   card: {
     width: '100%',
