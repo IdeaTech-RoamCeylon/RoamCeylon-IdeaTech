@@ -89,7 +89,7 @@ const BookingHomeScreen = () => {
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>Welcome back, Grand Emerald Resort</Text>
           <Text style={styles.welcomeSubtitle}>
-            Here is what's happening at your property today.
+            Here is what&apos;s happening at your property today.
           </Text>
         </View>
 
@@ -180,7 +180,7 @@ const BookingHomeScreen = () => {
                 <Ionicons name="briefcase-outline" size={20} color="#5C605D" />
               </View>
             </View>
-            <Text style={styles.metricLabel}>Today's Check-ins</Text>
+            <Text style={styles.metricLabel}>Today&apos;s Check-ins</Text>
             <Text style={styles.metricValue}>14</Text>
           </View>
 

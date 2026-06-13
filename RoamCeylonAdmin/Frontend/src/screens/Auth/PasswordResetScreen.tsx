@@ -150,7 +150,7 @@ const PasswordResetScreen = () => {
               <View style={styles.infoBanner}>
                 <MaterialCommunityIcons name="information-outline" size={20} color="#0E5E2F" style={styles.infoIcon} />
                 <Text style={styles.infoText}>
-                  Check your spam folder if you don't see the email within 2 minutes.
+                  Check your spam folder if you don&apos;t see the email within 2 minutes.
                 </Text>
               </View>
             </View>

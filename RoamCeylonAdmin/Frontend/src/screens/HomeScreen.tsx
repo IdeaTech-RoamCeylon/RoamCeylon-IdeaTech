@@ -56,7 +56,7 @@ const HomeScreen = () => {
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Authentication</Text>
             <Text style={styles.cardDescription}>
-              You're successfully logged in! Your session is secured with Nhost authentication.
+              You&apos;re successfully logged in! Your session is secured with Nhost authentication.
             </Text>
           </View>
         </View>

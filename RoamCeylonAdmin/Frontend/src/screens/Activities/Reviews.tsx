@@ -148,8 +148,7 @@ const Reviews = () => {
           </View>
 
           <Text style={styles.reviewBody}>
-            "The tea tasting experience was magical! The staff at Roam Ceylon truly went above and
-            beyond to make our anniversary special."
+            {"\"The tea tasting experience was magical! The staff at Roam Ceylon truly went above and\nbeyond to make our anniversary special.\""}
           </Text>
 
           <View style={styles.cardFooter}>
@@ -182,8 +181,7 @@ const Reviews = () => {
           </View>
 
           <Text style={styles.reviewBody}>
-            "Incredible views and the pool is world-class. Would have appreciated a few more vegetarian
-            options for breakfast, but everything else was flawless."
+            {"\"Incredible views and the pool is world-class. Would have appreciated a few more vegetarian\noptions for breakfast, but everything else was flawless.\""}
           </Text>
 
           <View style={styles.cardFooter}>
@@ -216,16 +214,14 @@ const Reviews = () => {
           </View>
 
           <Text style={styles.reviewBody}>
-            "The sunrise from our balcony was worth the flight alone. Pristine cleanliness and
-            excellent service."
+            {"\"The sunrise from our balcony was worth the flight alone. Pristine cleanliness and\nexcellent service.\""}
           </Text>
 
           {/* Nested Responder sub-container */}
           <View style={styles.responseContainer}>
             <Text style={styles.responseLabel}>YOUR RESPONSE:</Text>
             <Text style={styles.responseText}>
-              "Thank you Lina! We're so glad you enjoyed the sunrise. We hope to welcome you back
-              soon."
+              {"\"Thank you Lina! We're so glad you enjoyed the sunrise. We hope to welcome you back\nsoon.\""}
             </Text>
           </View>
 

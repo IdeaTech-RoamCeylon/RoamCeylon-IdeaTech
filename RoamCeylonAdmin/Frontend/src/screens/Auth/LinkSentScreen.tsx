@@ -77,7 +77,7 @@ const LinkSentScreen = () => {
 
             <Text style={styles.titleText}>Recovery Link Sent!</Text>
             <Text style={styles.subtitleText}>
-              Check your inbox for a link to reset your password. If you don't see it, check your spam folder.
+              Check your inbox for a link to reset your password. If you don&apos;t see it, check your spam folder.
             </Text>
           </View>
 

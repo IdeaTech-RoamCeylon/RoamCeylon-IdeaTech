@@ -72,7 +72,7 @@ const EmailVerificationScreen = () => {
           {/* Title & Description */}
           <Text style={styles.titleText}>Check Your Email</Text>
           <Text style={styles.subtitleText}>
-            We've sent a verification link to
+            We&apos;ve sent a verification link to
           </Text>
           <Text style={styles.emailText}>{email}</Text>
           <Text style={styles.instructionText}>
@@ -109,7 +109,7 @@ const EmailVerificationScreen = () => {
           {/* Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>DIDN'T RECEIVE IT?</Text>
+            <Text style={styles.dividerText}>DIDN&apos;T RECEIVE IT?</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -134,7 +134,7 @@ const EmailVerificationScreen = () => {
           <View style={styles.tipContainer}>
             <MaterialCommunityIcons name="information-outline" size={16} color="#9E9E9E" />
             <Text style={styles.tipText}>
-              Check your spam or junk folder if you don't see it in your inbox.
+              Check your spam or junk folder if you don&apos;t see it in your inbox.
             </Text>
           </View>
         </View>

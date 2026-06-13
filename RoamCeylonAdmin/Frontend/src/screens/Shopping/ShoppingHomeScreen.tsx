@@ -135,7 +135,7 @@ const ShoppingHomeScreen = () => {
             </View>
             <Text style={styles.emptyTitle}>No shops yet</Text>
             <Text style={styles.emptySubtitle}>
-              You haven't added any shops. Tap the button below to register your first business.
+              You haven&apos;t added any shops. Tap the button below to register your first business.
             </Text>
           </View>
         ) : (

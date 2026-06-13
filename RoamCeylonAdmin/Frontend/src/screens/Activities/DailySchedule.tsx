@@ -100,7 +100,7 @@ const DailySchedule = () => {
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.topLabel}>TODAY'S OVERVIEW</Text>
+          <Text style={styles.topLabel}>TODAY&apos;S OVERVIEW</Text>
           <Text style={styles.title}>Activity Management</Text>
 
           {/* Date Picker Pill */}
