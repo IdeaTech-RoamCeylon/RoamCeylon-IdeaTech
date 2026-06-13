@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const Revenue = () => {
@@ -68,36 +70,37 @@ const Revenue = () => {
     },
   ];
 
-  // High-value bookings list
-  const highValueBookings = [
-    {
-      id: 'RC-8872',
-      customer: 'Eleanor Richards',
-      tour: '7-Day Cultural Triangle',
-      amount: '$3,400',
-      status: 'CONFIRMED',
-      statusType: 'success',
-      avatar: 'https://images.unsplash.com/photo-1542856391-010fb87dcfed?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8891',
-      customer: 'Marcus Thorne',
-      tour: 'East Coast Safari Retreat',
-      amount: '$5,850',
-      status: 'PENDING',
-      statusType: 'warning',
-      avatar: 'https://images.unsplash.com/photo-1575550959106-5a7defe28b56?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8904',
-      customer: 'Sophia Chen',
-      tour: 'Hill Country Luxury Escape',
-      amount: '$2,950',
-      status: 'CONFIRMED',
-      statusType: 'success',
-      avatar: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=150&q=80',
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [highValueBookings, setHighValueBookings] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const accessToken = await SecureStore.getItemAsync('authToken');
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+        if (!accessToken) return;
+
+        const res = await fetch(`${apiUrl}/tour-guide/dashboard`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setTotalRevenue(data.totalRevenue || 0);
+          setHighValueBookings(data.recentBookings?.slice(0, 5) || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
 
   const handleViewAllBookingsPress = () => {
     router.push('/tour-guide/bookings' as any);
@@ -148,7 +151,7 @@ const Revenue = () => {
           
           {/* Card Header Row */}
           <View style={styles.revenueCardHeaderRow}>
-            <Text style={styles.revenueCardTitle}>TOTAL REVENUE</Text>
+            <Text style={styles.revenueCardTitle}>TOTAL ESTIMATED REVENUE</Text>
             <View style={styles.periodBadge}>
               <Ionicons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.8)" style={{ marginRight: 4 }} />
               <Text style={styles.periodBadgeText}>Oct 2023</Text>
@@ -157,11 +160,11 @@ const Revenue = () => {
 
           {/* Main Figure & Trend Badge */}
           <View style={styles.revenueValueRow}>
-            <Text style={styles.revenueValue}>$84,500</Text>
+            <Text style={styles.revenueValue}>Rs. {totalRevenue.toLocaleString()}</Text>
             
             <View style={styles.trendBadgeGlass}>
               <Ionicons name="trending-up" size={13} color="#34D399" style={{ marginRight: 4 }} />
-              <Text style={styles.trendBadgeGlassText}>+18%</Text>
+              <Text style={styles.trendBadgeGlassText}>+14.2%</Text>
             </View>
           </View>
 
@@ -321,52 +324,64 @@ const Revenue = () => {
 
         {/* High-value Booking Cards with colored left borders */}
         <View style={styles.bookingsList}>
-          {highValueBookings.map((booking) => {
-            const isSuccess = booking.statusType === 'success';
-            return (
-              <View
-                key={booking.id}
-                style={[
-                  styles.bookingCard,
-                  isSuccess ? styles.bookingCardSuccess : styles.bookingCardWarning,
-                ]}
-              >
-                {/* Image Avatar */}
-                <Image source={{ uri: booking.avatar }} style={styles.bookingAvatar} contentFit="cover" />
+            {loading ? (
+              <ActivityIndicator size="large" color="#0E5E2F" style={{ marginVertical: 20 }} />
+            ) : highValueBookings.length > 0 ? (
+              highValueBookings.map((booking) => {
+                const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
+                const isSuccess = booking.status === 'confirmed' || booking.status === 'completed';
+                const isWarning = booking.status === 'pending';
 
-                {/* Booking Info */}
-                <View style={styles.bookingDetailsCol}>
-                  <Text style={styles.bookingHeaderName}>
-                    #{booking.id} • {booking.customer}
-                  </Text>
-                  <View style={styles.bookingLocationRow}>
-                    <Ionicons name="location-outline" size={14} color="#8A958E" style={{ marginRight: 4 }} />
-                    <Text style={styles.bookingTourNameText} numberOfLines={1}>{booking.tour}</Text>
-                  </View>
-                </View>
-
-                {/* Pricing & Status Badge */}
-                <View style={styles.bookingBadgeCol}>
-                  <Text style={styles.bookingPrice}>{booking.amount}</Text>
+                return (
                   <View
+                    key={booking.id}
                     style={[
-                      styles.pillBadge,
-                      isSuccess ? styles.pillBadgeSuccess : styles.pillBadgeWarning,
+                      styles.bookingCard,
+                      isSuccess ? styles.bookingCardSuccess : isWarning ? styles.bookingCardWarning : undefined,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.pillBadgeText,
-                        isSuccess ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText,
-                      ]}
-                    >
-                      {booking.status}
-                    </Text>
+                    {/* Image Avatar */}
+                    <Image source={{ uri: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(booking.customerName || 'User') + '&background=random' }} style={styles.bookingAvatar} contentFit="cover" />
+
+                    {/* Booking Info */}
+                    <View style={styles.bookingDetailsCol}>
+                      <Text style={styles.bookingHeaderName}>
+                        #{shortId} • {booking.customerName}
+                      </Text>
+                      <View style={styles.bookingLocationRow}>
+                        <Ionicons name="location-outline" size={14} color="#8A958E" style={{ marginRight: 4 }} />
+                        <Text style={styles.bookingTourNameText} numberOfLines={1}>{booking.tourName}</Text>
+                      </View>
+                    </View>
+
+                    {/* Pricing & Status Badge */}
+                    <View style={styles.bookingBadgeCol}>
+                      <Text style={styles.bookingPrice}>Rs. {booking.amount}</Text>
+                      <View
+                        style={[
+                          styles.pillBadge,
+                          isSuccess ? styles.pillBadgeSuccess : isWarning ? styles.pillBadgeWarning : undefined,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.pillBadgeText,
+                            isSuccess ? styles.pillBadgeSuccessText : isWarning ? styles.pillBadgeWarningText : undefined,
+                            { textTransform: 'uppercase' }
+                          ]}
+                        >
+                          {booking.status}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            );
-          })}
+                );
+              })
+            ) : (
+              <Text style={{ textAlign: 'center', marginVertical: 20, color: '#6B7280' }}>
+                No recent bookings found.
+              </Text>
+            )}
         </View>
         </View>
       </ScrollView>

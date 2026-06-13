@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,84 +7,75 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const TourHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // State for Tour Packages status toggles (mock)
-  const [isCulturalActive, setIsCulturalActive] = useState(true);
-  const [isHillCountryActive, setIsHillCountryActive] = useState(false);
-  const [isSouthernActive, setIsSouthernActive] = useState(true);
-
-  // Stats / Performance Overview data
-  const stats = {
-    totalPackages: 3,
-    activeBookings: 12,
+  // State
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPackages: 0,
+    activeBookings: 0,
     rating: '4.9',
+  });
+  const [packagesList, setPackagesList] = useState<any[]>([]);
+  const [bookingsList, setBookingsList] = useState<any[]>([]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      if (!accessToken) return;
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      // Fetch dashboard stats
+      const statsRes = await fetch(`${apiUrl}/tour-guide/dashboard`, { headers });
+      if (statsRes.ok) {
+        const d = await statsRes.json();
+        setStats({
+          totalPackages: d.totalPackages || 0,
+          activeBookings: (d.pendingBookings || 0) + (d.confirmedBookings || 0),
+          rating: '4.9', // Hardcoded rating for now
+        });
+      }
+
+      // Fetch recent packages
+      const pkgsRes = await fetch(`${apiUrl}/tour-guide/packages`, { headers });
+      if (pkgsRes.ok) {
+        const pkgs = await pkgsRes.json();
+        setPackagesList(pkgs.slice(0, 3)); // Only show top 3
+      }
+
+      // Fetch recent bookings
+      const bookingsRes = await fetch(`${apiUrl}/tour-guide/bookings`, { headers });
+      if (bookingsRes.ok) {
+        const b = await bookingsRes.json();
+        setBookingsList(b.slice(0, 3)); // Only show top 3
+      }
+    } catch (error) {
+      console.error('Failed to fetch tour dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Recent Bookings data for the guide's schedule
-  const bookingsList = [
-    {
-      id: 'RC-8892',
-      customer: 'Eleanor Richards',
-      tour: '7-Day Cultural Triangle',
-      date: 'Oct 12, 2023',
-      amount: '$2,400',
-      status: 'Confirmed',
-      statusType: 'success', // green
-    },
-    {
-      id: 'RC-8891',
-      customer: 'Marcus Thorne',
-      tour: 'East Coast Retreat',
-      date: 'Oct 18, 2023',
-      amount: '$1,850',
-      status: 'Pending',
-      statusType: 'warning', // yellow
-    },
-  ];
-
-  // Packages list formatted like shops
-  const packagesList = [
-    {
-      id: 'cultural',
-      title: '7-Day Cultural Triangle',
-      category: 'CULTURE',
-      duration: '7 Days',
-      price: '$1,250',
-      image: require('../../assets/Tours/Cultural Triangle.png'),
-      isActive: isCulturalActive,
-      toggleActive: () => setIsCulturalActive(!isCulturalActive),
-    },
-    {
-      id: 'hillcountry',
-      title: 'Hill Country Escape',
-      category: 'NATURE',
-      duration: '5 Days',
-      price: '$850',
-      image: require('../../assets/Tours/HillCountryEscape.png'),
-      isActive: isHillCountryActive,
-      toggleActive: () => setIsHillCountryActive(!isHillCountryActive),
-    },
-    {
-      id: 'southern',
-      title: 'Southern Shore luxury',
-      category: 'COASTAL',
-      duration: '10 Days',
-      price: '$2,400',
-      image: require('../../assets/Tours/Sothern Shore.png'),
-      isActive: isSouthernActive,
-      toggleActive: () => setIsSouthernActive(!isSouthernActive),
-    },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleNotificationPress = () => {
     router.push('/tour-guide/notifications' as any);
@@ -227,47 +218,53 @@ const TourHomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {packagesList.map((item) => (
-          <TouchableOpacity 
-            key={item.id} 
-            style={styles.packageCard}
-            activeOpacity={0.9}
-            onPress={() => router.push('/tour-guide/packages' as any)}
-          >
-            <Image 
-              source={item.image} 
-              style={styles.packageImage} 
-              contentFit="cover" 
-            />
-            
-            <View style={styles.packageInfo}>
-              <View style={styles.packageHeaderRow}>
-                <Text style={styles.packageTitle} numberOfLines={1}>{item.title}</Text>
-                <View style={[
-                  styles.statusBadge, 
-                  item.isActive ? styles.statusActive : styles.statusInactive
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    item.isActive ? styles.statusTextActive : styles.statusTextInactive
+        {loading ? (
+          <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+        ) : packagesList.length === 0 ? (
+          <Text style={{ textAlign: 'center', marginTop: 20, color: '#6B7280' }}>No packages available.</Text>
+        ) : (
+          packagesList.map((item) => (
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.packageCard}
+              activeOpacity={0.9}
+              onPress={() => router.push('/tour-guide/packages' as any)}
+            >
+              <Image 
+                source={item.coverImageUrl ? { uri: item.coverImageUrl } : require('../../assets/Tours/Cultural Triangle.png')} 
+                style={styles.packageImage} 
+                contentFit="cover" 
+              />
+              
+              <View style={styles.packageInfo}>
+                <View style={styles.packageHeaderRow}>
+                  <Text style={styles.packageTitle} numberOfLines={1}>{item.name}</Text>
+                  <View style={[
+                    styles.statusBadge, 
+                    item.status === 'active' ? styles.statusActive : styles.statusInactive
                   ]}>
-                    {item.isActive ? 'Active' : 'Draft'}
-                  </Text>
+                    <Text style={[
+                      styles.statusText,
+                      item.status === 'active' ? styles.statusTextActive : styles.statusTextInactive
+                    ]}>
+                      {item.status === 'active' ? 'Active' : 'Draft'}
+                    </Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.packageCategory}>{item.category} • {item.duration} Days</Text>
+                
+                <View style={styles.packageFooter}>
+                  <View style={styles.packageFooterItem}>
+                    <Ionicons name="cash-outline" size={14} color="#6B7280" style={{ marginRight: 4 }} />
+                    <Text style={styles.packageFooterText}>Rs. {item.price} /pp</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#D1D5DB" />
                 </View>
               </View>
-              
-              <Text style={styles.packageCategory}>{item.category} • {item.duration}</Text>
-              
-              <View style={styles.packageFooter}>
-                <View style={styles.packageFooterItem}>
-                  <Ionicons name="cash-outline" size={14} color="#6B7280" style={{ marginRight: 4 }} />
-                  <Text style={styles.packageFooterText}>From {item.price} /pp</Text>
-                </View>
-                <Feather name="chevron-right" size={18} color="#D1D5DB" />
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
 
         {/* Recent Bookings Section */}
         <View style={[styles.sectionHeader, { marginTop: 12 }]}>
@@ -275,43 +272,56 @@ const TourHomeScreen = () => {
         </View>
 
         <View style={styles.bookingsCardContainer}>
-          {bookingsList.map((booking, index) => {
-            const isLast = index === bookingsList.length - 1;
-            return (
-              <View key={booking.id}>
-                <View style={styles.bookingRow}>
-                  <View style={styles.bookingLeft}>
-                    <Text style={styles.bookingMainText}>
-                      #{booking.id} • {booking.customer}
-                    </Text>
-                    <Text style={styles.bookingTourText}>{booking.tour}</Text>
-                    <Text style={styles.bookingDateText}>{booking.date}</Text>
-                  </View>
+          {loading ? (
+            <ActivityIndicator size="small" color="#0E5E2F" style={{ margin: 20 }} />
+          ) : bookingsList.length === 0 ? (
+            <Text style={{ textAlign: 'center', margin: 20, color: '#6B7280' }}>No upcoming bookings.</Text>
+          ) : (
+            bookingsList.map((booking, index) => {
+              const isLast = index === bookingsList.length - 1;
+              const dateObj = new Date(booking.startDate);
+              const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
+              
+              const isSuccess = booking.status === 'confirmed' || booking.status === 'completed';
+              
+              return (
+                <View key={booking.id}>
+                  <View style={styles.bookingRow}>
+                    <View style={styles.bookingLeft}>
+                      <Text style={styles.bookingMainText}>
+                        #{shortId} • {booking.customerName}
+                      </Text>
+                      <Text style={styles.bookingTourText}>{booking.tourName}</Text>
+                      <Text style={styles.bookingDateText}>{formattedDate}</Text>
+                    </View>
 
-                  <View style={styles.bookingRight}>
-                    <Text style={styles.bookingAmount}>{booking.amount}</Text>
-                    <View
-                      style={[
-                        styles.pillBadge,
-                        booking.statusType === 'success' ? styles.pillBadgeSuccess : styles.pillBadgeWarning,
-                        { marginTop: 6, alignSelf: 'flex-end' },
-                      ]}
-                    >
-                      <Text
+                    <View style={styles.bookingRight}>
+                      <Text style={styles.bookingAmount}>Rs. {booking.amount}</Text>
+                      <View
                         style={[
-                          styles.pillBadgeText,
-                          booking.statusType === 'success' ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText,
+                          styles.pillBadge,
+                          isSuccess ? styles.pillBadgeSuccess : styles.pillBadgeWarning,
+                          { marginTop: 6, alignSelf: 'flex-end' },
                         ]}
                       >
-                        {booking.status}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.pillBadgeText,
+                            isSuccess ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText,
+                            { textTransform: 'capitalize' }
+                          ]}
+                        >
+                          {booking.status}
+                        </Text>
+                      </View>
                     </View>
                   </View>
+                  {!isLast && <View style={styles.bookingDivider} />}
                 </View>
-                {!isLast && <View style={styles.bookingDivider} />}
-              </View>
-            );
-          })}
+              );
+            })
+          )}
         </View>
         </View>
       </ScrollView>

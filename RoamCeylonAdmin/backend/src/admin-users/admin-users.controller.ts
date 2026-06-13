@@ -73,7 +73,13 @@ export class AdminUsersController {
   @Patch('me')
   async updateMe(
     @Req() req: AuthRequest,
-    @Body() dto: { name?: string; phoneNumber?: string; profile_picture?: string; preferences?: any },
+    @Body()
+    dto: {
+      name?: string;
+      phoneNumber?: string;
+      profile_picture?: string;
+      preferences?: any;
+    },
   ) {
     const { userId } = req.user;
     this.logger.log(`Updating profile for user ${userId}`);

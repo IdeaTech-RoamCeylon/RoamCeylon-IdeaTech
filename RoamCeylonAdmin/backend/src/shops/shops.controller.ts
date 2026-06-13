@@ -93,10 +93,11 @@ export class ShopsController {
   @UseGuards(NhostJwtGuard)
   @Post('upload-image')
   @HttpCode(HttpStatus.OK)
-  uploadImage(
-    @Body() body: { base64: string; mimeType?: string },
-  ) {
-    return this.shopsService.uploadImage(body.base64, body.mimeType ?? 'image/jpeg');
+  uploadImage(@Body() body: { base64: string; mimeType?: string }) {
+    return this.shopsService.uploadImage(
+      body.base64,
+      body.mimeType ?? 'image/jpeg',
+    );
   }
 
   // ── Create ───────────────────────────────────────────────────────────────

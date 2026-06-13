@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 export interface AdminUser {
   id: string;
@@ -9,7 +10,7 @@ export interface AdminUser {
   phoneNumber: string | null;
   profile_picture: string | null;
   role: string;
-  preferences: any;
+  preferences: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,13 +27,20 @@ export class AdminUsersService {
    */
   async sync(
     userId: string, // Nhost sub claim
-    dto: { email?: string; name?: string; phoneNumber?: string; role?: string; profile_picture?: string; preferences?: any },
+    dto: {
+      email?: string;
+      name?: string;
+      phoneNumber?: string;
+      role?: string;
+      profile_picture?: string;
+      preferences?: Record<string, unknown> | null;
+    },
   ) {
     // 1. Try to find existing by email or phone (since they are unique in DB)
     // For admin app, we generally assume email is the primary identifier if userId isn't an exact match.
     // However, the Nhost userId might be what is stored in the `id` field of the AdminUser table in the main backend,
     // or it might just be the email. Let's try finding by ID first.
-    
+
     let existing = await this.prisma.adminUser.findUnique({
       where: { id: userId },
     });
@@ -46,7 +54,8 @@ export class AdminUsersService {
     // System roles from Nhost JWT (e.g. 'user', 'me') should never overwrite
     // a real app role already stored in the DB.
     const SYSTEM_ROLES = ['user', 'me', 'anonymous', 'public'];
-    const isRealRole = (role?: string) => !!role && !SYSTEM_ROLES.includes(role);
+    const isRealRole = (role?: string) =>
+      !!role && !SYSTEM_ROLES.includes(role);
 
     if (existing) {
       const updated = await this.prisma.adminUser.update({
@@ -56,12 +65,14 @@ export class AdminUsersService {
           name: dto.name || existing.name,
           phoneNumber: dto.phoneNumber || existing.phoneNumber,
           profile_picture: dto.profile_picture || existing.profile_picture,
-          preferences: dto.preferences || existing.preferences,
+          preferences: (dto.preferences ?? existing.preferences) as Prisma.InputJsonValue,
           // Only update role if incoming is a real app role; never downgrade to a system role
           role: isRealRole(dto.role) ? dto.role : existing.role,
         },
       });
-      this.logger.log(`Admin user updated: ${updated.email} (role: ${updated.role})`);
+      this.logger.log(
+        `Admin user updated: ${updated.email} (role: ${updated.role})`,
+      );
       return { ...updated, userId: updated.id };
     }
 
@@ -74,11 +85,13 @@ export class AdminUsersService {
         phoneNumber: dto.phoneNumber || null,
         profile_picture: dto.profile_picture || null,
         role: dto.role || 'shop_partner',
-        preferences: dto.preferences || null,
+        preferences: (dto.preferences ?? Prisma.DbNull) as Prisma.InputJsonValue,
       },
     });
-    
-    this.logger.log(`Admin user created: ${created.email} (role: ${created.role})`);
+
+    this.logger.log(
+      `Admin user created: ${created.email} (role: ${created.role})`,
+    );
     return { ...created, userId: created.id };
   }
 
@@ -91,15 +104,22 @@ export class AdminUsersService {
 
   async updateProfile(
     userId: string,
-    dto: { name?: string; phoneNumber?: string; profile_picture?: string; preferences?: any },
+    dto: {
+      name?: string;
+      phoneNumber?: string;
+      profile_picture?: string;
+      preferences?: Record<string, unknown> | null;
+    },
   ) {
     const updated = await this.prisma.adminUser.update({
       where: { id: userId },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.phoneNumber !== undefined && { phoneNumber: dto.phoneNumber }),
-        ...(dto.profile_picture !== undefined && { profile_picture: dto.profile_picture }),
-        ...(dto.preferences !== undefined && { preferences: dto.preferences }),
+        ...(dto.profile_picture !== undefined && {
+          profile_picture: dto.profile_picture,
+        }),
+        ...(dto.preferences !== undefined && { preferences: (dto.preferences ?? Prisma.DbNull) as Prisma.InputJsonValue }),
       },
     });
     this.logger.log(`Admin user profile updated: ${updated.email}`);
@@ -108,6 +128,6 @@ export class AdminUsersService {
 
   async findAll() {
     const users = await this.prisma.adminUser.findMany();
-    return users.map(user => ({ ...user, userId: user.id }));
+    return users.map((user) => ({ ...user, userId: user.id }));
   }
 }

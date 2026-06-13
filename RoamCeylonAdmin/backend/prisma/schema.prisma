@@ -347,3 +347,88 @@ model Shop {
   @@index([status])
   @@map("shops")
 }
+
+// ─── Tour Guide Models ────────────────────────────────────────────────────────
+
+model TourPackage {
+  id                 String        @id @default(uuid())
+  guideId            String        @map("guide_id")
+  name               String
+  category           String
+  description        String        @default("")
+  coverImageUrl      String        @default("") @map("cover_image_url")
+  galleryUrls        Json          @default("[]") @map("gallery_urls")
+  duration           Int           @default(1)
+  price              Decimal       @default(0) @db.Decimal(10, 2)
+  highlights         Json          @default("[]")
+  location           String        @default("")
+  status             String        @default("draft")
+  publishImmediately Boolean       @default(true) @map("publish_immediately")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  bookings TourBooking[]
+
+  @@index([guideId])
+  @@index([status])
+  @@map("tour_packages")
+}
+
+model TourBooking {
+  id             String       @id @default(uuid())
+  packageId      String       @map("package_id")
+  guideId        String       @map("guide_id")
+  customerId     String?      @map("customer_id")
+  customerName   String       @map("customer_name")
+  customerEmail  String       @default("") @map("customer_email")
+  customerAvatar String       @default("") @map("customer_avatar")
+  tourName       String       @map("tour_name")
+  startDate      DateTime     @map("start_date")
+  endDate        DateTime     @map("end_date")
+  guests         Int          @default(1)
+  amount         Decimal      @default(0) @db.Decimal(10, 2)
+  status         String       @default("pending")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  package TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([guideId])
+  @@index([packageId])
+  @@index([status])
+  @@map("tour_bookings")
+}
+
+model TourInquiry {
+  id            String   @id @default(uuid())
+  guideId       String   @map("guide_id")
+  guestName     String   @map("guest_name")
+  guestEmail    String   @default("") @map("guest_email")
+  guestAvatar   String   @default("") @map("guest_avatar")
+  subject       String   @default("")
+  message       String   @default("")
+  status        String   @default("new")
+  tourInterest  String   @default("") @map("tour_interest")
+  pipelineValue Decimal  @default(0) @db.Decimal(10, 2) @map("pipeline_value")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([guideId])
+  @@index([status])
+  @@map("tour_inquiries")
+}
+
+model TourNotification {
+  id              String   @id @default(uuid())
+  guideId         String   @map("guide_id")
+  type            String   @default("system")
+  title           String
+  message         String   @default("")
+  isRead          Boolean  @default(false) @map("is_read")
+  relatedEntityId String?  @map("related_entity_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([guideId])
+  @@index([isRead])
+  @@map("tour_notifications")
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,11 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const Packages = () => {
@@ -23,55 +26,73 @@ const Packages = () => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'culture' | 'nature' | 'coastal'>('all');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Package Active/Draft toggles
-  const [isCulturalActive, setIsCulturalActive] = useState(true);
-  const [isHillCountryActive, setIsHillCountryActive] = useState(false);
-  const [isSouthernActive, setIsSouthernActive] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [packagesList, setPackagesList] = useState<any[]>([]);
 
-  // Package Data Array
-  const packagesList = [
-    {
-      id: 'cultural',
-      title: '7-Day Cultural Triangle',
-      category: 'CULTURE',
-      duration: '7 DAYS',
-      description: 'Explore ancient ruins, sacred temples, and the majestic Sigiriya rock on this...',
-      price: '$1,250',
-      image: require('../../assets/Tours/Cultural Triangle.png'),
-      isActive: isCulturalActive,
-      toggleActive: () => setIsCulturalActive(!isCulturalActive),
-    },
-    {
-      id: 'hillcountry',
-      title: 'Hill Country Escape',
-      category: 'NATURE',
-      duration: '5 DAYS',
-      description: 'Experience cool climates, endless tea estates, and cascading waterfalls in the...',
-      price: '$850',
-      image: require('../../assets/Tours/HillCountryEscape.png'),
-      isActive: isHillCountryActive,
-      toggleActive: () => setIsHillCountryActive(!isHillCountryActive),
-    },
-    {
-      id: 'southern',
-      title: 'Southern Shore luxury',
-      category: 'COASTAL',
-      duration: '10 DAYS',
-      description: 'Indulge in private beach villas and bespoke whale watching tours along the...',
-      price: '$2,400',
-      image: require('../../assets/Tours/Sothern Shore.png'),
-      isActive: isSouthernActive,
-      toggleActive: () => setIsSouthernActive(!isSouthernActive),
-    },
-  ];
+  const fetchPackages = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      if (!accessToken) return;
+
+      const res = await fetch(`${apiUrl}/tour-guide/packages`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPackagesList(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch packages:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPackages();
+    }, [])
+  );
+
+  const togglePackageStatus = async (id: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      const res = await fetch(`${apiUrl}/tour-guide/packages/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        // Optimistic UI update
+        setPackagesList((prev) => 
+          prev.map((pkg) => (pkg.id === id ? { ...pkg, status: newStatus } : pkg))
+        );
+      } else {
+        Alert.alert('Error', 'Failed to update package status');
+      }
+    } catch (error) {
+      console.error('Toggle status error:', error);
+    }
+  };
 
   // Filtering Logic
   const filteredPackages = packagesList.filter((pkg) => {
     const matchesCategory =
-      selectedCategory === 'all' || pkg.category.toLowerCase() === selectedCategory;
+      selectedCategory === 'all' || (pkg.category && pkg.category.toLowerCase() === selectedCategory);
     const matchesSearch =
-      pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pkg.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (pkg.name && pkg.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (pkg.description && pkg.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -220,95 +241,95 @@ const Packages = () => {
 
         {/* Packages Cards List */}
         <View style={styles.packagesContainer}>
-          {filteredPackages.map((pkg) => (
-            <View key={pkg.id} style={[styles.tourCard, !pkg.isActive && styles.tourCardDraft]}>
-              {/* Image Block */}
-              <View style={styles.tourImageWrapper}>
-                <Image source={pkg.image} style={styles.tourImage} contentFit="cover" />
-                {!pkg.isActive && <View style={styles.imageDraftOverlay} />}
-                
-                {/* Active/Draft Tag */}
-                <View style={[styles.statusTag, pkg.isActive ? styles.statusTagActive : styles.statusTagDraft]}>
-                  <View style={[styles.statusDot, pkg.isActive ? styles.statusDotActive : styles.statusDotDraft]} />
-                  <Text style={[styles.statusTagText, pkg.isActive ? styles.statusTagTextActive : styles.statusTagTextDraft]}>
-                    {pkg.isActive ? 'ACTIVE' : 'DRAFT'}
-                  </Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+          ) : filteredPackages.length === 0 ? (
+            <Text style={{ textAlign: 'center', marginTop: 40, color: '#6B7280' }}>
+              No packages found. Try adding one!
+            </Text>
+          ) : (
+            filteredPackages.map((pkg) => (
+              <View key={pkg.id} style={[styles.tourCard, pkg.status !== 'active' && styles.tourCardDraft]}>
+                {/* Image Block */}
+                <View style={styles.tourImageWrapper}>
+                  <Image source={pkg.coverImageUrl ? { uri: pkg.coverImageUrl } : require('../../assets/Tours/Cultural Triangle.png')} style={styles.tourImage} contentFit="cover" />
+                  {pkg.status !== 'active' && <View style={styles.imageDraftOverlay} />}
+                  
+                  {/* Active/Draft Tag */}
+                  <View style={[styles.statusTag, pkg.status === 'active' ? styles.statusTagActive : styles.statusTagDraft]}>
+                    <View style={[styles.statusDot, pkg.status === 'active' ? styles.statusDotActive : styles.statusDotDraft]} />
+                    <Text style={[styles.statusTagText, pkg.status === 'active' ? styles.statusTagTextActive : styles.statusTagTextDraft]}>
+                      {pkg.status === 'active' ? 'ACTIVE' : 'DRAFT'}
+                    </Text>
+                  </View>
+
+                  {/* Floating Pencil Edit Icon Button (Active tours only) */}
+                  {pkg.status === 'active' && (
+                    <TouchableOpacity
+                      style={styles.pencilEditButton}
+                      activeOpacity={0.7}
+                      onPress={() => router.push(`/tour-guide/editPackage?id=${pkg.id}` as any)}
+                    >
+                      <Feather name="edit-2" size={14} color="#0E5E2F" />
+                    </TouchableOpacity>
+                  )}
                 </View>
 
-                {/* Floating Pencil Edit Icon Button (Active tours only) */}
-                {pkg.isActive && (
-                  <TouchableOpacity
-                    style={styles.pencilEditButton}
-                    activeOpacity={0.7}
-                    onPress={() => handleEditPackagePress(pkg.title)}
-                  >
-                    <Feather name="edit-2" size={14} color="#0E5E2F" />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Package Content */}
-              <View style={styles.tourInfo}>
-                {/* New Premium Badges Row */}
-                <View style={styles.badgesRow}>
-                  <View style={[styles.categoryBadge, !pkg.isActive && styles.categoryBadgeDraft]}>
-                    <Text style={[styles.categoryBadgeText, !pkg.isActive && styles.badgeTextDraft]}>
-                      {pkg.category}
-                    </Text>
-                  </View>
-                  <View style={[styles.durationBadge, !pkg.isActive && styles.durationBadgeDraft]}>
-                    <Ionicons 
-                      name="time-outline" 
-                      size={11} 
-                      color={pkg.isActive ? "#D97706" : "#60646C"} 
-                      style={{ marginRight: 4 }} 
-                    />
-                    <Text style={[styles.durationText, !pkg.isActive && styles.badgeTextDraft]}>
-                      {pkg.duration}
-                    </Text>
-                  </View>
-                </View>
-
-                <Text style={styles.tourName}>{pkg.title}</Text>
-                <Text style={styles.tourDescription}>{pkg.description}</Text>
-
-                <View style={styles.tourDivider} />
-
-                {/* Price and Toggle Switch Row */}
-                <View style={styles.tourFooter}>
-                  <View>
-                    <Text style={styles.priceLabel}>STARTING FROM</Text>
-                    <Text style={styles.priceText}>
-                      {pkg.price} <Text style={styles.priceUnit}>/pp</Text>
-                    </Text>
+                {/* Package Content */}
+                <View style={styles.tourInfo}>
+                  <View style={styles.badgesRow}>
+                    <View style={[styles.categoryBadge, pkg.status !== 'active' && styles.categoryBadgeDraft]}>
+                      <Text style={[styles.categoryBadgeText, pkg.status !== 'active' && styles.badgeTextDraft]}>
+                        {pkg.category?.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={[styles.durationBadge, pkg.status !== 'active' && styles.durationBadgeDraft]}>
+                      <Ionicons 
+                        name="time-outline" 
+                        size={11} 
+                        color={pkg.status === 'active' ? "#D97706" : "#60646C"} 
+                        style={{ marginRight: 4 }} 
+                      />
+                      <Text style={[styles.durationText, pkg.status !== 'active' && styles.badgeTextDraft]}>
+                        {pkg.duration} DAYS
+                      </Text>
+                    </View>
                   </View>
 
-                  {/* Switch Toggle */}
-                  <TouchableOpacity
-                    style={[
-                      styles.customSwitchContainer,
-                      pkg.isActive ? styles.customSwitchActiveBg : styles.customSwitchInactiveBg,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={pkg.toggleActive}
-                  >
-                    <View
+                  <Text style={styles.tourName}>{pkg.name}</Text>
+                  <Text style={styles.tourDescription} numberOfLines={2}>{pkg.description || 'No description provided.'}</Text>
+
+                  <View style={styles.tourDivider} />
+
+                  {/* Price and Toggle Switch Row */}
+                  <View style={styles.tourFooter}>
+                    <View>
+                      <Text style={styles.priceLabel}>STARTING FROM</Text>
+                      <Text style={styles.priceText}>
+                        Rs. {pkg.price} <Text style={styles.priceUnit}>/pp</Text>
+                      </Text>
+                    </View>
+
+                    {/* Switch Toggle */}
+                    <TouchableOpacity
                       style={[
-                        styles.customSwitchCircle,
-                        pkg.isActive ? styles.customSwitchCircleActive : styles.customSwitchCircleInactive,
+                        styles.customSwitchContainer,
+                        pkg.status === 'active' ? styles.customSwitchActiveBg : styles.customSwitchInactiveBg,
                       ]}
-                    />
-                  </TouchableOpacity>
+                      activeOpacity={0.8}
+                      onPress={() => togglePackageStatus(pkg.id, pkg.status)}
+                    >
+                      <View
+                        style={[
+                          styles.customSwitchCircle,
+                          pkg.status === 'active' ? styles.customSwitchCircleActive : styles.customSwitchCircleInactive,
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-          
-          {filteredPackages.length === 0 && (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={48} color="#8A958E" style={{ marginBottom: 12 }} />
-              <Text style={styles.emptyText}>No packages found matching search criteria.</Text>
-            </View>
+            ))
           )}
         </View>
         </View>

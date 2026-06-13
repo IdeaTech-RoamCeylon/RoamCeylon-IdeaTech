@@ -18,7 +18,10 @@ export class ShopsService {
 
   // ── Upload image to Nhost Storage via admin secret ────────────────────────
 
-  async uploadImage(base64: string, mimeType: string = 'image/jpeg'): Promise<{ url: string }> {
+  async uploadImage(
+    base64: string,
+    mimeType: string = 'image/jpeg',
+  ): Promise<{ url: string }> {
     const subdomain = process.env.NHOST_SUBDOMAIN;
     const region = process.env.NHOST_REGION;
     const adminSecret = process.env.NHOST_ADMIN_SECRET;
@@ -34,7 +37,7 @@ export class ShopsService {
     const response = await fetch(storageUrl, {
       method: 'POST',
       headers: { 'x-hasura-admin-secret': adminSecret! },
-      body: formData as any,
+      body: formData as unknown as BodyInit,
     });
 
     if (!response.ok) {
@@ -43,8 +46,20 @@ export class ShopsService {
       throw new Error(`Storage upload failed: ${errorText}`);
     }
 
-    const data = await response.json() as any;
-    const fileId = data.processedFiles?.[0]?.id ?? data[0]?.id ?? data.id;
+    type NhostUploadResponse = {
+      id?: string;
+      processedFiles?: Array<{ id: string }>;
+    };
+    const data = (await response.json()) as
+      | NhostUploadResponse
+      | Array<{ id: string }>;
+
+    let fileId: string | undefined;
+    if (Array.isArray(data)) {
+      fileId = data[0]?.id;
+    } else {
+      fileId = data.processedFiles?.[0]?.id ?? data.id;
+    }
 
     if (!fileId) throw new Error('Upload succeeded but no file ID returned');
 
@@ -98,13 +113,20 @@ export class ShopsService {
         location: dto.location ?? '',
       },
     });
-    this.logger.log(`Created shop "${shop.name}" (${shop.id}) for owner ${ownerId}`);
+    this.logger.log(
+      `Created shop "${shop.name}" (${shop.id}) for owner ${ownerId}`,
+    );
     return shop;
   }
 
   // ── Update a shop ─────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateShopDto, requesterId: string, isAdmin = false) {
+  async update(
+    id: string,
+    dto: UpdateShopDto,
+    requesterId: string,
+    isAdmin = false,
+  ) {
     const existing = await this.prisma.shop.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Shop "${id}" not found`);
     if (!isAdmin && existing.ownerId !== requesterId) {

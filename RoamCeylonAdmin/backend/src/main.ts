@@ -34,4 +34,6 @@ async function bootstrap() {
   logger.log(`🚀 RoamCeylon Admin backend running on http://localhost:${port}`);
 }
 
-bootstrap();
+bootstrap().catch((err: unknown) => {
+  console.error(err);
+});

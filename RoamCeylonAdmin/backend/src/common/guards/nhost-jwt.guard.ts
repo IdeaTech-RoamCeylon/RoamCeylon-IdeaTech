@@ -26,7 +26,9 @@ export class NhostJwtGuard implements CanActivate {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or malformed Authorization header');
+      throw new UnauthorizedException(
+        'Missing or malformed Authorization header',
+      );
     }
 
     const token = authHeader.slice(7);
@@ -37,12 +39,23 @@ export class NhostJwtGuard implements CanActivate {
       const payloadB64 = token.split('.')[1];
       if (!payloadB64) throw new Error('Invalid token structure');
 
-      const payload = JSON.parse(
-        Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'),
-      );
+      interface JwtPayload {
+        sub?: string;
+        role?: string;
+        'https://hasura.io/jwt/claims'?: {
+          'x-hasura-default-role'?: string;
+        };
+      }
 
-      const userId: string = payload.sub;
-      const role: string =
+      const payload = JSON.parse(
+        Buffer.from(
+          payloadB64.replace(/-/g, '+').replace(/_/g, '/'),
+          'base64',
+        ).toString('utf8'),
+      ) as JwtPayload;
+
+      const userId = payload.sub;
+      const role =
         payload['https://hasura.io/jwt/claims']?.['x-hasura-default-role'] ??
         payload.role ??
         '';
@@ -52,7 +65,7 @@ export class NhostJwtGuard implements CanActivate {
       req.user = { userId, role };
       return true;
     } catch (err) {
-      this.logger.warn(`JWT decode failed: ${err.message}`);
+      this.logger.warn(`JWT decode failed: ${(err as Error).message}`);
       throw new UnauthorizedException('Invalid token');
     }
   }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,11 +8,13 @@ import {
   TextInput,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const Bookings = () => {
@@ -22,84 +24,76 @@ const Bookings = () => {
   // State variables for search and active tab filters
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'confirmed' | 'pending' | 'completed'>('all');
+  
+  const [loading, setLoading] = useState(true);
+  const [bookingsData, setBookingsData] = useState<any[]>([]);
 
-  // Comprehensive bookings list data
-  const bookingsData = [
-    {
-      id: 'RC-8872',
-      customer: 'Eleanor Richards',
-      tour: '7-Day Cultural Triangle',
-      amount: '$3,400',
-      status: 'CONFIRMED',
-      date: 'Oct 12 - Oct 19, 2023',
-      guests: '2 Guests',
-      avatar: 'https://images.unsplash.com/photo-1542856391-010fb87dcfed?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8891',
-      customer: 'Marcus Thorne',
-      tour: 'East Coast Safari Retreat',
-      amount: '$5,850',
-      status: 'PENDING',
-      date: 'Oct 22 - Oct 29, 2023',
-      guests: '4 Guests',
-      avatar: 'https://images.unsplash.com/photo-1575550959106-5a7defe28b56?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8904',
-      customer: 'Sophia Chen',
-      tour: 'Hill Country Luxury Escape',
-      amount: '$2,950',
-      status: 'CONFIRMED',
-      date: 'Nov 02 - Nov 07, 2023',
-      guests: '2 Guests',
-      avatar: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8710',
-      customer: 'David Miller',
-      tour: 'Southern Coastal Exploration',
-      amount: '$4,200',
-      status: 'COMPLETED',
-      date: 'Sep 15 - Sep 22, 2023',
-      guests: '3 Guests',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8922',
-      customer: 'Alice Winston',
-      tour: 'Ella Adventure Package',
-      amount: '$1,800',
-      status: 'PENDING',
-      date: 'Nov 12 - Nov 16, 2023',
-      guests: '1 Guest',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 'RC-8680',
-      customer: 'Emma Watson',
-      tour: 'Kandy Day Sightseeing',
-      amount: '$950',
-      status: 'COMPLETED',
-      date: 'Sep 05 - Sep 06, 2023',
-      guests: '2 Guests',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-    },
-  ];
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      if (!accessToken) return;
+
+      const res = await fetch(`${apiUrl}/tour-guide/bookings`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setBookingsData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [])
+  );
 
   // Filtering logic
   const filteredBookings = bookingsData.filter((booking) => {
-    const matchesSearch =
-      booking.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.tour.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const customerMatch = booking.customerName?.toLowerCase().includes(searchQuery.toLowerCase());
+    const tourMatch = booking.tourName?.toLowerCase().includes(searchQuery.toLowerCase());
+    const idMatch = booking.id?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = customerMatch || tourMatch || idMatch;
     
     if (activeTab === 'all') return matchesSearch;
     return matchesSearch && booking.status.toLowerCase() === activeTab;
   });
 
-  const handleBookingAction = (id: string, action: string) => {
-    Alert.alert(action, `Performing ${action.toLowerCase()} action on booking #${id}...`);
+  const handleBookingAction = async (id: string, action: string) => {
+    // Alert.alert(action, `Performing ${action.toLowerCase()} action on booking #${id}...`);
+    // Placeholder for actual update logic
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      const res = await fetch(`${apiUrl}/tour-guide/bookings/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ status: action.toLowerCase() }),
+      });
+
+      if (res.ok) {
+        setBookingsData((prev) => 
+          prev.map((b) => (b.id === id ? { ...b, status: action.toLowerCase() } : b))
+        );
+      } else {
+        Alert.alert('Error', 'Failed to update booking status');
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -183,11 +177,17 @@ const Bookings = () => {
 
           {/* Bookings List Cards */}
           <View style={styles.bookingsList}>
-            {filteredBookings.length > 0 ? (
+            {loading ? (
+              <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+            ) : filteredBookings.length > 0 ? (
               filteredBookings.map((booking) => {
-                const isConfirmed = booking.status === 'CONFIRMED';
-                const isPending = booking.status === 'PENDING';
-                const isCompleted = booking.status === 'COMPLETED';
+                const isConfirmed = booking.status === 'confirmed';
+                const isPending = booking.status === 'pending';
+                const isCompleted = booking.status === 'completed';
+
+                const dateObj = new Date(booking.startDate);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
 
                 return (
                   <View
@@ -200,10 +200,10 @@ const Bookings = () => {
                     ]}
                   >
                     <View style={styles.cardHeader}>
-                      <Image source={{ uri: booking.avatar }} style={styles.clientAvatar} contentFit="cover" />
+                      <Image source={{ uri: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(booking.customerName || 'User') + '&background=random' }} style={styles.clientAvatar} contentFit="cover" />
                       <View style={styles.clientDetails}>
-                        <Text style={styles.bookingIdText}>#{booking.id}</Text>
-                        <Text style={styles.clientNameText}>{booking.customer}</Text>
+                        <Text style={styles.bookingIdText}>#{shortId}</Text>
+                        <Text style={styles.clientNameText}>{booking.customerName}</Text>
                       </View>
                       <View
                         style={[
@@ -219,6 +219,7 @@ const Bookings = () => {
                             isConfirmed && styles.badgeTextConfirmed,
                             isPending && styles.badgeTextPending,
                             isCompleted && styles.badgeTextCompleted,
+                            { textTransform: 'uppercase' }
                           ]}
                         >
                           {booking.status}
@@ -229,20 +230,20 @@ const Bookings = () => {
                     <View style={styles.cardInfoSection}>
                       <View style={styles.infoRow}>
                         <Ionicons name="map-outline" size={15} color="#6B7280" style={{ marginRight: 6 }} />
-                        <Text style={styles.infoValueText} numberOfLines={1}>{booking.tour}</Text>
+                        <Text style={styles.infoValueText} numberOfLines={1}>{booking.tourName}</Text>
                       </View>
                       <View style={styles.infoRow}>
                         <Ionicons name="calendar-outline" size={15} color="#6B7280" style={{ marginRight: 6 }} />
-                        <Text style={styles.infoValueText}>{booking.date}</Text>
+                        <Text style={styles.infoValueText}>{formattedDate}</Text>
                       </View>
                       <View style={styles.infoRow}>
                         <Ionicons name="people-outline" size={15} color="#6B7280" style={{ marginRight: 6 }} />
-                        <Text style={styles.infoValueText}>{booking.guests}</Text>
+                        <Text style={styles.infoValueText}>{booking.customerName}</Text>
                       </View>
                     </View>
 
                     <View style={styles.cardFooter}>
-                      <Text style={styles.priceText}>{booking.amount}</Text>
+                      <Text style={styles.priceText}>Rs. {booking.amount}</Text>
                       <View style={styles.actionsRow}>
                         {isPending ? (
                           <>
