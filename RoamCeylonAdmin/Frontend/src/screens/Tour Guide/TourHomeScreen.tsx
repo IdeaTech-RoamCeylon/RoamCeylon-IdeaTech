@@ -6,98 +6,32 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
 
 const TourHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // State for Tour Packages status toggles
+  // State for Tour Packages status toggles (mock)
   const [isCulturalActive, setIsCulturalActive] = useState(true);
   const [isHillCountryActive, setIsHillCountryActive] = useState(false);
+  const [isSouthernActive, setIsSouthernActive] = useState(true);
 
   // Stats / Performance Overview data
-  const performanceStats = [
-    {
-      id: 'total-packages',
-      title: 'Total Packages',
-      value: '124',
-      trend: '↗ +12% from last month',
-      isPositive: true,
-      icon: 'cube-outline',
-      iconColor: '#0E5E2F',
-      badgeBg: '#EAF7EE',
-    },
-    {
-      id: 'active-inquiries',
-      title: 'Active Inquiries',
-      value: '48',
-      trend: '↗ +5 new today',
-      isPositive: true,
-      icon: 'chatbubble-ellipses-outline',
-      iconColor: '#0E5E2F',
-      badgeBg: '#EAF7EE',
-    },
-    {
-      id: 'conversion-rate',
-      title: 'Conversion Rate',
-      value: '22.4%',
-      trend: '↘ -1.2% from last month',
-      isPositive: false,
-      icon: 'analytics-outline',
-      iconColor: '#D97706',
-      badgeBg: '#FEF3C7',
-    },
-    {
-      id: 'monthly-revenue',
-      title: 'Monthly Revenue',
-      value: '$84,500',
-      trend: '↗ +18% vs target',
-      isPositive: true,
-      icon: 'cash-outline',
-      iconColor: '#0E5E2F',
-      badgeBg: '#EAF7EE',
-    },
-  ];
+  const stats = {
+    totalPackages: 3,
+    activeBookings: 12,
+    rating: '4.9',
+  };
 
-  // Guides list
-  const guides = [
-    {
-      name: 'Kamal Perera',
-      assignment: 'Cultural Triangle',
-      status: 'On Tour',
-      statusType: 'warning', // yellow
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-      isActive: true,
-    },
-    {
-      name: 'Nishanthi Silva',
-      assignment: 'Wildlife Safari',
-      status: 'Available',
-      statusType: 'success', // green
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-      isActive: true,
-    },
-    {
-      name: 'Rohan Peiris',
-      assignment: 'Hill Country',
-      status: 'On Tour',
-      statusType: 'warning', // yellow
-      avatar: null, // Initial RP text avatar
-      isActive: false,
-    },
-  ];
-
-  // Recent Bookings data
-  const bookings = [
+  // Recent Bookings data for the guide's schedule
+  const bookingsList = [
     {
       id: 'RC-8892',
       customer: 'Eleanor Richards',
@@ -118,68 +52,122 @@ const TourHomeScreen = () => {
     },
   ];
 
+  // Packages list formatted like shops
+  const packagesList = [
+    {
+      id: 'cultural',
+      title: '7-Day Cultural Triangle',
+      category: 'CULTURE',
+      duration: '7 Days',
+      price: '$1,250',
+      image: require('../../assets/Tours/Cultural Triangle.png'),
+      isActive: isCulturalActive,
+      toggleActive: () => setIsCulturalActive(!isCulturalActive),
+    },
+    {
+      id: 'hillcountry',
+      title: 'Hill Country Escape',
+      category: 'NATURE',
+      duration: '5 Days',
+      price: '$850',
+      image: require('../../assets/Tours/HillCountryEscape.png'),
+      isActive: isHillCountryActive,
+      toggleActive: () => setIsHillCountryActive(!isHillCountryActive),
+    },
+    {
+      id: 'southern',
+      title: 'Southern Shore luxury',
+      category: 'COASTAL',
+      duration: '10 Days',
+      price: '$2,400',
+      image: require('../../assets/Tours/Sothern Shore.png'),
+      isActive: isSouthernActive,
+      toggleActive: () => setIsSouthernActive(!isSouthernActive),
+    },
+  ];
+
   const handleNotificationPress = () => {
-    Alert.alert('Notifications', 'No new notifications.');
-  };
-
-  const handleAllocateGuidePress = () => {
-    Alert.alert('Guide Allocation', 'Redirecting to guide allocation manager...');
-  };
-
-  const handleMenuPress = () => {
-    Alert.alert('Menu', 'Guide actions menu opened.');
+    router.push('/tour-guide/notifications' as any);
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-            contentFit="contain"
-          />
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity
-            style={[styles.notificationButton, { marginRight: 8 }]}
-            activeOpacity={0.7}
-            onPress={handleNotificationPress}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/tour-guide/settings' as any)}
-          >
-            <Ionicons name="person-circle-outline" size={28} color="#1C1917" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 40 },
-        ]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Overview Header Section */}
-        <View style={styles.sectionHeadingBlock}>
-          <Text style={styles.mainTitle}>Overview</Text>
-          <Text style={styles.mainSubtitle}>
-            Welcome back. Here is tours performance at a glance.
-          </Text>
-        </View>
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+        >
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greetingText}>Welcome back,</Text>
+              <Text style={styles.headerTitle}>Guide Dashboard</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={[styles.headerIconButton, { marginRight: 10 }]}
+                activeOpacity={0.7}
+                onPress={handleNotificationPress}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                onPress={() => router.push('/tour-guide/settings' as any)}
+              >
+                <View style={styles.avatarCircle}>
+                  <MaterialCommunityIcons name="account" size={24} color="#0F3D26" />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        {/* Quick Navigation / Preview Section */}
-        <View style={styles.navSection}>
-          <Text style={styles.navSectionTitle}>Quick Navigation</Text>
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconWrap}>
+                <MaterialCommunityIcons name="cube-outline" size={20} color="#0E5E2F" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{stats.totalPackages}</Text>
+                <Text style={styles.statLabel}>Packages</Text>
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
+                <Ionicons name="calendar-outline" size={20} color="#D97706" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{stats.activeBookings}</Text>
+                <Text style={styles.statLabel}>Bookings</Text>
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="star-outline" size={20} color="#2563EB" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{stats.rating}</Text>
+                <Text style={styles.statLabel}>Rating</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.mainContent}>
+          {/* Quick Navigation Section */}
+          <View style={styles.navSection}>
+            <Text style={styles.navSectionTitle}>Quick Navigation</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -190,7 +178,9 @@ const TourHomeScreen = () => {
               onPress={() => router.push('/tour-guide/insights' as any)}
               activeOpacity={0.8}
             >
-              <Ionicons name="bar-chart-outline" size={20} color="#0E5E2F" />
+              <View style={[styles.navIconBg, { backgroundColor: '#EAF7EE' }]}>
+                <Ionicons name="bar-chart-outline" size={16} color="#0E5E2F" />
+              </View>
               <Text style={styles.navCardText}>Insights</Text>
             </TouchableOpacity>
 
@@ -199,7 +189,9 @@ const TourHomeScreen = () => {
               onPress={() => router.push('/tour-guide/packages' as any)}
               activeOpacity={0.8}
             >
-              <Ionicons name="cube-outline" size={20} color="#0E5E2F" />
+              <View style={[styles.navIconBg, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="cube-outline" size={16} color="#D97706" />
+              </View>
               <Text style={styles.navCardText}>Packages</Text>
             </TouchableOpacity>
 
@@ -208,7 +200,9 @@ const TourHomeScreen = () => {
               onPress={() => router.push('/tour-guide/revenue' as any)}
               activeOpacity={0.8}
             >
-              <Ionicons name="cash-outline" size={20} color="#0E5E2F" />
+              <View style={[styles.navIconBg, { backgroundColor: '#EAF7EE' }]}>
+                <Ionicons name="cash-outline" size={16} color="#0E5E2F" />
+              </View>
               <Text style={styles.navCardText}>Revenue</Text>
             </TouchableOpacity>
 
@@ -217,253 +211,72 @@ const TourHomeScreen = () => {
               onPress={() => router.push('/tour-guide/inquiries' as any)}
               activeOpacity={0.8}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0E5E2F" />
+              <View style={[styles.navIconBg, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#0284C7" />
+              </View>
               <Text style={styles.navCardText}>Inquiries</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* Overview Stats Cards Stacked Vertically */}
-        <View style={styles.statsContainer}>
-          {performanceStats.map((stat) => (
-            <View key={stat.id} style={styles.statCard}>
-              <View style={styles.statCardHeader}>
-                <Text style={styles.statTitle}>{stat.title}</Text>
-                <View style={[styles.statIconBadge, { backgroundColor: stat.badgeBg }]}>
-                  <Ionicons name={stat.icon as any} size={18} color={stat.iconColor} />
-                </View>
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <View style={styles.trendRow}>
-                <Text
-                  style={[
-                    styles.trendText,
-                    stat.isPositive ? styles.trendPositive : styles.trendNegative,
-                  ]}
-                >
-                  {stat.trend}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Tour Packages Section */}
+        {/* Tour Packages List */}
         <View style={styles.sectionHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>Tour Packages</Text>
-            <Text style={styles.sectionSubtitle}>
-              Manage visibility of your top itineraries.
-            </Text>
-          </View>
+          <Text style={styles.sectionTitle}>Your Packages</Text>
           <TouchableOpacity activeOpacity={0.6} onPress={() => router.push('/tour-guide/packages' as any)}>
             <Text style={styles.viewAllText}>View All</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Tour Card 1: 7-Day Cultural Triangle */}
-        <View style={[styles.tourCard, !isCulturalActive && styles.tourCardDraft]}>
-          <View style={styles.tourImageWrapper}>
-            <Image
-              source={require('../../assets/Tours/Cultural Triangle.png')}
-              style={styles.tourImage}
-              contentFit="cover"
-            />
-            {!isCulturalActive && <View style={styles.imageDraftOverlay} />}
-            <View style={[styles.statusTag, isCulturalActive ? styles.statusTagActive : styles.statusTagDraft]}>
-              <View style={[styles.statusDot, isCulturalActive ? styles.statusDotActive : styles.statusDotDraft]} />
-              <Text style={[styles.statusTagText, isCulturalActive ? styles.statusTagTextActive : styles.statusTagTextDraft]}>
-                {isCulturalActive ? 'Active' : 'Draft'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.tourInfo}>
-            <View style={styles.tourTitleRow}>
-              <Text style={styles.tourName}>7–Day Cultural Triangle</Text>
-              <View style={[styles.durationBadge, isCulturalActive ? styles.durationBadgeActive : styles.durationBadgeDraft]}>
-                <Ionicons
-                  name="time-outline"
-                  size={12}
-                  color={isCulturalActive ? '#5B600A' : '#60646C'}
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={[styles.durationText, isCulturalActive ? styles.durationTextActive : styles.durationTextDraft]}>
-                  7 Days
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.tourDescription}>
-              Explore ancient ruins, sacred temples, and the majestic Sigiriya rock.
-            </Text>
-
-            <View style={styles.tourDivider} />
-
-            <View style={styles.tourFooter}>
-              <Text style={styles.priceText}>
-                <Text style={styles.priceLabel}>From </Text>
-                $1,200 <Text style={styles.priceUnit}>/pp</Text>
-              </Text>
-
-              {/* Custom Switch Toggle */}
-              <TouchableOpacity
-                style={[
-                  styles.customSwitchContainer,
-                  isCulturalActive ? styles.customSwitchActiveBg : styles.customSwitchInactiveBg,
-                ]}
-                activeOpacity={0.8}
-                onPress={() => setIsCulturalActive(!isCulturalActive)}
-              >
-                <View
-                  style={[
-                    styles.customSwitchCircle,
-                    isCulturalActive ? styles.customSwitchCircleActive : styles.customSwitchCircleInactive,
-                  ]}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Tour Card 2: Hill Country Escape */}
-        <View style={[styles.tourCard, !isHillCountryActive && styles.tourCardDraft]}>
-          <View style={styles.tourImageWrapper}>
-            <Image
-              source={require('../../assets/Tours/HillCountryEscape.png')}
-              style={styles.tourImage}
-              contentFit="cover"
-            />
-            {!isHillCountryActive && <View style={styles.imageDraftOverlay} />}
-            <View style={[styles.statusTag, isHillCountryActive ? styles.statusTagActive : styles.statusTagDraft]}>
-              <View style={[styles.statusDot, isHillCountryActive ? styles.statusDotActive : styles.statusDotDraft]} />
-              <Text style={[styles.statusTagText, isHillCountryActive ? styles.statusTagTextActive : styles.statusTagTextDraft]}>
-                {isHillCountryActive ? 'Active' : 'Draft'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.tourInfo}>
-            <View style={styles.tourTitleRow}>
-              <Text style={styles.tourName}>Hill Country Escape</Text>
-              <View style={[styles.durationBadge, isHillCountryActive ? styles.durationBadgeActive : styles.durationBadgeDraft]}>
-                <Ionicons
-                  name="time-outline"
-                  size={12}
-                  color={isHillCountryActive ? '#5B600A' : '#60646C'}
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={[styles.durationText, isHillCountryActive ? styles.durationTextActive : styles.durationTextDraft]}>
-                  5 Days
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.tourDescription}>
-              Experience cool climates, endless tea estates, and cascading waterfalls.
-            </Text>
-
-            <View style={styles.tourDivider} />
-
-            <View style={styles.tourFooter}>
-              <Text style={styles.priceText}>
-                <Text style={styles.priceLabel}>From </Text>
-                $850 <Text style={styles.priceUnit}>/pp</Text>
-              </Text>
-
-              {/* Custom Switch Toggle */}
-              <TouchableOpacity
-                style={[
-                  styles.customSwitchContainer,
-                  isHillCountryActive ? styles.customSwitchActiveBg : styles.customSwitchInactiveBg,
-                ]}
-                activeOpacity={0.8}
-                onPress={() => setIsHillCountryActive(!isHillCountryActive)}
-              >
-                <View
-                  style={[
-                    styles.customSwitchCircle,
-                    isHillCountryActive ? styles.customSwitchCircleActive : styles.customSwitchCircleInactive,
-                  ]}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Guide Allocation Section */}
-        <View style={[styles.sectionHeader, { marginTop: 12 }]}>
-          <Text style={styles.sectionTitle}>Guide Allocation</Text>
-          <TouchableOpacity activeOpacity={0.6} onPress={handleMenuPress}>
-            <Ionicons name="ellipsis-horizontal" size={22} color="#1C1917" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.guideCardContainer}>
-          {guides.map((guide, index) => {
-            const isLast = index === guides.length - 1;
-            return (
-              <View key={guide.name}>
-                <View style={styles.guideRow}>
-                  {/* Avatar block */}
-                  <View style={styles.avatarWrapper}>
-                    {guide.avatar ? (
-                      <Image source={{ uri: guide.avatar }} style={styles.guideAvatar} contentFit="cover" />
-                    ) : (
-                      <View style={styles.textAvatarContainer}>
-                        <Text style={styles.textAvatarText}>RP</Text>
-                      </View>
-                    )}
-                    {guide.isActive && <View style={styles.activeIndicatorDot} />}
-                  </View>
-
-                  {/* Guide Info */}
-                  <View style={styles.guideInfoCol}>
-                    <Text style={styles.guideName}>{guide.name}</Text>
-                    <Text style={styles.guideAssignment}>{guide.assignment}</Text>
-                  </View>
-
-                  {/* Badge */}
-                  <View
-                    style={[
-                      styles.pillBadge,
-                      guide.statusType === 'success' ? styles.pillBadgeSuccess : styles.pillBadgeWarning,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.pillBadgeText,
-                        guide.statusType === 'success' ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText,
-                      ]}
-                    >
-                      {guide.status}
-                    </Text>
-                  </View>
-                </View>
-                {!isLast && <View style={styles.guideDivider} />}
-              </View>
-            );
-          })}
-
-          {/* Allocate Guide Button */}
-          <TouchableOpacity
-            style={styles.allocateButton}
-            activeOpacity={0.7}
-            onPress={handleAllocateGuidePress}
+        {packagesList.map((item) => (
+          <TouchableOpacity 
+            key={item.id} 
+            style={styles.packageCard}
+            activeOpacity={0.9}
+            onPress={() => router.push('/tour-guide/packages' as any)}
           >
-            <Feather name="plus" size={16} color="#1C1917" style={{ marginRight: 6 }} />
-            <Text style={styles.allocateButtonText}>Allocate Guide</Text>
+            <Image 
+              source={item.image} 
+              style={styles.packageImage} 
+              contentFit="cover" 
+            />
+            
+            <View style={styles.packageInfo}>
+              <View style={styles.packageHeaderRow}>
+                <Text style={styles.packageTitle} numberOfLines={1}>{item.title}</Text>
+                <View style={[
+                  styles.statusBadge, 
+                  item.isActive ? styles.statusActive : styles.statusInactive
+                ]}>
+                  <Text style={[
+                    styles.statusText,
+                    item.isActive ? styles.statusTextActive : styles.statusTextInactive
+                  ]}>
+                    {item.isActive ? 'Active' : 'Draft'}
+                  </Text>
+                </View>
+              </View>
+              
+              <Text style={styles.packageCategory}>{item.category} • {item.duration}</Text>
+              
+              <View style={styles.packageFooter}>
+                <View style={styles.packageFooterItem}>
+                  <Ionicons name="cash-outline" size={14} color="#6B7280" style={{ marginRight: 4 }} />
+                  <Text style={styles.packageFooterText}>From {item.price} /pp</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#D1D5DB" />
+              </View>
+            </View>
           </TouchableOpacity>
-        </View>
+        ))}
 
         {/* Recent Bookings Section */}
         <View style={[styles.sectionHeader, { marginTop: 12 }]}>
-          <Text style={styles.sectionTitle}>Recent Bookings</Text>
+          <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
         </View>
 
         <View style={styles.bookingsCardContainer}>
-          {bookings.map((booking, index) => {
-            const isLast = index === bookings.length - 1;
+          {bookingsList.map((booking, index) => {
+            const isLast = index === bookingsList.length - 1;
             return (
               <View key={booking.id}>
                 <View style={styles.bookingRow}>
@@ -500,7 +313,22 @@ const TourHomeScreen = () => {
             );
           })}
         </View>
+        </View>
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={[styles.fab, { bottom: insets.bottom + 24 }]} 
+        activeOpacity={0.8}
+        onPress={() => router.push('/tour-guide/addPackage' as any)}
+      >
+        <LinearGradient
+          colors={['#10B981', '#059669']}
+          style={styles.fabGradient}
+        >
+          <Feather name="plus" size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -508,77 +336,135 @@ const TourHomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
-  header: {
+  headerGradient: {
+    paddingBottom: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    zIndex: 10,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
-    zIndex: 10,
+    marginBottom: 24,
   },
-  logoContainer: {
+  greetingText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  logo: {
-    width: 140,
-    height: 32,
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFBFB',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  avatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  statIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
   },
   scrollContent: {
+    paddingTop: 0,
+  },
+  mainContent: {
+    marginTop: -20,
     paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  sectionHeadingBlock: {
-    marginBottom: 24,
-  },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.5,
+    backgroundColor: '#F3F4F6',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 32,
+    zIndex: 1,
   },
   navSection: {
-    marginTop: 0,
-    marginBottom: 20,
-    paddingHorizontal: 0,
+    marginBottom: 24,
   },
   navSectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#7D8A82',
+    color: '#7C8A81',
     textTransform: 'uppercase',
-    marginBottom: 10,
+    marginBottom: 12,
     letterSpacing: 0.8,
   },
   navScrollContent: {
-    paddingRight: 24,
-    paddingVertical: 4,
+    paddingRight: 20,
   },
   navCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#EAEFEA',
+    paddingHorizontal: 14,
     paddingVertical: 10,
     marginRight: 10,
     shadowColor: '#000',
@@ -587,382 +473,121 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  navCardText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#172B1E',
-    marginLeft: 8,
-  },
-  mainSubtitle: {
-    fontSize: 15,
-    color: '#60646C',
-    marginTop: 6,
-    lineHeight: 21,
-    fontWeight: '500',
-  },
-  statsContainer: {
-    marginBottom: 28,
-    gap: 12,
-  },
-  statCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#60646C',
-  },
-  statIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FAFBFB',
-    borderWidth: 1,
-    borderColor: '#EAF2EC',
+  navIconBg: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1C1917',
-    marginBottom: 6,
-    letterSpacing: -0.5,
-  },
-  trendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  trendText: {
+  navCardText: {
     fontSize: 13,
     fontWeight: '700',
-  },
-  trendPositive: {
-    color: '#0E5E2F',
-  },
-  trendNegative: {
-    color: '#C2410C',
+    color: '#1C1917',
+    marginLeft: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1C1917',
     letterSpacing: -0.3,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#60646C',
-    marginTop: 4,
-    fontWeight: '500',
-  },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#0E5E2F',
   },
-  tourCard: {
+  packageCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
     marginBottom: 16,
-    overflow: 'hidden',
+    flexDirection: 'row',
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
   },
-  tourCardDraft: {
-    // Styles applied to card when tour is in Draft mode
+  packageImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
   },
-  tourImageWrapper: {
-    width: '100%',
-    height: 180,
-    position: 'relative',
-    backgroundColor: '#EAEAEA',
-  },
-  tourImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageDraftOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)', // Custom mockup look to dim and grayscale the image
-  },
-  statusTag: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 20,
-    paddingHorizontal: 10,
+  packageInfo: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'space-between',
     paddingVertical: 4,
   },
-  statusTagActive: {
-    backgroundColor: '#C2F3D0',
-  },
-  statusTagDraft: {
-    backgroundColor: '#F3F4F6',
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  statusDotActive: {
-    backgroundColor: '#0E5E2F',
-  },
-  statusDotDraft: {
-    backgroundColor: '#60646C',
-  },
-  statusTagText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  statusTagTextActive: {
-    color: '#0E5E2F',
-  },
-  statusTagTextDraft: {
-    color: '#60646C',
-  },
-  tourInfo: {
-    padding: 20,
-  },
-  tourTitleRow: {
+  packageHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 2,
   },
-  tourName: {
-    fontSize: 18,
-    fontWeight: '800',
+  packageTitle: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1C1917',
     flex: 1,
     marginRight: 8,
   },
-  durationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  durationBadgeActive: {
-    backgroundColor: '#FCE788',
-  },
-  durationBadgeDraft: {
-    backgroundColor: '#F3F4F6',
-  },
-  durationText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  durationTextActive: {
-    color: '#5B600A',
-  },
-  durationTextDraft: {
-    color: '#60646C',
-  },
-  tourDescription: {
-    fontSize: 14,
-    color: '#60646C',
-    lineHeight: 20,
+  packageCategory: {
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '500',
+    marginBottom: 4,
   },
-  tourDivider: {
-    height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 16,
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  tourFooter: {
+  statusActive: { backgroundColor: '#ECFDF5' },
+  statusInactive: { backgroundColor: '#FEF2F2' },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusTextActive: { color: '#059669' },
+  statusTextInactive: { color: '#DC2626' },
+  packageFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 8,
   },
-  priceText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  priceLabel: {
-    fontSize: 14,
-    color: '#60646C',
-    fontWeight: '500',
-  },
-  priceUnit: {
-    fontSize: 14,
-    color: '#60646C',
-    fontWeight: '500',
-  },
-  customSwitchContainer: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    padding: 3,
-    justifyContent: 'center',
-  },
-  customSwitchActiveBg: {
-    backgroundColor: '#0E5E2F',
-  },
-  customSwitchInactiveBg: {
-    backgroundColor: '#E5E7EB',
-  },
-  customSwitchCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#FFFFFF',
-  },
-  customSwitchCircleActive: {
-    alignSelf: 'flex-end',
-  },
-  customSwitchCircleInactive: {
-    alignSelf: 'flex-start',
-  },
-  guideCardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    marginBottom: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  guideRow: {
+  packageFooterItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginRight: 14,
-  },
-  guideAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#EAEAEA',
-  },
-  textAvatarContainer: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#EAF7EE',
-    borderWidth: 1.2,
-    borderColor: '#C2F3D0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textAvatarText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0E5E2F',
-  },
-  activeIndicatorDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#0E5E2F',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  guideInfoCol: {
     flex: 1,
+    marginRight: 12,
   },
-  guideName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  guideAssignment: {
-    fontSize: 13,
-    color: '#60646C',
-    marginTop: 2,
+  packageFooterText: {
+    fontSize: 12,
+    color: '#6B7280',
     fontWeight: '500',
-  },
-  pillBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pillBadgeSuccess: {
-    backgroundColor: '#C2F3D0',
-  },
-  pillBadgeWarning: {
-    backgroundColor: '#FCE788',
-  },
-  pillBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  pillBadgeSuccessText: {
-    color: '#0E5E2F',
-  },
-  pillBadgeWarningText: {
-    color: '#5B600A',
-  },
-  guideDivider: {
-    height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 14,
-  },
-  allocateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.2,
-    borderColor: '#A3A8A5',
-    borderStyle: 'dashed',
-    height: 48,
-    marginTop: 16,
-  },
-  allocateButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1C1917',
   },
   bookingsCardContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
+    borderWidth: 1,
+    borderColor: '#EAEFEA',
+    padding: 16,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -973,27 +598,27 @@ const styles = StyleSheet.create({
   bookingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   bookingLeft: {
     flex: 1,
     marginRight: 10,
   },
   bookingMainText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#1C1917',
   },
   bookingTourText: {
-    fontSize: 13,
-    color: '#60646C',
-    marginTop: 4,
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#606963',
+    marginTop: 2,
+    fontWeight: '500',
   },
   bookingDateText: {
-    fontSize: 13,
-    color: '#60646C',
-    marginTop: 4,
+    fontSize: 11,
+    color: '#8A958E',
+    marginTop: 2,
     fontWeight: '500',
   },
   bookingRight: {
@@ -1004,10 +629,54 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1C1917',
   },
+  pillBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pillBadgeSuccess: {
+    backgroundColor: '#EAF7EE',
+    borderWidth: 0.5,
+    borderColor: '#C2F3D0',
+  },
+  pillBadgeWarning: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 0.5,
+    borderColor: '#FEF3C7',
+  },
+  pillBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  pillBadgeSuccessText: {
+    color: '#0E5E2F',
+  },
+  pillBadgeWarningText: {
+    color: '#D97706',
+  },
   bookingDivider: {
     height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 14,
+    backgroundColor: '#F2F5F3',
+    marginVertical: 12,
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    zIndex: 100,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

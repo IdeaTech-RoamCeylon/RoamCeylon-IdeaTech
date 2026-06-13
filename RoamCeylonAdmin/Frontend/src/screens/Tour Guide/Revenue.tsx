@@ -6,15 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
 
 const Revenue = () => {
   const insets = useSafeAreaInsets();
@@ -57,16 +55,16 @@ const Revenue = () => {
       amount: '$18,450',
       percentage: '21.8% of total revenue',
       icon: 'notifications-outline',
-      iconColor: '#0E5E2F',
-      bgCircleColor: '#EAF7EE',
+      iconColor: '#D97706',
+      bgCircleColor: '#FFFBEB',
     },
     {
       title: 'Guide Fees',
       amount: '$9,850',
       percentage: '11.7% of total revenue',
       icon: 'card-outline',
-      iconColor: '#0E5E2F',
-      bgCircleColor: '#EAF7EE',
+      iconColor: '#2563EB',
+      bgCircleColor: '#EFF6FF',
     },
   ];
 
@@ -101,63 +99,13 @@ const Revenue = () => {
     },
   ];
 
-  const handleMenuPress = () => {
-    Alert.alert('Menu', 'Hamburger menu options are coming soon!');
-  };
-
-  const handleNotificationPress = () => {
-    Alert.alert('Notifications', 'No new notifications.');
-  };
-
   const handleViewAllBookingsPress = () => {
-    Alert.alert('Recent Bookings', 'Redirecting to booking manager...');
+    router.push('/tour-guide/bookings' as any);
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={[styles.headerIconButton, { marginRight: 8 }]}
-            activeOpacity={0.7}
-            onPress={handleNotificationPress}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/tour-guide/settings' as any)}
-          >
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.profileImage}
-              contentFit="cover"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
@@ -167,29 +115,82 @@ const Revenue = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Section */}
-        <View style={styles.titleSection}>
-          <Text style={styles.topLabel}>FINANCIAL PERFORMANCE</Text>
-          <Text style={styles.title}>Revenue Overview</Text>
-          <Text style={styles.subtitle}>
-            Detailed earnings and financial breakdown for October 2023.
-          </Text>
+        {/* Transparent Header */}
+        <View
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        >
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Revenue Overview</Text>
+          <View style={styles.headerButton} />
         </View>
 
-        {/* Total Revenue Card with background graphic accent */}
-        <View style={styles.revenueCard}>
-          {/* Faint circle graphic inside card */}
-          <View style={styles.revenueCardCircleAccent} />
+        <View style={styles.mainContent}>
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.pageSubtitle}>
+              Detailed earnings and financial breakdown for October 2023.
+            </Text>
+          </View>
+
+        {/* Total Revenue Card (Linear Gradient Emerald) */}
+        <LinearGradient
+          colors={['#0F3D26', '#0E5E2F', '#064E3B']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.revenueCard}
+        >
+          {/* Subtle Decorative Background Renders */}
+          <View style={styles.kpiRing1} />
+          <View style={styles.kpiRing2} />
+          <View style={styles.kpiGlowBlob} />
           
-          <Text style={styles.revenueCardTitle}>TOTAL REVENUE (OCT)</Text>
-          <View style={styles.revenueValueRow}>
-            <Text style={styles.revenueValue}>$84,500</Text>
-            <View style={styles.trendBadge}>
-              <Ionicons name="trending-up-outline" size={14} color="#0E5E2F" style={{ marginRight: 4 }} />
-              <Text style={styles.trendBadgeText}>+18%</Text>
+          {/* Card Header Row */}
+          <View style={styles.revenueCardHeaderRow}>
+            <Text style={styles.revenueCardTitle}>TOTAL REVENUE</Text>
+            <View style={styles.periodBadge}>
+              <Ionicons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.8)" style={{ marginRight: 4 }} />
+              <Text style={styles.periodBadgeText}>Oct 2023</Text>
             </View>
           </View>
-        </View>
+
+          {/* Main Figure & Trend Badge */}
+          <View style={styles.revenueValueRow}>
+            <Text style={styles.revenueValue}>$84,500</Text>
+            
+            <View style={styles.trendBadgeGlass}>
+              <Ionicons name="trending-up" size={13} color="#34D399" style={{ marginRight: 4 }} />
+              <Text style={styles.trendBadgeGlassText}>+18%</Text>
+            </View>
+          </View>
+
+          {/* Thin Glassmorphism Divider */}
+          <View style={styles.cardDividerGlass} />
+
+          {/* Target Progress Section */}
+          <View style={styles.targetProgressContainer}>
+            <View style={styles.targetProgressLabelRow}>
+              <Text style={styles.targetProgressLabel}>Monthly Goal Progress</Text>
+              <Text style={styles.targetProgressValue}>$84,500 / $100,000</Text>
+            </View>
+            
+            {/* Progress Bar Track */}
+            <View style={styles.progressBarTrack}>
+              <LinearGradient
+                colors={['#34D399', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.progressBarFill, { width: '84.5%' }]}
+              />
+            </View>
+            
+            {/* Target Progress Context Footnote */}
+            <Text style={styles.targetProgressFootnote}>
+              On track to exceed target by $2,900
+            </Text>
+          </View>
+        </LinearGradient>
 
         {/* Earnings Trend Card with Custom Bar Chart */}
         <View style={styles.trendCard}>
@@ -235,17 +236,34 @@ const Revenue = () => {
 
           {/* Custom Bar Chart Canvas */}
           <View style={styles.chartContainer}>
+            {/* Background Chart Grid lines */}
+            <View style={styles.chartGridLines}>
+              <View style={styles.gridLine} />
+              <View style={styles.gridLine} />
+              <View style={styles.gridLine} />
+              <View style={styles.gridLine} />
+            </View>
+
             <View style={styles.chartBarsRow}>
               {currentChartData.map((data) => (
                 <View key={data.label} style={styles.chartBarCol}>
                   <View style={styles.barBackgroundTrack}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        { height: `${data.heightPercent}%` },
-                        data.isCurrent ? styles.barFillActive : styles.barFillInactive,
-                      ]}
-                    />
+                    {data.isCurrent ? (
+                      <LinearGradient
+                        colors={['#34D399', '#0E5E2F']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={[styles.barFill, { height: `${data.heightPercent}%` }]}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.barFill,
+                          { height: `${data.heightPercent}%` },
+                          styles.barFillInactive,
+                        ]}
+                      />
+                    )}
                   </View>
                   <Text
                     style={[
@@ -261,27 +279,43 @@ const Revenue = () => {
           </View>
         </View>
 
-        {/* Breakdown Cards Stacked Vertically */}
-        <View style={styles.breakdownContainer}>
-          {breakdowns.map((breakdown) => (
-            <View key={breakdown.title} style={styles.breakdownCard}>
-              <View style={[styles.breakdownIconCircle, { backgroundColor: breakdown.bgCircleColor }]}>
-                <Ionicons name={breakdown.icon as any} size={20} color={breakdown.iconColor} />
-              </View>
-              <View style={styles.breakdownInfoCol}>
-                <Text style={styles.breakdownTitleText}>{breakdown.title}</Text>
-                <Text style={styles.breakdownValueText}>{breakdown.amount}</Text>
-                <Text style={styles.breakdownPercentageText}>{breakdown.percentage}</Text>
-              </View>
-            </View>
-          ))}
+        {/* Consolidated Revenue Breakdown Card */}
+        <View style={styles.breakdownSectionCard}>
+          <Text style={styles.breakdownCardTitle}>Revenue Breakdown</Text>
+          
+          {/* Segmented Progress Bar */}
+          <View style={styles.segmentedBarContainer}>
+            <View style={[styles.barSegment, { flex: 66.5, backgroundColor: '#0E5E2F', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
+            <View style={[styles.barSegment, { flex: 21.8, backgroundColor: '#D97706' }]} />
+            <View style={[styles.barSegment, { flex: 11.7, backgroundColor: '#2563EB', borderTopRightRadius: 6, borderBottomRightRadius: 6 }]} />
+          </View>
+
+          {/* Breakdown Items List */}
+          <View style={styles.breakdownGrid}>
+            {breakdowns.map((breakdown, idx) => {
+              const dotColors = ['#0E5E2F', '#D97706', '#2563EB'];
+              const activeColor = dotColors[idx % dotColors.length];
+              return (
+                <View key={breakdown.title} style={styles.breakdownGridItem}>
+                  <View style={styles.breakdownItemHeader}>
+                    <View style={[styles.legendDot, { backgroundColor: activeColor }]} />
+                    <Text style={styles.breakdownItemTitle}>{breakdown.title}</Text>
+                  </View>
+                  <Text style={styles.breakdownItemValue}>{breakdown.amount}</Text>
+                  <Text style={styles.breakdownItemPercentage}>
+                    {breakdown.percentage.split('%')[0]}% of total
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
 
         {/* Recent High-Value Bookings Section */}
-        <View style={[styles.sectionHeader, { marginTop: 12 }]}>
+        <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent High-Value Bookings</Text>
           <TouchableOpacity activeOpacity={0.6} onPress={handleViewAllBookingsPress}>
-            <Text style={styles.viewAllLinkText}>VIEW BOOKINGS</Text>
+            <Text style={styles.viewAllLinkText}>View Bookings</Text>
           </TouchableOpacity>
         </View>
 
@@ -306,8 +340,8 @@ const Revenue = () => {
                     #{booking.id} • {booking.customer}
                   </Text>
                   <View style={styles.bookingLocationRow}>
-                    <Ionicons name="location-outline" size={14} color="#60646C" style={{ marginRight: 4 }} />
-                    <Text style={styles.bookingTourNameText}>{booking.tour}</Text>
+                    <Ionicons name="location-outline" size={14} color="#8A958E" style={{ marginRight: 4 }} />
+                    <Text style={styles.bookingTourNameText} numberOfLines={1}>{booking.tour}</Text>
                   </View>
                 </View>
 
@@ -334,6 +368,7 @@ const Revenue = () => {
             );
           })}
         </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -342,151 +377,191 @@ const Revenue = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
     zIndex: 10,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
     flex: 1,
-  },
-  logo: {
-    width: 140,
-    height: 32,
-  },
-  headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#EAF2EC',
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
   },
   scrollContent: {
+    paddingTop: 0,
+  },
+  mainContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },
   titleSection: {
     marginBottom: 24,
   },
-  topLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
+  pageSubtitle: {
     fontSize: 15,
-    color: '#60646C',
-    marginTop: 6,
+    color: '#6B7280',
     lineHeight: 22,
     fontWeight: '500',
   },
   revenueCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
     padding: 24,
-    marginBottom: 16,
+    marginBottom: 20,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  revenueCardCircleAccent: {
+  kpiRing1: {
     position: 'absolute',
-    top: -24,
-    right: -24,
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#EAF7EE',
-    opacity: 0.8,
+    right: -20,
+    top: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 8,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  kpiRing2: {
+    position: 'absolute',
+    right: -40,
+    top: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 12,
+    borderColor: 'rgba(255, 255, 255, 0.025)',
+  },
+  kpiGlowBlob: {
+    position: 'absolute',
+    left: -30,
+    bottom: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(52, 211, 153, 0.04)',
+  },
+  revenueCardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   revenueCardTitle: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#60646C',
-    letterSpacing: 0.5,
-    marginBottom: 10,
+    color: 'rgba(255, 255, 255, 0.75)',
+    letterSpacing: 1,
+  },
+  periodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  periodBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   revenueValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   revenueValue: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
-    color: '#1C1917',
+    color: '#FFFFFF',
     letterSpacing: -0.8,
   },
-  trendBadge: {
+  trendBadgeGlass: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#C2F3D0',
-    borderRadius: 20,
+    backgroundColor: 'rgba(52, 211, 153, 0.18)',
+    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginLeft: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
   },
-  trendBadgeText: {
-    fontSize: 13,
+  trendBadgeGlassText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: '#0E5E2F',
+    color: '#34D399',
+  },
+  cardDividerGlass: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    marginVertical: 18,
+  },
+  targetProgressContainer: {
+    width: '100%',
+  },
+  targetProgressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  targetProgressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  targetProgressValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  targetProgressFootnote: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: '500',
   },
   trendCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    borderWidth: 0,
     padding: 20,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   trendCardHeader: {
     flexDirection: 'row',
@@ -495,8 +570,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   trendCardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1C1917',
   },
   selectorContainer: {
@@ -511,21 +586,35 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   selectorActiveButton: {
-    backgroundColor: '#EAD26B',
+    backgroundColor: '#0E5E2F',
   },
   selectorButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#60646C',
+    color: '#6B7280',
   },
   selectorActiveButtonText: {
-    color: '#5B600A',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   chartContainer: {
     height: 180,
     justifyContent: 'flex-end',
     paddingTop: 10,
+    position: 'relative',
+  },
+  chartGridLines: {
+    position: 'absolute',
+    top: 10,
+    bottom: 28,
+    left: 0,
+    right: 0,
+    justifyContent: 'space-between',
+  },
+  gridLine: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    width: '100%',
   },
   chartBarsRow: {
     flexDirection: 'row',
@@ -539,77 +628,97 @@ const styles = StyleSheet.create({
   },
   barBackgroundTrack: {
     height: 130,
-    width: 28,
+    width: 24,
     backgroundColor: '#FAFBFB',
-    borderRadius: 14,
+    borderRadius: 12,
     justifyContent: 'flex-end',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   barFill: {
     width: '100%',
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    borderRadius: 12,
   },
   barFillActive: {
-    backgroundColor: '#5CBA7A', // Highlighting the current month
+    backgroundColor: '#0E5E2F', // Highlighting active period in emerald green
   },
   barFillInactive: {
     backgroundColor: '#E5E7EB',
   },
   chartLabelText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A3A8A5',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8A958E',
     marginTop: 8,
   },
   chartLabelTextActive: {
-    color: '#1C1917',
+    color: '#0E5E2F',
     fontWeight: '800',
   },
-  breakdownContainer: {
-    marginBottom: 24,
-    gap: 12,
-  },
-  breakdownCard: {
+  breakdownSectionCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    borderWidth: 1,
+    borderColor: '#F0F3F1',
     padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
     elevation: 2,
   },
-  breakdownIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
+  breakdownCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1C1917',
+    marginBottom: 16,
   },
-  breakdownInfoCol: {
+  segmentedBarContainer: {
+    flexDirection: 'row',
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  barSegment: {
+    height: '100%',
+  },
+  breakdownGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  breakdownGridItem: {
     flex: 1,
   },
-  breakdownTitleText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#60646C',
-    marginBottom: 4,
+  breakdownItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  breakdownValueText: {
-    fontSize: 24,
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  breakdownItemTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  breakdownItemValue: {
+    fontSize: 16,
     fontWeight: '800',
     color: '#1C1917',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  breakdownPercentageText: {
-    fontSize: 13,
-    color: '#A3A8A5',
+  breakdownItemPercentage: {
+    fontSize: 10,
+    color: '#8A958E',
     fontWeight: '500',
   },
   sectionHeader: {
@@ -617,49 +726,47 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 4,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#1C1917',
     letterSpacing: -0.3,
   },
   viewAllLinkText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#5B600A',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    color: '#0E5E2F',
   },
   bookingsList: {
     gap: 12,
   },
   bookingCard: {
     borderRadius: 24,
-    borderWidth: 1.2,
+    borderWidth: 1,
+    borderColor: '#EAEFEA',
     borderLeftWidth: 6,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
+    backgroundColor: '#FFFFFF',
   },
   bookingCardSuccess: {
-    backgroundColor: '#F4FBF7',
-    borderColor: '#EAF2EC',
     borderLeftColor: '#0E5E2F',
   },
   bookingCardWarning: {
-    backgroundColor: '#FFFDF0',
-    borderColor: '#FDFBE7',
-    borderLeftColor: '#5B600A',
+    borderLeftColor: '#D97706',
   },
   bookingAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 16,
     marginRight: 14,
     backgroundColor: '#EAEAEA',
   },
@@ -668,7 +775,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bookingHeaderName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#1C1917',
   },
@@ -678,42 +785,45 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   bookingTourNameText: {
-    fontSize: 13,
-    color: '#60646C',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   bookingBadgeCol: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
   bookingPrice: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#1C1917',
     marginBottom: 6,
   },
   pillBadge: {
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   pillBadgeSuccess: {
-    backgroundColor: '#C2F3D0',
+    backgroundColor: '#EAF7EE',
+    borderColor: '#C2F3D0',
   },
   pillBadgeWarning: {
-    backgroundColor: '#FCE788',
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FEF3C7',
   },
   pillBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
   },
   pillBadgeSuccessText: {
     color: '#0E5E2F',
   },
   pillBadgeWarningText: {
-    color: '#5B600A',
+    color: '#D97706',
   },
 });
 

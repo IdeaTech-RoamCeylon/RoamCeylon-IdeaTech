@@ -6,15 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
 
 const Insights = () => {
   const insets = useSafeAreaInsets();
@@ -61,84 +59,50 @@ const Insights = () => {
   // Funnel steps data
   const funnelSteps = [
     {
-      label: 'WEBSITE VISITS',
+      label: 'Website Visits',
       value: '12,400',
       fillPercent: 1.0, // 100%
+      icon: 'eye-outline',
+      color: '#0E5E2F',
+      bgColor: '#EAF7EE',
+      conversionRate: null,
     },
     {
-      label: 'INQUIRIES',
+      label: 'Inquiries',
       value: '2,840',
       fillPercent: 0.229, // 22.9%
+      icon: 'chatbubble-ellipses-outline',
+      color: '#D97706',
+      bgColor: '#FFFBEB',
+      conversionRate: '22.9% Inquiry Rate',
     },
     {
-      label: 'CONFIRMED',
+      label: 'Confirmed',
       value: '636',
       fillPercent: 0.051, // 5.1%
+      icon: 'wallet-outline',
+      color: '#2563EB',
+      bgColor: '#EFF6FF',
+      conversionRate: '22.4% Booking Rate',
     },
     {
-      label: 'COMPLETED',
+      label: 'Completed',
       value: '482',
       fillPercent: 0.039, // 3.9%
+      icon: 'checkmark-circle-outline',
+      color: '#10B981',
+      bgColor: '#ECFDF5',
+      conversionRate: '75.8% Trip Completion',
     },
   ];
 
-  const handleMenuPress = () => {
-    Alert.alert('Menu', 'Hamburger menu options are coming soon!');
-  };
-
-  const handleNotificationPress = () => {
-    Alert.alert('Notifications', 'No new notifications.');
-  };
-
   const handleViewAllAnalyticsPress = () => {
-    Alert.alert('Analytics', 'Opening full analytics dashboard...');
+    router.push('/tour-guide/analytics' as any);
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={[styles.headerIconButton, { marginRight: 8 }]}
-            activeOpacity={0.7}
-            onPress={handleNotificationPress}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/tour-guide/settings' as any)}
-          >
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.profileImage}
-              contentFit="cover"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
@@ -148,24 +112,43 @@ const Insights = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Section */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>Conversion Insights</Text>
-          <Text style={styles.subtitle}>
-            Real-time analysis of your booking ecosystem and guest journey.
-          </Text>
+        {/* Transparent Header */}
+        <View
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        >
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Conversion Insights</Text>
+          <View style={styles.headerButton} />
         </View>
 
+        <View style={styles.mainContent}>
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.pageSubtitle}>
+              Real-time analysis of your booking ecosystem and guest journey.
+            </Text>
+          </View>
+
         {/* Global Conversion Card with custom wave sparkline */}
-        <View style={styles.conversionCard}>
-          <Text style={styles.conversionLabel}>GLOBAL CONVERSION</Text>
+        <LinearGradient
+          colors={['#0F3D26', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.conversionCard}
+        >
+          <View style={styles.kpiRing1} />
+          <View style={styles.kpiRing2} />
+          
+          <Text style={styles.conversionLabel}>Global Conversion</Text>
           <Text style={styles.conversionValue}>22.4%</Text>
           <View style={styles.trendRow}>
-            <Ionicons name="trending-up-outline" size={14} color="#0E5E2F" style={{ marginRight: 4 }} />
+            <Ionicons name="trending-up-outline" size={14} color="#FFDF59" style={{ marginRight: 4 }} />
             <Text style={styles.trendText}>+3.2% from last month</Text>
           </View>
 
-          {/* Sparkline Curve Chart */}
+          {/* Sparkline Curve Chart (Continuous glowing waveform) */}
           <View style={styles.sparklineContainer}>
             <View style={styles.sparklineBarsRow}>
               {sparklineData.map((heightPercent, idx) => (
@@ -180,12 +163,12 @@ const Insights = () => {
               ))}
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Conversion Trend Card */}
         <View style={styles.trendCard}>
           <View style={styles.trendCardHeader}>
-            <Text style={styles.trendCardTitle}>CONVERSION TREND</Text>
+            <Text style={styles.trendCardTitle}>Conversion Trend</Text>
             
             {/* Range Selector */}
             <View style={styles.selectorContainer}>
@@ -203,7 +186,7 @@ const Insights = () => {
                     selectedTrendPeriod === '30days' && styles.selectorActiveButtonText,
                   ]}
                 >
-                  30 DAYS
+                  30 Days
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -220,7 +203,7 @@ const Insights = () => {
                     selectedTrendPeriod === '90days' && styles.selectorActiveButtonText,
                   ]}
                 >
-                  90 DAYS
+                  90 Days
                 </Text>
               </TouchableOpacity>
             </View>
@@ -247,108 +230,128 @@ const Insights = () => {
         </View>
 
         {/* The Booking Funnel Section */}
-        <View style={styles.sectionHeadingBlock}>
-          <Text style={styles.funnelTitle}>THE BOOKING FUNNEL</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Booking Pipeline & Funnel</Text>
         </View>
 
-        {/* Funnel Progress Cards */}
-        <View style={styles.funnelContainer}>
-          {funnelSteps.map((step) => (
-            <View key={step.label} style={styles.funnelCard}>
-              <Text style={styles.funnelValue}>{step.value}</Text>
-              <Text style={styles.funnelLabel}>{step.label}</Text>
-              
-              {/* Progress Bar */}
-              <View style={styles.progressBarTrack}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${step.fillPercent * 100}%` },
-                  ]}
-                />
+        {/* Vertical Pipeline timeline funnel layout */}
+        <View style={styles.funnelPipeline}>
+          <View style={styles.pipelineVerticalLine} />
+
+          {funnelSteps.map((step, idx) => {
+            const isLast = idx === funnelSteps.length - 1;
+            return (
+              <View key={step.label} style={styles.pipelineStepContainer}>
+                {/* Node with Icon */}
+                <View style={[styles.pipelineNode, { backgroundColor: step.bgColor }]}>
+                  <Ionicons name={step.icon as any} size={18} color={step.color} />
+                </View>
+
+                {/* Step Content Card */}
+                <View style={styles.pipelineCard}>
+                  <View style={styles.pipelineCardHeader}>
+                    <Text style={styles.pipelineLabelText}>{step.label}</Text>
+                    <Text style={styles.pipelineValue}>{step.value}</Text>
+                  </View>
+
+                  {/* Progress Bar */}
+                  <View style={styles.progressBarTrack}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: `${step.fillPercent * 100}%`,
+                          backgroundColor: step.color,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                {/* Conversion Rate Connector Line & Badge */}
+                {!isLast && funnelSteps[idx + 1].conversionRate && (
+                  <View style={styles.conversionConnector}>
+                    <View style={styles.conversionBadge}>
+                      <Ionicons name="arrow-down-outline" size={12} color="#0E5E2F" style={{ marginRight: 4 }} />
+                      <Text style={styles.conversionBadgeText}>
+                        {funnelSteps[idx + 1].conversionRate}
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Top Converting Packages Section */}
-        <View style={[styles.sectionHeader, { marginTop: 16 }]}>
-          <Text style={styles.sectionTitle}>TOP CONVERTING PACKAGES</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Top Converting Packages</Text>
           <TouchableOpacity activeOpacity={0.6} onPress={handleViewAllAnalyticsPress}>
-            <Text style={styles.viewAllLinkText}>VIEW ALL ANALYTICS</Text>
+            <Text style={styles.viewAllLinkText}>View Analytics</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Package Card 1 */}
-        <View style={styles.packageCard}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={require('../../assets/Tours/Cultural Triangle.png')}
-              style={styles.packageImage}
-              contentFit="cover"
-            />
-            <View style={styles.convBadge}>
-              <Text style={styles.convBadgeText}>32% Conv.</Text>
-            </View>
-          </View>
-          
-          <View style={styles.packageInfo}>
-            <Text style={styles.packageName}>Cultural Triangle Explorer</Text>
-            <Text style={styles.packageSubtitle}>7 Days • Boutique Stays</Text>
-            
-            <View style={styles.packageDivider} />
-            
-            <View style={styles.packageStatsRow}>
-              <View style={styles.statCol}>
-                <Text style={styles.statLabel}>INQUIRIES</Text>
-                <Text style={styles.statVal}>1,240</Text>
+        {/* Package Card 1 - Horizontal Layout */}
+        <View style={styles.horizontalPackageCard}>
+          <Image
+            source={require('../../assets/Tours/Cultural Triangle.png')}
+            style={styles.horizontalPackageImage}
+            contentFit="cover"
+          />
+          <View style={styles.horizontalPackageInfo}>
+            <View style={styles.horizontalCardHeader}>
+              <Text style={styles.packageNameText} numberOfLines={1}>Cultural Triangle Explorer</Text>
+              <View style={styles.convBadgeOutline}>
+                <Text style={styles.convBadgeText}>32% Conv.</Text>
               </View>
-              
-              <View style={styles.statDivider} />
-              
-              <View style={styles.statCol}>
-                <Text style={styles.statLabel}>BOOKINGS</Text>
-                <Text style={[styles.statVal, styles.statValHighlight]}>396</Text>
+            </View>
+            <Text style={styles.packageSubtitleText}>7 Days • Boutique Stays</Text>
+            
+            <View style={styles.horizontalStatsRow}>
+              <View style={styles.miniStatCol}>
+                <Text style={styles.miniStatLabel}>INQUIRIES</Text>
+                <Text style={styles.miniStatValue}>1,240</Text>
+              </View>
+              <View style={styles.miniStatDivider} />
+              <View style={styles.miniStatCol}>
+                <Text style={styles.miniStatLabel}>BOOKINGS</Text>
+                <Text style={[styles.miniStatValue, { color: '#0E5E2F' }]}>396</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Package Card 2 */}
-        <View style={styles.packageCard}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={require('../../assets/Tours/Tea Country.png')}
-              style={styles.packageImage}
-              contentFit="cover"
-            />
-            <View style={styles.convBadge}>
-              <Text style={styles.convBadgeText}>28% Conv.</Text>
-            </View>
-          </View>
-          
-          <View style={styles.packageInfo}>
-            <Text style={styles.packageName}>Tea Country Retreat</Text>
-            <Text style={styles.packageSubtitle}>5 Days • Estate Living</Text>
-            
-            <View style={styles.packageDivider} />
-            
-            <View style={styles.packageStatsRow}>
-              <View style={styles.statCol}>
-                <Text style={styles.statLabel}>INQUIRIES</Text>
-                <Text style={styles.statVal}>985</Text>
+        {/* Package Card 2 - Horizontal Layout */}
+        <View style={styles.horizontalPackageCard}>
+          <Image
+            source={require('../../assets/Tours/Tea Country.png')}
+            style={styles.horizontalPackageImage}
+            contentFit="cover"
+          />
+          <View style={styles.horizontalPackageInfo}>
+            <View style={styles.horizontalCardHeader}>
+              <Text style={styles.packageNameText} numberOfLines={1}>Tea Country Retreat</Text>
+              <View style={styles.convBadgeOutline}>
+                <Text style={styles.convBadgeText}>28% Conv.</Text>
               </View>
-              
-              <View style={styles.statDivider} />
-              
-              <View style={styles.statCol}>
-                <Text style={styles.statLabel}>BOOKINGS</Text>
-                <Text style={[styles.statVal, styles.statValHighlight]}>275</Text>
+            </View>
+            <Text style={styles.packageSubtitleText}>5 Days • Estate Living</Text>
+            
+            <View style={styles.horizontalStatsRow}>
+              <View style={styles.miniStatCol}>
+                <Text style={styles.miniStatLabel}>INQUIRIES</Text>
+                <Text style={styles.miniStatValue}>985</Text>
+              </View>
+              <View style={styles.miniStatDivider} />
+              <View style={styles.miniStatCol}>
+                <Text style={styles.miniStatLabel}>BOOKINGS</Text>
+                <Text style={[styles.miniStatValue, { color: '#0E5E2F' }]}>275</Text>
               </View>
             </View>
           </View>
         </View>
-
+        </View>
       </ScrollView>
     </View>
   );
@@ -357,100 +360,90 @@ const Insights = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
     zIndex: 10,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
     flex: 1,
-  },
-  logo: {
-    width: 140,
-    height: 32,
-  },
-  headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#EAF2EC',
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
   },
   scrollContent: {
+    paddingTop: 0,
+  },
+  mainContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },
   titleSection: {
     marginBottom: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
+  pageSubtitle: {
     fontSize: 15,
-    color: '#60646C',
-    marginTop: 6,
+    color: '#6B7280',
     lineHeight: 22,
     fontWeight: '500',
   },
   conversionCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
     padding: 24,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 20,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  kpiRing1: {
+    position: 'absolute',
+    right: -20,
+    top: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 8,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  kpiRing2: {
+    position: 'absolute',
+    right: -40,
+    top: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 12,
+    borderColor: 'rgba(255, 255, 255, 0.025)',
   },
   conversionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#A3A8A5',
-    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   conversionValue: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
-    color: '#1C1917',
+    color: '#FFFFFF',
     marginBottom: 6,
     letterSpacing: -0.8,
   },
@@ -462,10 +455,10 @@ const styles = StyleSheet.create({
   trendText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0E5E2F',
+    color: '#FFDF59',
   },
   sparklineContainer: {
-    height: 80,
+    height: 60,
     width: '100%',
     justifyContent: 'flex-end',
     overflow: 'hidden',
@@ -483,23 +476,25 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sparklineBarFill: {
-    width: '100%',
-    backgroundColor: '#FDF9E2', // Soft beige/gold fill
-    borderTopWidth: 2,
-    borderTopColor: '#EAD26B', // Smooth golden top line
+    width: 2,
+    backgroundColor: '#FFDF59',
+    borderRadius: 1,
+    shadowColor: '#FFDF59',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
   },
   trendCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    borderWidth: 0,
     padding: 20,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   trendCardHeader: {
     flexDirection: 'row',
@@ -508,10 +503,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   trendCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1C1917',
-    letterSpacing: 0.5,
   },
   selectorContainer: {
     flexDirection: 'row',
@@ -528,12 +522,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAD26B',
   },
   selectorButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#60646C',
+    color: '#6B7280',
   },
   selectorActiveButtonText: {
-    color: '#5B600A',
+    color: '#3B2E05',
     fontWeight: '800',
   },
   trendChartContainer: {
@@ -553,63 +547,84 @@ const styles = StyleSheet.create({
   },
   trendBarTrack: {
     height: 100,
-    width: 16,
-    backgroundColor: '#FAFBFB',
+    width: 14,
+    backgroundColor: '#FAFBF9',
     borderRadius: 8,
     justifyContent: 'flex-end',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   trendBarFill: {
     width: '100%',
     borderRadius: 8,
   },
   trendBarFillActive: {
-    backgroundColor: '#FCE788',
+    backgroundColor: '#0E5E2F',
   },
   trendBarFillInactive: {
     backgroundColor: '#E5E7EB',
   },
-  sectionHeadingBlock: {
-    marginTop: 12,
-    marginBottom: 16,
+  funnelPipeline: {
+    paddingLeft: 44,
+    position: 'relative',
+    marginVertical: 12,
+    marginBottom: 28,
   },
-  funnelTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#5B600A',
-    letterSpacing: 0.5,
+  pipelineVerticalLine: {
+    position: 'absolute',
+    left: 17,
+    top: 24,
+    bottom: 24,
+    width: 2,
+    backgroundColor: '#E5E7EB',
   },
-  funnelContainer: {
-    gap: 12,
+  pipelineStepContainer: {
+    position: 'relative',
     marginBottom: 20,
   },
-  funnelCard: {
+  pipelineNode: {
+    position: 'absolute',
+    left: -44,
+    top: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#F3F4F6',
+    zIndex: 10,
+  },
+  pipelineCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    borderLeftWidth: 6,
-    borderLeftColor: '#5B600A',
-    padding: 20,
+    borderRadius: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F0F3F1',
   },
-  funnelValue: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1C1917',
-    marginBottom: 4,
-    letterSpacing: -0.5,
+  pipelineCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  funnelLabel: {
+  pipelineLabelText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#60646C',
+    color: '#6B7280',
     letterSpacing: 0.5,
-    marginBottom: 12,
+  },
+  pipelineValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1C1917',
+    letterSpacing: -0.4,
   },
   progressBarTrack: {
     height: 4,
@@ -619,110 +634,140 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#5B600A',
     borderRadius: 2,
+  },
+  conversionConnector: {
+    height: 36,
+    justifyContent: 'center',
+    marginLeft: 16,
+    marginTop: 8,
+    marginBottom: -8,
+  },
+  conversionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EAF7EE',
+    borderWidth: 1,
+    borderColor: '#C2F3D0',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  conversionBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0E5E2F',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 4,
+    marginTop: 12,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1C1917',
-    letterSpacing: 0.5,
+    letterSpacing: -0.3,
   },
   viewAllLinkText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#5B600A',
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0E5E2F',
   },
-  packageCard: {
+  horizontalPackageCard: {
+    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    padding: 12,
     marginBottom: 16,
-    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
     elevation: 2,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 192,
-    position: 'relative',
-    backgroundColor: '#EAEAEA',
-  },
-  packageImage: {
-    width: '100%',
-    height: '100%',
-  },
-  convBadge: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    backgroundColor: '#C2F3D0',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  convBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0E5E2F',
-  },
-  packageInfo: {
-    padding: 20,
-  },
-  packageName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1C1917',
-    marginBottom: 6,
-  },
-  packageSubtitle: {
-    fontSize: 13,
-    color: '#60646C',
-    fontWeight: '500',
-  },
-  packageDivider: {
-    height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 14,
-  },
-  packageStatsRow: {
-    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#F0F3F1',
     alignItems: 'center',
   },
-  statCol: {
-    flex: 1,
+  horizontalPackageImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    backgroundColor: '#EAEAEA',
   },
-  statLabel: {
+  horizontalPackageInfo: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: 'space-between',
+  },
+  horizontalCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  packageNameText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1C1917',
+    flex: 1,
+    marginRight: 8,
+  },
+  convBadgeOutline: {
+    backgroundColor: '#EAF7EE',
+    borderWidth: 1,
+    borderColor: '#C2F3D0',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  convBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#A3A8A5',
-    letterSpacing: 0.5,
-    marginBottom: 6,
+    color: '#0E5E2F',
   },
-  statVal: {
-    fontSize: 16,
+  packageSubtitleText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  horizontalStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 8,
+  },
+  miniStatCol: {
+    flex: 1,
+  },
+  miniStatLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#8A958E',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  miniStatValue: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#1C1917',
   },
-  statValHighlight: {
-    color: '#0E5E2F',
-  },
-  statDivider: {
+  miniStatDivider: {
     width: 1,
-    height: 32,
-    backgroundColor: '#F0F3F1',
-    marginHorizontal: 16,
+    height: 16,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 12,
   },
 });
 

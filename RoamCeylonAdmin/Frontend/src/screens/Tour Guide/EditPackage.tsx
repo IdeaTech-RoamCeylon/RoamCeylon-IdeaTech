@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const EditPackage = () => {
   const insets = useSafeAreaInsets();
@@ -22,7 +23,7 @@ const EditPackage = () => {
   // Pre-filled state for the edit screen
   const [packageName, setPackageName] = useState('7-Day Cultural Triangle Heritage');
   const [duration, setDuration] = useState('7');
-  const [category, setCategory] = useState('Culture');
+  const [category] = useState('Culture');
   const [description, setDescription] = useState('Explore ancient ruins, sacred temples, and the majestic Sigiriya rock on this immersive cultural journey.');
   const [highlights, setHighlights] = useState(['Sunset climb of Sigiriya Rock', 'Temple of the Tooth Relic']);
   const [price, setPrice] = useState('250000');
@@ -44,65 +45,29 @@ const EditPackage = () => {
     setHighlights(newHighlights);
   };
 
-  const handleNotificationPress = () => {
-    // Add logic later
-  };
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={[styles.headerIconButton, { marginRight: 8 }]}
-            activeOpacity={0.7}
-            onPress={handleNotificationPress}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/tour-guide/settings' as any)}
-          >
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.profileImage}
-              contentFit="cover"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.mainTitle}>Edit Package</Text>
+        {/* Transparent Header */}
+        <View
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        >
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Edit Package</Text>
+          <View style={styles.headerButton} />
+        </View>
 
-        {/* Basic Details Section */}
-        <View style={styles.card}>
+        <View style={styles.mainContent}>
+          {/* Basic Details Section */}
+          <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <Ionicons name="information-circle-outline" size={24} color="#0E5E2F" style={{ marginRight: 8 }} />
             <Text style={styles.sectionTitle}>Basic Details</Text>
@@ -202,7 +167,7 @@ const EditPackage = () => {
           <View style={styles.publishContainer}>
             <View style={{ flex: 1 }}>
               <Text style={styles.publishTitle}>Publish Immediately</Text>
-              <Text style={styles.publishSubtitle}>Set as 'Active' on save</Text>
+              <Text style={styles.publishSubtitle}>{"Set as 'Active' on save"}</Text>
             </View>
             <Switch
               value={publishImmediately}
@@ -271,6 +236,7 @@ const EditPackage = () => {
         <Text style={styles.footerNote}>
           By editing this package, it will be visible to potential travelers if set to active.
         </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -279,63 +245,37 @@ const EditPackage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
     zIndex: 10,
   },
-  headerIconButton: {
+  headerButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
     flex: 1,
-  },
-  logo: {
-    width: 140,
-    height: 32,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingTop: 0,
+  },
+  mainContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
-  },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1917',
-    marginBottom: 20,
-    letterSpacing: -0.5,
   },
   card: {
     backgroundColor: '#FFFFFF',

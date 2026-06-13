@@ -7,15 +7,12 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
-  Dimensions,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
 
 const Packages = () => {
   const insets = useSafeAreaInsets();
@@ -24,6 +21,7 @@ const Packages = () => {
   // Search and Category filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'culture' | 'nature' | 'coastal'>('all');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Package Active/Draft toggles
   const [isCulturalActive, setIsCulturalActive] = useState(true);
@@ -77,14 +75,6 @@ const Packages = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const handleMenuPress = () => {
-    Alert.alert('Menu', 'Hamburger menu options are coming soon!');
-  };
-
-  const handleNotificationPress = () => {
-    Alert.alert('Notifications', 'No new notifications.');
-  };
-
   const handleCreatePackagePress = () => {
     router.push('/tour-guide/addPackage' as any);
   };
@@ -95,49 +85,7 @@ const Packages = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={[styles.headerIconButton, { marginRight: 8 }]}
-            activeOpacity={0.7}
-            onPress={handleNotificationPress}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/tour-guide/settings' as any)}
-          >
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.profileImage}
-              contentFit="cover"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
@@ -147,34 +95,46 @@ const Packages = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Section */}
-        <View style={styles.titleSection}>
-          <Text style={styles.topLabel}>ADMIN INVENTORY</Text>
-          <Text style={styles.title}>Tour Packages</Text>
-          <Text style={styles.subtitle}>
-            Curate and manage your high-end travel itineraries for the modern explorer.
-          </Text>
-
-          {/* Create New Package Button */}
-          <TouchableOpacity
-            style={styles.createButton}
-            activeOpacity={0.8}
-            onPress={handleCreatePackagePress}
-          >
-            <Ionicons name="add" size={18} color="#5B600A" style={{ marginRight: 4 }} />
-            <Text style={styles.createButtonText}>Create New Package</Text>
+        {/* Transparent Header */}
+        <View
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        >
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Tour Packages</Text>
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={handleCreatePackagePress}>
+            <Feather name="plus" size={26} color="#1C1917" />
           </TouchableOpacity>
         </View>
 
+        <View style={styles.mainContent}>
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.pageSubtitle}>
+              Curate and manage your high-end travel itineraries for the modern explorer.
+            </Text>
+          </View>
+
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={18} color="#A3A8A5" style={{ marginRight: 10 }} />
+        <View style={[
+          styles.searchContainer, 
+          isSearchFocused && styles.searchContainerFocused
+        ]}>
+          <Ionicons 
+            name="search-outline" 
+            size={18} 
+            color={isSearchFocused ? "#0E5E2F" : "#8A958E"} 
+            style={{ marginRight: 10 }} 
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Search destinations..."
-            placeholderTextColor="#A3A8A5"
+            placeholderTextColor="#8A958E"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
         </View>
 
@@ -275,23 +235,40 @@ const Packages = () => {
                   </Text>
                 </View>
 
-                {/* Pencil Edit Icon Button (Active tours only) */}
+                {/* Floating Pencil Edit Icon Button (Active tours only) */}
                 {pkg.isActive && (
                   <TouchableOpacity
                     style={styles.pencilEditButton}
                     activeOpacity={0.7}
                     onPress={() => handleEditPackagePress(pkg.title)}
                   >
-                    <Feather name="edit-2" size={14} color="#1C1917" />
+                    <Feather name="edit-2" size={14} color="#0E5E2F" />
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* Package Content */}
               <View style={styles.tourInfo}>
-                <Text style={styles.durationCategoryText}>
-                  {pkg.duration} • {pkg.category}
-                </Text>
+                {/* New Premium Badges Row */}
+                <View style={styles.badgesRow}>
+                  <View style={[styles.categoryBadge, !pkg.isActive && styles.categoryBadgeDraft]}>
+                    <Text style={[styles.categoryBadgeText, !pkg.isActive && styles.badgeTextDraft]}>
+                      {pkg.category}
+                    </Text>
+                  </View>
+                  <View style={[styles.durationBadge, !pkg.isActive && styles.durationBadgeDraft]}>
+                    <Ionicons 
+                      name="time-outline" 
+                      size={11} 
+                      color={pkg.isActive ? "#D97706" : "#60646C"} 
+                      style={{ marginRight: 4 }} 
+                    />
+                    <Text style={[styles.durationText, !pkg.isActive && styles.badgeTextDraft]}>
+                      {pkg.duration}
+                    </Text>
+                  </View>
+                </View>
+
                 <Text style={styles.tourName}>{pkg.title}</Text>
                 <Text style={styles.tourDescription}>{pkg.description}</Text>
 
@@ -329,10 +306,11 @@ const Packages = () => {
           
           {filteredPackages.length === 0 && (
             <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={48} color="#A3A8A5" style={{ marginBottom: 12 }} />
+              <Ionicons name="search-outline" size={48} color="#8A958E" style={{ marginBottom: 12 }} />
               <Text style={styles.emptyText}>No packages found matching search criteria.</Text>
             </View>
           )}
+        </View>
         </View>
       </ScrollView>
     </View>
@@ -342,109 +320,53 @@ const Packages = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
     zIndex: 10,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
     flex: 1,
-  },
-  logo: {
-    width: 140,
-    height: 32,
-  },
-  headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1E293B', // Dark slate background for silhouette generic avatar
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
   },
   scrollContent: {
+    paddingTop: 0,
+  },
+  mainContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },
   titleSection: {
     marginBottom: 20,
   },
-  topLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
+  pageSubtitle: {
     fontSize: 15,
-    color: '#60646C',
-    marginTop: 6,
+    color: '#6B7280',
     lineHeight: 22,
     fontWeight: '500',
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EAD26B',
-    borderRadius: 18,
-    height: 48,
-    marginTop: 16,
-    shadowColor: '#EAD26B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  createButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#5B600A',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    borderWidth: 1,
+    borderColor: '#EAEFEA',
     borderRadius: 16,
     height: 46,
     paddingHorizontal: 16,
@@ -454,6 +376,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.02,
     shadowRadius: 8,
     elevation: 2,
+  },
+  searchContainerFocused: {
+    borderColor: '#0E5E2F',
+    shadowColor: '#0E5E2F',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   searchInput: {
     flex: 1,
@@ -479,10 +407,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pillButtonActive: {
-    backgroundColor: '#5B600A', // Deep gold-brown active style
+    backgroundColor: '#2C3A30',
+    borderWidth: 1,
+    borderColor: '#2C3A30',
   },
   pillButtonInactive: {
-    backgroundColor: '#EAF2EC',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6EFEA',
   },
   pillButtonText: {
     fontSize: 13,
@@ -492,7 +424,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   pillInactiveText: {
-    color: '#60646C',
+    color: '#6B7280',
     fontWeight: '700',
   },
   packagesContainer: {
@@ -502,21 +434,20 @@ const styles = StyleSheet.create({
   tourCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    borderWidth: 0,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
   },
   tourCardDraft: {
-    // Styles applied to card container in draft mode
+    shadowOpacity: 0.015,
   },
   tourImageWrapper: {
     width: '100%',
-    height: 192,
+    height: 180,
     position: 'relative',
     backgroundColor: '#EAEAEA',
   },
@@ -526,30 +457,28 @@ const styles = StyleSheet.create({
   },
   imageDraftOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)', // Grayscale / dimming representation
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
   },
   statusTag: {
     position: 'absolute',
     top: 14,
-    right: 14, // Moved to top-right to preserve edit button alignment or top-left
+    left: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 20,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  // Align status badge exactly to the left side
   statusTagActive: {
     backgroundColor: '#C2F3D0',
-    position: 'absolute',
-    top: 14,
-    left: 14,
   },
   statusTagDraft: {
     backgroundColor: '#F3F4F6',
-    position: 'absolute',
-    top: 14,
-    left: 14,
   },
   statusDot: {
     width: 6,
@@ -580,41 +509,81 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFDF59',
+    borderWidth: 1,
+    borderColor: '#EAD26B',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   tourInfo: {
-    padding: 20,
+    padding: 16,
   },
-  durationCategoryText: {
-    fontSize: 11,
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  categoryBadge: {
+    backgroundColor: '#EAF7EE',
+    borderWidth: 1,
+    borderColor: '#C2F3D0',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  categoryBadgeDraft: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+  categoryBadgeText: {
+    fontSize: 10,
     fontWeight: '800',
-    color: '#5B600A',
-    marginBottom: 6,
+    color: '#0E5E2F',
     letterSpacing: 0.5,
   },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  durationBadgeDraft: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+  durationText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  badgeTextDraft: {
+    color: '#60646C',
+  },
   tourName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: '#1C1917',
     marginBottom: 8,
   },
   tourDescription: {
-    fontSize: 14,
-    color: '#60646C',
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#606963',
+    lineHeight: 18,
     fontWeight: '500',
   },
   tourDivider: {
     height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 16,
+    backgroundColor: '#F2F5F3',
+    marginVertical: 12,
   },
   tourFooter: {
     flexDirection: 'row',
@@ -624,25 +593,25 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#A3A8A5',
+    color: '#8A958E',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   priceText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: '#1C1917',
   },
   priceUnit: {
-    fontSize: 14,
-    color: '#60646C',
+    fontSize: 13,
+    color: '#606963',
     fontWeight: '500',
   },
   customSwitchContainer: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    padding: 3,
+    width: 48,
+    height: 26,
+    borderRadius: 13,
+    padding: 2,
     justifyContent: 'center',
   },
   customSwitchActiveBg: {
@@ -656,6 +625,11 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   customSwitchCircleActive: {
     alignSelf: 'flex-end',
@@ -670,7 +644,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#60646C',
+    color: '#606963',
     fontWeight: '500',
     textAlign: 'center',
   },

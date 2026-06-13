@@ -6,15 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
 
 const Inquries = () => {
   const insets = useSafeAreaInsets();
@@ -28,7 +26,7 @@ const Inquries = () => {
       statusType: 'new', // yellow
       time: 'Today, 10:45 AM',
       icon: 'heart-outline',
-      iconColor: '#5B600A',
+      iconColor: '#0E5E2F',
       detail: 'Honeymoon in Ella',
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
       actionText: 'Reply',
@@ -40,7 +38,7 @@ const Inquries = () => {
       statusType: 'priority', // red/pink
       time: 'Yesterday, 4:20 PM',
       icon: 'map-outline',
-      iconColor: '#5B600A',
+      iconColor: '#D97706',
       detail: 'Cultural Triangle Exclusive',
       avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
       actionText: 'Reply',
@@ -52,7 +50,7 @@ const Inquries = () => {
       statusType: 'responded', // green
       time: 'Oct 12, 11:00 AM',
       icon: 'boat-outline',
-      iconColor: '#5B600A',
+      iconColor: '#0E5E2F',
       detail: 'East Coast Retreat',
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
       actionText: 'View Thread',
@@ -64,21 +62,13 @@ const Inquries = () => {
       statusType: 'new', // yellow
       time: 'Oct 11, 2:15 PM',
       icon: 'trail-sign-outline',
-      iconColor: '#5B600A',
+      iconColor: '#0E5E2F',
       detail: 'Hill Country Escape',
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
       actionText: 'Reply',
       actionStyle: 'primary',
     },
   ];
-
-  const handleMenuPress = () => {
-    Alert.alert('Menu', 'Hamburger menu options are coming soon!');
-  };
-
-  const handleNotificationPress = () => {
-    Alert.alert('Notifications', 'No new notifications.');
-  };
 
   const handleFilterPress = () => {
     Alert.alert('Filter', 'Filter criteria sheet opened.');
@@ -88,8 +78,15 @@ const Inquries = () => {
     Alert.alert('New Lead', 'Redirecting to Lead Creation screen...');
   };
 
-  const handleActionPress = (name: string, action: string) => {
-    Alert.alert(action, `Opening chat/thread options for ${name}...`);
+  const handleActionPress = (name: string, action: string, detail: string) => {
+    if (action === 'Reply' || action === 'View Thread') {
+      router.push({
+        pathname: '/tour-guide/chat',
+        params: { name, detail },
+      } as any);
+    } else {
+      Alert.alert(action, `Opening options for ${name}...`);
+    }
   };
 
   const handleArchivedPress = () => {
@@ -98,49 +95,7 @@ const Inquries = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back-outline" size={28} color="#1C1917" />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/Roam Ceylon Logo.png')}
-            style={styles.logo}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={[styles.headerIconButton, { marginRight: 8 }]}
-            activeOpacity={0.7}
-            onPress={handleNotificationPress}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/tour-guide/settings' as any)}
-          >
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.profileImage}
-              contentFit="cover"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
@@ -150,10 +105,25 @@ const Inquries = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Section & Action Buttons */}
-        <View style={styles.titleSection}>
-          <Text style={styles.topLabel}>INQUIRY MANAGEMENT</Text>
-          <Text style={styles.title}>Active Inquiries</Text>
+        {/* Transparent Header */}
+        <View
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        >
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Active Inquiries</Text>
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={handleNewLeadPress}>
+            <Feather name="plus" size={26} color="#1C1917" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.mainContent}>
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.pageSubtitle}>
+              Review guest inquiries, tailor customized itineraries, and close bookings.
+            </Text>
           
           <View style={styles.actionBar}>
             <TouchableOpacity
@@ -161,68 +131,81 @@ const Inquries = () => {
               activeOpacity={0.7}
               onPress={handleFilterPress}
             >
-              <Ionicons name="options-outline" size={16} color="#1C1917" style={{ marginRight: 6 }} />
-              <Text style={styles.filterButtonText}>Filter</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.newLeadButton}
-              activeOpacity={0.8}
-              onPress={handleNewLeadPress}
-            >
-              <Ionicons name="add" size={16} color="#5B600A" style={{ marginRight: 4 }} />
-              <Text style={styles.newLeadButtonText}>New Lead</Text>
+              <Ionicons name="options-outline" size={15} color="#1C1917" style={{ marginRight: 6 }} />
+              <Text style={styles.filterButtonText}>Filter Inquiries</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* KPI Cards Stack */}
-        <View style={styles.kpiContainer}>
-          {/* Card 1: Active Inquiries */}
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiCircleAccent, styles.circleAccentYellow]} />
-            <View style={styles.kpiHeader}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="bar-chart-outline" size={18} color="#5B600A" />
+        {/* KPI Cards Grid */}
+        <View style={styles.kpiGrid}>
+          <View style={styles.kpiGridRow}>
+            {/* Card 1: Active Inquiries */}
+            <TouchableOpacity
+              style={styles.kpiCardHalf}
+              activeOpacity={0.8}
+              onPress={() => router.push('/tour-guide/activeInquiries' as any)}
+            >
+              <View style={styles.kpiRing1} />
+              <View style={styles.kpiRing2} />
+              <View style={styles.kpiHeader}>
+                <View style={styles.iconBadge}>
+                  <Ionicons name="bar-chart-outline" size={16} color="#0E5E2F" />
+                </View>
+                <Text style={styles.kpiLabel}>48 Total</Text>
               </View>
-            </View>
-            <Text style={styles.kpiLabel}>48 Total</Text>
-            <Text style={styles.kpiValue}>Active</Text>
-            <Text style={[styles.kpiTrend, styles.trendPositive]}>
-              ↗ +8% from last week
-            </Text>
+              <Text style={styles.kpiValue}>Active</Text>
+              <Text style={[styles.kpiTrend, styles.trendPositive]}>
+                ↗ +8% this wk
+              </Text>
+            </TouchableOpacity>
+
+            {/* Card 2: Pending Inquiries */}
+            <TouchableOpacity
+              style={styles.kpiCardHalf}
+              activeOpacity={0.8}
+              onPress={() => router.push('/tour-guide/pendingInquiries' as any)}
+            >
+              <View style={styles.kpiRing1} />
+              <View style={styles.kpiRing2} />
+              <View style={styles.kpiHeader}>
+                <View style={[styles.iconBadge, { borderColor: '#FEF3C7', backgroundColor: '#FFFBEB' }]}>
+                  <Ionicons name="notifications-outline" size={16} color="#D97706" />
+                </View>
+                <Text style={styles.kpiLabel}>12 New</Text>
+              </View>
+              <Text style={styles.kpiValue}>Pending</Text>
+              <Text style={[styles.kpiTrend, styles.trendUrgent]}>
+                ⏰ 4 urgent
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Card 2: Pending Inquiries */}
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiCircleAccent, styles.circleAccentGreen]} />
-            <View style={styles.kpiHeader}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="notifications-outline" size={18} color="#0E5E2F" />
+          {/* Card 3: Potential Value (Dark Emerald) */}
+          <LinearGradient
+            colors={['#0E5E2F', '#093D1E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.kpiCardFull}
+          >
+            <View style={styles.kpiDarkRing1} />
+            <View style={styles.kpiDarkRing2} />
+            <View style={styles.kpiFullContentRow}>
+              <View style={styles.kpiFullLeft}>
+                <View style={[styles.iconBadge, styles.iconBadgeDark, { marginBottom: 6 }]}>
+                  <Ionicons name="cash-outline" size={18} color="#FFDF59" />
+                </View>
+                <Text style={styles.kpiLabelDark}>Potential Pipeline Value</Text>
+              </View>
+              <View style={styles.kpiFullRight}>
+                <View style={styles.lkrValueRow}>
+                  <Text style={styles.kpiValueDark}>4.2m</Text>
+                  <Text style={styles.lkrSuffixText}>LKR</Text>
+                </View>
+                <Text style={styles.kpiTrendDark}>High conversion likelihood</Text>
               </View>
             </View>
-            <Text style={styles.kpiLabel}>12 New</Text>
-            <Text style={styles.kpiValue}>Pending</Text>
-            <Text style={[styles.kpiTrend, styles.trendUrgent]}>
-              ⏰ 4 requires urgent action
-            </Text>
-          </View>
-
-          {/* Card 3: Potential Value */}
-          <View style={[styles.kpiCard, styles.kpiCardDark]}>
-            <View style={styles.kpiDarkCircleAccent} />
-            <View style={styles.kpiHeader}>
-              <View style={[styles.iconBadge, styles.iconBadgeDark]}>
-                <Ionicons name="cash-outline" size={18} color="#EAD26B" />
-              </View>
-            </View>
-            <Text style={styles.kpiLabelDark}>Potential Value</Text>
-            <View style={styles.lkrValueRow}>
-              <Text style={styles.kpiValueDark}>4.2m</Text>
-              <Text style={styles.lkrSuffixText}>LKR</Text>
-            </View>
-            <Text style={styles.kpiTrendDark}>High conversion likelihood</Text>
-          </View>
+          </LinearGradient>
         </View>
 
         {/* Recent Guest Requests Section Heading */}
@@ -243,7 +226,10 @@ const Inquries = () => {
             return (
               <View key={request.name} style={styles.requestCard}>
                 <View style={styles.requestRow1}>
-                  <Image source={{ uri: request.avatar }} style={styles.requestAvatar} contentFit="cover" />
+                  <View style={styles.avatarContainer}>
+                    <Image source={{ uri: request.avatar }} style={styles.requestAvatar} contentFit="cover" />
+                    {isNew && <View style={styles.avatarNewDot} />}
+                  </View>
                   
                   <View style={styles.requestDetailsCol}>
                     <View style={styles.requestNameRow}>
@@ -256,6 +242,12 @@ const Inquries = () => {
                           isResponded && styles.pillBadgeResponded,
                         ]}
                       >
+                        <View style={[
+                          styles.statusBadgeDot,
+                          isNew && { backgroundColor: '#D97706' },
+                          isPriority && { backgroundColor: '#EF4444' },
+                          isResponded && { backgroundColor: '#0E5E2F' }
+                        ]} />
                         <Text
                           style={[
                             styles.pillBadgeText,
@@ -270,12 +262,14 @@ const Inquries = () => {
                     </View>
                     
                     <View style={styles.requestTimeRow}>
-                      <Ionicons name="time-outline" size={13} color="#60646C" style={{ marginRight: 4 }} />
+                      <Ionicons name="time-outline" size={13} color="#8A958E" style={{ marginRight: 4 }} />
                       <Text style={styles.requestTimeText}>{request.time}</Text>
                     </View>
 
                     <View style={styles.requestInterestRow}>
-                      <Ionicons name={request.icon as any} size={14} color={request.iconColor} style={{ marginRight: 6 }} />
+                      <View style={styles.interestIconContainer}>
+                        <Ionicons name={request.icon as any} size={13} color={request.iconColor} />
+                      </View>
                       <Text style={styles.requestInterestText}>{request.detail}</Text>
                     </View>
                   </View>
@@ -286,28 +280,35 @@ const Inquries = () => {
                   <TouchableOpacity
                     style={styles.moreButton}
                     activeOpacity={0.7}
-                    onPress={() => handleActionPress(request.name, 'More Actions')}
+                    onPress={() => handleActionPress(request.name, 'More Actions', request.detail)}
                   >
-                    <Ionicons name="ellipsis-vertical" size={16} color="#1C1917" />
+                    <Ionicons name="ellipsis-vertical" size={16} color="#606963" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.replyButton,
-                      request.actionStyle === 'secondary' ? styles.replyButtonSecondary : styles.replyButtonPrimary,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => handleActionPress(request.name, request.actionText)}
-                  >
-                    <Text
-                      style={[
-                        styles.replyButtonText,
-                        request.actionStyle === 'secondary' ? styles.replyButtonSecondaryText : styles.replyButtonPrimaryText,
-                      ]}
+                  {request.actionStyle === 'primary' ? (
+                    <TouchableOpacity
+                      style={styles.replyButtonWrapper}
+                      activeOpacity={0.9}
+                      onPress={() => handleActionPress(request.name, request.actionText, request.detail)}
                     >
-                      {request.actionText}
-                    </Text>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={['#FFDF59', '#EAD26B']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.replyButtonGradient}
+                      >
+                        <Text style={styles.replyButtonTextPrimary}>{request.actionText}</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.replyButton, styles.replyButtonSecondary]}
+                      activeOpacity={0.8}
+                      onPress={() => handleActionPress(request.name, request.actionText, request.detail)}
+                    >
+                      <Text style={styles.replyButtonSecondaryText}>{request.actionText}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -320,10 +321,10 @@ const Inquries = () => {
           activeOpacity={0.6}
           onPress={handleArchivedPress}
         >
-          <Text style={styles.archivedInquiriesText}>VIEW ARCHIVED INQUIRIES</Text>
-          <Ionicons name="chevron-down" size={16} color="#5B600A" style={{ marginLeft: 6 }} />
+          <Text style={styles.archivedInquiriesText}>View Archived Inquiries</Text>
+          <Ionicons name="chevron-down" size={16} color="#0E5E2F" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
-
+        </View>
       </ScrollView>
     </View>
   );
@@ -332,117 +333,89 @@ const Inquries = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
     zIndex: 10,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
     flex: 1,
-  },
-  logo: {
-    width: 140,
-    height: 32,
-  },
-  headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#EAF2EC',
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
+    backgroundColor: '#F3F4F6',
   },
   scrollContent: {
+    paddingTop: 0,
+  },
+  mainContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },
   titleSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  topLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.5,
+  pageSubtitle: {
+    fontSize: 15,
+    color: '#6B7280',
+    lineHeight: 22,
+    fontWeight: '500',
   },
   actionBar: {
     flexDirection: 'row',
     marginTop: 14,
     gap: 8,
+    alignItems: 'center',
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6EFEA',
     borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    height: 44,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
   },
   filterButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1C1917',
   },
-  newLeadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EAD26B',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  newLeadButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#5B600A',
-  },
-  kpiContainer: {
+  kpiGrid: {
+    marginBottom: 24,
     gap: 12,
-    marginBottom: 28,
   },
-  kpiCard: {
+  kpiGridRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  kpiCardHalf: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
+    borderRadius: 20,
+    borderWidth: 1,
     borderColor: '#EAF2EC',
-    padding: 20,
+    padding: 14,
     position: 'relative',
     overflow: 'hidden',
     shadowColor: '#000',
@@ -451,93 +424,133 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  kpiCardDark: {
-    backgroundColor: '#07351D',
-    borderColor: '#052A17',
+  kpiCardFull: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  kpiCircleAccent: {
+  kpiFullContentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  kpiFullLeft: {
+    justifyContent: 'center',
+  },
+  kpiFullRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  kpiRing1: {
     position: 'absolute',
-    top: -24,
-    right: -24,
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    opacity: 0.8,
-  },
-  circleAccentYellow: {
-    backgroundColor: '#FEFCE8',
-  },
-  circleAccentGreen: {
-    backgroundColor: '#EAF7EE',
-  },
-  kpiDarkCircleAccent: {
-    position: 'absolute',
-    bottom: -36,
     right: -20,
+    top: -20,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 6,
+    borderColor: 'rgba(14, 94, 47, 0.03)',
+  },
+  kpiRing2: {
+    position: 'absolute',
+    right: -30,
+    top: -30,
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#0A4A29',
-    opacity: 0.8,
+    borderWidth: 8,
+    borderColor: 'rgba(14, 94, 47, 0.015)',
+  },
+  kpiDarkRing1: {
+    position: 'absolute',
+    right: -20,
+    bottom: -20,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 10,
+    borderColor: 'rgba(255, 223, 89, 0.04)',
+  },
+  kpiDarkRing2: {
+    position: 'absolute',
+    right: -50,
+    bottom: -50,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 15,
+    borderColor: 'rgba(255, 223, 89, 0.015)',
   },
   kpiHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   iconBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FAFBFB',
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#EAF7EE',
+    borderWidth: 1,
+    borderColor: '#C2F3D0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconBadgeDark: {
     backgroundColor: '#0D4728',
     borderColor: '#0C4024',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   kpiLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#60646C',
-    marginBottom: 4,
+    color: '#8A958E',
   },
   kpiLabelDark: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#EAD26B',
-    marginBottom: 6,
   },
   kpiValue: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: '800',
     color: '#1C1917',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    letterSpacing: -0.4,
+    marginBottom: 4,
   },
   lkrValueRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   kpiValueDark: {
-    fontSize: 36,
+    fontSize: 30,
     fontWeight: '800',
     color: '#EAD26B',
     letterSpacing: -0.8,
-    marginRight: 6,
+    marginRight: 4,
   },
   lkrSuffixText: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '800',
     color: '#EAD26B',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   kpiTrend: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
   },
   trendPositive: {
@@ -547,7 +560,7 @@ const styles = StyleSheet.create({
     color: '#C2410C',
   },
   kpiTrendDark: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     color: '#EAD26B',
   },
@@ -562,7 +575,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#5B600A',
+    backgroundColor: '#0E5E2F',
     marginRight: 8,
   },
   sectionTitle: {
@@ -571,31 +584,45 @@ const styles = StyleSheet.create({
     color: '#1C1917',
   },
   requestsContainer: {
-    gap: 12,
+    gap: 16,
     marginBottom: 24,
   },
   requestCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
+    borderWidth: 1,
+    borderColor: '#EAEFEA',
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
   },
   requestRow1: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 14,
+  },
   requestAvatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    marginRight: 14,
+    borderRadius: 16,
     backgroundColor: '#EAEAEA',
+  },
+  avatarNewDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFDF59',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   requestDetailsCol: {
     flex: 1,
@@ -614,26 +641,38 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   pillBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  statusBadgeDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 4,
   },
   pillBadgeNew: {
-    backgroundColor: '#FCE788',
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FEF3C7',
   },
   pillBadgePriority: {
     backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
   },
   pillBadgeResponded: {
-    backgroundColor: '#C2F3D0',
+    backgroundColor: '#EAF7EE',
+    borderColor: '#C2F3D0',
   },
   pillBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   pillBadgeNewText: {
-    color: '#5B600A',
+    color: '#D97706',
   },
   pillBadgePriorityText: {
     color: '#EF4444',
@@ -647,18 +686,28 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   requestTimeText: {
-    fontSize: 13,
-    color: '#60646C',
+    fontSize: 12,
+    color: '#8A958E',
     fontWeight: '500',
   },
   requestInterestRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+  },
+  interestIconContainer: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: '#FAFBF9',
+    borderWidth: 1,
+    borderColor: '#E6EFEA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
   },
   requestInterestText: {
-    fontSize: 14,
-    color: '#5B600A',
+    fontSize: 13,
+    color: '#2C3A30',
     fontWeight: '700',
   },
   requestCardFooter: {
@@ -667,43 +716,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F0F3F1',
+    borderTopColor: '#F2F5F3',
     paddingTop: 16,
   },
   moreButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FAFBFB',
-    borderWidth: 1,
-    borderColor: '#EAF2EC',
+    borderRadius: 12,
+    backgroundColor: '#F3F5F3',
     justifyContent: 'center',
     alignItems: 'center',
   },
   replyButton: {
-    borderRadius: 16,
+    borderRadius: 12,
     height: 36,
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  replyButtonPrimary: {
-    backgroundColor: '#EAD26B',
+  replyButtonWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#EAD26B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  replyButtonGradient: {
+    height: 36,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   replyButtonSecondary: {
-    backgroundColor: '#FAF8F5',
-    borderWidth: 1.2,
-    borderColor: '#E6DFD3',
+    backgroundColor: '#FAFBF9',
+    borderWidth: 1,
+    borderColor: '#C2D1C8',
   },
-  replyButtonText: {
+  replyButtonTextPrimary: {
     fontSize: 13,
     fontWeight: '800',
-  },
-  replyButtonPrimaryText: {
-    color: '#5B600A',
+    color: '#3B2E05',
   },
   replyButtonSecondaryText: {
-    color: '#5B600A',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0E5E2F',
   },
   archivedInquiriesButton: {
     flexDirection: 'row',
@@ -713,10 +772,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   archivedInquiriesText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#5B600A',
-    letterSpacing: 0.5,
+    color: '#0E5E2F',
+    letterSpacing: 0.8,
   },
 });
 
