@@ -25,6 +25,14 @@ export class TourGuideService {
   //  PACKAGES
   // ══════════════════════════════════════════════════════════════════════════
 
+  async findAllActivePublicPackages() {
+    return this.prisma.tourPackage.findMany({
+      where: { status: 'active' },
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { bookings: true } } },
+    });
+  }
+
   async findAllPackages(guideId: string) {
     return this.prisma.tourPackage.findMany({
       where: { guideId },
@@ -270,6 +278,33 @@ export class TourGuideService {
     });
   }
 
+  async findOneInquiry(id: string) {
+    const inquiry = await this.prisma.tourInquiry.findUnique({ where: { id } });
+    if (!inquiry) throw new NotFoundException(`Inquiry "${id}" not found`);
+    return inquiry;
+  }
+
+  async getInquiryStats(guideId: string) {
+    const [total, active, pending, priority, responded, inquiries] = await Promise.all([
+      this.prisma.tourInquiry.count({ where: { guideId } }),
+      this.prisma.tourInquiry.count({ where: { guideId, status: { in: ['new', 'responded', 'priority'] } } }),
+      this.prisma.tourInquiry.count({ where: { guideId, status: 'new' } }),
+      this.prisma.tourInquiry.count({ where: { guideId, status: 'priority' } }),
+      this.prisma.tourInquiry.count({ where: { guideId, status: 'responded' } }),
+      this.prisma.tourInquiry.findMany({
+        where: { guideId },
+        select: { pipelineValue: true, status: true },
+      }),
+    ]);
+
+    const pipelineValue = inquiries.reduce(
+      (sum, i) => sum + Number(i.pipelineValue),
+      0,
+    );
+
+    return { total, active, pending, priority, responded, pipelineValue };
+  }
+
   async createInquiry(guideId: string, dto: CreateInquiryDto) {
     const inquiry = await this.prisma.tourInquiry.create({
       data: {
@@ -357,21 +392,31 @@ export class TourGuideService {
       totalInquiries,
       newInquiries,
       unreadNotifications,
+      recentBookings,
+      totalRevenueAgg,
     ] = await Promise.all([
       this.prisma.tourPackage.count({ where: { guideId } }),
       this.prisma.tourPackage.count({ where: { guideId, status: 'active' } }),
       this.prisma.tourBooking.count({ where: { guideId } }),
-      this.prisma.tourBooking.count({
-        where: { guideId, status: 'confirmed' },
-      }),
+      this.prisma.tourBooking.count({ where: { guideId, status: 'confirmed' } }),
       this.prisma.tourBooking.count({ where: { guideId, status: 'pending' } }),
-      this.prisma.tourBooking.count({
-        where: { guideId, status: 'completed' },
-      }),
+      this.prisma.tourBooking.count({ where: { guideId, status: 'completed' } }),
       this.prisma.tourInquiry.count({ where: { guideId } }),
       this.prisma.tourInquiry.count({ where: { guideId, status: 'new' } }),
       this.prisma.tourNotification.count({ where: { guideId, isRead: false } }),
+      this.prisma.tourBooking.findMany({
+        where: { guideId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: { package: { select: { name: true, category: true } } },
+      }),
+      this.prisma.tourBooking.aggregate({
+        where: { guideId, status: { in: ['confirmed', 'completed'] } },
+        _sum: { amount: true },
+      }),
     ]);
+
+    const totalRevenue = Number(totalRevenueAgg._sum.amount ?? 0);
 
     return {
       totalPackages,
@@ -383,6 +428,85 @@ export class TourGuideService {
       totalInquiries,
       newInquiries,
       unreadNotifications,
+      recentBookings,
+      totalRevenue,
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  REVENUE
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async getRevenueStats(guideId: string) {
+    // Fetch all confirmed/completed bookings
+    const bookings = await this.prisma.tourBooking.findMany({
+      where: {
+        guideId,
+        status: { in: ['confirmed', 'completed'] },
+      },
+      include: { package: { select: { name: true, category: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const totalRevenue = bookings.reduce((sum, b) => sum + Number(b.amount), 0);
+
+    // ── Monthly trend (last 6 months) ──────────────────────────────────────
+    const now = new Date();
+    const monthlyTrend: { label: string; total: number; month: number; year: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+      const total = bookings
+        .filter((b) => {
+          const date = new Date(b.createdAt);
+          return date >= monthStart && date <= monthEnd;
+        })
+        .reduce((sum, b) => sum + Number(b.amount), 0);
+      monthlyTrend.push({
+        label: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+        month: d.getMonth() + 1,
+        year: d.getFullYear(),
+        total,
+      });
+    }
+
+    // ── Yearly trend (last 4 years) ────────────────────────────────────────
+    const currentYear = now.getFullYear();
+    const yearlyTrend: { label: string; year: number; total: number }[] = [];
+    for (let y = currentYear - 3; y <= currentYear; y++) {
+      const total = bookings
+        .filter((b) => new Date(b.createdAt).getFullYear() === y)
+        .reduce((sum, b) => sum + Number(b.amount), 0);
+      yearlyTrend.push({ label: String(y), year: y, total });
+    }
+
+    // ── Breakdown by package category ─────────────────────────────────────
+    const categoryMap: Record<string, number> = {};
+    for (const b of bookings) {
+      const cat = b.package?.category ?? 'Other';
+      categoryMap[cat] = (categoryMap[cat] ?? 0) + Number(b.amount);
+    }
+    const breakdown = Object.entries(categoryMap)
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        percentage:
+          totalRevenue > 0 ? Math.round((amount / totalRevenue) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // ── High-value bookings (top 5 by amount) ─────────────────────────────
+    const highValueBookings = [...bookings]
+      .sort((a, b) => Number(b.amount) - Number(a.amount))
+      .slice(0, 5);
+
+    return {
+      totalRevenue,
+      monthlyTrend,
+      yearlyTrend,
+      breakdown,
+      highValueBookings,
     };
   }
 }

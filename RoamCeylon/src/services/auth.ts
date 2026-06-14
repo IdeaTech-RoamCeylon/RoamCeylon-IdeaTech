@@ -64,8 +64,10 @@ export const checkAuthStatus = async (): Promise<boolean> => {
 
 export const getMe = async (): Promise<UserProfile> => {
   try {
-    const response = await apiService.get<ApiResponse<UserProfile>>('/users/me');
-    return response.data;
+    const response = await apiService.get<UserProfile>('/users/me');
+    // apiService already unwraps axios data, so response is the UserProfile
+    // But if the backend happens to wrap it in ApiResponse, check for data
+    return (response as any).data || response;
   } catch (error) {
     logger.error('Get user profile error:', error);
     throw error;
@@ -81,7 +83,7 @@ export const updateProfile = async (
   isLocal?: boolean,
 ): Promise<UserProfile> => {
   try {
-    const response = await apiService.patch<ApiResponse<UserProfile>>('/users/me', {
+    const response = await apiService.patch<UserProfile>('/users/me', {
       name,
       email,
       birthday: birthday?.toISOString(),
@@ -89,7 +91,7 @@ export const updateProfile = async (
       phoneNumber,
       isLocal,
     });
-    return response.data;
+    return (response as any).data || response;
   } catch (error) {
     logger.error('Update profile error:', error);
     throw error;

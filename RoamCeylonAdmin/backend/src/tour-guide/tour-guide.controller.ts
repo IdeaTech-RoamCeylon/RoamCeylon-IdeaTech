@@ -89,6 +89,13 @@ export class TourGuideController {
     return this.tourGuideService.getDashboardStats(userId);
   }
 
+  @Get('revenue')
+  getRevenueStats(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} fetching revenue stats`);
+    return this.tourGuideService.getRevenueStats(userId);
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   //  PACKAGES
   // ══════════════════════════════════════════════════════════════════════════
@@ -207,6 +214,13 @@ export class TourGuideController {
   //  INQUIRIES
   // ══════════════════════════════════════════════════════════════════════════
 
+  @Get('inquiries/stats')
+  getInquiryStats(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} fetching inquiry stats`);
+    return this.tourGuideService.getInquiryStats(userId);
+  }
+
   @Get('inquiries')
   findAllInquiries(@Req() req: AuthRequest, @Query('status') status?: string) {
     const { userId } = req.user;
@@ -217,6 +231,12 @@ export class TourGuideController {
       userId,
       status as InquiryStatus | undefined,
     );
+  }
+
+  @Get('inquiries/:id')
+  findOneInquiry(@Param('id') id: string) {
+    this.logger.log(`Fetching inquiry ${id}`);
+    return this.tourGuideService.findOneInquiry(id);
   }
 
   @Post('inquiries')

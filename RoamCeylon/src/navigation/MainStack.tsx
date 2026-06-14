@@ -3,6 +3,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { MainStackParamList } from '../types';
 import HomeScreen from '../screens/home/HomeScreen';
 import ExploreScreen from '../screens/explore/ExploreScreen';
+import TourPackagesScreen from '../screens/explore/TourPackagesScreen';
+import TourPackageDetailsScreen from '../screens/explore/TourPackageDetailsScreen';
 import MarketplaceHomeScreen from '../screens/marketplace/MarketplaceHomeScreen';
 import MarketplaceCategoryScreen from '../screens/marketplace/MarketplaceCategoryScreen';
 import ProductDetailsScreen from '../screens/marketplace/ProductDetailsScreen';
@@ -34,6 +36,8 @@ const MainStack = () => {
     >
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Explore" component={ExploreScreen} />
+      <Stack.Screen name="TourPackages" component={TourPackagesScreen} />
+      <Stack.Screen name="TourPackageDetails" component={TourPackageDetailsScreen} />
       <Stack.Screen name="Marketplace" component={MarketplaceHomeScreen} />
       <Stack.Screen name="MarketplaceCategory" component={MarketplaceCategoryScreen} />
       <Stack.Screen name="Transport" component={TransportScreen} />

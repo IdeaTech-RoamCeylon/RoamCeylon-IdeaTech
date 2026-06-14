@@ -16,6 +16,8 @@ export type AuthStackParamList = {
 export type MainStackParamList = {
   Home: undefined;
   Explore: undefined;
+  TourPackages: undefined;
+  TourPackageDetails: { tourPackage: any };
   Marketplace: undefined;
   MarketplaceHome: undefined;
   MarketplaceCategory: {

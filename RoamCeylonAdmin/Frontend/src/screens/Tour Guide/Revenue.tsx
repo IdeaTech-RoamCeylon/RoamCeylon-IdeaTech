@@ -20,87 +20,57 @@ const Revenue = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // State to toggle between 6 Months and Yearly trend views
   const [selectedTrendRange, setSelectedTrendRange] = useState<'6months' | 'yearly'>('6months');
-
-  // Chart data definitions
-  const sixMonthsChartData = [
-    { label: 'MAY', heightPercent: 35, isCurrent: false },
-    { label: 'JUN', heightPercent: 55, isCurrent: false },
-    { label: 'JUL', heightPercent: 70, isCurrent: false },
-    { label: 'AUG', heightPercent: 60, isCurrent: false },
-    { label: 'SEP', heightPercent: 82, isCurrent: false },
-    { label: 'OCT', heightPercent: 100, isCurrent: true },
-  ];
-
-  const yearlyChartData = [
-    { label: '2020', heightPercent: 40, isCurrent: false },
-    { label: '2021', heightPercent: 65, isCurrent: false },
-    { label: '2022', heightPercent: 80, isCurrent: false },
-    { label: '2023', heightPercent: 100, isCurrent: true },
-  ];
-
-  const currentChartData = selectedTrendRange === '6months' ? sixMonthsChartData : yearlyChartData;
-
-  // Breakdown metrics
-  const breakdowns = [
-    {
-      title: 'Package Sales',
-      amount: '$56,200',
-      percentage: '66.5% of total revenue',
-      icon: 'cube-outline',
-      iconColor: '#0E5E2F',
-      bgCircleColor: '#EAF7EE',
-    },
-    {
-      title: 'Add-ons',
-      amount: '$18,450',
-      percentage: '21.8% of total revenue',
-      icon: 'notifications-outline',
-      iconColor: '#D97706',
-      bgCircleColor: '#FFFBEB',
-    },
-    {
-      title: 'Guide Fees',
-      amount: '$9,850',
-      percentage: '11.7% of total revenue',
-      icon: 'card-outline',
-      iconColor: '#2563EB',
-      bgCircleColor: '#EFF6FF',
-    },
-  ];
-
   const [loading, setLoading] = useState(true);
-  const [highValueBookings, setHighValueBookings] = useState<any[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [revenueData, setRevenueData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchDashboard = async () => {
+    const fetchRevenue = async () => {
       try {
         setLoading(true);
         const accessToken = await SecureStore.getItemAsync('authToken');
         const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
-
         if (!accessToken) return;
 
-        const res = await fetch(`${apiUrl}/tour-guide/dashboard`, {
+        const res = await fetch(`${apiUrl}/tour-guide/revenue`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (res.ok) {
           const data = await res.json();
-          setTotalRevenue(data.totalRevenue || 0);
-          setHighValueBookings(data.recentBookings?.slice(0, 5) || []);
+          setRevenueData(data);
         }
       } catch (error) {
-        console.error('Failed to fetch dashboard:', error);
+        console.error('Failed to fetch revenue:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchDashboard();
+    fetchRevenue();
   }, []);
+
+  // Build chart data from API, normalise heights to max=100
+  const buildChartData = (trend: { label: string; total: number }[]) => {
+    const max = Math.max(...trend.map((t) => t.total), 1);
+    return trend.map((t, i) => ({
+      label: t.label,
+      heightPercent: Math.round((t.total / max) * 100),
+      isCurrent: i === trend.length - 1,
+    }));
+  };
+
+  const monthlyTrend = revenueData?.monthlyTrend ?? [];
+  const yearlyTrend = revenueData?.yearlyTrend ?? [];
+  const sixMonthsChartData = buildChartData(monthlyTrend);
+  const yearlyChartData = buildChartData(yearlyTrend);
+  const currentChartData = selectedTrendRange === '6months' ? sixMonthsChartData : yearlyChartData;
+
+  const totalRevenue: number = revenueData?.totalRevenue ?? 0;
+  const highValueBookings: any[] = revenueData?.highValueBookings ?? [];
+  const breakdown: { category: string; amount: number; percentage: number }[] =
+    revenueData?.breakdown ?? [];
+
+  const breakdownColors = ['#0E5E2F', '#D97706', '#2563EB', '#7C3AED', '#DC2626'];
 
   const handleViewAllBookingsPress = () => {
     router.push('/tour-guide/bookings' as any);
@@ -287,30 +257,40 @@ const Revenue = () => {
           <Text style={styles.breakdownCardTitle}>Revenue Breakdown</Text>
           
           {/* Segmented Progress Bar */}
-          <View style={styles.segmentedBarContainer}>
-            <View style={[styles.barSegment, { flex: 66.5, backgroundColor: '#0E5E2F', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
-            <View style={[styles.barSegment, { flex: 21.8, backgroundColor: '#D97706' }]} />
-            <View style={[styles.barSegment, { flex: 11.7, backgroundColor: '#2563EB', borderTopRightRadius: 6, borderBottomRightRadius: 6 }]} />
-          </View>
+          {breakdown.length > 0 && (
+            <View style={styles.segmentedBarContainer}>
+              {breakdown.map((item, idx) => (
+                <View
+                  key={item.category}
+                  style={[
+                    styles.barSegment,
+                    { flex: item.percentage, backgroundColor: breakdownColors[idx % breakdownColors.length] },
+                    idx === 0 && { borderTopLeftRadius: 6, borderBottomLeftRadius: 6 },
+                    idx === breakdown.length - 1 && { borderTopRightRadius: 6, borderBottomRightRadius: 6 },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
 
           {/* Breakdown Items List */}
           <View style={styles.breakdownGrid}>
-            {breakdowns.map((breakdown, idx) => {
-              const dotColors = ['#0E5E2F', '#D97706', '#2563EB'];
-              const activeColor = dotColors[idx % dotColors.length];
-              return (
-                <View key={breakdown.title} style={styles.breakdownGridItem}>
-                  <View style={styles.breakdownItemHeader}>
-                    <View style={[styles.legendDot, { backgroundColor: activeColor }]} />
-                    <Text style={styles.breakdownItemTitle}>{breakdown.title}</Text>
-                  </View>
-                  <Text style={styles.breakdownItemValue}>{breakdown.amount}</Text>
-                  <Text style={styles.breakdownItemPercentage}>
-                    {breakdown.percentage.split('%')[0]}% of total
-                  </Text>
+            {breakdown.length > 0 ? breakdown.map((item, idx) => (
+              <View key={item.category} style={styles.breakdownGridItem}>
+                <View style={styles.breakdownItemHeader}>
+                  <View style={[styles.legendDot, { backgroundColor: breakdownColors[idx % breakdownColors.length] }]} />
+                  <Text style={styles.breakdownItemTitle}>{item.category}</Text>
                 </View>
-              );
-            })}
+                <Text style={styles.breakdownItemValue}>Rs. {item.amount.toLocaleString()}</Text>
+                <Text style={styles.breakdownItemPercentage}>
+                  {item.percentage}% of total
+                </Text>
+              </View>
+            )) : (
+              <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 16, width: '100%' }}>
+                No bookings yet to calculate breakdown.
+              </Text>
+            )}
           </View>
         </View>
 

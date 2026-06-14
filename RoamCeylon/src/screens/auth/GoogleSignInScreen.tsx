@@ -1,24 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { nhost } from '../../config/nhostClient';
 import * as SecureStore from 'expo-secure-store';
+let GoogleSignin: any = {
+  hasPlayServices: async () => {},
+  signIn: async () => ({}),
+};
+let statusCodes: any = {};
 
-// Configure Google Sign-In.
-// webClientId must match the Web Application OAuth client in Google Cloud Console.
-// offlineAccess is NOT required — the new flow sends the idToken directly to
-// Nhost (signInIdToken) instead of exchanging a serverAuthCode on the backend.
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-  scopes: ['profile', 'email'],
-});
+try {
+  const g = require('@react-native-google-signin/google-signin');
+  GoogleSignin = g.GoogleSignin;
+  statusCodes = g.statusCodes;
+  
+  // Configure Google Sign-In.
+  // webClientId must match the Web Application OAuth client in Google Cloud Console.
+  // offlineAccess is NOT required — the new flow sends the idToken directly to
+  // Nhost (signInIdToken) instead of exchanging a serverAuthCode on the backend.
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    scopes: ['profile', 'email'],
+  });
+} catch (error) {
+  console.warn('Google SignIn native module is not available in Expo Go. Authentication via Google will fail.');
+}
 
 const GoogleSignInScreen = () => {
   const navigation = useNavigation();

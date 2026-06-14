@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,68 +7,47 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
 
 const Inquries = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Guest requests data definition
-  const guestRequests = [
-    {
-      name: 'Sophia Henderson',
-      status: 'NEW',
-      statusType: 'new', // yellow
-      time: 'Today, 10:45 AM',
-      icon: 'heart-outline',
-      iconColor: '#0E5E2F',
-      detail: 'Honeymoon in Ella',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-      actionText: 'Reply',
-      actionStyle: 'primary',
-    },
-    {
-      name: 'Julian Thorne',
-      status: 'PRIORITY',
-      statusType: 'priority', // red/pink
-      time: 'Yesterday, 4:20 PM',
-      icon: 'map-outline',
-      iconColor: '#D97706',
-      detail: 'Cultural Triangle Exclusive',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
-      actionText: 'Reply',
-      actionStyle: 'primary',
-    },
-    {
-      name: 'Elena Richards',
-      status: 'RESPONDED',
-      statusType: 'responded', // green
-      time: 'Oct 12, 11:00 AM',
-      icon: 'boat-outline',
-      iconColor: '#0E5E2F',
-      detail: 'East Coast Retreat',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-      actionText: 'View Thread',
-      actionStyle: 'secondary',
-    },
-    {
-      name: 'Marcus Thorne',
-      status: 'NEW',
-      statusType: 'new', // yellow
-      time: 'Oct 11, 2:15 PM',
-      icon: 'trail-sign-outline',
-      iconColor: '#0E5E2F',
-      detail: 'Hill Country Escape',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-      actionText: 'Reply',
-      actionStyle: 'primary',
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [inquiries, setInquiries] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const accessToken = await SecureStore.getItemAsync('authToken');
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+        if (!accessToken) return;
+
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        const [inqRes, statsRes] = await Promise.all([
+          fetch(`${apiUrl}/tour-guide/inquiries`, { headers }),
+          fetch(`${apiUrl}/tour-guide/inquiries/stats`, { headers }),
+        ]);
+
+        if (inqRes.ok) setInquiries(await inqRes.json());
+        if (statsRes.ok) setStats(await statsRes.json());
+      } catch (error) {
+        console.error('Failed to fetch inquiries:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleFilterPress = () => {
     Alert.alert('Filter', 'Filter criteria sheet opened.');
@@ -91,6 +70,27 @@ const Inquries = () => {
 
   const handleArchivedPress = () => {
     Alert.alert('Archived Inquiries', 'Loading historical guest inquiries...');
+  };
+
+  // Map API status to display values
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'new': return { label: 'NEW', type: 'new' };
+      case 'priority': return { label: 'PRIORITY', type: 'priority' };
+      case 'responded': return { label: 'RESPONDED', type: 'responded' };
+      case 'closed': return { label: 'CLOSED', type: 'responded' };
+      default: return { label: status.toUpperCase(), type: 'new' };
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return `Today, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    if (diffDays === 1) return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -152,11 +152,11 @@ const Inquries = () => {
                 <View style={styles.iconBadge}>
                   <Ionicons name="bar-chart-outline" size={16} color="#0E5E2F" />
                 </View>
-                <Text style={styles.kpiLabel}>48 Total</Text>
+                <Text style={styles.kpiLabel}>{stats ? `${stats.active} Total` : '—'}</Text>
               </View>
               <Text style={styles.kpiValue}>Active</Text>
               <Text style={[styles.kpiTrend, styles.trendPositive]}>
-                ↗ +8% this wk
+                ↗ {stats?.responded ?? 0} responded
               </Text>
             </TouchableOpacity>
 
@@ -172,11 +172,11 @@ const Inquries = () => {
                 <View style={[styles.iconBadge, { borderColor: '#FEF3C7', backgroundColor: '#FFFBEB' }]}>
                   <Ionicons name="notifications-outline" size={16} color="#D97706" />
                 </View>
-                <Text style={styles.kpiLabel}>12 New</Text>
+                <Text style={styles.kpiLabel}>{stats ? `${stats.pending} New` : '—'}</Text>
               </View>
               <Text style={styles.kpiValue}>Pending</Text>
               <Text style={[styles.kpiTrend, styles.trendUrgent]}>
-                ⏰ 4 urgent
+                ⏰ {stats?.priority ?? 0} urgent
               </Text>
             </TouchableOpacity>
           </View>
@@ -199,7 +199,13 @@ const Inquries = () => {
               </View>
               <View style={styles.kpiFullRight}>
                 <View style={styles.lkrValueRow}>
-                  <Text style={styles.kpiValueDark}>4.2m</Text>
+                  <Text style={styles.kpiValueDark}>
+                    {stats ? (stats.pipelineValue >= 1000000
+                      ? `${(stats.pipelineValue / 1000000).toFixed(1)}m`
+                      : stats.pipelineValue >= 1000
+                      ? `${(stats.pipelineValue / 1000).toFixed(0)}k`
+                      : stats.pipelineValue.toLocaleString()) : '0'}
+                  </Text>
                   <Text style={styles.lkrSuffixText}>LKR</Text>
                 </View>
                 <Text style={styles.kpiTrendDark}>High conversion likelihood</Text>
@@ -218,101 +224,110 @@ const Inquries = () => {
 
         {/* Requests Card List */}
         <View style={styles.requestsContainer}>
-          {guestRequests.map((request) => {
-            const isNew = request.statusType === 'new';
-            const isPriority = request.statusType === 'priority';
-            const isResponded = request.statusType === 'responded';
-            
-            return (
-              <View key={request.name} style={styles.requestCard}>
-                <View style={styles.requestRow1}>
-                  <View style={styles.avatarContainer}>
-                    <Image source={{ uri: request.avatar }} style={styles.requestAvatar} contentFit="cover" />
-                    {isNew && <View style={styles.avatarNewDot} />}
-                  </View>
-                  
-                  <View style={styles.requestDetailsCol}>
-                    <View style={styles.requestNameRow}>
-                      <Text style={styles.requestName}>{request.name}</Text>
-                      <View
-                        style={[
-                          styles.pillBadge,
-                          isNew && styles.pillBadgeNew,
-                          isPriority && styles.pillBadgePriority,
-                          isResponded && styles.pillBadgeResponded,
-                        ]}
-                      >
-                        <View style={[
-                          styles.statusBadgeDot,
-                          isNew && { backgroundColor: '#D97706' },
-                          isPriority && { backgroundColor: '#EF4444' },
-                          isResponded && { backgroundColor: '#0E5E2F' }
-                        ]} />
-                        <Text
-                          style={[
-                            styles.pillBadgeText,
-                            isNew && styles.pillBadgeNewText,
-                            isPriority && styles.pillBadgePriorityText,
-                            isResponded && styles.pillBadgeRespondedText,
-                          ]}
-                        >
-                          {request.status}
-                        </Text>
-                      </View>
+          {loading ? (
+            <ActivityIndicator size="large" color="#0E5E2F" style={{ marginVertical: 24 }} />
+          ) : inquiries.length > 0 ? (
+            inquiries.slice(0, 6).map((request) => {
+              const { label: statusLabel, type: statusType } = getStatusDisplay(request.status);
+              const isNew = statusType === 'new';
+              const isPriority = statusType === 'priority';
+              const isResponded = statusType === 'responded';
+              const actionText = isResponded ? 'View Thread' : 'Reply';
+              const avatarUrl = request.guestAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.guestName)}&background=random`;
+
+              return (
+                <View key={request.id} style={styles.requestCard}>
+                  <View style={styles.requestRow1}>
+                    <View style={styles.avatarContainer}>
+                      <Image source={{ uri: avatarUrl }} style={styles.requestAvatar} contentFit="cover" />
+                      {isNew && <View style={styles.avatarNewDot} />}
                     </View>
                     
-                    <View style={styles.requestTimeRow}>
-                      <Ionicons name="time-outline" size={13} color="#8A958E" style={{ marginRight: 4 }} />
-                      <Text style={styles.requestTimeText}>{request.time}</Text>
-                    </View>
-
-                    <View style={styles.requestInterestRow}>
-                      <View style={styles.interestIconContainer}>
-                        <Ionicons name={request.icon as any} size={13} color={request.iconColor} />
+                    <View style={styles.requestDetailsCol}>
+                      <View style={styles.requestNameRow}>
+                        <Text style={styles.requestName}>{request.guestName}</Text>
+                        <View
+                          style={[
+                            styles.pillBadge,
+                            isNew && styles.pillBadgeNew,
+                            isPriority && styles.pillBadgePriority,
+                            isResponded && styles.pillBadgeResponded,
+                          ]}
+                        >
+                          <View style={[
+                            styles.statusBadgeDot,
+                            isNew && { backgroundColor: '#D97706' },
+                            isPriority && { backgroundColor: '#EF4444' },
+                            isResponded && { backgroundColor: '#0E5E2F' }
+                          ]} />
+                          <Text
+                            style={[
+                              styles.pillBadgeText,
+                              isNew && styles.pillBadgeNewText,
+                              isPriority && styles.pillBadgePriorityText,
+                              isResponded && styles.pillBadgeRespondedText,
+                            ]}
+                          >
+                            {statusLabel}
+                          </Text>
+                        </View>
                       </View>
-                      <Text style={styles.requestInterestText}>{request.detail}</Text>
+                      
+                      <View style={styles.requestTimeRow}>
+                        <Ionicons name="time-outline" size={13} color="#8A958E" style={{ marginRight: 4 }} />
+                        <Text style={styles.requestTimeText}>{formatDate(request.createdAt)}</Text>
+                      </View>
+
+                      <View style={styles.requestInterestRow}>
+                        <View style={styles.interestIconContainer}>
+                          <Ionicons name="map-outline" size={13} color="#0E5E2F" />
+                        </View>
+                        <Text style={styles.requestInterestText}>{request.tourInterest || request.subject || 'General Inquiry'}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
-                {/* Bottom Action Bar */}
-                <View style={styles.requestCardFooter}>
-                  <TouchableOpacity
-                    style={styles.moreButton}
-                    activeOpacity={0.7}
-                    onPress={() => handleActionPress(request.name, 'More Actions', request.detail)}
-                  >
-                    <Ionicons name="ellipsis-vertical" size={16} color="#606963" />
-                  </TouchableOpacity>
-
-                  {request.actionStyle === 'primary' ? (
+                  {/* Bottom Action Bar */}
+                  <View style={styles.requestCardFooter}>
                     <TouchableOpacity
-                      style={styles.replyButtonWrapper}
-                      activeOpacity={0.9}
-                      onPress={() => handleActionPress(request.name, request.actionText, request.detail)}
+                      style={styles.moreButton}
+                      activeOpacity={0.7}
+                      onPress={() => handleActionPress(request.guestName, 'More Actions', request.tourInterest)}
                     >
-                      <LinearGradient
-                        colors={['#FFDF59', '#EAD26B']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.replyButtonGradient}
+                      <Ionicons name="ellipsis-vertical" size={16} color="#606963" />
+                    </TouchableOpacity>
+
+                    {!isResponded ? (
+                      <TouchableOpacity
+                        style={styles.replyButtonWrapper}
+                        activeOpacity={0.9}
+                        onPress={() => handleActionPress(request.guestName, actionText, request.tourInterest)}
                       >
-                        <Text style={styles.replyButtonTextPrimary}>{request.actionText}</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.replyButton, styles.replyButtonSecondary]}
-                      activeOpacity={0.8}
-                      onPress={() => handleActionPress(request.name, request.actionText, request.detail)}
-                    >
-                      <Text style={styles.replyButtonSecondaryText}>{request.actionText}</Text>
-                    </TouchableOpacity>
-                  )}
+                        <LinearGradient
+                          colors={['#FFDF59', '#EAD26B']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.replyButtonGradient}
+                        >
+                          <Text style={styles.replyButtonTextPrimary}>{actionText}</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.replyButton, styles.replyButtonSecondary]}
+                        activeOpacity={0.8}
+                        onPress={() => handleActionPress(request.guestName, actionText, request.tourInterest)}
+                      >
+                        <Text style={styles.replyButtonSecondaryText}>{actionText}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })
+          ) : (
+            <Text style={{ textAlign: 'center', color: '#6B7280', paddingVertical: 24 }}>No inquiries yet.</Text>
+          )}
         </View>
 
         {/* View Archived Link Footer */}

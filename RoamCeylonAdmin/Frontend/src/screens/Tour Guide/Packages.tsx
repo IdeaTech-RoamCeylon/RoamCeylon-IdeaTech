@@ -23,7 +23,7 @@ const Packages = () => {
 
   // Search and Category filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'culture' | 'nature' | 'coastal'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -86,10 +86,22 @@ const Packages = () => {
     }
   };
 
+  // Predefined package categories
+  const categories = [
+    'all',
+    'Culture',
+    'Nature',
+    'Coastal',
+    'Adventure',
+    'Wellness',
+    'Wildlife',
+    'Other',
+  ];
+
   // Filtering Logic
   const filteredPackages = packagesList.filter((pkg) => {
     const matchesCategory =
-      selectedCategory === 'all' || (pkg.category && pkg.category.toLowerCase() === selectedCategory);
+      selectedCategory === 'all' || (pkg.category && pkg.category.toLowerCase() === selectedCategory.toLowerCase());
     const matchesSearch =
       (pkg.name && pkg.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (pkg.description && pkg.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -159,84 +171,33 @@ const Packages = () => {
           />
         </View>
 
-        {/* Categories Pills Horizontal List */}
+        {/* Categories Pills Horizontal List — dynamic from real package data */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoriesPillsScroll}
           contentContainerStyle={styles.categoriesPillsContainer}
         >
-          <TouchableOpacity
-            style={[
-              styles.pillButton,
-              selectedCategory === 'all' ? styles.pillButtonActive : styles.pillButtonInactive,
-            ]}
-            activeOpacity={0.8}
-            onPress={() => setSelectedCategory('all')}
-          >
-            <Text
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat}
               style={[
-                styles.pillButtonText,
-                selectedCategory === 'all' ? styles.pillActiveText : styles.pillInactiveText,
+                styles.pillButton,
+                selectedCategory === cat ? styles.pillButtonActive : styles.pillButtonInactive,
               ]}
+              activeOpacity={0.8}
+              onPress={() => setSelectedCategory(cat)}
             >
-              All Packages
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.pillButton,
-              selectedCategory === 'culture' ? styles.pillButtonActive : styles.pillButtonInactive,
-            ]}
-            activeOpacity={0.8}
-            onPress={() => setSelectedCategory('culture')}
-          >
-            <Text
-              style={[
-                styles.pillButtonText,
-                selectedCategory === 'culture' ? styles.pillActiveText : styles.pillInactiveText,
-              ]}
-            >
-              Culture
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.pillButton,
-              selectedCategory === 'nature' ? styles.pillButtonActive : styles.pillButtonInactive,
-            ]}
-            activeOpacity={0.8}
-            onPress={() => setSelectedCategory('nature')}
-          >
-            <Text
-              style={[
-                styles.pillButtonText,
-                selectedCategory === 'nature' ? styles.pillActiveText : styles.pillInactiveText,
-              ]}
-            >
-              Nature
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.pillButton,
-              selectedCategory === 'coastal' ? styles.pillButtonActive : styles.pillButtonInactive,
-            ]}
-            activeOpacity={0.8}
-            onPress={() => setSelectedCategory('coastal')}
-          >
-            <Text
-              style={[
-                styles.pillButtonText,
-                selectedCategory === 'coastal' ? styles.pillActiveText : styles.pillInactiveText,
-              ]}
-            >
-              Coastal
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.pillButtonText,
+                  selectedCategory === cat ? styles.pillActiveText : styles.pillInactiveText,
+                ]}
+              >
+                {cat === 'all' ? 'All Packages' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {/* Packages Cards List */}

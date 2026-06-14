@@ -64,6 +64,15 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     route: 'Marketplace',
   },
   {
+    id: 'tours',
+    label: 'Tour Packages',
+    icon: 'map-outline',
+    iconColor: '#5B600A',
+    iconBackground: '#e6e8b8',
+    cardBackground: '#f5f7db',
+    route: 'TourPackages',
+  },
+  {
     id: 'activities',
     label: 'Activities & Tourist Spots',
     icon: 'terrain',
