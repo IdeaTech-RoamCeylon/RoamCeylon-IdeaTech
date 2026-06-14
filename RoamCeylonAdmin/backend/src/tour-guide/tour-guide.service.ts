@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +10,8 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateInquiryDto } from './dto/create-inquiry.dto';
+import { CreatePublicInquiryDto } from './dto/create-public-inquiry.dto';
+import { ConvertInquiryDto } from './dto/convert-inquiry.dto';
 import type {
   PackageStatus,
   BookingStatus,
@@ -31,6 +34,45 @@ export class TourGuideService {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { bookings: true } } },
     });
+  }
+
+  async createPublicInquiry(dto: CreatePublicInquiryDto) {
+    const pkg = await this.findOnePackage(dto.packageId);
+    
+    // Parse the requested date from the Tourist app
+    const startDate = new Date(dto.date);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + (pkg.duration || 1));
+    
+    // Create the booking request directly as pending
+    const booking = await this.prisma.tourBooking.create({
+      data: {
+        packageId: pkg.id,
+        guideId: pkg.guideId,
+        customerName: dto.guestName,
+        customerEmail: dto.guestEmail,
+        customerAvatar: dto.guestAvatar || '',
+        tourName: pkg.name,
+        startDate: startDate,
+        endDate: endDate,
+        guests: dto.numberOfPeople,
+        amount: Number(pkg.price) * dto.numberOfPeople,
+        status: 'pending',
+      },
+    });
+
+    // Generate a notification for the guide
+    await this.prisma.tourNotification.create({
+      data: {
+        guideId: pkg.guideId,
+        type: 'booking',
+        title: 'New Booking Request',
+        message: `${dto.guestName} has requested a booking for "${pkg.name}".`,
+        relatedEntityId: booking.id,
+      },
+    });
+
+    return booking;
   }
 
   async findAllPackages(guideId: string) {
@@ -339,6 +381,57 @@ export class TourGuideService {
 
     this.logger.log(`Inquiry ${id} status → "${status}"`);
     return inquiry;
+  }
+
+  async convertInquiryToBooking(
+    inquiryId: string,
+    guideId: string,
+    dto: ConvertInquiryDto,
+  ) {
+    const inquiry = await this.prisma.tourInquiry.findUnique({
+      where: { id: inquiryId },
+    });
+    if (!inquiry || inquiry.guideId !== guideId) {
+      throw new NotFoundException('Inquiry not found');
+    }
+    if (inquiry.status === 'converted') {
+      throw new BadRequestException('Inquiry is already converted to a booking');
+    }
+
+    // Try to find the associated package
+    // We match by tourInterest since public inquiry sets tourInterest = pkg.name
+    const pkg = await this.prisma.tourPackage.findFirst({
+      where: { guideId, name: inquiry.tourInterest },
+    });
+
+    if (!pkg) {
+      throw new NotFoundException(`Tour package "${inquiry.tourInterest}" not found.`);
+    }
+
+    // Create the pending booking
+    const booking = await this.prisma.tourBooking.create({
+      data: {
+        packageId: pkg.id,
+        guideId: guideId,
+        customerName: inquiry.guestName,
+        customerEmail: inquiry.guestEmail,
+        customerAvatar: inquiry.guestAvatar,
+        tourName: inquiry.tourInterest,
+        startDate: new Date(dto.startDate),
+        endDate: new Date(dto.endDate),
+        guests: dto.guests,
+        amount: dto.amount,
+        status: 'pending',
+      },
+    });
+
+    // Update the inquiry status to converted
+    await this.prisma.tourInquiry.update({
+      where: { id: inquiryId },
+      data: { status: 'converted' },
+    });
+
+    return booking;
   }
 
   // ══════════════════════════════════════════════════════════════════════════

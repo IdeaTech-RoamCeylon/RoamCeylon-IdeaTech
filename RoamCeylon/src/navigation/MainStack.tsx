@@ -5,6 +5,7 @@ import HomeScreen from '../screens/home/HomeScreen';
 import ExploreScreen from '../screens/explore/ExploreScreen';
 import TourPackagesScreen from '../screens/explore/TourPackagesScreen';
 import TourPackageDetailsScreen from '../screens/explore/TourPackageDetailsScreen';
+import TourPackageBookingScreen from '../screens/explore/TourPackageBookingScreen';
 import MarketplaceHomeScreen from '../screens/marketplace/MarketplaceHomeScreen';
 import MarketplaceCategoryScreen from '../screens/marketplace/MarketplaceCategoryScreen';
 import ProductDetailsScreen from '../screens/marketplace/ProductDetailsScreen';
@@ -38,6 +39,7 @@ const MainStack = () => {
       <Stack.Screen name="Explore" component={ExploreScreen} />
       <Stack.Screen name="TourPackages" component={TourPackagesScreen} />
       <Stack.Screen name="TourPackageDetails" component={TourPackageDetailsScreen} />
+      <Stack.Screen name="TourPackageBooking" component={TourPackageBookingScreen} />
       <Stack.Screen name="Marketplace" component={MarketplaceHomeScreen} />
       <Stack.Screen name="MarketplaceCategory" component={MarketplaceCategoryScreen} />
       <Stack.Screen name="Transport" component={TransportScreen} />

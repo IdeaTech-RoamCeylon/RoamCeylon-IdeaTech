@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Platform,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -20,7 +21,7 @@ const { width, height } = Dimensions.get('window');
 type DetailsRouteProp = RouteProp<MainStackParamList, 'TourPackageDetails'>;
 
 export default function TourPackageDetailsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute<DetailsRouteProp>();
   const insets = useSafeAreaInsets();
   const { tourPackage } = route.params;
@@ -139,7 +140,11 @@ export default function TourPackageDetailsScreen() {
             <Text style={styles.bottomPrice}>LKR {tourPackage.price}</Text>
             <Text style={styles.perPersonText}>/ person</Text>
           </View>
-          <TouchableOpacity style={styles.bookBtn} activeOpacity={0.9}>
+          <TouchableOpacity 
+            style={styles.bookBtn} 
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('TourPackageBooking', { tourPackage })}
+          >
             <LinearGradient
               colors={['#111', '#333']}
               start={{ x: 0, y: 0 }}
@@ -162,7 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 180,
   },
   heroSection: {
     width: width,

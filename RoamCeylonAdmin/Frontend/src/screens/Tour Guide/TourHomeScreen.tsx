@@ -26,6 +26,7 @@ const TourHomeScreen = () => {
     totalPackages: 0,
     activeBookings: 0,
     rating: '4.9',
+    unreadNotifications: 0,
   });
   const [packagesList, setPackagesList] = useState<any[]>([]);
   const [bookingsList, setBookingsList] = useState<any[]>([]);
@@ -48,6 +49,7 @@ const TourHomeScreen = () => {
           totalPackages: d.totalPackages || 0,
           activeBookings: (d.pendingBookings || 0) + (d.confirmedBookings || 0),
           rating: '4.9', // Hardcoded rating for now
+          unreadNotifications: d.unreadNotifications || 0,
         });
       }
 
@@ -109,6 +111,13 @@ const TourHomeScreen = () => {
                 onPress={handleNotificationPress}
               >
                 <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                {stats.unreadNotifications > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {stats.unreadNotifications > 99 ? '99+' : stats.unreadNotifications}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
               <TouchableOpacity 
                 activeOpacity={0.7} 
@@ -389,6 +398,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#0F3D26',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   avatarCircle: {
     width: 38,

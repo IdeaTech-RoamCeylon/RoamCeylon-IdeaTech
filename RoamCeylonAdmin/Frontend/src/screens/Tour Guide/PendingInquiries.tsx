@@ -23,56 +23,7 @@ const PendingInquiries = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Sample pending inquiries list
-  const pendingInquiriesData = [
-    {
-      id: 'INQ-4882',
-      name: 'Sophia Henderson',
-      time: '12 mins ago',
-      isUrgent: true,
-      timeLeft: '1h 48m left to reply',
-      interest: 'Honeymoon in Ella',
-      guests: '2 Guests',
-      duration: '6 Days',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-      message: 'Looking for a private luxury tour. Need romantic dinners, waterfall hikes, and premium hotels booked.',
-    },
-    {
-      id: 'INQ-4871',
-      name: 'Marcus Thorne',
-      time: '45 mins ago',
-      isUrgent: false,
-      timeLeft: null,
-      interest: 'Hill Country Escape',
-      guests: '4 Guests (Family)',
-      duration: '5 Days',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-      message: 'Traveling with children, so we need child-friendly activities, private driver, and hotels with swimming pools.',
-    },
-    {
-      id: 'INQ-4866',
-      name: 'Oliver Queen',
-      time: '2 hours ago',
-      isUrgent: true,
-      timeLeft: '22m left to reply',
-      interest: 'East Coast Safari',
-      guests: '1 Guest',
-      duration: '4 Days',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
-      message: 'Need a custom jeep safari in Kumana and Yala. Prefer camping under the stars if possible.',
-    },
-    {
-      id: 'INQ-4859',
-      name: 'Clara Kent',
-      time: '4 hours ago',
-      isUrgent: false,
-      timeLeft: null,
-      interest: 'Kandy Heritage Tour',
-      guests: '3 Guests',
-      duration: '3 Days',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-      message: 'Interested in visiting Temple of the Tooth and surrounding historic temples with a licensed guide.',
-    },
-  ];
+  const pendingInquiriesData: any[] = [];
 
   // Filtering pending requests
   const filteredPending = pendingInquiriesData.filter((inq) => {

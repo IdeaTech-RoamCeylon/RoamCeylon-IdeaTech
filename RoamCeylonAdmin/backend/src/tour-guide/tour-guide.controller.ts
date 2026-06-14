@@ -21,6 +21,7 @@ import { UpdatePackageDto } from './dto/update-package.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { CreateInquiryDto } from './dto/create-inquiry.dto';
+import { ConvertInquiryDto } from './dto/convert-inquiry.dto';
 import type {
   PackageStatus,
   BookingStatus,
@@ -254,6 +255,17 @@ export class TourGuideController {
   ) {
     this.logger.log(`Updating inquiry ${id} status to "${status}"`);
     return this.tourGuideService.updateInquiryStatus(id, status);
+  }
+
+  @Post('inquiries/:id/convert')
+  convertInquiry(
+    @Param('id') id: string,
+    @Req() req: AuthRequest,
+    @Body() dto: ConvertInquiryDto,
+  ) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} converting inquiry ${id} to booking`);
+    return this.tourGuideService.convertInquiryToBooking(id, userId, dto);
   }
 
   // ══════════════════════════════════════════════════════════════════════════

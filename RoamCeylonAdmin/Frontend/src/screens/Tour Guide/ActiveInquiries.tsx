@@ -23,56 +23,7 @@ const ActiveInquiries = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'responded' | 'priority'>('all');
 
   // Detailed active inquiries list
-  const activeInquiriesData = [
-    {
-      name: 'Sophia Henderson',
-      status: 'NEW',
-      statusType: 'new',
-      time: 'Today, 10:45 AM',
-      icon: 'heart-outline',
-      iconColor: '#0E5E2F',
-      detail: 'Honeymoon in Ella (6 Days)',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-      lastMessage: 'Awaiting your custom hotel bookings proposal for 98 Acres Resort.',
-      progress: 0.25, // 25% complete (received stage)
-    },
-    {
-      name: 'Julian Thorne',
-      status: 'PRIORITY',
-      statusType: 'priority',
-      time: 'Yesterday, 4:20 PM',
-      icon: 'map-outline',
-      iconColor: '#D97706',
-      detail: 'Cultural Triangle Exclusive',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
-      lastMessage: 'Draft itinerary sent. Reviewing safari bookings options at Minneriya.',
-      progress: 0.75, // 75% complete (negotiation stage)
-    },
-    {
-      name: 'Elena Richards',
-      status: 'RESPONDED',
-      statusType: 'responded',
-      time: 'Oct 12, 11:00 AM',
-      icon: 'boat-outline',
-      iconColor: '#0E5E2F',
-      detail: 'East Coast Retreat (10 Days)',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-      lastMessage: 'Itinerary sent and pricing confirmed. Waiting on travel insurance details.',
-      progress: 0.9, // 90% complete (awaiting final confirmation)
-    },
-    {
-      name: 'Marcus Thorne',
-      status: 'NEW',
-      statusType: 'new',
-      time: 'Oct 11, 2:15 PM',
-      icon: 'trail-sign-outline',
-      iconColor: '#0E5E2F',
-      detail: 'Hill Country Escape',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-      lastMessage: 'Requested changes to include whale watching in Mirissa on Day 4.',
-      progress: 0.5, // 50% complete (revising itinerary stage)
-    },
-  ];
+  const activeInquiriesData: any[] = [];
 
   // Search and status filter logic
   const filteredInquiries = activeInquiriesData.filter((inquiry) => {
@@ -260,13 +211,6 @@ const ActiveInquiries = () => {
                       >
                         <Ionicons name="create-outline" size={14} color="#0E5E2F" style={{ marginRight: 4 }} />
                         <Text style={styles.btnItineraryText}>Tailor Plan</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.btnAction, styles.btnChat]}
-                        onPress={() => handleInquiryPress(inquiry.name, inquiry.detail)}
-                      >
-                        <Ionicons name="chatbubbles-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-                        <Text style={styles.btnChatText}>Open Chat</Text>
                       </TouchableOpacity>
                     </View>
                   </View>

@@ -8,6 +8,8 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +25,8 @@ const Inquries = () => {
   const [loading, setLoading] = useState(true);
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -137,15 +141,27 @@ const Inquries = () => {
           </View>
         </View>
 
+        {/* Transition Banner */}
+        <TouchableOpacity 
+          style={styles.transitionBanner}
+          activeOpacity={0.8}
+          onPress={() => router.push('/tour-guide/Bookings' as any)}
+        >
+          <View style={styles.bannerIconWrap}>
+            <Ionicons name="calendar" size={24} color="#FFF" />
+          </View>
+          <View style={styles.bannerTextCol}>
+            <Text style={styles.bannerTitle}>Manage Bookings</Text>
+            <Text style={styles.bannerDesc}>All new guest requests are now routed directly to your Bookings Dashboard.</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={20} color="#0E5E2F" />
+        </TouchableOpacity>
+
         {/* KPI Cards Grid */}
         <View style={styles.kpiGrid}>
           <View style={styles.kpiGridRow}>
             {/* Card 1: Active Inquiries */}
-            <TouchableOpacity
-              style={styles.kpiCardHalf}
-              activeOpacity={0.8}
-              onPress={() => router.push('/tour-guide/activeInquiries' as any)}
-            >
+            <View style={styles.kpiCardHalf}>
               <View style={styles.kpiRing1} />
               <View style={styles.kpiRing2} />
               <View style={styles.kpiHeader}>
@@ -158,14 +174,10 @@ const Inquries = () => {
               <Text style={[styles.kpiTrend, styles.trendPositive]}>
                 ↗ {stats?.responded ?? 0} responded
               </Text>
-            </TouchableOpacity>
+            </View>
 
             {/* Card 2: Pending Inquiries */}
-            <TouchableOpacity
-              style={styles.kpiCardHalf}
-              activeOpacity={0.8}
-              onPress={() => router.push('/tour-guide/pendingInquiries' as any)}
-            >
+            <View style={styles.kpiCardHalf}>
               <View style={styles.kpiRing1} />
               <View style={styles.kpiRing2} />
               <View style={styles.kpiHeader}>
@@ -178,7 +190,7 @@ const Inquries = () => {
               <Text style={[styles.kpiTrend, styles.trendUrgent]}>
                 ⏰ {stats?.priority ?? 0} urgent
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
           {/* Card 3: Potential Value (Dark Emerald) */}
@@ -287,41 +299,7 @@ const Inquries = () => {
                     </View>
                   </View>
 
-                  {/* Bottom Action Bar */}
-                  <View style={styles.requestCardFooter}>
-                    <TouchableOpacity
-                      style={styles.moreButton}
-                      activeOpacity={0.7}
-                      onPress={() => handleActionPress(request.guestName, 'More Actions', request.tourInterest)}
-                    >
-                      <Ionicons name="ellipsis-vertical" size={16} color="#606963" />
-                    </TouchableOpacity>
 
-                    {!isResponded ? (
-                      <TouchableOpacity
-                        style={styles.replyButtonWrapper}
-                        activeOpacity={0.9}
-                        onPress={() => handleActionPress(request.guestName, actionText, request.tourInterest)}
-                      >
-                        <LinearGradient
-                          colors={['#FFDF59', '#EAD26B']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.replyButtonGradient}
-                        >
-                          <Text style={styles.replyButtonTextPrimary}>{actionText}</Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={[styles.replyButton, styles.replyButtonSecondary]}
-                        activeOpacity={0.8}
-                        onPress={() => handleActionPress(request.guestName, actionText, request.tourInterest)}
-                      >
-                        <Text style={styles.replyButtonSecondaryText}>{actionText}</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
                 </View>
               );
             })
@@ -330,17 +308,11 @@ const Inquries = () => {
           )}
         </View>
 
-        {/* View Archived Link Footer */}
-        <TouchableOpacity
-          style={styles.archivedInquiriesButton}
-          activeOpacity={0.6}
-          onPress={handleArchivedPress}
-        >
-          <Text style={styles.archivedInquiriesText}>View Archived Inquiries</Text>
-          <Ionicons name="chevron-down" size={16} color="#0E5E2F" style={{ marginLeft: 6 }} />
-        </TouchableOpacity>
         </View>
       </ScrollView>
+
+
+
     </View>
   );
 };
@@ -727,7 +699,7 @@ const styles = StyleSheet.create({
   },
   requestCardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: 16,
     borderTopWidth: 1,
@@ -744,10 +716,42 @@ const styles = StyleSheet.create({
   },
   replyButton: {
     borderRadius: 12,
-    height: 36,
-    paddingHorizontal: 20,
+  },
+  transitionBanner: {
+    backgroundColor: '#EAF7EE',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C2F3D0',
+  },
+  bannerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#0E5E2F',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 14,
+  },
+  bannerTextCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  bannerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0E5E2F',
+    marginBottom: 4,
+  },
+  bannerDesc: {
+    fontSize: 12,
+    color: '#145334',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   replyButtonWrapper: {
     borderRadius: 12,
@@ -791,6 +795,78 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0E5E2F',
     letterSpacing: 0.8,
+    marginLeft: 6,
+  },
+  convertButton: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+    borderWidth: 1,
+  },
+  convertButtonText: {
+    color: '#B45309',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C1917',
+  },
+  modalBody: {
+    gap: 12,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: -4,
+  },
+  textInput: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1C1917',
+  },
+  submitModalButton: {
+    backgroundColor: '#0E5E2F',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  submitModalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

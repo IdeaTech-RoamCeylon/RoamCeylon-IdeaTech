@@ -200,7 +200,11 @@ const Bookings = () => {
                     ]}
                   >
                     <View style={styles.cardHeader}>
-                      <Image source={{ uri: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(booking.customerName || 'User') + '&background=random' }} style={styles.clientAvatar} contentFit="cover" />
+                      <Image 
+                        source={{ uri: booking.customerAvatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(booking.customerName || 'User') + '&background=random') }} 
+                        style={styles.clientAvatar} 
+                        contentFit="cover" 
+                      />
                       <View style={styles.clientDetails}>
                         <Text style={styles.bookingIdText}>#{shortId}</Text>
                         <Text style={styles.clientNameText}>{booking.customerName}</Text>

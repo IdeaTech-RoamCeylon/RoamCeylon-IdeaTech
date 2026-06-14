@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 interface NotificationItem {
   id: string;
@@ -25,76 +27,88 @@ const Notifications = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Notification items mock data list
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'n1',
-      type: 'booking',
-      title: 'New Booking Confirmed',
-      description: 'Eleanor Richards successfully booked the "7-Day Cultural Triangle" tour package.',
-      time: 'Today, 11:30 AM',
-      isUnread: true,
-    },
-    {
-      id: 'n2',
-      type: 'chat',
-      title: 'New Message from Sophia',
-      description: 'Sophia Henderson: "Awaiting your custom hotel bookings proposal for 98 Acres..."',
-      time: 'Today, 10:45 AM',
-      isUnread: true,
-    },
-    {
-      id: 'n3',
-      type: 'alert',
-      title: 'Urgent Action Required',
-      description: 'You have 4 pending guest requests that will expire soon. Please review and reply.',
-      time: 'Yesterday, 6:00 PM',
-      isUnread: false,
-    },
-    {
-      id: 'n4',
-      type: 'chat',
-      title: 'Itinerary Revision Requested',
-      description: 'Marcus Thorne requested changes to include whale watching in Mirissa on Day 4.',
-      time: 'Yesterday, 2:15 PM',
-      isUnread: false,
-    },
-    {
-      id: 'n5',
-      type: 'payment',
-      title: 'Deposit Payment Received',
-      description: 'Received deposit payment of $1,000 for itinerary #RC-8872 (Eleanor Richards).',
-      time: 'Oct 11, 4:30 PM',
-      isUnread: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleMarkAllRead = () => {
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      if (!accessToken) return;
+
+      const res = await fetch(`${apiUrl}/tour-guide/notifications`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map((n: any) => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          description: n.message,
+          time: new Date(n.createdAt).toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', month: 'short', day: 'numeric' }),
+          isUnread: !n.isRead,
+        }));
+        setNotifications(mapped);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [])
+  );
+
+  const handleMarkAllRead = async () => {
     setNotifications((prev) =>
       prev.map((notif) => ({ ...notif, isUnread: false }))
     );
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      if (accessToken) {
+        await fetch(`${apiUrl}/tour-guide/notifications/read-all`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
     Alert.alert('Notifications', 'All notifications marked as read.');
   };
 
-  const handleNotificationPress = (item: NotificationItem) => {
+  const handleNotificationPress = async (item: NotificationItem) => {
     // Mark as read
     setNotifications((prev) =>
       prev.map((notif) => (notif.id === item.id ? { ...notif, isUnread: false } : notif))
     );
 
-    // Redirect to correct sub-pages based on type
-    if (item.type === 'booking') {
-      router.push('/tour-guide/bookings');
-    } else if (item.type === 'chat') {
-      router.push({
-        pathname: '/tour-guide/chat',
-        params: { name: item.title.includes('Sophia') ? 'Sophia Henderson' : 'Marcus Thorne' },
-      } as any);
-    } else if (item.type === 'alert') {
-      router.push('/tour-guide/pendingInquiries');
-    } else if (item.type === 'payment') {
-      router.push('/tour-guide/revenue');
+    if (item.isUnread) {
+      try {
+        const accessToken = await SecureStore.getItemAsync('authToken');
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+        if (accessToken) {
+          await fetch(`${apiUrl}/tour-guide/notifications/${item.id}/read`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
+
+    // Simply mark the notification as read, no need to navigate away
+
   };
 
   const getNotificationIcon = (type: string) => {
@@ -146,7 +160,9 @@ const Notifications = () => {
 
           {/* List of Notification cards */}
           <View style={styles.notificationList}>
-            {notifications.length > 0 ? (
+            {loading ? (
+              <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+            ) : notifications.length > 0 ? (
               notifications.map((item) => {
                 const iconDetails = getNotificationIcon(item.type);
                 return (
