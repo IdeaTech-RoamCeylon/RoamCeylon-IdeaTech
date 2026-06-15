@@ -243,16 +243,21 @@ const EditPackage = () => {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Transparent Header */}
-        <View
-          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        {/* Green Header Background */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 50 }]}
         >
-          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={26} color="#1C1917" />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Edit Package</Text>
-          <View style={styles.headerButton} />
-        </View>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Edit Package</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
 
         <View style={styles.mainContent}>
           {loading ? (
@@ -487,6 +492,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
+  headerGradient: {
+    width: '100%',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -494,14 +504,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     zIndex: 10,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
     flex: 1,
@@ -515,7 +527,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    marginTop: -24,
   },
   card: {
     backgroundColor: '#FFFFFF',

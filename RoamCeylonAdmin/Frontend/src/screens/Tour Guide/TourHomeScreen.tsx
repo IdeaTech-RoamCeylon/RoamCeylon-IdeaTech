@@ -316,14 +316,13 @@ const TourHomeScreen = () => {
           <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
         </View>
 
-        <View style={styles.bookingsCardContainer}>
+        <View>
           {loading ? (
             <ActivityIndicator size="small" color="#0E5E2F" style={{ margin: 20 }} />
           ) : bookingsList.length === 0 ? (
             <Text style={{ textAlign: 'center', margin: 20, color: '#6B7280' }}>No upcoming bookings.</Text>
           ) : (
             bookingsList.map((booking, index) => {
-              const isLast = index === bookingsList.length - 1;
               const dateObj = new Date(booking.startDate);
               const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
               const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
@@ -331,12 +330,13 @@ const TourHomeScreen = () => {
               const isSuccess = booking.status === 'confirmed' || booking.status === 'completed';
               
               return (
-                <View key={booking.id}>
-                  <TouchableOpacity 
-                    style={styles.bookingRow} 
-                    activeOpacity={0.7} 
-                    onPress={() => setSelectedBooking(booking)}
-                  >
+                <TouchableOpacity 
+                  key={booking.id}
+                  style={[styles.bookingsCardContainer, { marginBottom: 12 }]} 
+                  activeOpacity={0.7} 
+                  onPress={() => setSelectedBooking(booking)}
+                >
+                  <View style={styles.bookingRow}>
                     <View style={styles.bookingLeft}>
                       <Text style={styles.bookingMainText}>
                         #{shortId} • {booking.customerName}
@@ -365,9 +365,8 @@ const TourHomeScreen = () => {
                         </Text>
                       </View>
                     </View>
-                  </TouchableOpacity>
-                  {!isLast && <View style={styles.bookingDivider} />}
-                </View>
+                  </View>
+                </TouchableOpacity>
               );
             })
           )}

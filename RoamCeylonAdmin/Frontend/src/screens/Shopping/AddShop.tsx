@@ -21,6 +21,7 @@ import { Ionicons, Feather, MaterialCommunityIcons, AntDesign } from '@expo/vect
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { nhost } from '../../config/nhostClient';
 
@@ -188,20 +189,30 @@ const AddShop = () => {
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header */}
-          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-            <TouchableOpacity style={styles.iconButton} activeOpacity={0.7} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={26} color="#1C1917" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>New Shop</Text>
-            <View style={{ width: 42 }} />
-          </View>
+          {/* Premium Header Gradient */}
+          <LinearGradient
+            colors={['#0F3D26', '#145334', '#0E5E2F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 50 }]}
+          >
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => router.back()}>
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Create Shop</Text>
+              
+              <View style={{ width: 40 }} />
+            </View>
+          </LinearGradient>
           <View style={styles.formContainer}>
-            <Text style={styles.pageTitle}>Shop Details</Text>
-            <Text style={styles.pageSubtitle}>Enter the basic information about your business to get started.</Text>
-
             {/* Basic Info Card */}
             <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Feather name="info" size={22} color="#0E5E2F" />
+                <Text style={styles.cardTitle}>Basic Details</Text>
+              </View>
+              <View style={styles.cardDivider} />
               <Text style={styles.inputLabel}>Cover Photo</Text>
               <TouchableOpacity style={styles.imagePickerCard} onPress={pickImage} activeOpacity={0.8}>
                 {coverImageUrl ? (
@@ -414,10 +425,7 @@ const AddShop = () => {
               autoCapitalize="none"
             />
           </View>
-
-          </View>
-
-            <View style={{ marginTop: 8, marginBottom: 40 }}>
+            <View style={{ marginTop: 24, marginBottom: 40 }}>
               <TouchableOpacity 
                 style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]} 
                 activeOpacity={0.8} 
@@ -432,6 +440,8 @@ const AddShop = () => {
               </TouchableOpacity>
             </View>
           </View>
+
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -443,26 +453,45 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAFAFA',
   },
+  headerGradient: {
+    width: '100%',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: 'transparent',
-    borderBottomWidth: 0,
+    paddingHorizontal: 24,
     zIndex: 10,
   },
-  iconButton: {
-    padding: 8,
-    marginLeft: -8,
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1C1917',
+    color: '#FFFFFF',
     flex: 1,
     textAlign: 'center',
+  },
+  headerSaveButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerSaveText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   saveButton: {
     backgroundColor: '#0E5E2F',
@@ -492,7 +521,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    marginTop: -24,
   },
   pageTitle: {
     fontSize: 32,

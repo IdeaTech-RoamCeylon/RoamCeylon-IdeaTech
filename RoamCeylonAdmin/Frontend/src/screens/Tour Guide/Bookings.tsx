@@ -69,11 +69,19 @@ const Bookings = () => {
   });
 
   const handleBookingAction = async (id: string, action: string) => {
-    // Alert.alert(action, `Performing ${action.toLowerCase()} action on booking #${id}...`);
-    // Placeholder for actual update logic
+    if (action === 'Manage') {
+      router.push('/tour-guide/touristDetails' as any);
+      return;
+    }
+
     try {
       const accessToken = await SecureStore.getItemAsync('authToken');
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      let newStatus = action.toLowerCase();
+      if (action === 'Confirm') newStatus = 'confirmed';
+      if (action === 'Decline') newStatus = 'cancelled';
+      if (action === 'Complete') newStatus = 'completed';
 
       const res = await fetch(`${apiUrl}/tour-guide/bookings/${id}/status`, {
         method: 'PATCH',
@@ -81,18 +89,23 @@ const Bookings = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ status: action.toLowerCase() }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (res.ok) {
         setBookingsData((prev) => 
-          prev.map((b) => (b.id === id ? { ...b, status: action.toLowerCase() } : b))
+          prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
         );
       } else {
-        Alert.alert('Error', 'Failed to update booking status');
+        let errText = 'Unknown error';
+        try {
+          errText = await res.text();
+        } catch (e) {}
+        Alert.alert('Error', `Failed to update booking status. Code: ${res.status}. Details: ${errText}`);
       }
     } catch (error) {
       console.error(error);
+      Alert.alert('Network Error', String(error));
     }
   };
 
@@ -190,8 +203,10 @@ const Bookings = () => {
                 const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
 
                 return (
-                  <View
+                  <TouchableOpacity
                     key={booking.id}
+                    activeOpacity={0.7}
+                    onPress={() => handleBookingAction(booking.id, 'Manage')}
                     style={[
                       styles.bookingCard,
                       isConfirmed && styles.cardConfirmed,
@@ -200,11 +215,11 @@ const Bookings = () => {
                     ]}
                   >
                     <View style={styles.cardHeader}>
-                      <Image 
-                        source={{ uri: booking.customerAvatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(booking.customerName || 'User') + '&background=random') }} 
-                        style={styles.clientAvatar} 
-                        contentFit="cover" 
-                      />
+                      <View style={styles.clientAvatar}>
+                          <Text style={styles.clientAvatarText}>
+                            {booking.customerName ? booking.customerName.substring(0, 2).toUpperCase() : 'US'}
+                          </Text>
+                        </View>
                       <View style={styles.clientDetails}>
                         <Text style={styles.bookingIdText}>#{shortId}</Text>
                         <Text style={styles.clientNameText}>{booking.customerName}</Text>
@@ -234,7 +249,7 @@ const Bookings = () => {
                     <View style={styles.cardInfoSection}>
                       <View style={styles.infoRow}>
                         <Ionicons name="map-outline" size={15} color="#6B7280" style={{ marginRight: 6 }} />
-                        <Text style={styles.infoValueText} numberOfLines={1}>{booking.tourName}</Text>
+                        <Text style={styles.infoValueText} numberOfLines={1}>{booking.package?.name || booking.tourName || 'Tour Package'}</Text>
                       </View>
                       <View style={styles.infoRow}>
                         <Ionicons name="calendar-outline" size={15} color="#6B7280" style={{ marginRight: 6 }} />
@@ -242,45 +257,50 @@ const Bookings = () => {
                       </View>
                       <View style={styles.infoRow}>
                         <Ionicons name="people-outline" size={15} color="#6B7280" style={{ marginRight: 6 }} />
-                        <Text style={styles.infoValueText}>{booking.customerName}</Text>
+                        <Text style={styles.infoValueText}>{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</Text>
                       </View>
                     </View>
 
                     <View style={styles.cardFooter}>
                       <Text style={styles.priceText}>Rs. {booking.amount}</Text>
-                      <View style={styles.actionsRow}>
-                        {isPending ? (
-                          <>
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.btnDecline]}
-                              onPress={() => handleBookingAction(booking.id, 'Decline')}
-                            >
-                              <Text style={styles.btnDeclineText}>Decline</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.btnConfirmWrapper}
-                              onPress={() => handleBookingAction(booking.id, 'Confirm')}
-                            >
-                              <LinearGradient
-                                colors={['#10B981', '#059669']}
-                                style={styles.btnConfirmGradient}
-                              >
-                                <Text style={styles.btnConfirmText}>Confirm</Text>
-                              </LinearGradient>
-                            </TouchableOpacity>
-                          </>
-                        ) : (
+                      {isPending && (
+                        <View style={styles.actionsRow}>
                           <TouchableOpacity
-                            style={[styles.actionButton, styles.btnViewDetail]}
-                            onPress={() => handleBookingAction(booking.id, 'Manage')}
+                            style={[styles.actionButton, styles.btnDecline]}
+                            onPress={() => handleBookingAction(booking.id, 'Decline')}
                           >
-                            <Text style={styles.btnViewDetailText}>Manage Trip</Text>
-                            <Feather name="chevron-right" size={14} color="#0E5E2F" />
+                            <Text style={styles.btnDeclineText}>Decline</Text>
                           </TouchableOpacity>
-                        )}
-                      </View>
+                          <TouchableOpacity
+                            style={styles.btnConfirmWrapper}
+                            onPress={() => handleBookingAction(booking.id, 'Confirm')}
+                          >
+                            <LinearGradient
+                              colors={['#10B981', '#059669']}
+                              style={styles.btnConfirmGradient}
+                            >
+                              <Text style={styles.btnConfirmText}>Confirm</Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      {isConfirmed && (
+                        <View style={styles.actionsRow}>
+                          <TouchableOpacity
+                            style={styles.btnConfirmWrapper}
+                            onPress={() => handleBookingAction(booking.id, 'Complete')}
+                          >
+                            <LinearGradient
+                              colors={['#3B82F6', '#2563EB']}
+                              style={styles.btnConfirmGradient}
+                            >
+                              <Text style={styles.btnConfirmText}>Complete Trip</Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             ) : (
@@ -406,77 +426,77 @@ const styles = StyleSheet.create({
   bookingCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#EAEFEA',
-    borderLeftWidth: 6,
-    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#F3F4F6',
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
-    shadowRadius: 12,
+    shadowRadius: 16,
     elevation: 3,
   },
-  cardConfirmed: {
-    borderLeftColor: '#0E5E2F',
-  },
-  cardPending: {
-    borderLeftColor: '#D97706',
-  },
-  cardCompleted: {
-    borderLeftColor: '#2563EB',
-  },
+  cardConfirmed: {},
+  cardPending: {},
+  cardCompleted: {},
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   clientAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#EAEAEA',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clientAvatarText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   clientDetails: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   bookingIdText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#8A958E',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
   },
   clientNameText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#1C1917',
+    color: '#111827',
     marginTop: 2,
   },
   statusBadge: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   badgeConfirmed: {
-    backgroundColor: '#EAF7EE',
-    borderColor: '#C2F3D0',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   badgePending: {
     backgroundColor: '#FFFBEB',
-    borderColor: '#FEF3C7',
+    borderColor: '#FDE68A',
   },
   badgeCompleted: {
     backgroundColor: '#EFF6FF',
-    borderColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
   },
   statusBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
   },
   badgeTextConfirmed: {
-    color: '#0E5E2F',
+    color: '#065F46',
   },
   badgeTextPending: {
     color: '#D97706',
@@ -487,19 +507,19 @@ const styles = StyleSheet.create({
   cardInfoSection: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#F2F5F3',
-    paddingVertical: 12,
-    gap: 8,
-    marginBottom: 14,
+    borderColor: '#F3F4F6',
+    paddingVertical: 14,
+    gap: 10,
+    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   infoValueText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#6B7280',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -507,9 +527,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1C1917',
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#111827',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -548,17 +568,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   btnViewDetail: {
-    backgroundColor: '#EAF7EE',
-    borderWidth: 1,
-    borderColor: '#C2F3D0',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    gap: 6,
   },
   btnViewDetailText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#0E5E2F',
+    color: '#065F46',
   },
   emptyStateContainer: {
     alignItems: 'center',
