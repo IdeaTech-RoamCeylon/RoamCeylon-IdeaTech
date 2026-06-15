@@ -145,7 +145,7 @@ const Inquries = () => {
         <TouchableOpacity 
           style={styles.transitionBanner}
           activeOpacity={0.8}
-          onPress={() => router.push('/tour-guide/Bookings' as any)}
+          onPress={() => router.push('/tour-guide/bookings' as any)}
         >
           <View style={styles.bannerIconWrap}>
             <Ionicons name="calendar" size={24} color="#FFF" />

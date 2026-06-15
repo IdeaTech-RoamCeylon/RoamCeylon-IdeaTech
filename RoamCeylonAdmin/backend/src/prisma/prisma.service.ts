@@ -28,7 +28,7 @@ export class PrismaService
         await this.$connect();
         this.logger.log('Connected to PostgreSQL via Prisma');
         return;
-      } catch (err) {
+      } catch {
         this.logger.warn(
           `DB connection attempt ${attempt}/${maxAttempts} failed. Retrying in ${delayMs / 1000}s…`,
         );

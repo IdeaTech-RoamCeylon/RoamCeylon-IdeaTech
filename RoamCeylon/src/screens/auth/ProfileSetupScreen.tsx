@@ -48,7 +48,13 @@ const ProfileSetupScreen = () => {
       }
 
       // 2. Fallback to Nhost user object if SecureStore data wasn't found
-      const nhostUser = nhost.auth.getUser();
+      let nhostUserRaw: any = nhost.auth.getUser();
+      if (nhostUserRaw instanceof Promise) {
+        const res = await nhostUserRaw;
+        nhostUserRaw = res?.user || res?.data || res;
+      }
+      
+      const nhostUser = nhostUserRaw;
       if (nhostUser) {
         if (nhostUser.displayName) {
           setName(nhostUser.displayName);

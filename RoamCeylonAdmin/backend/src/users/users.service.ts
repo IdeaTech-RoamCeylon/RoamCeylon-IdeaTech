@@ -7,15 +7,15 @@ export class UsersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private formatUser(user: any) {
+  private formatUser(user: Record<string, any> | null) {
     if (!user) return user;
-    const formatted = { ...user };
+    const formatted: Record<string, any> = { ...user };
     if ('phone' in formatted) {
-      formatted.phoneNumber = formatted.phone;
+      formatted.phoneNumber = formatted.phone as string;
       delete formatted.phone;
     }
     if ('is_local' in formatted) {
-      formatted.isLocal = formatted.is_local;
+      formatted.isLocal = formatted.is_local as boolean;
       delete formatted.is_local;
     }
     return formatted;
@@ -31,16 +31,16 @@ export class UsersService {
     return this.formatUser(user);
   }
 
-  async updateUser(id: string, data: any) {
-    const updateData: any = { ...data };
-    
+  async updateUser(id: string, data: Record<string, any>) {
+    const updateData: Record<string, any> = { ...data };
+
     // Map frontend fields to Prisma schema fields
     if ('phoneNumber' in updateData) {
-      updateData.phone = updateData.phoneNumber;
+      updateData.phone = updateData.phoneNumber as string;
       delete updateData.phoneNumber;
     }
     if ('isLocal' in updateData) {
-      updateData.is_local = updateData.isLocal;
+      updateData.is_local = updateData.isLocal as boolean;
       delete updateData.isLocal;
     }
 

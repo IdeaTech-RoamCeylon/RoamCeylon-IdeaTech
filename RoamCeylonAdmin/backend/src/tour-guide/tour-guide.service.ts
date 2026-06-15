@@ -38,12 +38,12 @@ export class TourGuideService {
 
   async createPublicInquiry(dto: CreatePublicInquiryDto) {
     const pkg = await this.findOnePackage(dto.packageId);
-    
+
     // Parse the requested date from the Tourist app
     const startDate = new Date(dto.date);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + (pkg.duration || 1));
-    
+
     // Create the booking request directly as pending
     const booking = await this.prisma.tourBooking.create({
       data: {
@@ -134,7 +134,8 @@ export class TourGuideService {
         category: dto.category ?? existing.category,
         description: dto.description ?? existing.description,
         coverImageUrl: dto.coverImageUrl ?? existing.coverImageUrl,
-        galleryUrls: dto.galleryUrls ?? (existing.galleryUrls as unknown as string[]),
+        galleryUrls:
+          dto.galleryUrls ?? (existing.galleryUrls as unknown as string[]),
         duration: dto.duration ?? existing.duration,
         price: dto.price ?? existing.price,
         highlights:
@@ -142,7 +143,10 @@ export class TourGuideService {
         location: dto.location ?? existing.location,
         publishImmediately:
           dto.publishImmediately ?? existing.publishImmediately,
-        status: (dto.publishImmediately ?? existing.publishImmediately) ? 'active' : 'draft',
+        status:
+          (dto.publishImmediately ?? existing.publishImmediately)
+            ? 'active'
+            : 'draft',
       },
     });
 
@@ -184,7 +188,7 @@ export class TourGuideService {
   async uploadImage(
     base64: string,
     mimeType: string = 'image/jpeg',
-    authHeader?: string
+    authHeader?: string,
   ): Promise<{ url: string; fileId?: string }> {
     const subdomain = process.env.NHOST_SUBDOMAIN || 'qfgzcxodwisrwyduyocq';
     const region = process.env.NHOST_REGION || 'ap-southeast-1';
@@ -327,17 +331,24 @@ export class TourGuideService {
   }
 
   async getInquiryStats(guideId: string) {
-    const [total, active, pending, priority, responded, inquiries] = await Promise.all([
-      this.prisma.tourInquiry.count({ where: { guideId } }),
-      this.prisma.tourInquiry.count({ where: { guideId, status: { in: ['new', 'responded', 'priority'] } } }),
-      this.prisma.tourInquiry.count({ where: { guideId, status: 'new' } }),
-      this.prisma.tourInquiry.count({ where: { guideId, status: 'priority' } }),
-      this.prisma.tourInquiry.count({ where: { guideId, status: 'responded' } }),
-      this.prisma.tourInquiry.findMany({
-        where: { guideId },
-        select: { pipelineValue: true, status: true },
-      }),
-    ]);
+    const [total, active, pending, priority, responded, inquiries] =
+      await Promise.all([
+        this.prisma.tourInquiry.count({ where: { guideId } }),
+        this.prisma.tourInquiry.count({
+          where: { guideId, status: { in: ['new', 'responded', 'priority'] } },
+        }),
+        this.prisma.tourInquiry.count({ where: { guideId, status: 'new' } }),
+        this.prisma.tourInquiry.count({
+          where: { guideId, status: 'priority' },
+        }),
+        this.prisma.tourInquiry.count({
+          where: { guideId, status: 'responded' },
+        }),
+        this.prisma.tourInquiry.findMany({
+          where: { guideId },
+          select: { pipelineValue: true, status: true },
+        }),
+      ]);
 
     const pipelineValue = inquiries.reduce(
       (sum, i) => sum + Number(i.pipelineValue),
@@ -395,7 +406,9 @@ export class TourGuideService {
       throw new NotFoundException('Inquiry not found');
     }
     if (inquiry.status === 'converted') {
-      throw new BadRequestException('Inquiry is already converted to a booking');
+      throw new BadRequestException(
+        'Inquiry is already converted to a booking',
+      );
     }
 
     // Try to find the associated package
@@ -405,7 +418,9 @@ export class TourGuideService {
     });
 
     if (!pkg) {
-      throw new NotFoundException(`Tour package "${inquiry.tourInterest}" not found.`);
+      throw new NotFoundException(
+        `Tour package "${inquiry.tourInterest}" not found.`,
+      );
     }
 
     // Create the pending booking
@@ -491,9 +506,13 @@ export class TourGuideService {
       this.prisma.tourPackage.count({ where: { guideId } }),
       this.prisma.tourPackage.count({ where: { guideId, status: 'active' } }),
       this.prisma.tourBooking.count({ where: { guideId } }),
-      this.prisma.tourBooking.count({ where: { guideId, status: 'confirmed' } }),
+      this.prisma.tourBooking.count({
+        where: { guideId, status: 'confirmed' },
+      }),
       this.prisma.tourBooking.count({ where: { guideId, status: 'pending' } }),
-      this.prisma.tourBooking.count({ where: { guideId, status: 'completed' } }),
+      this.prisma.tourBooking.count({
+        where: { guideId, status: 'completed' },
+      }),
       this.prisma.tourInquiry.count({ where: { guideId } }),
       this.prisma.tourInquiry.count({ where: { guideId, status: 'new' } }),
       this.prisma.tourNotification.count({ where: { guideId, isRead: false } }),
@@ -545,11 +564,23 @@ export class TourGuideService {
 
     // ── Monthly trend (last 6 months) ──────────────────────────────────────
     const now = new Date();
-    const monthlyTrend: { label: string; total: number; month: number; year: number }[] = [];
+    const monthlyTrend: {
+      label: string;
+      total: number;
+      month: number;
+      year: number;
+    }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+      const monthEnd = new Date(
+        d.getFullYear(),
+        d.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
       const total = bookings
         .filter((b) => {
           const date = new Date(b.createdAt);
@@ -585,7 +616,9 @@ export class TourGuideService {
         category,
         amount,
         percentage:
-          totalRevenue > 0 ? Math.round((amount / totalRevenue) * 1000) / 10 : 0,
+          totalRevenue > 0
+            ? Math.round((amount / totalRevenue) * 1000) / 10
+            : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
 

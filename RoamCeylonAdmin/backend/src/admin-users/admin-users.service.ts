@@ -65,7 +65,8 @@ export class AdminUsersService {
           name: dto.name || existing.name,
           phoneNumber: dto.phoneNumber || existing.phoneNumber,
           profile_picture: dto.profile_picture || existing.profile_picture,
-          preferences: (dto.preferences ?? existing.preferences) as Prisma.InputJsonValue,
+          preferences: (dto.preferences ??
+            existing.preferences) as Prisma.InputJsonValue,
           // Only update role if incoming is a real app role; never downgrade to a system role
           role: isRealRole(dto.role) ? dto.role : existing.role,
         },
@@ -85,7 +86,8 @@ export class AdminUsersService {
         phoneNumber: dto.phoneNumber || null,
         profile_picture: dto.profile_picture || null,
         role: dto.role || 'shop_partner',
-        preferences: (dto.preferences ?? Prisma.DbNull) as Prisma.InputJsonValue,
+        preferences: (dto.preferences ??
+          Prisma.DbNull) as Prisma.InputJsonValue,
       },
     });
 
@@ -119,7 +121,10 @@ export class AdminUsersService {
         ...(dto.profile_picture !== undefined && {
           profile_picture: dto.profile_picture,
         }),
-        ...(dto.preferences !== undefined && { preferences: (dto.preferences ?? Prisma.DbNull) as Prisma.InputJsonValue }),
+        ...(dto.preferences !== undefined && {
+          preferences: (dto.preferences ??
+            Prisma.DbNull) as Prisma.InputJsonValue,
+        }),
       },
     });
     this.logger.log(`Admin user profile updated: ${updated.email}`);

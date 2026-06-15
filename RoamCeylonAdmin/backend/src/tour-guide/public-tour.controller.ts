@@ -16,7 +16,9 @@ export class PublicTourController {
 
   @Post('inquiries')
   async createPublicInquiry(@Body() dto: CreatePublicInquiryDto) {
-    this.logger.log(`Received public inquiry for package ${dto.packageId} from ${dto.guestName}`);
+    this.logger.log(
+      `Received public inquiry for package ${dto.packageId} from ${dto.guestName}`,
+    );
     return this.tourGuideService.createPublicInquiry(dto);
   }
 }

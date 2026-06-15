@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsDateString, Min } from 'class-validator';
+import { IsNumber, IsDateString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ConvertInquiryDto {
