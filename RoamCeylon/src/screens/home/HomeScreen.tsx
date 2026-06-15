@@ -10,10 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
+import { apiService } from '../../services/api';
 
 type GreetingPeriod = 'Morning' | 'Afternoon' | 'Evening';
 
@@ -184,6 +185,32 @@ const HomeScreen = () => {
   const userName = user?.name || 'Traveler';
   const greetingMessage = `Hi ${userName}, Good ${getGreetingPeriod(new Date())}!`;
 
+  const [activeBooking, setActiveBooking] = React.useState<any>(null);
+  const [loadingBooking, setLoadingBooking] = React.useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchBookings = async () => {
+        try {
+          const response = await apiService.get<any[]>('/users/me/tour-bookings');
+          // Get the most recent pending or confirmed booking
+          const active = response.find((b: any) => b.status === 'pending' || b.status === 'confirmed');
+          setActiveBooking(active);
+        } catch (error) {
+          console.error('Failed to fetch active booking:', error);
+        } finally {
+          setLoadingBooking(false);
+        }
+      };
+
+      if (user?.id) {
+        fetchBookings();
+      } else {
+        setLoadingBooking(false);
+      }
+    }, [user?.id])
+  );
+
   const handleNavigate = useCallback(
     (route: string) => {
       navigation.navigate(route as never);
@@ -213,6 +240,37 @@ const HomeScreen = () => {
         <View style={styles.topGreetingCard}>
           <Text style={styles.greetingText}>{greetingMessage}</Text>
         </View>
+
+        {activeBooking && (
+          <View style={styles.activeTripCard}>
+            <View style={styles.activeTripHeader}>
+              <View style={styles.activeTripBadge}>
+                <View style={[styles.statusDot, { backgroundColor: activeBooking.status === 'confirmed' ? '#4CAF50' : '#FF9800' }]} />
+                <Text style={styles.activeTripBadgeText}>
+                  {activeBooking.status === 'confirmed' ? 'CONFIRMED TRIP' : 'PENDING APPROVAL'}
+                </Text>
+              </View>
+              <Text style={styles.activeTripDate}>
+                {new Date(activeBooking.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              </Text>
+            </View>
+            <Text style={styles.activeTripTitle}>{activeBooking.tourName || activeBooking.package?.name}</Text>
+            
+            <View style={styles.activeTripInfoRow}>
+              <View style={styles.activeTripInfoItem}>
+                <Ionicons name="location" size={16} color="#A87C00" />
+                <Text style={styles.activeTripInfoText}>{activeBooking.pickupLocation || 'Pickup location pending'}</Text>
+              </View>
+            </View>
+            
+            {activeBooking.status === 'confirmed' && (
+              <TouchableOpacity activeOpacity={0.8} style={styles.activeTripBtn}>
+                <Text style={styles.activeTripBtnText}>View Details</Text>
+                <Ionicons name="chevron-forward" size={16} color="#FFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <View style={styles.searchSection}>
           <View style={styles.searchRow}>
@@ -333,6 +391,84 @@ const styles = StyleSheet.create({
     lineHeight: 29,
     fontWeight: '700',
     letterSpacing: -0.4,
+  },
+  activeTripCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  activeTripHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  activeTripBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  activeTripBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#4F4633',
+  },
+  activeTripDate: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111',
+  },
+  activeTripTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    letterSpacing: -0.3,
+  },
+  activeTripInfoRow: {
+    marginBottom: 16,
+  },
+  activeTripInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  activeTripInfoText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  activeTripBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#111',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 4,
+  },
+  activeTripBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   searchSection: {
     marginBottom: 18,

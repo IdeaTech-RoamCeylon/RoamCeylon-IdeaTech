@@ -4,6 +4,10 @@ export class CreatePublicInquiryDto {
   @IsString()
   packageId: string;
 
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+
   @IsString()
   date: string;
 
@@ -24,4 +28,16 @@ export class CreatePublicInquiryDto {
   @IsOptional()
   @IsString()
   guestAvatar?: string;
+
+  @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  pickupLocation?: string;
+
+  @IsOptional()
+  @IsString()
+  specialRequests?: string;
 }

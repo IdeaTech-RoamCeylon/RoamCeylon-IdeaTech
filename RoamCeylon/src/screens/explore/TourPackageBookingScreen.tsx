@@ -24,6 +24,8 @@ import apiService from '../../services/api';
 
 type BookingRouteProp = RouteProp<MainStackParamList, 'TourPackageBooking'>;
 
+import LocationPickerModal from '../../components/LocationPickerModal';
+
 export default function TourPackageBookingScreen() {
   const navigation = useNavigation();
   const route = useRoute<BookingRouteProp>();
@@ -37,6 +39,9 @@ export default function TourPackageBookingScreen() {
   const [message, setMessage] = useState('');
   const [guestName, setGuestName] = useState(user?.name || '');
   const [guestEmail, setGuestEmail] = useState(user?.email || '');
+  const [customerPhone, setCustomerPhone] = useState(user?.phoneNumber || '');
+  const [pickupLocation, setPickupLocation] = useState('');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleIncrement = () => setNumberOfPeople(prev => prev + 1);
@@ -52,8 +57,15 @@ export default function TourPackageBookingScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!date || !guestName.trim() || !guestEmail.trim()) {
-      Alert.alert('Missing Fields', 'Please fill out your name, email, and preferred date.');
+    if (!date || !guestName.trim() || !guestEmail.trim() || !customerPhone.trim() || !pickupLocation.trim()) {
+      Alert.alert('Missing Fields', 'Please fill out all required fields, including Phone Number and Pickup Location.');
+      return;
+    }
+
+    // Strip non-numeric characters for length validation
+    const digitsOnly = customerPhone.replace(/\D/g, '');
+    if (digitsOnly.length !== 10) {
+      Alert.alert('Invalid Phone Number', 'Please enter a valid 10-digit phone number.');
       return;
     }
 
@@ -61,10 +73,14 @@ export default function TourPackageBookingScreen() {
     try {
       await apiService.post('/public-tours/inquiries', {
         packageId: tourPackage.id,
+        customerId: user?.id,
         date: date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
         numberOfPeople,
         guestName,
         guestEmail,
+        customerPhone,
+        pickupLocation,
+        specialRequests: message,
         guestAvatar: user?.profilePicture || '',
         message,
       });
@@ -158,6 +174,22 @@ export default function TourPackageBookingScreen() {
             />
           </View>
 
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0771234567"
+              keyboardType="phone-pad"
+              maxLength={10}
+              value={customerPhone}
+              onChangeText={(text) => {
+                // Allow only numbers
+                const numericValue = text.replace(/[^0-9]/g, '');
+                setCustomerPhone(numericValue);
+              }}
+            />
+          </View>
+
           <Text style={styles.sectionTitle}>Trip Details</Text>
           
           <View style={styles.inputContainer}>
@@ -195,6 +227,21 @@ export default function TourPackageBookingScreen() {
                 <Ionicons name="add" size={24} color="#111" />
               </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Pickup Location</Text>
+            <TouchableOpacity 
+              style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}
+              onPress={() => setShowLocationPicker(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="map-outline" size={20} color="#0E5E2F" style={{ marginRight: 10 }} />
+              <Text style={{ flex: 1, fontSize: 16, color: pickupLocation ? '#111' : '#999', fontWeight: pickupLocation ? '500' : '400' }}>
+                {pickupLocation || "Pick location on map"}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputContainer}>
@@ -243,6 +290,15 @@ export default function TourPackageBookingScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      <LocationPickerModal
+        visible={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onConfirm={(address) => {
+          setPickupLocation(address);
+          setShowLocationPicker(false);
+        }}
+      />
     </View>
   );
 }
@@ -467,5 +523,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFF',
     letterSpacing: 0.5,
+  },
+  locationPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#F7F7F7',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  locationPillActive: {
+    backgroundColor: '#111',
+    borderColor: '#111',
+  },
+  locationPillText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  locationPillTextActive: {
+    color: '#FFF',
   },
 });

@@ -97,6 +97,13 @@ export class TourGuideController {
     return this.tourGuideService.getRevenueStats(userId);
   }
 
+  @Get('insights')
+  getInsights(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} fetching insights`);
+    return this.tourGuideService.getInsights(userId);
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   //  PACKAGES
   // ══════════════════════════════════════════════════════════════════════════

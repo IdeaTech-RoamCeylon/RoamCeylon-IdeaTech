@@ -351,21 +351,21 @@ model Shop {
 // ─── Tour Guide Models ────────────────────────────────────────────────────────
 
 model TourPackage {
-  id                 String        @id @default(uuid())
-  guideId            String        @map("guide_id")
+  id                 String   @id @default(uuid())
+  guideId            String   @map("guide_id")
   name               String
   category           String
-  description        String        @default("")
-  coverImageUrl      String        @default("") @map("cover_image_url")
-  galleryUrls        Json          @default("[]") @map("gallery_urls")
-  duration           Int           @default(1)
-  price              Decimal       @default(0) @db.Decimal(10, 2)
-  highlights         Json          @default("[]")
-  location           String        @default("")
-  status             String        @default("draft")
-  publishImmediately Boolean       @default(true) @map("publish_immediately")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
+  description        String   @default("")
+  coverImageUrl      String   @default("") @map("cover_image_url")
+  galleryUrls        Json     @default("[]") @map("gallery_urls")
+  duration           Int      @default(1)
+  price              Decimal  @default(0) @db.Decimal(10, 2)
+  highlights         Json     @default("[]")
+  location           String   @default("")
+  status             String   @default("draft")
+  publishImmediately Boolean  @default(true) @map("publish_immediately")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   bookings TourBooking[]
 
@@ -375,21 +375,24 @@ model TourPackage {
 }
 
 model TourBooking {
-  id             String       @id @default(uuid())
-  packageId      String       @map("package_id")
-  guideId        String       @map("guide_id")
-  customerId     String?      @map("customer_id")
-  customerName   String       @map("customer_name")
-  customerEmail  String       @default("") @map("customer_email")
-  customerAvatar String       @default("") @map("customer_avatar")
-  tourName       String       @map("tour_name")
-  startDate      DateTime     @map("start_date")
-  endDate        DateTime     @map("end_date")
-  guests         Int          @default(1)
-  amount         Decimal      @default(0) @db.Decimal(10, 2)
-  status         String       @default("pending")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  packageId       String   @map("package_id")
+  guideId         String   @map("guide_id")
+  customerId      String?  @map("customer_id")
+  customerName    String   @map("customer_name")
+  customerEmail   String   @default("") @map("customer_email")
+  customerAvatar  String   @default("") @map("customer_avatar")
+  customerPhone   String   @default("") @map("customer_phone")
+  tourName        String   @map("tour_name")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  pickupLocation  String   @default("") @map("pickup_location")
+  specialRequests String   @default("") @map("special_requests")
+  guests          Int      @default(1)
+  amount          Decimal  @default(0) @db.Decimal(10, 2)
+  status          String   @default("pending")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   package TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
 
@@ -409,7 +412,7 @@ model TourInquiry {
   message       String   @default("")
   status        String   @default("new")
   tourInterest  String   @default("") @map("tour_interest")
-  pipelineValue Decimal  @default(0) @db.Decimal(10, 2) @map("pipeline_value")
+  pipelineValue Decimal  @default(0) @map("pipeline_value") @db.Decimal(10, 2)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

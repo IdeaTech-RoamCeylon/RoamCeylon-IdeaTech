@@ -33,4 +33,11 @@ export class UsersController {
     this.logger.log(`Updating profile for user ${userId}`);
     return this.usersService.updateUser(userId, body);
   }
+
+  @Get('me/tour-bookings')
+  async getMyBookings(@Req() req: { user: { userId: string } }) {
+    const userId = req.user.userId;
+    this.logger.log(`Fetching tour bookings for user ${userId}`);
+    return this.usersService.getUserBookings(userId);
+  }
 }
