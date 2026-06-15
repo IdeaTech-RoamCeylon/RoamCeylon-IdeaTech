@@ -20,7 +20,7 @@ try {
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     scopes: ['profile', 'email'],
   });
-} catch (e) {
+} catch (_e) {
   console.warn('Google Sign-In native module not available. Requires a development build.');
 }
 

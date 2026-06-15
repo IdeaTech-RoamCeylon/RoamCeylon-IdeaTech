@@ -10,9 +10,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -100,7 +99,7 @@ const Bookings = () => {
         let errText = 'Unknown error';
         try {
           errText = await res.text();
-        } catch (e) {}
+        } catch (_e) {}
         Alert.alert('Error', `Failed to update booking status. Code: ${res.status}. Details: ${errText}`);
       }
     } catch (error) {

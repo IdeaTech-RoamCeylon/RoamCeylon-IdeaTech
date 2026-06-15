@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { nhost } from '@/config/nhostClient';
 
-const { width } = Dimensions.get('window');
+const { _width } = Dimensions.get('window');
 
 const EmailVerificationScreen = () => {
   const router = useRouter();

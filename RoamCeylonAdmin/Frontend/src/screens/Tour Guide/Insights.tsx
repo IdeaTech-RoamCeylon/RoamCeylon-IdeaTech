@@ -6,9 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Alert,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -75,7 +73,7 @@ const Insights = () => {
   const [topPackages, setTopPackages] = useState<any[]>([]);
   const [trendData30Days, setTrendData30Days] = useState(Array(10).fill({ heightPercent: 0, isActive: false }));
   const [trendData90Days, setTrendData90Days] = useState(Array(10).fill({ heightPercent: 0, isActive: false }));
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useFocusEffect(
     React.useCallback(() => {

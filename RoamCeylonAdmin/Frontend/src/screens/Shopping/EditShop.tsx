@@ -23,7 +23,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 
-import { nhost } from '../../config/nhostClient';
 
 const EditShop = () => {
   const insets = useSafeAreaInsets();
@@ -94,7 +93,7 @@ const EditShop = () => {
               if (Array.isArray(parsed)) {
                 setHoursList(parsed);
               }
-            } catch (e) {
+            } catch (_e) {
               // Ignore parse error, keep default
             }
           }

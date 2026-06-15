@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-const { width } = Dimensions.get('window');
+const { _width } = Dimensions.get('window');
 
 const ViewRooms = () => {
   const insets = useSafeAreaInsets();

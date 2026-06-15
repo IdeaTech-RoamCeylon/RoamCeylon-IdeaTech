@@ -15,7 +15,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const Packages = () => {
   const insets = useSafeAreaInsets();
@@ -112,7 +111,7 @@ const Packages = () => {
     router.push('/tour-guide/addPackage' as any);
   };
 
-  const handleEditPackagePress = (title: string) => {
+  const _handleEditPackagePress = (title: string) => {
     router.push('/tour-guide/editPackage' as any);
   };
 

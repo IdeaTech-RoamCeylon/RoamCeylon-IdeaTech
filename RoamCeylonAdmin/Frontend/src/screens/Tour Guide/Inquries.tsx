@@ -8,8 +8,6 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
-  Modal,
-  TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,7 +59,7 @@ const Inquries = () => {
     Alert.alert('New Lead', 'Redirecting to Lead Creation screen...');
   };
 
-  const handleActionPress = (name: string, action: string, detail: string) => {
+  const _handleActionPress = (name: string, action: string, detail: string) => {
     if (action === 'Reply' || action === 'View Thread') {
       router.push({
         pathname: '/tour-guide/chat',
@@ -72,7 +70,7 @@ const Inquries = () => {
     }
   };
 
-  const handleArchivedPress = () => {
+  const _handleArchivedPress = () => {
     Alert.alert('Archived Inquiries', 'Loading historical guest inquiries...');
   };
 
@@ -244,7 +242,7 @@ const Inquries = () => {
               const isNew = statusType === 'new';
               const isPriority = statusType === 'priority';
               const isResponded = statusType === 'responded';
-              const actionText = isResponded ? 'View Thread' : 'Reply';
+              const _actionText = isResponded ? 'View Thread' : 'Reply';
               const avatarUrl = request.guestAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.guestName)}&background=random`;
 
               return (

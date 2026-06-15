@@ -9,14 +9,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Dimensions,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-const { width } = Dimensions.get('window');
+const { _width } = Dimensions.get('window');
 
 const RegisterScreen = () => {
   const router = useRouter();
@@ -31,7 +30,7 @@ const RegisterScreen = () => {
   // ── UI state ───────────────────────────────────────────────
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const getPasswordStrength = (pass: string) => {

@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   StatusBar,
 } from 'react-native';
 import { Image } from 'expo-image';

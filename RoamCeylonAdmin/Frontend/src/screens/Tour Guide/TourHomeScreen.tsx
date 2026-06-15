@@ -10,14 +10,13 @@ import {
   ActivityIndicator,
   Modal,
   Linking,
-} from 'react-native';
+ Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
 const openMap = async (address: string) => {
@@ -41,11 +40,11 @@ const openMap = async (address: string) => {
     
     // Fallback to Google Maps Web / App Intercept
     await Linking.openURL(googleMapUrl);
-  } catch (error) {
+  } catch (_error) {
     // Ultimate failsafe: open in an in-app browser overlay which cannot fail due to OS routing issues
     try {
       await WebBrowser.openBrowserAsync(googleMapUrl);
-    } catch (webError) {
+    } catch (_webError) {
       Alert.alert('Error', 'Could not open the map app or a web browser.');
     }
   }

@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { nhost } from '@/config/nhostClient';
@@ -58,7 +58,7 @@ const Settings = () => {
               if (parsed.profile_picture) newProfile.picture = parsed.profile_picture;
               setProfile(newProfile);
             }
-          } catch (e) {}
+          } catch (_e) {}
 
           // 2. Load from DB
           try {
@@ -74,7 +74,7 @@ const Settings = () => {
               if (profileData.profile_picture) newProfile.picture = profileData.profile_picture;
               setProfile(newProfile);
             }
-          } catch (e) {}
+          } catch (_e) {}
 
         } catch (err) {
           console.error('[Settings] Error loading user profile:', err);
@@ -363,14 +363,14 @@ const Settings = () => {
 
                         try {
                           await (nhost.auth as any).signOut();
-                        } catch(e) {}
+                        } catch(_e) {}
                         await SecureStore.deleteItemAsync('authToken');
                         await SecureStore.deleteItemAsync('nhostRefreshToken');
                         await SecureStore.deleteItemAsync('userProfile');
                         
                         showToast.success('Account deactivated successfully', 'Goodbye');
                         router.replace('/login');
-                      } catch (err) {
+                      } catch (_err) {
                         showToast.error('Failed to deactivate account', 'Error');
                         setLoading(false);
                       }
