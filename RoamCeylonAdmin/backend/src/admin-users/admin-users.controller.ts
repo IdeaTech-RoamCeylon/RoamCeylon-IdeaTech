@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Req,
   UseGuards,
@@ -85,5 +86,19 @@ export class AdminUsersController {
     this.logger.log(`Updating profile for user ${userId}`);
     const updated = await this.adminUsersService.updateProfile(userId, dto);
     return { data: updated };
+  }
+
+  /**
+   * DELETE /admin-users/me
+   *
+   * Deactivates (deletes) the current authenticated user's profile.
+   */
+  @UseGuards(NhostJwtGuard)
+  @Delete('me')
+  async deleteMe(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Deactivating profile for user ${userId}`);
+    const result = await this.adminUsersService.deleteProfile(userId);
+    return result;
   }
 }

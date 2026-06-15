@@ -47,15 +47,11 @@ const EditProfile = () => {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
-      base64: true,
+      base64: false,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      if (result.assets[0].base64) {
-        setProfilePicture(`data:image/jpeg;base64,${result.assets[0].base64}`);
-      } else {
-        setProfilePicture(result.assets[0].uri);
-      }
+      setProfilePicture(result.assets[0].uri);
     }
   };
 
@@ -133,11 +129,40 @@ const EditProfile = () => {
       showToast.error('Phone number is required', 'Validation Error');
       return;
     }
+    if (phoneNumber.trim().length !== 10) {
+      showToast.error('Phone number must be exactly 10 digits', 'Validation Error');
+      return;
+    }
 
     setLoading(true);
     try {
       const token = await SecureStore.getItemAsync('authToken');
       const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+      let finalProfilePicUrl = profilePicture;
+
+      // If the image is a local URI (selected from gallery), upload it to Nhost Storage
+      if (profilePicture && !profilePicture.startsWith('http')) {
+        const formData = new FormData();
+        const filename = profilePicture.split('/').pop() || `profile-${Date.now()}.jpg`;
+        
+        formData.append('file', {
+          uri: profilePicture,
+          name: filename,
+          type: 'image/jpeg',
+        } as any);
+
+        const { fileMetadata, error: uploadError } = await nhost.storage.upload({ formData });
+        
+        if (uploadError) {
+          console.error('[EditProfile] Nhost upload error:', uploadError);
+          throw new Error('Failed to upload profile picture');
+        }
+        
+        if (fileMetadata && fileMetadata.id) {
+          finalProfilePicUrl = nhost.storage.getPublicUrl({ fileId: fileMetadata.id });
+        }
+      }
 
       // 1. Update backend PostgreSQL DB
       const res = await fetch(`${apiUrl}/admin-users/me`, {
@@ -149,7 +174,7 @@ const EditProfile = () => {
         body: JSON.stringify({
           name: name.trim(),
           phoneNumber: phoneNumber.trim(),
-          profile_picture: profilePicture,
+          profile_picture: finalProfilePicUrl,
         }),
       });
 
@@ -165,7 +190,7 @@ const EditProfile = () => {
           name: name.trim(),
           email: email.trim(),
           phoneNumber: phoneNumber.trim(),
-          profile_picture: profilePicture,
+          profile_picture: finalProfilePicUrl,
         }));
       } catch (cacheErr) {
         console.warn('[EditProfile] SecureStore userProfile caching failed:', cacheErr);
@@ -330,8 +355,9 @@ const EditProfile = () => {
                   <TextInput
                     style={styles.textInput}
                     value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    placeholder="+94 77 123 4567"
+                    onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, ''))}
+                    maxLength={10}
+                    placeholder="0771234567"
                     placeholderTextColor="#B5C0BC"
                     keyboardType="phone-pad"
                   />

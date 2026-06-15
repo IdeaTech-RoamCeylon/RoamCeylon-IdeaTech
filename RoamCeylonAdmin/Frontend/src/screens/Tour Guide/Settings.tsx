@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,12 +8,13 @@ import {
   Switch,
   StatusBar,
   Platform,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
@@ -27,6 +28,61 @@ const Settings = () => {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [weeklyReports, setWeeklyReports] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Profile State
+  const [profile, setProfile] = useState({
+    name: 'Admin User',
+    email: '',
+    phone: '',
+    picture: '',
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfile = async () => {
+        try {
+          const token = await SecureStore.getItemAsync('authToken');
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+          if (!token) return;
+
+          let newProfile = { ...profile };
+
+          // 1. Load from cache
+          try {
+            const cachedProfile = await SecureStore.getItemAsync('userProfile');
+            if (cachedProfile) {
+              const parsed = JSON.parse(cachedProfile);
+              if (parsed.name) newProfile.name = parsed.name;
+              if (parsed.email) newProfile.email = parsed.email;
+              if (parsed.phoneNumber) newProfile.phone = parsed.phoneNumber;
+              if (parsed.profile_picture) newProfile.picture = parsed.profile_picture;
+              setProfile(newProfile);
+            }
+          } catch (e) {}
+
+          // 2. Load from DB
+          try {
+            const res = await fetch(`${apiUrl}/admin-users/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const resJson = await res.json();
+              const profileData = resJson.data || resJson || {};
+              if (profileData.name) newProfile.name = profileData.name;
+              if (profileData.email) newProfile.email = profileData.email;
+              if (profileData.phoneNumber) newProfile.phone = profileData.phoneNumber;
+              if (profileData.profile_picture) newProfile.picture = profileData.profile_picture;
+              setProfile(newProfile);
+            }
+          } catch (e) {}
+
+        } catch (err) {
+          console.error('[Settings] Error loading user profile:', err);
+        }
+      };
+      loadProfile();
+    }, [])
+  );
 
   const handleLogout = async () => {
     setLoading(true);
@@ -82,11 +138,19 @@ const Settings = () => {
         >
           {/* Avatar Container with yellow border and white verified checkmark */}
           <View style={styles.avatarContainer}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80' }}
-              style={styles.avatarImage}
-              contentFit="cover"
-            />
+            {profile.picture ? (
+              <Image
+                source={{ uri: profile.picture }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.avatarInitial}>
+                <Text style={styles.avatarInitialText}>
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
+                </Text>
+              </View>
+            )}
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark-sharp" size={12} color="#0F3D26" />
             </View>
@@ -99,18 +163,22 @@ const Settings = () => {
           </View>
 
           {/* Profile Name */}
-          <Text style={styles.profileName}>Jane Doe</Text>
+          <Text style={styles.profileName}>{profile.name}</Text>
 
           {/* Contact Details with custom light opacity icons and labels */}
           <View style={styles.contactContainer}>
-            <View style={styles.contactRow}>
-              <Ionicons name="mail-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
-              <Text style={styles.contactText}>guide.jane@roamceylon.lk</Text>
-            </View>
-            <View style={styles.contactRow}>
-              <Ionicons name="call-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
-              <Text style={styles.contactText}>+94 77 123 4567</Text>
-            </View>
+            {!!profile.email && (
+              <View style={styles.contactRow}>
+                <Ionicons name="mail-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+                <Text style={styles.contactText}>{profile.email}</Text>
+              </View>
+            )}
+            {!!profile.phone && (
+              <View style={styles.contactRow}>
+                <Ionicons name="call-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+                <Text style={styles.contactText}>{profile.phone}</Text>
+              </View>
+            )}
           </View>
 
           {/* Side-by-side Action Buttons */}
@@ -267,7 +335,51 @@ const Settings = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.deactivateButton} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={styles.deactivateButton} 
+            activeOpacity={0.7}
+            onPress={() => {
+              Alert.alert(
+                "Deactivate Account",
+                "Are you sure you want to deactivate your guide account? This action cannot be undone and your active listings will be removed.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { 
+                    text: "Deactivate", 
+                    style: "destructive",
+                    onPress: async () => {
+                      setLoading(true);
+                      try {
+                        const token = await SecureStore.getItemAsync('authToken');
+                        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+                        
+                        if (token) {
+                          const res = await fetch(`${apiUrl}/admin-users/me`, {
+                            method: 'DELETE',
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!res.ok) throw new Error('Failed to deactivate account');
+                        }
+
+                        try {
+                          await (nhost.auth as any).signOut();
+                        } catch(e) {}
+                        await SecureStore.deleteItemAsync('authToken');
+                        await SecureStore.deleteItemAsync('nhostRefreshToken');
+                        await SecureStore.deleteItemAsync('userProfile');
+                        
+                        showToast.success('Account deactivated successfully', 'Goodbye');
+                        router.replace('/login');
+                      } catch (err) {
+                        showToast.error('Failed to deactivate account', 'Error');
+                        setLoading(false);
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
             <Text style={styles.deactivateText}>Deactivate Guide Account</Text>
           </TouchableOpacity>
         </View>
@@ -328,6 +440,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAEAEA',
     borderWidth: 3,
     borderColor: '#EAD26B',
+  },
+  avatarInitial: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#0E5E2F',
+    borderWidth: 3,
+    borderColor: '#EAD26B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#EAD26B',
   },
   verifiedBadge: {
     position: 'absolute',
