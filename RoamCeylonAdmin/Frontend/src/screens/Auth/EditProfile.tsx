@@ -152,15 +152,28 @@ const EditProfile = () => {
           type: 'image/jpeg',
         } as any);
 
-        const { fileMetadata, error: uploadError } = await nhost.storage.upload({ formData });
+        const storageUrl = `https://${process.env.EXPO_PUBLIC_NHOST_SUBDOMAIN}.storage.${process.env.EXPO_PUBLIC_NHOST_REGION}.nhost.run/v1/files`;
         
-        if (uploadError) {
-          console.error('[EditProfile] Nhost upload error:', uploadError);
+        const uploadRes = await fetch(storageUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          console.error('[EditProfile] Nhost upload error:', errText);
           throw new Error('Failed to upload profile picture');
         }
+
+        const fileMetadata = await uploadRes.json();
+        // Handle both single object and array responses from different Nhost API versions
+        const fileId = fileMetadata?.processedFiles?.[0]?.id || fileMetadata?.id || fileMetadata?.[0]?.id;
         
-        if (fileMetadata && fileMetadata.id) {
-          finalProfilePicUrl = nhost.storage.getPublicUrl({ fileId: fileMetadata.id });
+        if (fileId) {
+          finalProfilePicUrl = `${storageUrl}/${fileId}`;
         }
       }
 
