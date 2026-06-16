@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 const NewActivity = () => {
@@ -19,8 +19,8 @@ const NewActivity = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'moderate' | 'hard'>('easy');
-  const [startTime, setStartTime] = useState('09:00 AM');
-  const [endTime, setEndTime] = useState('10:00 AM');
+  const [startTime, _setStartTime] = useState('09:00 AM');
+  const [endTime, _setEndTime] = useState('10:00 AM');
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
   const [participants, setParticipants] = useState('');

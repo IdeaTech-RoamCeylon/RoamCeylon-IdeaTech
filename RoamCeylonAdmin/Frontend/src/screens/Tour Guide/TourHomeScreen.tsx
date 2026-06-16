@@ -8,13 +8,47 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
-} from 'react-native';
+  Modal,
+  Linking,
+ Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+
+const openMap = async (address: string) => {
+  // Fully RFC3986 compliant URI encoding
+  const query = encodeURIComponent(address).replace(/[!'()*]/g, function(c) {
+    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+  });
+  
+  // Provide universal schemes for Apple/Google Maps
+  const appleMapUrl = `maps://?q=${query}`;
+  const googleMapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+  
+  try {
+    if (Platform.OS === 'ios') {
+      const canOpenApple = await Linking.canOpenURL(appleMapUrl);
+      if (canOpenApple) {
+        await Linking.openURL(appleMapUrl);
+        return;
+      }
+    }
+    
+    // Fallback to Google Maps Web / App Intercept
+    await Linking.openURL(googleMapUrl);
+  } catch (_error) {
+    // Ultimate failsafe: open in an in-app browser overlay which cannot fail due to OS routing issues
+    try {
+      await WebBrowser.openBrowserAsync(googleMapUrl);
+    } catch (_webError) {
+      Alert.alert('Error', 'Could not open the map app or a web browser.');
+    }
+  }
+};
 
 const TourHomeScreen = () => {
   const insets = useSafeAreaInsets();
@@ -30,6 +64,7 @@ const TourHomeScreen = () => {
   });
   const [packagesList, setPackagesList] = useState<any[]>([]);
   const [bookingsList, setBookingsList] = useState<any[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
 
   const fetchData = async () => {
     try {
@@ -280,14 +315,13 @@ const TourHomeScreen = () => {
           <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
         </View>
 
-        <View style={styles.bookingsCardContainer}>
+        <View>
           {loading ? (
             <ActivityIndicator size="small" color="#0E5E2F" style={{ margin: 20 }} />
           ) : bookingsList.length === 0 ? (
             <Text style={{ textAlign: 'center', margin: 20, color: '#6B7280' }}>No upcoming bookings.</Text>
           ) : (
             bookingsList.map((booking, index) => {
-              const isLast = index === bookingsList.length - 1;
               const dateObj = new Date(booking.startDate);
               const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
               const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
@@ -295,7 +329,12 @@ const TourHomeScreen = () => {
               const isSuccess = booking.status === 'confirmed' || booking.status === 'completed';
               
               return (
-                <View key={booking.id}>
+                <TouchableOpacity 
+                  key={booking.id}
+                  style={[styles.bookingsCardContainer, { marginBottom: 12 }]} 
+                  activeOpacity={0.7} 
+                  onPress={() => setSelectedBooking(booking)}
+                >
                   <View style={styles.bookingRow}>
                     <View style={styles.bookingLeft}>
                       <Text style={styles.bookingMainText}>
@@ -326,8 +365,7 @@ const TourHomeScreen = () => {
                       </View>
                     </View>
                   </View>
-                  {!isLast && <View style={styles.bookingDivider} />}
-                </View>
+                </TouchableOpacity>
               );
             })
           )}
@@ -348,6 +386,67 @@ const TourHomeScreen = () => {
           <Feather name="plus" size={24} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
+
+      {/* Booking Details Modal */}
+      <Modal
+        visible={!!selectedBooking}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedBooking(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Booking Details</Text>
+              <TouchableOpacity onPress={() => setSelectedBooking(null)}>
+                <Ionicons name="close" size={24} color="#111" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedBooking && (
+              <ScrollView style={styles.modalContent}>
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailLabel}>Customer Name</Text>
+                  <Text style={styles.detailValue}>{selectedBooking.customerName}</Text>
+                </View>
+                
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailLabel}>Phone Number</Text>
+                  <Text style={styles.detailValue}>{selectedBooking.customerPhone || 'Not provided'}</Text>
+                </View>
+
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailLabel}>Pickup Location</Text>
+                  {selectedBooking.pickupLocation ? (
+                    <TouchableOpacity 
+                      style={styles.locationLinkBtn}
+                      activeOpacity={0.7}
+                      onPress={() => openMap(selectedBooking.pickupLocation)}
+                    >
+                      <Text style={[styles.detailValue, { flex: 1, color: '#0E5E2F', textDecorationLine: 'underline' }]}>
+                        {selectedBooking.pickupLocation}
+                      </Text>
+                      <Ionicons name="map" size={18} color="#0E5E2F" style={{ marginLeft: 8 }} />
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.detailValue}>Not provided</Text>
+                  )}
+                </View>
+
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailLabel}>Special Requests</Text>
+                  <Text style={styles.detailValue}>{selectedBooking.specialRequests || 'None'}</Text>
+                </View>
+
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailLabel}>Guests</Text>
+                  <Text style={styles.detailValue}>{selectedBooking.guests} People</Text>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -710,11 +809,62 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fabGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
+  },
+  modalContent: {
+    paddingBottom: 20,
+  },
+  detailGroup: {
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#111',
+    fontWeight: '500',
+    lineHeight: 22,
+  },
+  locationLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
 });
 

@@ -131,6 +131,19 @@ export class AdminUsersService {
     return { ...updated, userId: updated.id };
   }
 
+  async deleteProfile(userId: string) {
+    try {
+      await this.prisma.adminUser.delete({
+        where: { id: userId },
+      });
+      this.logger.log(`Admin user deleted: ${userId}`);
+      return { success: true };
+    } catch (error) {
+      this.logger.warn(`Failed to delete admin user ${userId}: ${error}`);
+      return { success: false };
+    }
+  }
+
   async findAll() {
     const users = await this.prisma.adminUser.findMany();
     return users.map((user) => ({ ...user, userId: user.id }));

@@ -46,4 +46,16 @@ export class CreateBookingDto {
   @Min(0)
   @Type(() => Number)
   amount?: number;
+
+  @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  pickupLocation?: string;
+
+  @IsOptional()
+  @IsString()
+  specialRequests?: string;
 }

@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 
 const { _width } = Dimensions.get('window');
 
-const GuestDetails = () => {
+const TouristDetails = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -32,7 +32,7 @@ const GuestDetails = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#1C1917" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Guest Details</Text>
+        <Text style={styles.headerTitle}>Tourist Details</Text>
         <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
@@ -105,7 +105,7 @@ const GuestDetails = () => {
 
           <TouchableOpacity style={[styles.qaButton, styles.qaButtonCheckIn]} activeOpacity={0.85}>
             <Ionicons name="enter-outline" size={20} color="#FFFFFF" style={styles.qaButtonIcon} />
-            <Text style={styles.qaButtonTextCheckIn}>Check-in Guest</Text>
+            <Text style={styles.qaButtonTextCheckIn}>Start Tour</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.qaButton, styles.qaButtonModify]} activeOpacity={0.85}>
@@ -126,7 +126,7 @@ const GuestDetails = () => {
 
           <View style={styles.stayHeaderRow}>
             <View style={styles.stayTitleCol}>
-              <Text style={styles.stayInfoTitle}>Stay Information</Text>
+              <Text style={styles.stayInfoTitle}>Booking Information</Text>
 
               {/* Check-in / Stay Summary */}
               <View style={styles.stayDatesContainer}>
@@ -136,7 +136,7 @@ const GuestDetails = () => {
                 </View>
                 <View style={[styles.stayDetailRow, { marginTop: 6 }]}>
                   <Ionicons name="moon-outline" size={16} color="#7C8A82" />
-                  <Text style={styles.stayDetailText}>3 Nights</Text>
+                  <Text style={styles.stayDetailText}>1 Day Tour</Text>
                 </View>
               </View>
             </View>
@@ -154,28 +154,28 @@ const GuestDetails = () => {
 
           {/* Room Type Sub-Card */}
           <View style={styles.subCardContainer}>
-            <Text style={styles.subCardHeader}>ROOM TYPE</Text>
+            <Text style={styles.subCardHeader}>PACKAGE TYPE</Text>
             <View style={styles.subCardContent}>
               <View style={styles.subCardIconBg}>
-                <Ionicons name="bed-outline" size={20} color="#0D4F2E" />
+                <Ionicons name="map-outline" size={20} color="#0D4F2E" />
               </View>
               <View style={styles.subCardTextCol}>
-                <Text style={styles.roomNameText}>Ocean View Suite</Text>
-                <Text style={styles.roomDescText}>Room 204 • Building A</Text>
+                <Text style={styles.roomNameText}>Wildlife Safari</Text>
+                <Text style={styles.roomDescText}>Yala National Park</Text>
               </View>
             </View>
           </View>
 
           {/* Check-in Details Sub-Card */}
           <View style={styles.subCardContainer}>
-            <Text style={styles.subCardHeader}>CHECK-IN DETAILS</Text>
+            <Text style={styles.subCardHeader}>MEETING DETAILS</Text>
             <View style={styles.subCardContent}>
               <View style={[styles.subCardIconBg, styles.checkInIconBg]}>
                 <Ionicons name="time-outline" size={20} color="#855E0E" />
               </View>
               <View style={styles.subCardTextCol}>
-                <Text style={styles.etaText}>ETA 2:00 PM</Text>
-                <Text style={styles.standardCheckInText}>Standard check-in time</Text>
+                <Text style={styles.etaText}>ETA 8:00 AM</Text>
+                <Text style={styles.standardCheckInText}>Standard meeting time</Text>
               </View>
             </View>
           </View>
@@ -749,4 +749,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GuestDetails;
+export default TouristDetails;

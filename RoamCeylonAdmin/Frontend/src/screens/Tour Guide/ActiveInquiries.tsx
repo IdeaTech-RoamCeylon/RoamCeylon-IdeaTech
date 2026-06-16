@@ -36,7 +36,7 @@ const ActiveInquiries = () => {
     return matchesSearch && inquiry.statusType === activeFilter;
   });
 
-  const handleInquiryPress = (name: string, detail: string) => {
+  const _handleInquiryPress = (name: string, detail: string) => {
     router.push({
       pathname: '/tour-guide/chat',
       params: { name, detail },

@@ -7,15 +7,13 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 
-const { width } = Dimensions.get('window');
+const { _width } = Dimensions.get('window');
 
 const ActivitiesHome = () => {
   const insets = useSafeAreaInsets();

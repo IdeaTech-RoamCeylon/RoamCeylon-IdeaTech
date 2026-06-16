@@ -15,7 +15,7 @@ import { showToast } from '@/utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
+const { _width } = Dimensions.get('window');
 
 
 

@@ -50,4 +50,12 @@ export class UsersService {
     });
     return this.formatUser(updatedUser);
   }
+
+  async getUserBookings(id: string) {
+    return this.prisma.tourBooking.findMany({
+      where: { customerId: id },
+      orderBy: { createdAt: 'desc' },
+      include: { package: { select: { name: true, coverImageUrl: true, location: true } } },
+    });
+  }
 }

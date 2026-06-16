@@ -6,13 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Alert,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
+import { useFocusEffect } from '@react-navigation/native';
 
 const Insights = () => {
   const insets = useSafeAreaInsets();
@@ -21,47 +21,21 @@ const Insights = () => {
   // State to toggle between 30 Days and 90 Days conversion trends
   const [selectedTrendPeriod, setSelectedTrendPeriod] = useState<'30days' | '90days'>('30days');
 
-  // Custom Sparkline Data (representing a smooth bezier-like curve wave)
-  const sparklineData = [
+  // State for Global Conversion Card
+  const [globalConversionRate, setGlobalConversionRate] = useState(0);
+  const [globalConversionTrend, setGlobalConversionTrend] = useState('');
+  const [sparklineData, setSparklineData] = useState<number[]>([
     5, 6, 7, 9, 11, 14, 17, 20, 22, 24, 25, 25, 24, 23, 21, 18, 16, 14, 13, 12,
     12, 13, 14, 16, 18, 21, 25, 30, 36, 43, 52, 62, 73, 85, 94, 99, 100, 95, 80, 50, 20, 0
-  ];
+  ]);
 
-  // Mocked trend data for the 30 Days vs 90 Days bar chart
-  const trendData30Days = [
-    { heightPercent: 35, isActive: false },
-    { heightPercent: 55, isActive: false },
-    { heightPercent: 82, isActive: true }, // Highlighted active day
-    { heightPercent: 48, isActive: false },
-    { heightPercent: 70, isActive: false },
-    { heightPercent: 30, isActive: false },
-    { heightPercent: 88, isActive: true }, // Highlighted active day
-    { heightPercent: 55, isActive: false },
-    { heightPercent: 25, isActive: false },
-    { heightPercent: 42, isActive: false },
-  ];
-
-  const trendData90Days = [
-    { heightPercent: 45, isActive: false },
-    { heightPercent: 75, isActive: true }, // Highlighted active day
-    { heightPercent: 30, isActive: false },
-    { heightPercent: 62, isActive: false },
-    { heightPercent: 88, isActive: true }, // Highlighted active day
-    { heightPercent: 40, isActive: false },
-    { heightPercent: 55, isActive: false },
-    { heightPercent: 70, isActive: true }, // Highlighted active day
-    { heightPercent: 32, isActive: false },
-    { heightPercent: 50, isActive: false },
-  ];
-
-  const currentTrendData = selectedTrendPeriod === '30days' ? trendData30Days : trendData90Days;
 
   // Funnel steps data
-  const funnelSteps = [
+  const [funnelSteps, setFunnelSteps] = useState([
     {
       label: 'Website Visits',
-      value: '12,400',
-      fillPercent: 1.0, // 100%
+      value: '0',
+      fillPercent: 0,
       icon: 'eye-outline',
       color: '#0E5E2F',
       bgColor: '#EAF7EE',
@@ -69,32 +43,79 @@ const Insights = () => {
     },
     {
       label: 'Inquiries',
-      value: '2,840',
-      fillPercent: 0.229, // 22.9%
+      value: '0',
+      fillPercent: 0,
       icon: 'chatbubble-ellipses-outline',
       color: '#D97706',
       bgColor: '#FFFBEB',
-      conversionRate: '22.9% Inquiry Rate',
+      conversionRate: '0% Inquiry Rate',
     },
     {
       label: 'Confirmed',
-      value: '636',
-      fillPercent: 0.051, // 5.1%
+      value: '0',
+      fillPercent: 0,
       icon: 'wallet-outline',
       color: '#2563EB',
       bgColor: '#EFF6FF',
-      conversionRate: '22.4% Booking Rate',
+      conversionRate: '0% Booking Rate',
     },
     {
       label: 'Completed',
-      value: '482',
-      fillPercent: 0.039, // 3.9%
+      value: '0',
+      fillPercent: 0,
       icon: 'checkmark-circle-outline',
       color: '#10B981',
       bgColor: '#ECFDF5',
-      conversionRate: '75.8% Trip Completion',
+      conversionRate: '0% Trip Completion',
     },
-  ];
+  ]);
+
+  const [topPackages, setTopPackages] = useState<any[]>([]);
+  const [trendData30Days, setTrendData30Days] = useState(Array(10).fill({ heightPercent: 0, isActive: false }));
+  const [trendData90Days, setTrendData90Days] = useState(Array(10).fill({ heightPercent: 0, isActive: false }));
+  const [_loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      const fetchInsights = async () => {
+        try {
+          setLoading(true);
+          const token = await SecureStore.getItemAsync('authToken');
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+          if (!token) return;
+
+          const res = await fetch(`${apiUrl}/tour-guide/insights`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          if (res.ok && isActive) {
+            const data = await res.json();
+            setFunnelSteps(data.funnelSteps || []);
+            setTrendData30Days(data.conversionTrend30Days || []);
+            setTrendData90Days(data.conversionTrend90Days || []);
+            setTopPackages(data.topPackages || []);
+            if (data.globalConversionRate !== undefined) setGlobalConversionRate(data.globalConversionRate);
+            if (data.globalConversionTrend) setGlobalConversionTrend(data.globalConversionTrend);
+            if (data.sparklineData) setSparklineData(data.sparklineData);
+          }
+        } catch (error) {
+          console.error('[Insights] Fetch error:', error);
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+
+      fetchInsights();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
+  const currentTrendData = selectedTrendPeriod === '30days' ? trendData30Days : trendData90Days;
 
   const handleViewAllAnalyticsPress = () => {
     router.push('/tour-guide/analytics' as any);
@@ -142,10 +163,10 @@ const Insights = () => {
           <View style={styles.kpiRing2} />
           
           <Text style={styles.conversionLabel}>Global Conversion</Text>
-          <Text style={styles.conversionValue}>22.4%</Text>
+          <Text style={styles.conversionValue}>{globalConversionRate}%</Text>
           <View style={styles.trendRow}>
             <Ionicons name="trending-up-outline" size={14} color="#FFDF59" style={{ marginRight: 4 }} />
-            <Text style={styles.trendText}>+3.2% from last month</Text>
+            <Text style={styles.trendText}>{globalConversionTrend}</Text>
           </View>
 
           {/* Sparkline Curve Chart (Continuous glowing waveform) */}
@@ -292,65 +313,37 @@ const Insights = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Package Card 1 - Horizontal Layout */}
-        <View style={styles.horizontalPackageCard}>
-          <Image
-            source={require('../../assets/Tours/Cultural Triangle.png')}
-            style={styles.horizontalPackageImage}
-            contentFit="cover"
-          />
-          <View style={styles.horizontalPackageInfo}>
-            <View style={styles.horizontalCardHeader}>
-              <Text style={styles.packageNameText} numberOfLines={1}>Cultural Triangle Explorer</Text>
-              <View style={styles.convBadgeOutline}>
-                <Text style={styles.convBadgeText}>32% Conv.</Text>
+        {topPackages.length === 0 ? (
+          <Text style={{ textAlign: 'center', color: '#6B7280', marginVertical: 20 }}>
+            No packages available.
+          </Text>
+        ) : (
+          topPackages.map((pkg, idx) => (
+            <View key={idx} style={styles.horizontalPackageCard}>
+              <View style={styles.horizontalPackageInfo}>
+                <View style={styles.horizontalCardHeader}>
+                  <Text style={styles.packageNameText} numberOfLines={1}>{pkg.name}</Text>
+                  <View style={styles.convBadgeOutline}>
+                    <Text style={styles.convBadgeText}>{pkg.conversionRate}% Conv.</Text>
+                  </View>
+                </View>
+                <Text style={styles.packageSubtitleText}>{pkg.duration} Days</Text>
+                
+                <View style={styles.horizontalStatsRow}>
+                  <View style={styles.miniStatCol}>
+                    <Text style={styles.miniStatLabel}>INQUIRIES</Text>
+                    <Text style={styles.miniStatValue}>{pkg.inquiriesCount}</Text>
+                  </View>
+                  <View style={styles.miniStatDivider} />
+                  <View style={styles.miniStatCol}>
+                    <Text style={styles.miniStatLabel}>BOOKINGS</Text>
+                    <Text style={[styles.miniStatValue, { color: '#0E5E2F' }]}>{pkg.bookingsCount}</Text>
+                  </View>
+                </View>
               </View>
             </View>
-            <Text style={styles.packageSubtitleText}>7 Days • Boutique Stays</Text>
-            
-            <View style={styles.horizontalStatsRow}>
-              <View style={styles.miniStatCol}>
-                <Text style={styles.miniStatLabel}>INQUIRIES</Text>
-                <Text style={styles.miniStatValue}>1,240</Text>
-              </View>
-              <View style={styles.miniStatDivider} />
-              <View style={styles.miniStatCol}>
-                <Text style={styles.miniStatLabel}>BOOKINGS</Text>
-                <Text style={[styles.miniStatValue, { color: '#0E5E2F' }]}>396</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Package Card 2 - Horizontal Layout */}
-        <View style={styles.horizontalPackageCard}>
-          <Image
-            source={require('../../assets/Tours/Tea Country.png')}
-            style={styles.horizontalPackageImage}
-            contentFit="cover"
-          />
-          <View style={styles.horizontalPackageInfo}>
-            <View style={styles.horizontalCardHeader}>
-              <Text style={styles.packageNameText} numberOfLines={1}>Tea Country Retreat</Text>
-              <View style={styles.convBadgeOutline}>
-                <Text style={styles.convBadgeText}>28% Conv.</Text>
-              </View>
-            </View>
-            <Text style={styles.packageSubtitleText}>5 Days • Estate Living</Text>
-            
-            <View style={styles.horizontalStatsRow}>
-              <View style={styles.miniStatCol}>
-                <Text style={styles.miniStatLabel}>INQUIRIES</Text>
-                <Text style={styles.miniStatValue}>985</Text>
-              </View>
-              <View style={styles.miniStatDivider} />
-              <View style={styles.miniStatCol}>
-                <Text style={styles.miniStatLabel}>BOOKINGS</Text>
-                <Text style={[styles.miniStatValue, { color: '#0E5E2F' }]}>275</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+          ))
+        )}
         </View>
       </ScrollView>
     </View>
