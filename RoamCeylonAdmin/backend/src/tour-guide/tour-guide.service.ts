@@ -465,40 +465,8 @@ export class TourGuideService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  NOTIFICATIONS
+  //  NOTIFICATIONS (Now handled globally in NotificationsService)
   // ══════════════════════════════════════════════════════════════════════════
-
-  async findAllNotifications(guideId: string) {
-    return this.prisma.tourNotification.findMany({
-      where: { guideId },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async markAsRead(id: string) {
-    const existing = await this.prisma.tourNotification.findUnique({
-      where: { id },
-    });
-    if (!existing)
-      throw new NotFoundException(`Notification "${id}" not found`);
-
-    return this.prisma.tourNotification.update({
-      where: { id },
-      data: { isRead: true },
-    });
-  }
-
-  async markAllAsRead(guideId: string) {
-    const result = await this.prisma.tourNotification.updateMany({
-      where: { guideId, isRead: false },
-      data: { isRead: true },
-    });
-
-    this.logger.log(
-      `Marked ${result.count} notifications as read for guide ${guideId}`,
-    );
-    return { markedCount: result.count };
-  }
 
   // ══════════════════════════════════════════════════════════════════════════
   //  DASHBOARD STATS

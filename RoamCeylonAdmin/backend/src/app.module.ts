@@ -8,6 +8,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { TourGuideModule } from './tour-guide/tour-guide.module';
 import { UsersModule } from './users/users.module';
 
+import { NotificationsModule } from './notifications/notifications.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -16,6 +18,7 @@ import { UsersModule } from './users/users.module';
     AdminUsersModule,
     TourGuideModule,
     UsersModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

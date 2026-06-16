@@ -115,7 +115,7 @@ const TourHomeScreen = () => {
   );
 
   const handleNotificationPress = () => {
-    router.push('/tour-guide/notifications' as any);
+    router.push('/notifications' as any);
   };
 
   return (

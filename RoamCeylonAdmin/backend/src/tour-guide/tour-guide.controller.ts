@@ -276,26 +276,6 @@ export class TourGuideController {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  NOTIFICATIONS
+  //  NOTIFICATIONS (Now handled globally in /notifications)
   // ══════════════════════════════════════════════════════════════════════════
-
-  @Get('notifications')
-  findAllNotifications(@Req() req: AuthRequest) {
-    const { userId } = req.user;
-    this.logger.log(`Guide ${userId} fetching notifications`);
-    return this.tourGuideService.findAllNotifications(userId);
-  }
-
-  @Patch('notifications/read-all')
-  markAllAsRead(@Req() req: AuthRequest) {
-    const { userId } = req.user;
-    this.logger.log(`Guide ${userId} marking all notifications as read`);
-    return this.tourGuideService.markAllAsRead(userId);
-  }
-
-  @Patch('notifications/:id/read')
-  markAsRead(@Param('id') id: string) {
-    this.logger.log(`Marking notification ${id} as read`);
-    return this.tourGuideService.markAsRead(id);
-  }
 }
