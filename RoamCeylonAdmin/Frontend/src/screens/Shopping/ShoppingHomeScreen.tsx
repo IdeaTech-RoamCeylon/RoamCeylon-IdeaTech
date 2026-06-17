@@ -128,76 +128,80 @@ const ShoppingHomeScreen = () => {
             </View>
           </View>
         </LinearGradient>
-        <View style={[styles.sectionHeader, { marginTop: 40 }]}>
-          <Text style={styles.sectionTitle}>Your Shops</Text>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
-        ) : shops.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
-              <MaterialCommunityIcons name="storefront-outline" size={48} color="#9CA3AF" />
-            </View>
-            <Text style={styles.emptyTitle}>No shops yet</Text>
-            <Text style={styles.emptySubtitle}>
-              You haven&apos;t added any shops. Tap the button below to register your first business.
-            </Text>
+        <View style={styles.mainContent}>
+          <View style={[styles.sectionHeader, { marginTop: 40 }]}>
+            <Text style={styles.sectionTitle}>Your Shops</Text>
           </View>
-        ) : (
-          shops.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={styles.shopCard}
-              activeOpacity={0.9}
-              onPress={() => router.push({ pathname: '/shopping/edit', params: { id: item.id } } as any)}
-            >
-              {item.coverImageUrl && item.coverImageUrl.length > 10 ? (
-                <Image 
-                  source={{ uri: item.coverImageUrl }} 
-                  style={styles.shopImage} 
-                  contentFit="cover" 
-                  transition={200}
-                />
-              ) : (
-                <View style={[styles.shopImage, styles.shopImagePlaceholder]}>
-                  <MaterialCommunityIcons name="storefront" size={32} color="#9CA3AF" />
-                </View>
-              )}
-              
-              <View style={styles.shopInfo}>
-                <View style={styles.shopHeaderRow}>
-                  <Text style={styles.shopTitle} numberOfLines={1}>{item.name}</Text>
-                  <View style={[
-                    styles.statusBadge, 
-                    item.status === 'active' ? styles.statusActive : 
-                    item.status === 'inactive' ? styles.statusInactive : 
-                    styles.statusReview
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      item.status === 'active' ? styles.statusTextActive : 
-                      item.status === 'inactive' ? styles.statusTextInactive : 
-                      styles.statusTextReview
-                    ]}>
-                      {item.status === 'under_review' ? 'Review' : item.status}
-                    </Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.shopCategory}>{item.category || 'Category'}</Text>
-                
-                <View style={styles.shopFooter}>
-                  <View style={styles.shopFooterItem}>
-                    <Ionicons name="location-outline" size={14} color="#6B7280" />
-                    <Text style={styles.shopFooterText} numberOfLines={1}>{item.location || 'No location'}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color="#D1D5DB" />
-                </View>
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+          ) : shops.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <MaterialCommunityIcons name="storefront-outline" size={48} color="#9CA3AF" />
               </View>
-            </TouchableOpacity>
-          ))
-        )}
+              <Text style={styles.emptyTitle}>No shops yet</Text>
+              <Text style={styles.emptySubtitle}>
+                You haven&apos;t added any shops. Tap the button below to register your first business.
+              </Text>
+            </View>
+          ) : (
+            shops.map((item) => (
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.shopCard}
+                activeOpacity={0.9}
+                onPress={() => router.push({
+                  pathname: '/shopping/[id]',
+                  params: { id: item.id }
+                } as any)}
+              >
+                {item.coverImageUrl && item.coverImageUrl.length > 10 ? (
+                  <Image 
+                    source={{ uri: item.coverImageUrl }} 
+                    style={styles.shopImage} 
+                    contentFit="cover" 
+                    transition={200}
+                  />
+                ) : (
+                  <View style={[styles.shopImage, styles.shopImagePlaceholder]}>
+                    <MaterialCommunityIcons name="storefront" size={32} color="#9CA3AF" />
+                  </View>
+                )}
+                
+                <View style={styles.shopInfo}>
+                  <View style={styles.shopHeaderRow}>
+                    <Text style={styles.shopTitle} numberOfLines={1}>{item.name}</Text>
+                    <View style={[
+                      styles.statusBadge, 
+                      item.status === 'active' ? styles.statusActive : 
+                      item.status === 'under_review' ? styles.statusReview : styles.statusInactive
+                    ]}>
+                      <Text style={[
+                        styles.statusText,
+                        item.status === 'active' ? styles.statusTextActive : 
+                        item.status === 'under_review' ? styles.statusTextReview : styles.statusTextInactive
+                      ]}>
+                        {item.status === 'active' ? 'Active' : 
+                         item.status === 'under_review' ? 'Reviewing' : 'Inactive'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={styles.shopCategory}>{item.category || 'Retail'}</Text>
+                  
+                  <View style={styles.shopFooter}>
+                    <View style={styles.shopFooterItem}>
+                      <Ionicons name="location-outline" size={14} color="#6B7280" />
+                      <Text style={styles.shopFooterText} numberOfLines={1}>{item.location || 'No location'}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -303,8 +307,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   scrollContent: {
-    paddingTop: 40,
+    paddingTop: 0,
+  },
+  mainContent: {
     paddingHorizontal: 20,
+    marginTop: -20,
   },
   sectionHeader: {
     flexDirection: 'row',
