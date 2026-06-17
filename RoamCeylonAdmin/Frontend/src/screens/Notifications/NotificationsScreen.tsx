@@ -100,16 +100,13 @@ const NotificationsScreen = () => {
           <View style={{ width: 40 }} />
         </View>
 
-        <View style={styles.headerBottom}>
-          <Text style={styles.unreadCountText}>
-            You have {unreadCount} unread message{unreadCount !== 1 ? 's' : ''}
-          </Text>
-          {unreadCount > 0 && (
+        {unreadCount > 0 && (
+          <View style={[styles.headerBottom, { justifyContent: 'flex-end' }]}>
             <TouchableOpacity onPress={handleMarkAllRead}>
               <Text style={styles.markReadText}>Mark all read</Text>
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
       </View>
 
       <FlatList

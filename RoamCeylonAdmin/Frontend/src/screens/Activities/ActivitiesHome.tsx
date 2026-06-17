@@ -70,7 +70,11 @@ const ActivitiesHome = () => {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard} 
+            activeOpacity={0.8}
+            onPress={() => router.push('/activities/active' as any)}
+          >
             <View style={styles.statIconWrap}>
               <MaterialCommunityIcons name="ticket-outline" size={20} color="#0E5E2F" />
             </View>
@@ -78,9 +82,13 @@ const ActivitiesHome = () => {
               <Text style={styles.statValue}>14</Text>
               <Text style={styles.statLabel}>Active</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            activeOpacity={0.8}
+            onPress={() => router.push('/activities/bookings' as any)}
+          >
             <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
               <Ionicons name="calendar-outline" size={20} color="#D97706" />
             </View>
@@ -88,7 +96,7 @@ const ActivitiesHome = () => {
               <Text style={styles.statValue}>128</Text>
               <Text style={styles.statLabel}>Bookings</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.statCard}>
             <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
@@ -105,7 +113,10 @@ const ActivitiesHome = () => {
       <View style={styles.scrollContent}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Activities</Text>
-          <TouchableOpacity activeOpacity={0.6}>
+          <TouchableOpacity 
+            activeOpacity={0.6}
+            onPress={() => router.push('/activities/active' as any)}
+          >
             <Text style={styles.viewAllText}>View All</Text>
           </TouchableOpacity>
         </View>
@@ -240,7 +251,7 @@ const ActivitiesHome = () => {
       <TouchableOpacity 
         style={[styles.fab, { bottom: insets.bottom + 24 }]} 
         activeOpacity={0.8}
-        onPress={() => router.push('/activities/add' as any)}
+        onPress={() => router.push('/activities/new' as any)}
       >
         <LinearGradient
           colors={['#10B981', '#059669']}

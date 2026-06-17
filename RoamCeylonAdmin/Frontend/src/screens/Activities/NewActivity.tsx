@@ -7,238 +7,416 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+  TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, AntDesign } from '@expo/vector-icons';
+import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+
+const CATEGORIES = [
+  'Adventure',
+  'Cultural',
+  'Nature & Wildlife',
+  'Water Sports',
+  'Wellness & Spa',
+  'City Tour',
+  'Other',
+];
 
 const NewActivity = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('Adventure');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'moderate' | 'hard'>('easy');
-  const [startTime, _setStartTime] = useState('09:00 AM');
-  const [endTime, _setEndTime] = useState('10:00 AM');
+  const [startTime, setStartTime] = useState('09:00 AM');
+  const [endTime, setEndTime] = useState('10:00 AM');
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
   const [participants, setParticipants] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
+  
+  const [isTimeModalVisible, setTimeModalVisible] = useState(false);
+  const [timeSelectorMode, setTimeSelectorMode] = useState<'start' | 'end'>('start');
+
+  const TIMES = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2);
+    const minutes = i % 2 === 0 ? '00' : '30';
+    const ampm = hours < 12 ? 'AM' : 'PM';
+    const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+    const formattedHours = displayHours < 10 ? `0${displayHours}` : displayHours;
+    return `${formattedHours}:${minutes} ${ampm}`;
+  });
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setCoverImageUrl(result.assets[0].uri);
+    }
+  };
+
+  const handleSave = async () => {
+    // Simulated save action
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      router.back();
+    }, 1500);
+  };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          activeOpacity={0.7}
-          onPress={() => router.replace('/activities/home' as any)}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back-outline" size={26} color="#1C1917" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Activity</Text>
-        <TouchableOpacity activeOpacity={0.7}>
-          <Text style={styles.saveText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 20 },
-        ]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        {/* Activity Essentials Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Activity Essentials</Text>
-          <Text style={styles.cardSubtitle}>Define the core experience for your travelers.</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          {/* Premium Header Gradient */}
+          <LinearGradient
+            colors={['#0F3D26', '#145334', '#0E5E2F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 50 }]}
+          >
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => router.back()}>
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Create Activity</Text>
+              
+              <View style={{ width: 44 }} />
+            </View>
+          </LinearGradient>
 
-          {/* Activity Title Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Activity Title</Text>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="e.g., Sunrise Yoga by the Coast"
-              placeholderTextColor="#9CA3AF"
-              style={styles.textInput}
-            />
-          </View>
+          <View style={styles.formContainer}>
+            {/* Basic Info Card */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Feather name="info" size={22} color="#0E5E2F" />
+                <Text style={styles.cardTitle}>Activity Essentials</Text>
+              </View>
+              <View style={styles.cardDivider} />
 
-          {/* Description Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Describe the atmosphere, key highlights, and what travelers can expect..."
-              placeholderTextColor="#9CA3AF"
-              style={[styles.textInput, styles.multilineInput]}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
+              <Text style={styles.inputLabel}>Cover Photo</Text>
+              <TouchableOpacity style={styles.imagePickerCard} onPress={pickImage} activeOpacity={0.8}>
+                {coverImageUrl ? (
+                  <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <View style={styles.cameraIconContainer}>
+                      <Feather name="camera" size={24} color="#0E5E2F" />
+                    </View>
+                    <Text style={styles.imagePlaceholderText}>Tap to upload a high-quality cover photo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-        {/* Logistics & Requirements Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Schedule and Details</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Activity Title</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="e.g. Sunrise Yoga by the Coast"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
 
-          {/* Difficulty Level Segment Selector */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Difficulty Level</Text>
-            <View style={styles.segmentContainer}>
-              <TouchableOpacity
-                style={[styles.segmentButton, difficulty === 'easy' && styles.segmentActive]}
-                onPress={() => setDifficulty('easy')}
-                activeOpacity={0.9}
-              >
-                <Text
-                  style={[styles.segmentText, difficulty === 'easy' && styles.segmentActiveText]}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Activity Category</Text>
+                <TouchableOpacity 
+                  style={styles.dropdownInput} 
+                  activeOpacity={0.7}
+                  onPress={() => setCategoryModalVisible(true)}
                 >
-                  Easy
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.segmentButton, difficulty === 'moderate' && styles.segmentActive]}
-                onPress={() => setDifficulty('moderate')}
-                activeOpacity={0.9}
+                  <Text style={styles.dropdownText}>{category}</Text>
+                  <Feather name="chevron-down" size={20} color="#60646C" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Category Selection Modal */}
+              <Modal
+                visible={isCategoryModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setCategoryModalVisible(false)}
               >
-                <Text
-                  style={[styles.segmentText, difficulty === 'moderate' && styles.segmentActiveText]}
-                >
-                  Moderate
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.segmentButton, difficulty === 'hard' && styles.segmentActive]}
-                onPress={() => setDifficulty('hard')}
-                activeOpacity={0.9}
+                <TouchableWithoutFeedback onPress={() => setCategoryModalVisible(false)}>
+                  <View style={styles.modalOverlay}>
+                    <TouchableWithoutFeedback>
+                      <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Select Category</Text>
+                        {CATEGORIES.map((item) => (
+                          <TouchableOpacity
+                            key={item}
+                            style={[
+                              styles.categoryOption,
+                              category === item && styles.categoryOptionSelected
+                            ]}
+                            onPress={() => {
+                              setCategory(item);
+                              setCategoryModalVisible(false);
+                            }}
+                          >
+                            <Text style={[
+                              styles.categoryOptionText,
+                              category === item && styles.categoryOptionTextSelected
+                            ]}>
+                              {item}
+                            </Text>
+                            {category === item && (
+                              <Feather name="check" size={20} color="#0E5E2F" />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </View>
+                </TouchableWithoutFeedback>
+              </Modal>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Describe the atmosphere and key highlights..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+
+            {/* Logistics & Requirements Card */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Feather name="clock" size={22} color="#0E5E2F" />
+                <Text style={styles.cardTitle}>Schedule and Details</Text>
+              </View>
+              <View style={styles.cardDivider} />
+
+              {/* Difficulty Level Segment Selector */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Difficulty Level</Text>
+                <View style={styles.segmentContainer}>
+                  <TouchableOpacity
+                    style={[styles.segmentButton, difficulty === 'easy' && styles.segmentActive]}
+                    onPress={() => setDifficulty('easy')}
+                    activeOpacity={0.9}
+                  >
+                    <Text
+                      style={[styles.segmentText, difficulty === 'easy' && styles.segmentActiveText]}
+                    >
+                      Easy
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.segmentButton, difficulty === 'moderate' && styles.segmentActive]}
+                    onPress={() => setDifficulty('moderate')}
+                    activeOpacity={0.9}
+                  >
+                    <Text
+                      style={[styles.segmentText, difficulty === 'moderate' && styles.segmentActiveText]}
+                    >
+                      Moderate
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.segmentButton, difficulty === 'hard' && styles.segmentActive]}
+                    onPress={() => setDifficulty('hard')}
+                    activeOpacity={0.9}
+                  >
+                    <Text
+                      style={[styles.segmentText, difficulty === 'hard' && styles.segmentActiveText]}
+                    >
+                      Hard
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Start & End Time Row */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.inputLabel}>Start Time</Text>
+                  <TouchableOpacity 
+                    style={styles.iconInputBox}
+                    activeOpacity={0.7}
+                    onPress={() => { setTimeSelectorMode('start'); setTimeModalVisible(true); }}
+                  >
+                    <Feather name="clock" size={18} color="#60646C" style={{ marginRight: 8 }} />
+                    <Text style={[styles.iconTextInput, { paddingTop: 18 }]}>{startTime}</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.inputLabel}>End Time</Text>
+                  <TouchableOpacity 
+                    style={styles.iconInputBox}
+                    activeOpacity={0.7}
+                    onPress={() => { setTimeSelectorMode('end'); setTimeModalVisible(true); }}
+                  >
+                    <Feather name="clock" size={18} color="#60646C" style={{ marginRight: 8 }} />
+                    <Text style={[styles.iconTextInput, { paddingTop: 18 }]}>{endTime}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Time Selection Modal */}
+              <Modal
+                visible={isTimeModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setTimeModalVisible(false)}
               >
-                <Text
-                  style={[styles.segmentText, difficulty === 'hard' && styles.segmentActiveText]}
+                <TouchableWithoutFeedback onPress={() => setTimeModalVisible(false)}>
+                  <View style={styles.modalOverlay}>
+                    <TouchableWithoutFeedback>
+                      <View style={[styles.modalContent, { height: '50%' }]}>
+                        <Text style={styles.modalTitle}>
+                          Select {timeSelectorMode === 'start' ? 'Start Time' : 'End Time'}
+                        </Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                          {TIMES.filter(t => {
+                            if (timeSelectorMode === 'end') {
+                              const startIndex = TIMES.indexOf(startTime);
+                              return TIMES.indexOf(t) > startIndex;
+                            }
+                            return true;
+                          }).map((t) => {
+                            const isSelected = (timeSelectorMode === 'start' ? startTime : endTime) === t;
+                            return (
+                              <TouchableOpacity
+                                key={t}
+                                style={[
+                                  styles.categoryOption,
+                                  isSelected && styles.categoryOptionSelected
+                                ]}
+                                onPress={() => {
+                                  if (timeSelectorMode === 'start') {
+                                    setStartTime(t);
+                                    // Auto-adjust end time if it is now before or equal to the new start time
+                                    const newStartIndex = TIMES.indexOf(t);
+                                    const currentEndIndex = TIMES.indexOf(endTime);
+                                    if (currentEndIndex <= newStartIndex) {
+                                      setEndTime(TIMES[Math.min(newStartIndex + 1, TIMES.length - 1)]);
+                                    }
+                                  } else {
+                                    setEndTime(t);
+                                  }
+                                  setTimeModalVisible(false);
+                                }}
+                              >
+                                <Text style={[
+                                  styles.categoryOptionText,
+                                  isSelected && styles.categoryOptionTextSelected
+                                ]}>
+                                  {t}
+                                </Text>
+                                {isSelected && (
+                                  <Feather name="check" size={20} color="#0E5E2F" />
+                                )}
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </View>
+                </TouchableWithoutFeedback>
+              </Modal>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Location</Text>
+                <View style={styles.iconInputBox}>
+                  <Ionicons name="location-outline" size={20} color="#60646C" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.iconTextInput}
+                    value={location}
+                    onChangeText={setLocation}
+                    placeholder="e.g. Galle Fort Deck"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Price (LKR)</Text>
+                <View style={styles.iconInputBox}>
+                  <Ionicons name="cash-outline" size={20} color="#60646C" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.iconTextInput}
+                    value={price}
+                    onChangeText={(t) => setPrice(t.replace(/[^0-9]/g, ''))}
+                    placeholder="e.g. 5000"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Max Participants</Text>
+                <View style={styles.iconInputBox}>
+                  <Ionicons name="people-outline" size={20} color="#60646C" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.iconTextInput}
+                    value={participants}
+                    onChangeText={setParticipants}
+                    placeholder="e.g. 15"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+              
+              <View style={{ marginTop: 24, marginBottom: 10 }}>
+                <TouchableOpacity 
+                  style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]} 
+                  activeOpacity={0.8} 
+                  onPress={handleSave}
+                  disabled={isSubmitting}
                 >
-                  Hard
-                </Text>
-              </TouchableOpacity>
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Create Activity</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
             </View>
           </View>
-
-          {/* Start & End Time Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.inputLabel}>Start Time</Text>
-              <TouchableOpacity style={styles.dropdownBox} activeOpacity={0.7}>
-                <Ionicons name="time-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
-                <Text style={styles.dropdownText}>{startTime}</Text>
-                <Ionicons name="chevron-down" size={16} color="#60646C" />
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={styles.inputLabel}>End Time</Text>
-              <TouchableOpacity style={styles.dropdownBox} activeOpacity={0.7}>
-                <Ionicons name="time-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
-                <Text style={styles.dropdownText}>{endTime}</Text>
-                <Ionicons name="chevron-down" size={16} color="#60646C" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Location Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Location</Text>
-            <View style={styles.iconInputBox}>
-              <Ionicons name="location-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
-              <TextInput
-                value={location}
-                onChangeText={setLocation}
-                placeholder="e.g., Galle Fort Deck"
-                placeholderTextColor="#9CA3AF"
-                style={styles.iconTextInput}
-              />
-            </View>
-          </View>
-
-          {/* Price Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Price (LKR)</Text>
-            <View style={styles.iconInputBox}>
-              <Ionicons name="cash-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
-              <TextInput
-                value={price}
-                onChangeText={setPrice}
-                placeholder="e.g., 5000"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
-                style={styles.iconTextInput}
-              />
-            </View>
-          </View>
-
-          {/* Max Participants Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Max Participants</Text>
-            <View style={styles.iconInputBox}>
-              <Ionicons name="people-outline" size={18} color="#0E5E2F" style={{ marginRight: 8 }} />
-              <TextInput
-                value={participants}
-                onChangeText={setParticipants}
-                placeholder="Max participants count"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
-                style={styles.iconTextInput}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Media Gallery Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Media Gallery</Text>
-
-          {/* Dashed Upload Dropzone Area */}
-          <TouchableOpacity style={styles.uploadBox} activeOpacity={0.7}>
-            <View style={styles.cloudIconBg}>
-              <Ionicons name="cloud-upload-outline" size={22} color="#0E5E2F" />
-            </View>
-            <Text style={styles.uploadMainText}>Tap to upload or drag media here</Text>
-            <Text style={styles.uploadSubText}>JPG, PNG, or MP4 (Max 20MB)</Text>
-          </TouchableOpacity>
-
-          {/* Image Previews Row */}
-          <View style={styles.previewRow}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=150&q=80',
-              }}
-              style={styles.previewImage}
-              contentFit="cover"
-            />
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=150&q=80',
-              }}
-              style={styles.previewImage}
-              contentFit="cover"
-            />
-            {/* Dashed add button block */}
-            <TouchableOpacity style={styles.dashedAddButton} activeOpacity={0.6}>
-              <AntDesign name="plus" size={18} color="#60646C" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Create Activity Action Button */}
-        <TouchableOpacity style={styles.createButton} activeOpacity={0.85}>
-          <Text style={styles.createButtonText}>Create Activity</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -246,107 +424,202 @@ const NewActivity = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA',
+  },
+  headerGradient: {
+    width: '100%',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
     zIndex: 10,
   },
-  iconButton: {
-    padding: 4,
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1C1917',
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
   },
-  saveText: {
+  saveButton: {
+    backgroundColor: '#0E5E2F',
+    height: 54,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
-    color: '#5B600A',
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAF8',
   },
   scrollContent: {
+    paddingBottom: 100,
+  },
+  formContainer: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    marginTop: -24,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    marginBottom: 16,
+    borderWidth: 0,
+    padding: 24,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1C1917',
+    marginLeft: 12,
+    letterSpacing: -0.3,
   },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#60646C',
-    marginTop: 4,
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 20,
+  },
+  imagePickerCard: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  cameraIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
-    fontWeight: '500',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  inputContainer: {
-    marginBottom: 14,
+  imagePlaceholderText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  inputGroup: {
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#60646C',
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#4A4A4A',
+    marginBottom: 8,
   },
   textInput: {
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 14,
-    fontSize: 14,
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
+    fontSize: 15,
     color: '#1C1917',
-    fontWeight: '500',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
-  multilineInput: {
+  textArea: {
     height: 100,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  dropdownInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: '#1C1917',
+  },
+  iconInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  iconTextInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1C1917',
+    height: '100%',
   },
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: '#F3F4F6',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 4,
-    height: 48,
+    height: 56,
   },
   segmentButton: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 12,
   },
   segmentActive: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 11,
-    // Subtle shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -355,116 +628,55 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
-    color: '#60646C',
-    fontWeight: '700',
+    color: '#6B7280',
+    fontWeight: '600',
   },
   segmentActiveText: {
-    color: '#5B600A',
-    fontWeight: '800',
+    color: '#0E5E2F',
+    fontWeight: '700',
   },
-  dropdownBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: '#1C1917',
-    fontWeight: '500',
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  iconInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 12,
+  modalContent: {
     backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingBottom: 40,
   },
-  iconTextInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1C1917',
-    fontWeight: '500',
-    height: '100%',
-  },
-  uploadBox: {
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    borderColor: '#A3A8A5',
-    borderRadius: 16,
-    paddingVertical: 24,
-    alignItems: 'center',
-    backgroundColor: '#FAFBFB',
-    marginBottom: 16,
-  },
-  cloudIconBg: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#D7EDE0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadMainText: {
-    fontSize: 14,
+  modalTitle: {
+    fontSize: 24,
     fontWeight: '800',
     color: '#1C1917',
-    marginTop: 12,
-  },
-  uploadSubText: {
-    fontSize: 11,
-    color: '#60646C',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  previewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  previewImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    marginRight: 10,
-    backgroundColor: '#EAEAEA',
-  },
-  dashedAddButton: {
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    borderColor: '#C2C8C4',
-    borderRadius: 12,
-    width: 72,
-    height: 72,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAFBFB',
-  },
-  createButton: {
-    backgroundColor: '#EAD26B',
-    borderRadius: 16,
-    height: 54,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
     marginBottom: 20,
-    shadowColor: '#EAD26B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
+    letterSpacing: -0.5,
   },
-  createButtonText: {
-    color: '#493D1B',
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  categoryOptionSelected: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginHorizontal: -16,
+    borderBottomWidth: 0,
+  },
+  categoryOptionText: {
     fontSize: 16,
-    fontWeight: '800',
+    color: '#4A4A4A',
+    fontWeight: '500',
+  },
+  categoryOptionTextSelected: {
+    color: '#059669',
+    fontWeight: '700',
   },
 });
 

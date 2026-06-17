@@ -180,25 +180,31 @@ const Settings = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 40 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Transparent Inline Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.topHeader, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
+        >
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.menuButton}
             activeOpacity={0.7}
             onPress={() => router.replace('/shopping/home' as any)}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
+          
           <Text style={styles.headerTitle}>Settings</Text>
-          <View style={{ width: 32 }} />
-        </View>
+
+          {/* Placeholder to balance the back button */}
+          <View style={styles.headerRightPlaceholder} />
+        </LinearGradient>
+
+        <View style={styles.contentContainer}>
 
         <LinearGradient
           colors={['#0F3D26', '#145334']}
@@ -412,6 +418,7 @@ const Settings = () => {
             <Text style={styles.deactivateText}>Deactivate Admin Account</Text>
           </TouchableOpacity>
         </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -422,28 +429,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAF8',
   },
-  header: {
+  topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingBottom: 16,
-    zIndex: 10,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  backButton: {
-    padding: 4,
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#0E5E2F',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  headerRightPlaceholder: {
+    width: 44,
   },
   scrollView: {
     flex: 1,
     backgroundColor: '#F8FAF8',
   },
-  scrollContent: {
+  contentContainer: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },

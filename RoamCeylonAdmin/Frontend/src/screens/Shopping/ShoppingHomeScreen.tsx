@@ -84,7 +84,11 @@ const ShoppingHomeScreen = () => {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            activeOpacity={0.8}
+            onPress={() => router.push('/shopping/total' as any)}
+          >
             <View style={styles.statIconWrap}>
               <MaterialCommunityIcons name="storefront-outline" size={20} color="#0E5E2F" />
             </View>
@@ -92,9 +96,13 @@ const ShoppingHomeScreen = () => {
               <Text style={styles.statValue}>{stats.total}</Text>
               <Text style={styles.statLabel}>Total Shops</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            activeOpacity={0.8}
+            onPress={() => router.push('/shopping/pending' as any)}
+          >
             <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
               <Ionicons name="time-outline" size={20} color="#D97706" />
             </View>
@@ -102,7 +110,7 @@ const ShoppingHomeScreen = () => {
               <Text style={styles.statValue}>{stats.underReview}</Text>
               <Text style={styles.statLabel}>Pending</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.statCard}>
             <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
