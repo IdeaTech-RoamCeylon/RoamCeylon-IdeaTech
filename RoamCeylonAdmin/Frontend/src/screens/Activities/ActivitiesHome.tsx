@@ -20,7 +20,7 @@ const ActivitiesHome = () => {
   const { unreadCount } = useNotifications();
 
   const handleNotificationPress = () => {
-    router.push('/notifications');
+    router.push({ pathname: '/notifications', params: { module: 'activity' } } as any);
   };
 
   return (

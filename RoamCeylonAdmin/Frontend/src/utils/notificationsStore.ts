@@ -53,43 +53,38 @@ export const notificationsStore = {
   },
 
   markAllRead: async () => {
-    // Optimistic UI update
-    cachedNotifications.forEach(n => n.isRead = true);
-    cachedUnreadCount = 0;
-    notificationsStore.notify();
-
     try {
       const headers = await getHeaders();
       await fetch(`${getApiUrl()}/tour-guide/notifications/read-all`, {
         method: 'PATCH',
         headers,
       });
+      cachedNotifications = cachedNotifications.map(n => ({ ...n, isRead: true }));
+      cachedUnreadCount = 0;
+      notificationsStore.notify();
     } catch (error) {
-      console.error('Failed to mark all read:', error);
-      // Re-fetch on error
-      notificationsStore.fetchData();
+      console.error('Failed to mark all as read:', error);
     }
   },
   
   markRead: async (id: string) => {
-    const n = cachedNotifications.find(n => n.id === id);
-    if (n && !n.isRead) {
-      // Optimistic UI update
-      n.isRead = true;
+    try {
+      const headers = await getHeaders();
+      // Optimistic update
+      cachedNotifications = cachedNotifications.map(n => 
+        n.id === id ? { ...n, isRead: true } : n
+      );
       cachedUnreadCount = Math.max(0, cachedUnreadCount - 1);
       notificationsStore.notify();
 
-      try {
-        const headers = await getHeaders();
-        await fetch(`${getApiUrl()}/tour-guide/notifications/${id}/read`, {
-          method: 'PATCH',
-          headers,
-        });
-      } catch (error) {
-        console.error('Failed to mark read:', error);
-        // Re-fetch on error
-        notificationsStore.fetchData();
-      }
+      await fetch(`${getApiUrl()}/tour-guide/notifications/${id}/read`, {
+        method: 'PATCH',
+        headers,
+      });
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+      // Re-fetch on error
+      notificationsStore.fetchData();
     }
   },
 
@@ -105,27 +100,53 @@ export const notificationsStore = {
   }
 };
 
-export const useNotifications = () => {
-  const [notifications, setNotifications] = useState(notificationsStore.getNotifications());
-  const [unreadCount, setUnreadCount] = useState(notificationsStore.getUnreadCount());
-  const [error, setError] = useState(notificationsStore.getError());
+export const useNotifications = (module?: string) => {
+  const [state, setState] = useState({
+    notifications: notificationsStore.getNotifications(),
+    unreadCount: notificationsStore.getUnreadCount(),
+    error: notificationsStore.getError(),
+  });
 
   useEffect(() => {
-    // Fetch fresh data when hook mounts
-    notificationsStore.fetchData();
+    // Initial fetch if empty
+    if (notificationsStore.getNotifications().length === 0 && !notificationsStore.getError()) {
+      notificationsStore.fetchData();
+    }
 
     const unsubscribe = notificationsStore.subscribe(() => {
-      setNotifications([...notificationsStore.getNotifications()]);
-      setUnreadCount(notificationsStore.getUnreadCount());
-      setError(notificationsStore.getError());
+      const allNotifications = notificationsStore.getNotifications();
+      let filteredNotifications = allNotifications;
+
+      // Basic filtering based on module parameter
+      if (module === 'activity') {
+        filteredNotifications = allNotifications.filter(n => 
+          n.type?.toLowerCase().includes('activity') || 
+          n.title?.toLowerCase().includes('activity')
+        );
+      } else if (module === 'shopping') {
+        filteredNotifications = allNotifications.filter(n => 
+          n.type?.toLowerCase().includes('shop') || 
+          n.title?.toLowerCase().includes('shop')
+        );
+      } else if (module === 'guide') {
+        filteredNotifications = allNotifications.filter(n => 
+          n.type?.toLowerCase().includes('booking') || 
+          n.title?.toLowerCase().includes('booking')
+        );
+      }
+
+      setState({
+        notifications: filteredNotifications,
+        unreadCount: filteredNotifications.filter(n => !n.isRead).length,
+        error: notificationsStore.getError(),
+      });
     });
+
     return unsubscribe;
-  }, []);
+  }, [module]);
 
   return {
-    notifications,
-    unreadCount,
-    error,
+    ...state,
     markAllRead: notificationsStore.markAllRead,
     markRead: notificationsStore.markRead,
     refresh: notificationsStore.fetchData,

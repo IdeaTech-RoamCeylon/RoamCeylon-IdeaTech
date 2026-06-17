@@ -9,14 +9,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications, type Notification } from '../../utils/notificationsStore';
 
 const NotificationsScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { notifications, unreadCount, markAllRead, markRead, error } = useNotifications();
+  const { module } = useLocalSearchParams<{ module: string }>();
+  const { notifications, unreadCount, markAllRead, markRead, error } = useNotifications(module);
 
   const handleMarkAllRead = () => {
     markAllRead();
