@@ -89,7 +89,7 @@ const TotalShops = () => {
             </View>
             <Text style={styles.emptyTitle}>No shops found</Text>
             <Text style={styles.emptySubtitle}>
-              You haven't added any shops yet.
+              You haven&apos;t added any shops yet.
             </Text>
           </View>
         ) : (

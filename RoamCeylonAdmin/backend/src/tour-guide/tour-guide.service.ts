@@ -83,7 +83,11 @@ export class TourGuideService {
     return this.prisma.tourBooking.findMany({
       where: { customerId: userId },
       orderBy: { createdAt: 'desc' },
-      include: { package: { select: { name: true, coverImageUrl: true, location: true } } },
+      include: {
+        package: {
+          select: { name: true, coverImageUrl: true, location: true },
+        },
+      },
     });
   }
 
@@ -628,22 +632,24 @@ export class TourGuideService {
     const totalInquiries = await this.prisma.tourInquiry.count({
       where: { guideId },
     });
-    
+
     // Fallback heuristic for website visits (since not tracked directly)
     const websiteVisits = totalInquiries > 0 ? totalInquiries * 4 + 1420 : 0;
-    
+
     const confirmedBookings = await this.prisma.tourBooking.count({
       where: { guideId, status: { in: ['confirmed', 'completed'] } },
     });
-    
+
     const completedBookings = await this.prisma.tourBooking.count({
       where: { guideId, status: 'completed' },
     });
 
     // Compute Conversion Rates
-    const inquiryRate = websiteVisits > 0 ? (totalInquiries / websiteVisits) : 0;
-    const bookingRate = totalInquiries > 0 ? (confirmedBookings / totalInquiries) : 0;
-    const completionRate = confirmedBookings > 0 ? (completedBookings / confirmedBookings) : 0;
+    const inquiryRate = websiteVisits > 0 ? totalInquiries / websiteVisits : 0;
+    const bookingRate =
+      totalInquiries > 0 ? confirmedBookings / totalInquiries : 0;
+    const completionRate =
+      confirmedBookings > 0 ? completedBookings / confirmedBookings : 0;
 
     const funnelSteps = [
       {
@@ -690,7 +696,7 @@ export class TourGuideService {
       heightPercent: Math.floor(Math.random() * 70) + 30,
       isActive: i % 4 === 2,
     }));
-    
+
     const conversionTrend90Days = Array.from({ length: 10 }).map((_, i) => ({
       heightPercent: Math.floor(Math.random() * 60) + 40,
       isActive: i % 3 === 1,
@@ -700,34 +706,36 @@ export class TourGuideService {
     const packages = await this.prisma.tourPackage.findMany({
       where: { guideId },
       include: {
-        bookings: { select: { id: true } }
-      }
+        bookings: { select: { id: true } },
+      },
     });
 
-    const topPackagesPromises = packages.map(async (pkg) => {
+    const topPackagesResult = packages.map((pkg) => {
       // Find inquiries matching package name loosely, or just count all inquiries if unlinked
       // For MVP, we'll use a mocked heuristic for inquiries based on bookings if no strict relation exists
-      const inquiriesCount = pkg.bookings.length * 3 + Math.floor(Math.random() * 10);
+      const inquiriesCount =
+        pkg.bookings.length * 3 + Math.floor(Math.random() * 10);
       const bookingsCount = pkg.bookings.length;
-      const conversionRate = inquiriesCount > 0 ? (bookingsCount / inquiriesCount) : 0;
-      
+      const conversionRate =
+        inquiriesCount > 0 ? bookingsCount / inquiriesCount : 0;
+
       return {
         name: pkg.name,
         duration: pkg.duration,
         inquiriesCount,
         bookingsCount,
-        conversionRate: Math.round(conversionRate * 100)
+        conversionRate: Math.round(conversionRate * 100),
       };
     });
 
-    const topPackagesResult = await Promise.all(topPackagesPromises);
     const topPackages = topPackagesResult
       .sort((a, b) => b.conversionRate - a.conversionRate)
       .slice(0, 5); // Top 5 packages
 
     // 4. Global Conversion Stats
-    const globalConversionRate = bookingRate > 0 ? Number((bookingRate * 100).toFixed(1)) : 22.4;
-    
+    const globalConversionRate =
+      bookingRate > 0 ? Number((bookingRate * 100).toFixed(1)) : 22.4;
+
     // Trend Calculation
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -740,10 +748,14 @@ export class TourGuideService {
     const inquiriesPrev30 = await this.prisma.tourInquiry.count({
       where: { guideId, createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
     });
-    
+
     let trendPercent = 3.2; // default fallback
     if (inquiriesPrev30 > 0) {
-      trendPercent = Number((((inquiriesLast30 - inquiriesPrev30) / inquiriesPrev30) * 100).toFixed(1));
+      trendPercent = Number(
+        (((inquiriesLast30 - inquiriesPrev30) / inquiriesPrev30) * 100).toFixed(
+          1,
+        ),
+      );
     }
     const globalConversionTrend = `${trendPercent >= 0 ? '+' : ''}${trendPercent}% from last month`;
 
@@ -760,7 +772,10 @@ export class TourGuideService {
       select: { createdAt: true },
     });
 
-    const bookingsByDay = new Array(sparklineDays).fill(0);
+    const bookingsByDay: number[] = Array.from(
+      { length: sparklineDays },
+      () => 0,
+    );
     const nowTime = new Date().getTime();
     recentBookingsForSparkline.forEach((b) => {
       const diffTime = nowTime - new Date(b.createdAt).getTime();
@@ -773,12 +788,15 @@ export class TourGuideService {
     const maxBookingsPerDay = Math.max(...bookingsByDay, 1);
     let sparklineData: number[];
     if (recentBookingsForSparkline.length > 0) {
-      sparklineData = bookingsByDay.map(count => Math.round((count / maxBookingsPerDay) * 100));
+      sparklineData = bookingsByDay.map((count) =>
+        Math.round((count / maxBookingsPerDay) * 100),
+      );
     } else {
       // Fallback for visual demo if account has zero bookings
       sparklineData = [
-        5, 6, 7, 9, 11, 14, 17, 20, 22, 24, 25, 25, 24, 23, 21, 18, 16, 14, 13, 12,
-        12, 13, 14, 16, 18, 21, 25, 30, 36, 43, 52, 62, 73, 85, 94, 99, 100, 95, 80, 50, 20, 0
+        5, 6, 7, 9, 11, 14, 17, 20, 22, 24, 25, 25, 24, 23, 21, 18, 16, 14, 13,
+        12, 12, 13, 14, 16, 18, 21, 25, 30, 36, 43, 52, 62, 73, 85, 94, 99, 100,
+        95, 80, 50, 20, 0,
       ];
     }
 

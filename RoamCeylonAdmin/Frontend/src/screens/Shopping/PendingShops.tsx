@@ -90,7 +90,7 @@ const PendingShops = () => {
             </View>
             <Text style={styles.emptyTitle}>No pending shops</Text>
             <Text style={styles.emptySubtitle}>
-              You don't have any shops currently under review.
+              You haven&apos;t added any shops yet, or they have all been approved.
             </Text>
           </View>
         ) : (

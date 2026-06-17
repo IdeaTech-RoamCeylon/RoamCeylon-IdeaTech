@@ -43,7 +43,9 @@ export class NotificationsService {
       data: { isRead: true },
     });
 
-    this.logger.log(`Marked ${result.count} notifications as read for user ${userId}`);
+    this.logger.log(
+      `Marked ${result.count} notifications as read for user ${userId}`,
+    );
     return { markedCount: result.count };
   }
 }
