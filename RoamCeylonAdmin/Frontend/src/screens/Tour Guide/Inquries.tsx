@@ -118,9 +118,7 @@ const Inquries = () => {
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Active Inquiries</Text>
-          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={handleNewLeadPress}>
-            <Feather name="plus" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={{ width: 44 }} />
         </LinearGradient>
 
         <View style={styles.mainContent}>
@@ -131,101 +129,19 @@ const Inquries = () => {
             </Text>
           
           <View style={styles.actionBar}>
+
             <TouchableOpacity
-              style={styles.filterButton}
+              style={styles.manageBookingsButton}
               activeOpacity={0.7}
-              onPress={handleFilterPress}
+              onPress={() => router.push('/tour-guide/bookings' as any)}
             >
-              <Ionicons name="options-outline" size={15} color="#1C1917" style={{ marginRight: 6 }} />
-              <Text style={styles.filterButtonText}>Filter Inquiries</Text>
+              <Ionicons name="calendar-outline" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.manageBookingsText}>Manage Bookings</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Transition Banner */}
-        <TouchableOpacity 
-          style={styles.transitionBanner}
-          activeOpacity={0.8}
-          onPress={() => router.push('/tour-guide/bookings' as any)}
-        >
-          <View style={styles.bannerIconWrap}>
-            <Ionicons name="calendar" size={24} color="#FFF" />
-          </View>
-          <View style={styles.bannerTextCol}>
-            <Text style={styles.bannerTitle}>Manage Bookings</Text>
-            <Text style={styles.bannerDesc}>All new guest requests are now routed directly to your Bookings Dashboard.</Text>
-          </View>
-          <Ionicons name="arrow-forward" size={20} color="#0E5E2F" />
-        </TouchableOpacity>
 
-        {/* KPI Cards Grid */}
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiGridRow}>
-            {/* Card 1: Active Inquiries */}
-            <View style={styles.kpiCardHalf}>
-              <View style={styles.kpiRing1} />
-              <View style={styles.kpiRing2} />
-              <View style={styles.kpiHeader}>
-                <View style={styles.iconBadge}>
-                  <Ionicons name="bar-chart-outline" size={16} color="#0E5E2F" />
-                </View>
-                <Text style={styles.kpiLabel}>{stats ? `${stats.active} Total` : '—'}</Text>
-              </View>
-              <Text style={styles.kpiValue}>Active</Text>
-              <Text style={[styles.kpiTrend, styles.trendPositive]}>
-                ↗ {stats?.responded ?? 0} responded
-              </Text>
-            </View>
-
-            {/* Card 2: Pending Inquiries */}
-            <View style={styles.kpiCardHalf}>
-              <View style={styles.kpiRing1} />
-              <View style={styles.kpiRing2} />
-              <View style={styles.kpiHeader}>
-                <View style={[styles.iconBadge, { borderColor: '#FEF3C7', backgroundColor: '#FFFBEB' }]}>
-                  <Ionicons name="notifications-outline" size={16} color="#D97706" />
-                </View>
-                <Text style={styles.kpiLabel}>{stats ? `${stats.pending} New` : '—'}</Text>
-              </View>
-              <Text style={styles.kpiValue}>Pending</Text>
-              <Text style={[styles.kpiTrend, styles.trendUrgent]}>
-                ⏰ {stats?.priority ?? 0} urgent
-              </Text>
-            </View>
-          </View>
-
-          {/* Card 3: Potential Value (Dark Emerald) */}
-          <LinearGradient
-            colors={['#0E5E2F', '#093D1E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.kpiCardFull}
-          >
-            <View style={styles.kpiDarkRing1} />
-            <View style={styles.kpiDarkRing2} />
-            <View style={styles.kpiFullContentRow}>
-              <View style={styles.kpiFullLeft}>
-                <View style={[styles.iconBadge, styles.iconBadgeDark, { marginBottom: 6 }]}>
-                  <Ionicons name="cash-outline" size={18} color="#FFDF59" />
-                </View>
-                <Text style={styles.kpiLabelDark}>Potential Pipeline Value</Text>
-              </View>
-              <View style={styles.kpiFullRight}>
-                <View style={styles.lkrValueRow}>
-                  <Text style={styles.kpiValueDark}>
-                    {stats ? (stats.pipelineValue >= 1000000
-                      ? `${(stats.pipelineValue / 1000000).toFixed(1)}m`
-                      : stats.pipelineValue >= 1000
-                      ? `${(stats.pipelineValue / 1000).toFixed(0)}k`
-                      : stats.pipelineValue.toLocaleString()) : '0'}
-                  </Text>
-                  <Text style={styles.lkrSuffixText}>LKR</Text>
-                </View>
-                <Text style={styles.kpiTrendDark}>High conversion likelihood</Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
 
         {/* Recent Guest Requests Section Heading */}
         <View style={styles.sectionHeadingBlock}>
@@ -393,9 +309,66 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1917',
   },
-  kpiGrid: {
+  manageBookingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0E5E2F',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 44,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  manageBookingsText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  bookingsManagerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EAF2EC',
+    padding: 16,
     marginBottom: 24,
-    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  bmCardLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bmIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#EAF7EE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  bmTextCol: {
+    flex: 1,
+  },
+  bmTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 4,
+  },
+  bmDesc: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   kpiGridRow: {
     flexDirection: 'row',
