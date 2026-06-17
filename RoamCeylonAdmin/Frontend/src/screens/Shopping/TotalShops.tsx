@@ -174,6 +174,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    flex: 1,
     fontSize: 20,
     fontWeight: '800',
     color: '#FFFFFF',

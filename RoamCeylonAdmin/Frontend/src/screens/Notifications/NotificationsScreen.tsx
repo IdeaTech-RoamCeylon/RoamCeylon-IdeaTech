@@ -10,12 +10,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications, type Notification } from '../../utils/notificationsStore';
 
 const NotificationsScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
+  const { notifications, unreadCount, markAllRead, markRead, error } = useNotifications();
 
   const handleMarkAllRead = () => {
     markAllRead();
@@ -88,33 +89,53 @@ const NotificationsScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1C1917" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {unreadCount > 0 && (
-          <View style={[styles.headerBottom, { justifyContent: 'flex-end' }]}>
-            <TouchableOpacity onPress={handleMarkAllRead}>
-              <Text style={styles.markReadText}>Mark all read</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View>
+            <LinearGradient
+              colors={['#0F3D26', '#145334', '#0E5E2F']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
+            >
+              <View style={styles.headerTop}>
+                <TouchableOpacity 
+                  style={styles.iconButton} 
+                  onPress={() => router.back()}
+                >
+                  <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+
+                <View style={styles.titleContainer} pointerEvents="none">
+                  <Text style={styles.headerTitle}>Notifications</Text>
+                </View>
+
+                {unreadCount > 0 ? (
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={handleMarkAllRead} 
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="checkmark-done" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={{ width: 44 }} />
+                )}
+              </View>
+            </LinearGradient>
+
+            {error ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#DC2626', fontWeight: 'bold' }}>Error: {error}</Text>
+              </View>
+            ) : null}
+          </View>
+        }
       />
     </View>
   );
@@ -126,48 +147,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    zIndex: 10,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  titleContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: -1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1C1917',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
-  headerBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  unreadCountText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  markReadText: {
-    fontSize: 14,
-    color: '#0E5E2F',
-    fontWeight: '700',
-  },
+
   listContent: {
-    padding: 20,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   notificationCard: {
     flexDirection: 'row',
@@ -175,6 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
+    marginHorizontal: 20,
     alignItems: 'flex-start',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

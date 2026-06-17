@@ -14,6 +14,7 @@ type Listener = () => void;
 let listeners: Listener[] = [];
 let cachedNotifications: Notification[] = [];
 let cachedUnreadCount: number = 0;
+let cachedError: string | null = null;
 
 const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
@@ -28,18 +29,26 @@ const getHeaders = async () => {
 export const notificationsStore = {
   getNotifications: () => cachedNotifications,
   getUnreadCount: () => cachedUnreadCount,
+  getError: () => cachedError,
   
   fetchData: async () => {
     try {
+      cachedError = null;
       const headers = await getHeaders();
-      const res = await fetch(`${getApiUrl()}/notifications`, { headers });
+      const res = await fetch(`${getApiUrl()}/tour-guide/notifications`, { headers });
       if (res.ok) {
-        cachedNotifications = await res.json();
+        const data = await res.json();
+        cachedNotifications = Array.isArray(data) ? data : (data.data || []);
         cachedUnreadCount = cachedNotifications.filter(n => !n.isRead).length;
         notificationsStore.notify();
+      } else {
+        cachedError = `HTTP Error: ${res.status}`;
+        notificationsStore.notify();
       }
-    } catch (error) {
+    } catch (error: any) {
+      cachedError = error.message || 'Fetch failed';
       console.error('Failed to fetch notifications:', error);
+      notificationsStore.notify();
     }
   },
 
@@ -51,7 +60,7 @@ export const notificationsStore = {
 
     try {
       const headers = await getHeaders();
-      await fetch(`${getApiUrl()}/notifications/read-all`, {
+      await fetch(`${getApiUrl()}/tour-guide/notifications/read-all`, {
         method: 'PATCH',
         headers,
       });
@@ -72,7 +81,7 @@ export const notificationsStore = {
 
       try {
         const headers = await getHeaders();
-        await fetch(`${getApiUrl()}/notifications/${id}/read`, {
+        await fetch(`${getApiUrl()}/tour-guide/notifications/${id}/read`, {
           method: 'PATCH',
           headers,
         });
@@ -99,6 +108,7 @@ export const notificationsStore = {
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState(notificationsStore.getNotifications());
   const [unreadCount, setUnreadCount] = useState(notificationsStore.getUnreadCount());
+  const [error, setError] = useState(notificationsStore.getError());
 
   useEffect(() => {
     // Fetch fresh data when hook mounts
@@ -107,6 +117,7 @@ export const useNotifications = () => {
     const unsubscribe = notificationsStore.subscribe(() => {
       setNotifications([...notificationsStore.getNotifications()]);
       setUnreadCount(notificationsStore.getUnreadCount());
+      setError(notificationsStore.getError());
     });
     return unsubscribe;
   }, []);
@@ -114,6 +125,7 @@ export const useNotifications = () => {
   return {
     notifications,
     unreadCount,
+    error,
     markAllRead: notificationsStore.markAllRead,
     markRead: notificationsStore.markRead,
     refresh: notificationsStore.fetchData,

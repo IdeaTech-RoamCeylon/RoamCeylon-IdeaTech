@@ -63,73 +63,72 @@ const ShoppingHomeScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Premium Header Gradient */}
-      <LinearGradient
-        colors={['#0F3D26', '#145334', '#0E5E2F']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
-      >
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.greetingText}>Welcome back,</Text>
-            <Text style={styles.headerTitle}>Partner Dashboard</Text>
-          </View>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
-            <View style={styles.avatarCircle}>
-              <MaterialCommunityIcons name="account" size={24} color="#0F3D26" />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <TouchableOpacity 
-            style={styles.statCard}
-            activeOpacity={0.8}
-            onPress={() => router.push('/shopping/total' as any)}
-          >
-            <View style={styles.statIconWrap}>
-              <MaterialCommunityIcons name="storefront-outline" size={20} color="#0E5E2F" />
-            </View>
-            <View>
-              <Text style={styles.statValue}>{stats.total}</Text>
-              <Text style={styles.statLabel}>Total Shops</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.statCard}
-            activeOpacity={0.8}
-            onPress={() => router.push('/shopping/pending' as any)}
-          >
-            <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
-              <Ionicons name="time-outline" size={20} color="#D97706" />
-            </View>
-            <View>
-              <Text style={styles.statValue}>{stats.underReview}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
-              <Feather name="trending-up" size={20} color="#2563EB" />
-            </View>
-            <View>
-              <Text style={styles.statValue}>+{stats.networkGrowthPercent}%</Text>
-              <Text style={styles.statLabel}>Growth</Text>
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.sectionHeader}>
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+        >
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greetingText}>Welcome back,</Text>
+              <Text style={styles.headerTitle}>Partner Dashboard</Text>
+            </View>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
+              <View style={styles.avatarCircle}>
+                <MaterialCommunityIcons name="account" size={24} color="#0F3D26" />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              activeOpacity={0.8}
+              onPress={() => router.push('/shopping/total' as any)}
+            >
+              <View style={styles.statIconWrap}>
+                <MaterialCommunityIcons name="storefront-outline" size={20} color="#0E5E2F" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Total Shops</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.statCard}
+              activeOpacity={0.8}
+              onPress={() => router.push('/shopping/pending' as any)}
+            >
+              <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
+                <Ionicons name="time-outline" size={20} color="#D97706" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{stats.underReview}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.statCard}>
+              <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Feather name="trending-up" size={20} color="#2563EB" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>+{stats.networkGrowthPercent}%</Text>
+                <Text style={styles.statLabel}>Growth</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+        <View style={[styles.sectionHeader, { marginTop: 40 }]}>
           <Text style={styles.sectionTitle}>Your Shops</Text>
         </View>
 
@@ -227,12 +226,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    shadowColor: '#0E5E2F',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
     zIndex: 10,
+    marginBottom: 20,
   },
   headerTop: {
     flexDirection: 'row',
@@ -269,6 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     gap: 12,
+    marginBottom: -20,
   },
   statCard: {
     flex: 1,

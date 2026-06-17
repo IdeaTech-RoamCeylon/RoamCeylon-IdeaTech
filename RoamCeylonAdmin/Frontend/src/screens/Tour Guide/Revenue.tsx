@@ -87,16 +87,19 @@ const Revenue = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Transparent Header */}
-        <View
-          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
         >
           <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Revenue Overview</Text>
-          <View style={styles.headerButton} />
-        </View>
+          <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Revenue Overview</Text>
+          <View style={{ width: 44 }} />
+        </LinearGradient>
 
         <View style={styles.mainContent}>
           {/* Title Section */}
@@ -106,203 +109,203 @@ const Revenue = () => {
             </Text>
           </View>
 
-        {/* Total Revenue Card (Linear Gradient Emerald) */}
-        <LinearGradient
-          colors={['#0F3D26', '#0E5E2F', '#064E3B']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.revenueCard}
-        >
-          {/* Subtle Decorative Background Renders */}
-          <View style={styles.kpiRing1} />
-          <View style={styles.kpiRing2} />
-          <View style={styles.kpiGlowBlob} />
-          
-          {/* Card Header Row */}
-          <View style={styles.revenueCardHeaderRow}>
-            <Text style={styles.revenueCardTitle}>TOTAL ESTIMATED REVENUE</Text>
-            <View style={styles.periodBadge}>
-              <Ionicons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.8)" style={{ marginRight: 4 }} />
-              <Text style={styles.periodBadgeText}>Oct 2023</Text>
-            </View>
-          </View>
+          {/* Total Revenue Card (Linear Gradient Emerald) */}
+          <LinearGradient
+            colors={['#0F3D26', '#0E5E2F', '#064E3B']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.revenueCard}
+          >
+            {/* Subtle Decorative Background Renders */}
+            <View style={styles.kpiRing1} />
+            <View style={styles.kpiRing2} />
+            <View style={styles.kpiGlowBlob} />
 
-          {/* Main Figure & Trend Badge */}
-          <View style={styles.revenueValueRow}>
-            <Text style={styles.revenueValue}>Rs. {totalRevenue.toLocaleString()}</Text>
-            
-            <View style={styles.trendBadgeGlass}>
-              <Ionicons name="trending-up" size={13} color="#34D399" style={{ marginRight: 4 }} />
-              <Text style={styles.trendBadgeGlassText}>+14.2%</Text>
+            {/* Card Header Row */}
+            <View style={styles.revenueCardHeaderRow}>
+              <Text style={styles.revenueCardTitle}>TOTAL ESTIMATED REVENUE</Text>
+              <View style={styles.periodBadge}>
+                <Ionicons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.8)" style={{ marginRight: 4 }} />
+                <Text style={styles.periodBadgeText}>Oct 2023</Text>
+              </View>
             </View>
-          </View>
 
-          {/* Thin Glassmorphism Divider */}
-          <View style={styles.cardDividerGlass} />
+            {/* Main Figure & Trend Badge */}
+            <View style={styles.revenueValueRow}>
+              <Text style={styles.revenueValue}>Rs. {totalRevenue.toLocaleString()}</Text>
 
-          {/* Target Progress Section */}
-          <View style={styles.targetProgressContainer}>
-            <View style={styles.targetProgressLabelRow}>
-              <Text style={styles.targetProgressLabel}>Monthly Goal Progress</Text>
-              <Text style={styles.targetProgressValue}>$84,500 / $100,000</Text>
+              <View style={styles.trendBadgeGlass}>
+                <Ionicons name="trending-up" size={13} color="#34D399" style={{ marginRight: 4 }} />
+                <Text style={styles.trendBadgeGlassText}>+14.2%</Text>
+              </View>
             </View>
-            
-            {/* Progress Bar Track */}
-            <View style={styles.progressBarTrack}>
-              <LinearGradient
-                colors={['#34D399', '#059669']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.progressBarFill, { width: '84.5%' }]}
-              />
-            </View>
-            
-            {/* Target Progress Context Footnote */}
-            <Text style={styles.targetProgressFootnote}>
-              On track to exceed target by $2,900
-            </Text>
-          </View>
-        </LinearGradient>
 
-        {/* Earnings Trend Card with Custom Bar Chart */}
-        <View style={styles.trendCard}>
-          <View style={styles.trendCardHeader}>
-            <Text style={styles.trendCardTitle}>Earnings Trend</Text>
-            <View style={styles.selectorContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.selectorButton,
-                  selectedTrendRange === '6months' && styles.selectorActiveButton,
-                ]}
-                activeOpacity={0.8}
-                onPress={() => setSelectedTrendRange('6months')}
-              >
-                <Text
+            {/* Thin Glassmorphism Divider */}
+            <View style={styles.cardDividerGlass} />
+
+            {/* Target Progress Section */}
+            <View style={styles.targetProgressContainer}>
+              <View style={styles.targetProgressLabelRow}>
+                <Text style={styles.targetProgressLabel}>Monthly Goal Progress</Text>
+                <Text style={styles.targetProgressValue}>$84,500 / $100,000</Text>
+              </View>
+
+              {/* Progress Bar Track */}
+              <View style={styles.progressBarTrack}>
+                <LinearGradient
+                  colors={['#34D399', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.progressBarFill, { width: '84.5%' }]}
+                />
+              </View>
+
+              {/* Target Progress Context Footnote */}
+              <Text style={styles.targetProgressFootnote}>
+                On track to exceed target by $2,900
+              </Text>
+            </View>
+          </LinearGradient>
+
+          {/* Earnings Trend Card with Custom Bar Chart */}
+          <View style={styles.trendCard}>
+            <View style={styles.trendCardHeader}>
+              <Text style={styles.trendCardTitle}>Earnings Trend</Text>
+              <View style={styles.selectorContainer}>
+                <TouchableOpacity
                   style={[
-                    styles.selectorButtonText,
-                    selectedTrendRange === '6months' && styles.selectorActiveButtonText,
+                    styles.selectorButton,
+                    selectedTrendRange === '6months' && styles.selectorActiveButton,
                   ]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedTrendRange('6months')}
                 >
-                  6 Months
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.selectorButton,
-                  selectedTrendRange === 'yearly' && styles.selectorActiveButton,
-                ]}
-                activeOpacity={0.8}
-                onPress={() => setSelectedTrendRange('yearly')}
-              >
-                <Text
-                  style={[
-                    styles.selectorButtonText,
-                    selectedTrendRange === 'yearly' && styles.selectorActiveButtonText,
-                  ]}
-                >
-                  Yearly
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Custom Bar Chart Canvas */}
-          <View style={styles.chartContainer}>
-            {/* Background Chart Grid lines */}
-            <View style={styles.chartGridLines}>
-              <View style={styles.gridLine} />
-              <View style={styles.gridLine} />
-              <View style={styles.gridLine} />
-              <View style={styles.gridLine} />
-            </View>
-
-            <View style={styles.chartBarsRow}>
-              {currentChartData.map((data) => (
-                <View key={data.label} style={styles.chartBarCol}>
-                  <View style={styles.barBackgroundTrack}>
-                    {data.isCurrent ? (
-                      <LinearGradient
-                        colors={['#34D399', '#0E5E2F']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                        style={[styles.barFill, { height: `${data.heightPercent}%` }]}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.barFill,
-                          { height: `${data.heightPercent}%` },
-                          styles.barFillInactive,
-                        ]}
-                      />
-                    )}
-                  </View>
                   <Text
                     style={[
-                      styles.chartLabelText,
-                      data.isCurrent && styles.chartLabelTextActive,
+                      styles.selectorButtonText,
+                      selectedTrendRange === '6months' && styles.selectorActiveButtonText,
                     ]}
                   >
-                    {data.label}
+                    6 Months
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.selectorButton,
+                    selectedTrendRange === 'yearly' && styles.selectorActiveButton,
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedTrendRange('yearly')}
+                >
+                  <Text
+                    style={[
+                      styles.selectorButtonText,
+                      selectedTrendRange === 'yearly' && styles.selectorActiveButtonText,
+                    ]}
+                  >
+                    Yearly
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Custom Bar Chart Canvas */}
+            <View style={styles.chartContainer}>
+              {/* Background Chart Grid lines */}
+              <View style={styles.chartGridLines}>
+                <View style={styles.gridLine} />
+                <View style={styles.gridLine} />
+                <View style={styles.gridLine} />
+                <View style={styles.gridLine} />
+              </View>
+
+              <View style={styles.chartBarsRow}>
+                {currentChartData.map((data) => (
+                  <View key={data.label} style={styles.chartBarCol}>
+                    <View style={styles.barBackgroundTrack}>
+                      {data.isCurrent ? (
+                        <LinearGradient
+                          colors={['#34D399', '#0E5E2F']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={[styles.barFill, { height: `${data.heightPercent}%` }]}
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.barFill,
+                            { height: `${data.heightPercent}%` },
+                            styles.barFillInactive,
+                          ]}
+                        />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.chartLabelText,
+                        data.isCurrent && styles.chartLabelTextActive,
+                      ]}
+                    >
+                      {data.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Consolidated Revenue Breakdown Card */}
+          <View style={styles.breakdownSectionCard}>
+            <Text style={styles.breakdownCardTitle}>Revenue Breakdown</Text>
+
+            {/* Segmented Progress Bar */}
+            {breakdown.length > 0 && (
+              <View style={styles.segmentedBarContainer}>
+                {breakdown.map((item, idx) => (
+                  <View
+                    key={item.category}
+                    style={[
+                      styles.barSegment,
+                      { flex: item.percentage, backgroundColor: breakdownColors[idx % breakdownColors.length] },
+                      idx === 0 && { borderTopLeftRadius: 6, borderBottomLeftRadius: 6 },
+                      idx === breakdown.length - 1 && { borderTopRightRadius: 6, borderBottomRightRadius: 6 },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Breakdown Items List */}
+            <View style={styles.breakdownGrid}>
+              {breakdown.length > 0 ? breakdown.map((item, idx) => (
+                <View key={item.category} style={styles.breakdownGridItem}>
+                  <View style={styles.breakdownItemHeader}>
+                    <View style={[styles.legendDot, { backgroundColor: breakdownColors[idx % breakdownColors.length] }]} />
+                    <Text style={styles.breakdownItemTitle}>{item.category}</Text>
+                  </View>
+                  <Text style={styles.breakdownItemValue}>Rs. {item.amount.toLocaleString()}</Text>
+                  <Text style={styles.breakdownItemPercentage}>
+                    {item.percentage}% of total
                   </Text>
                 </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* Consolidated Revenue Breakdown Card */}
-        <View style={styles.breakdownSectionCard}>
-          <Text style={styles.breakdownCardTitle}>Revenue Breakdown</Text>
-          
-          {/* Segmented Progress Bar */}
-          {breakdown.length > 0 && (
-            <View style={styles.segmentedBarContainer}>
-              {breakdown.map((item, idx) => (
-                <View
-                  key={item.category}
-                  style={[
-                    styles.barSegment,
-                    { flex: item.percentage, backgroundColor: breakdownColors[idx % breakdownColors.length] },
-                    idx === 0 && { borderTopLeftRadius: 6, borderBottomLeftRadius: 6 },
-                    idx === breakdown.length - 1 && { borderTopRightRadius: 6, borderBottomRightRadius: 6 },
-                  ]}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* Breakdown Items List */}
-          <View style={styles.breakdownGrid}>
-            {breakdown.length > 0 ? breakdown.map((item, idx) => (
-              <View key={item.category} style={styles.breakdownGridItem}>
-                <View style={styles.breakdownItemHeader}>
-                  <View style={[styles.legendDot, { backgroundColor: breakdownColors[idx % breakdownColors.length] }]} />
-                  <Text style={styles.breakdownItemTitle}>{item.category}</Text>
-                </View>
-                <Text style={styles.breakdownItemValue}>Rs. {item.amount.toLocaleString()}</Text>
-                <Text style={styles.breakdownItemPercentage}>
-                  {item.percentage}% of total
+              )) : (
+                <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 16, width: '100%' }}>
+                  No bookings yet to calculate breakdown.
                 </Text>
-              </View>
-            )) : (
-              <Text style={{ color: '#6B7280', textAlign: 'center', paddingVertical: 16, width: '100%' }}>
-                No bookings yet to calculate breakdown.
-              </Text>
-            )}
+              )}
+            </View>
           </View>
-        </View>
 
-        {/* Recent High-Value Bookings Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent High-Value Bookings</Text>
-          <TouchableOpacity activeOpacity={0.6} onPress={handleViewAllBookingsPress}>
-            <Text style={styles.viewAllLinkText}>View Bookings</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Recent High-Value Bookings Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent High-Value Bookings</Text>
+            <TouchableOpacity activeOpacity={0.6} onPress={handleViewAllBookingsPress}>
+              <Text style={styles.viewAllLinkText}>View Bookings</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* High-value Booking Cards with colored left borders */}
-        <View style={styles.bookingsList}>
+          {/* High-value Booking Cards with colored left borders */}
+          <View style={styles.bookingsList}>
             {loading ? (
               <ActivityIndicator size="large" color="#0E5E2F" style={{ marginVertical: 20 }} />
             ) : highValueBookings.length > 0 ? (
@@ -361,7 +364,7 @@ const Revenue = () => {
                 No recent bookings found.
               </Text>
             )}
-        </View>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -378,11 +381,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     zIndex: 10,
   },
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },

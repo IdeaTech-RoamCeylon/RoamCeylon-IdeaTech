@@ -62,16 +62,19 @@ const Analytics = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Transparent Header */}
-        <View
-          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 12 }]}
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
         >
           <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={26} color="#1C1917" />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: '#1C1917' }]}>Performance Analytics</Text>
-          <View style={styles.headerButton} />
-        </View>
+          <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Performance Analytics</Text>
+          <View style={{ width: 44 }} />
+        </LinearGradient>
 
         <View style={styles.mainContent}>
           {/* Subtitle / Intro */}
@@ -244,11 +247,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     zIndex: 10,
   },
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },

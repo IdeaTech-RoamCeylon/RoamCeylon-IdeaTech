@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { _width } = Dimensions.get('window');
 
@@ -23,16 +24,21 @@ const TouristDetails = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      {/* Premium Header Gradient */}
+      <LinearGradient
+        colors={['#0F3D26', '#145334', '#0E5E2F']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
+      >
         <TouchableOpacity
           style={styles.headerIconButton}
           activeOpacity={0.7}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#1C1917" />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tourist Details</Text>
+        <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Tourist Details</Text>
         <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
@@ -40,7 +46,7 @@ const TouristDetails = () => {
             contentFit="cover"
           />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -277,15 +283,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     zIndex: 10,
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },

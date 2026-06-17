@@ -28,6 +28,7 @@ import type {
   InquiryStatus,
 } from './entities/tour-guide.entity';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface AuthRequest extends Request {
   user: { userId: string; role: string };
@@ -77,7 +78,10 @@ interface AuthRequest extends Request {
 export class TourGuideController {
   private readonly logger = new Logger(TourGuideController.name);
 
-  constructor(private readonly tourGuideService: TourGuideService) {}
+  constructor(
+    private readonly tourGuideService: TourGuideService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
   //  DASHBOARD
@@ -276,6 +280,27 @@ export class TourGuideController {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  NOTIFICATIONS (Now handled globally in /notifications)
+  //  NOTIFICATIONS
   // ══════════════════════════════════════════════════════════════════════════
+
+  @Get('notifications')
+  getNotifications(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} fetching notifications`);
+    return this.notificationsService.findAll(userId);
+  }
+
+  @Patch('notifications/read-all')
+  markAllNotificationsRead(@Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} marking all notifications as read`);
+    return this.notificationsService.markAllAsRead(userId);
+  }
+
+  @Patch('notifications/:id/read')
+  markNotificationRead(@Param('id') id: string, @Req() req: AuthRequest) {
+    const { userId } = req.user;
+    this.logger.log(`Guide ${userId} marking notification ${id} as read`);
+    return this.notificationsService.markAsRead(id, userId);
+  }
 }

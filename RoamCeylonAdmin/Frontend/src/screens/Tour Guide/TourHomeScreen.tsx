@@ -167,7 +167,11 @@ const TourHomeScreen = () => {
 
           {/* Stats Grid */}
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={styles.statCard}
+              activeOpacity={0.8}
+              onPress={() => router.push('/tour-guide/packages' as any)}
+            >
               <View style={styles.statIconWrap}>
                 <MaterialCommunityIcons name="cube-outline" size={20} color="#0E5E2F" />
               </View>
@@ -175,9 +179,13 @@ const TourHomeScreen = () => {
                 <Text style={styles.statValue}>{stats.totalPackages}</Text>
                 <Text style={styles.statLabel}>Packages</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={styles.statCard}
+              activeOpacity={0.8}
+              onPress={() => router.push('/tour-guide/bookings' as any)}
+            >
               <View style={[styles.statIconWrap, { backgroundColor: '#FFFBEB' }]}>
                 <Ionicons name="calendar-outline" size={20} color="#D97706" />
               </View>
@@ -185,7 +193,7 @@ const TourHomeScreen = () => {
                 <Text style={styles.statValue}>{stats.activeBookings}</Text>
                 <Text style={styles.statLabel}>Bookings</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.statCard}>
               <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>

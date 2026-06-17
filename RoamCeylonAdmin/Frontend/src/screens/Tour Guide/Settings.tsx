@@ -58,7 +58,7 @@ const Settings = () => {
               if (parsed.profile_picture) newProfile.picture = parsed.profile_picture;
               setProfile(newProfile);
             }
-          } catch (_e) {}
+          } catch (_e) { }
 
           // 2. Load from DB
           try {
@@ -74,7 +74,7 @@ const Settings = () => {
               if (profileData.profile_picture) newProfile.picture = profileData.profile_picture;
               setProfile(newProfile);
             }
-          } catch (_e) {}
+          } catch (_e) { }
 
         } catch (err) {
           console.error('[Settings] Error loading user profile:', err);
@@ -116,19 +116,19 @@ const Settings = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Transparent Inline Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            activeOpacity={0.7}
-            onPress={() => router.replace('/tour-guide/home' as any)}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
+        >
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.replace('/tour-guide/home' as any)}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <View style={{ width: 32 }} />
-        </View>
+          <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Settings</Text>
+          <View style={{ width: 44 }} />
+        </LinearGradient>
         {/* Deep Emerald Profile Card section */}
         <LinearGradient
           colors={['#0F3D26', '#145334']}
@@ -335,8 +335,8 @@ const Settings = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.deactivateButton} 
+          <TouchableOpacity
+            style={styles.deactivateButton}
             activeOpacity={0.7}
             onPress={() => {
               Alert.alert(
@@ -344,15 +344,15 @@ const Settings = () => {
                 "Are you sure you want to deactivate your guide account? This action cannot be undone and your active listings will be removed.",
                 [
                   { text: "Cancel", style: "cancel" },
-                  { 
-                    text: "Deactivate", 
+                  {
+                    text: "Deactivate",
                     style: "destructive",
                     onPress: async () => {
                       setLoading(true);
                       try {
                         const token = await SecureStore.getItemAsync('authToken');
                         const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
-                        
+
                         if (token) {
                           const res = await fetch(`${apiUrl}/admin-users/me`, {
                             method: 'DELETE',
@@ -363,11 +363,11 @@ const Settings = () => {
 
                         try {
                           await (nhost.auth as any).signOut();
-                        } catch(_e) {}
+                        } catch (_e) { }
                         await SecureStore.deleteItemAsync('authToken');
                         await SecureStore.deleteItemAsync('nhostRefreshToken');
                         await SecureStore.deleteItemAsync('userProfile');
-                        
+
                         showToast.success('Account deactivated successfully', 'Goodbye');
                         router.replace('/login');
                       } catch (_err) {
@@ -397,18 +397,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     zIndex: 10,
+    marginBottom: 16,
+    marginHorizontal: -20,
   },
-  backButton: {
-    padding: 4,
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: -0.3,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -416,7 +425,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 24,
   },
   profileSection: {
     alignItems: 'center',
