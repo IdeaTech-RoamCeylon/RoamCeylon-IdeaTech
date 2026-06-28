@@ -14,7 +14,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { _width } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const TouristDetails = () => {
   const insets = useSafeAreaInsets();

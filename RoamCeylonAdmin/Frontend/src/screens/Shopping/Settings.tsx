@@ -67,7 +67,7 @@ const Settings = () => {
           // 2. Enrich from backend DB
           try {
             const token = await SecureStore.getItemAsync('authToken');
-            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
             if (token) {
               const res = await fetch(`${apiUrl}/admin-users/me`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -113,7 +113,7 @@ const Settings = () => {
 
     try {
       const token = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
 
       if (!token) return;
 

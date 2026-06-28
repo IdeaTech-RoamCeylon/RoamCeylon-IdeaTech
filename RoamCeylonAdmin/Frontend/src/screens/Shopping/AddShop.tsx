@@ -100,7 +100,7 @@ const AddShop = () => {
       let finalCoverImageUrl = coverImageUrl;
 
       if (coverImageUrl && !coverImageUrl.startsWith('http')) {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
 
         // Convert local file URI to base64 and send to our backend.
         // The backend uploads to Nhost Storage using the admin secret,
@@ -136,7 +136,7 @@ const AddShop = () => {
       }
 
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
       const response = await fetch(`${apiUrl}/shops`, {
         method: 'POST',
         headers: {

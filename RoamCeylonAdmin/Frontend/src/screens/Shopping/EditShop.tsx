@@ -74,7 +74,7 @@ const EditShop = () => {
     const fetchShop = async () => {
       try {
         const accessToken = await SecureStore.getItemAsync('authToken');
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
         
         const response = await fetch(`${apiUrl}/shops/${id}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -156,7 +156,7 @@ const EditShop = () => {
         finalCoverImageUrl = `${storageUrl}/${fileId}`;
       }
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
       
       const response = await fetch(`${apiUrl}/shops/${id}`, {
         method: 'PUT',
@@ -202,7 +202,7 @@ const EditShop = () => {
             setIsDeleting(true);
             try {
               const accessToken = await SecureStore.getItemAsync('authToken');
-              const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+              const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
               
               const response = await fetch(`${apiUrl}/shops/${id}`, {
                 method: 'DELETE',

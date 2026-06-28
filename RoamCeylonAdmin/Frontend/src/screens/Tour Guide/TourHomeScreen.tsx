@@ -70,7 +70,7 @@ const TourHomeScreen = () => {
     try {
       setLoading(true);
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
 
       if (!accessToken) return;
 

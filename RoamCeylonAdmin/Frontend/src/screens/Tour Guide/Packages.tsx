@@ -33,7 +33,7 @@ const Packages = () => {
     try {
       setLoading(true);
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
 
       if (!accessToken) return;
 
@@ -62,7 +62,7 @@ const Packages = () => {
     try {
       const newStatus = currentStatus === 'active' ? 'draft' : 'active';
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
 
       const res = await fetch(`${apiUrl}/tour-guide/packages/${id}/status`, {
         method: 'PATCH',
