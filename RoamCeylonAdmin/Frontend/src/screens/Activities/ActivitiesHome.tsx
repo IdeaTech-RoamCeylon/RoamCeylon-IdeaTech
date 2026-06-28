@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,21 +6,86 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useNotifications } from '../../utils/notificationsStore';
+import * as SecureStore from 'expo-secure-store';
 
 const ActivitiesHome = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { unreadCount } = useNotifications();
 
+  // State
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeActivities: 0,
+    totalBookings: 0,
+    rating: '4.9',
+  });
+  const [activitiesList, setActivitiesList] = useState<any[]>([]);
+  const [scheduledBookings, setScheduledBookings] = useState<any[]>([]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+
+      if (!accessToken) return;
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      // Fetch dashboard stats
+      const statsRes = await fetch(`${apiUrl}/activities/dashboard`, { headers });
+      if (statsRes.ok) {
+        const d = await statsRes.json();
+        setStats({
+          activeActivities: d.activeActivities || 0,
+          totalBookings: d.totalBookings || 0,
+          rating: d.rating || '4.9',
+        });
+      }
+
+      // Fetch recent activities
+      const activitiesRes = await fetch(`${apiUrl}/activities/list`, { headers });
+      if (activitiesRes.ok) {
+        const acts = await activitiesRes.json();
+        setActivitiesList(acts.slice(0, 3)); // Only show top 3
+      }
+
+      // Fetch upcoming schedule
+      const scheduleRes = await fetch(`${apiUrl}/activities/schedule`, { headers });
+      if (scheduleRes.ok) {
+        const sched = await scheduleRes.json();
+        setScheduledBookings(sched.slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Failed to fetch activity dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
   const handleNotificationPress = () => {
     router.push({ pathname: '/notifications', params: { module: 'activity' } } as any);
+  };
+
+  const getStatusStyle = (status: string) => {
+    if (status === 'active') return { badge: styles.statusActive, text: styles.statusTextActive, label: 'Active' };
+    if (status === 'inactive') return { badge: styles.statusInactive, text: styles.statusTextInactive, label: 'Inactive' };
+    return { badge: styles.statusDraft, text: styles.statusTextDraft, label: 'Draft' };
   };
 
   return (
@@ -79,7 +144,7 @@ const ActivitiesHome = () => {
               <MaterialCommunityIcons name="ticket-outline" size={20} color="#0E5E2F" />
             </View>
             <View>
-              <Text style={styles.statValue}>14</Text>
+              <Text style={styles.statValue}>{stats.activeActivities}</Text>
               <Text style={styles.statLabel}>Active</Text>
             </View>
           </TouchableOpacity>
@@ -93,7 +158,7 @@ const ActivitiesHome = () => {
               <Ionicons name="calendar-outline" size={20} color="#D97706" />
             </View>
             <View>
-              <Text style={styles.statValue}>128</Text>
+              <Text style={styles.statValue}>{stats.totalBookings}</Text>
               <Text style={styles.statLabel}>Bookings</Text>
             </View>
           </TouchableOpacity>
@@ -103,7 +168,7 @@ const ActivitiesHome = () => {
               <Ionicons name="star-outline" size={20} color="#2563EB" />
             </View>
             <View>
-              <Text style={styles.statValue}>4.9</Text>
+              <Text style={styles.statValue}>{stats.rating}</Text>
               <Text style={styles.statLabel}>Rating</Text>
             </View>
           </View>
@@ -121,128 +186,95 @@ const ActivitiesHome = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Activity Card 1 */}
-        <TouchableOpacity 
-          style={styles.activityCard}
-          activeOpacity={0.9}
-        >
-          <Image 
-            source={require('../../assets/Activities/Sunrise Yoga.png')} 
-            style={styles.activityImage} 
-            contentFit="cover" 
-          />
-          <View style={styles.activityInfo}>
-            <View style={styles.activityHeaderRow}>
-              <Text style={styles.activityName} numberOfLines={1}>Sunrise Yoga & Meditation</Text>
-              <View style={[styles.statusBadge, styles.statusActive]}>
-                <Text style={[styles.statusText, styles.statusTextActive]}>Active</Text>
-              </View>
-            </View>
-            <Text style={styles.activityCategory}>Wellness • 2 Hours</Text>
-            <View style={styles.activityFooter}>
-              <View style={styles.activityFooterItem}>
-                <Ionicons name="location-outline" size={14} color="#6B7280" />
-                <Text style={styles.activityFooterText} numberOfLines={1}>Galle Fort</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#D1D5DB" />
-            </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+        ) : activitiesList.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="ticket-outline" size={48} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>No activities yet</Text>
+            <Text style={styles.emptySubtitle}>Tap the + button to create your first activity</Text>
           </View>
-        </TouchableOpacity>
-
-        {/* Activity Card 2 */}
-        <TouchableOpacity 
-          style={styles.activityCard}
-          activeOpacity={0.9}
-        >
-          <Image 
-            source={require('../../assets/Activities/Estate Tea Tasting.png')} 
-            style={styles.activityImage} 
-            contentFit="cover" 
-          />
-          <View style={styles.activityInfo}>
-            <View style={styles.activityHeaderRow}>
-              <Text style={styles.activityName} numberOfLines={1}>Estate Tea Tasting</Text>
-              <View style={[styles.statusBadge, styles.statusActive]}>
-                <Text style={[styles.statusText, styles.statusTextActive]}>Active</Text>
-              </View>
-            </View>
-            <Text style={styles.activityCategory}>Culinary • 3 Hours</Text>
-            <View style={styles.activityFooter}>
-              <View style={styles.activityFooterItem}>
-                <Ionicons name="location-outline" size={14} color="#6B7280" />
-                <Text style={styles.activityFooterText} numberOfLines={1}>Ella Highlands</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#D1D5DB" />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Activity Card 3 */}
-        <TouchableOpacity 
-          style={styles.activityCard}
-          activeOpacity={0.9}
-        >
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=400&q=80' }} 
-            style={styles.activityImage} 
-            contentFit="cover" 
-          />
-          <View style={styles.activityInfo}>
-            <View style={styles.activityHeaderRow}>
-              <Text style={styles.activityName} numberOfLines={1}>Culinary Masterclass</Text>
-              <View style={[styles.statusBadge, styles.statusDraft]}>
-                <Text style={[styles.statusText, styles.statusTextDraft]}>Draft</Text>
-              </View>
-            </View>
-            <Text style={styles.activityCategory}>Culinary • 4 Hours</Text>
-            <View style={styles.activityFooter}>
-              <View style={styles.activityFooterItem}>
-                <Ionicons name="location-outline" size={14} color="#6B7280" />
-                <Text style={styles.activityFooterText} numberOfLines={1}>Colombo</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#D1D5DB" />
-            </View>
-          </View>
-        </TouchableOpacity>
+        ) : (
+          activitiesList.map((activity) => {
+            const statusInfo = getStatusStyle(activity.status);
+            return (
+              <TouchableOpacity 
+                key={activity.id}
+                style={styles.activityCard}
+                activeOpacity={0.9}
+                onPress={() => router.push('/activities/update' as any)}
+              >
+                <Image 
+                  source={activity.coverImageUrl ? { uri: activity.coverImageUrl } : require('../../assets/Activities/Sunrise Yoga.png')} 
+                  style={styles.activityImage} 
+                  contentFit="cover" 
+                />
+                <View style={styles.activityInfo}>
+                  <View style={styles.activityHeaderRow}>
+                    <Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
+                    <View style={[styles.statusBadge, statusInfo.badge]}>
+                      <Text style={[styles.statusText, statusInfo.text]}>{statusInfo.label}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.activityCategory} numberOfLines={1}>
+                    {activity.category} • {activity.startTime && activity.endTime ? `${activity.startTime} - ${activity.endTime}` : activity.difficulty}
+                  </Text>
+                  <View style={styles.activityFooter}>
+                    <View style={styles.activityFooterItem}>
+                      <Ionicons name="location-outline" size={14} color="#6B7280" />
+                      <Text style={styles.activityFooterText} numberOfLines={1}>{activity.location || 'No location'}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
 
         <View style={[styles.sectionHeader, { marginTop: 12 }]}>
           <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
         </View>
 
-        {/* Upcoming Schedule Items */}
-        <TouchableOpacity style={styles.bookingsCardContainer} activeOpacity={0.7}>
-          <View style={styles.bookingRow}>
-            <View style={styles.bookingLeft}>
-              <Text style={styles.bookingMainText}>
-                Sunrise Yoga & Meditation
-              </Text>
-              <Text style={styles.bookingDateText}>Galle Fort Deck • 06:00 (Today)</Text>
-            </View>
-            <View style={styles.bookingRight}>
-              <Text style={styles.bookingAmount}>15/20 Booked</Text>
-              <View style={[styles.pillBadge, styles.pillBadgeSuccess, { marginTop: 6, alignSelf: 'flex-end' }]}>
-                <Text style={[styles.pillBadgeText, styles.pillBadgeSuccessText]}>Confirmed</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.bookingsCardContainer, { marginTop: 12 }]} activeOpacity={0.7}>
-          <View style={styles.bookingRow}>
-            <View style={styles.bookingLeft}>
-              <Text style={styles.bookingMainText}>
-                Estate Tea Tasting
-              </Text>
-              <Text style={styles.bookingDateText}>Ella Highlands Lodge • 14:00 (Tomorrow)</Text>
-            </View>
-            <View style={styles.bookingRight}>
-              <Text style={styles.bookingAmount}>32/40 Booked</Text>
-              <View style={[styles.pillBadge, styles.pillBadgeSuccess, { marginTop: 6, alignSelf: 'flex-end' }]}>
-                <Text style={[styles.pillBadgeText, styles.pillBadgeSuccessText]}>Confirmed</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
+        {loading ? (
+          <ActivityIndicator size="small" color="#0E5E2F" style={{ margin: 20 }} />
+        ) : scheduledBookings.length === 0 ? (
+          <Text style={{ textAlign: 'center', margin: 20, color: '#6B7280' }}>No upcoming bookings.</Text>
+        ) : (
+          scheduledBookings.map((booking) => {
+            const dateObj = new Date(booking.scheduledDate);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const isConfirmed = booking.status === 'confirmed';
+            return (
+              <TouchableOpacity 
+                key={booking.id}
+                style={[styles.bookingsCardContainer, { marginBottom: 12 }]} 
+                activeOpacity={0.7}
+              >
+                <View style={styles.bookingRow}>
+                  <View style={styles.bookingLeft}>
+                    <Text style={styles.bookingMainText}>
+                      {booking.activity?.name || 'Activity'}
+                    </Text>
+                    <Text style={styles.bookingDateText}>
+                      {booking.activity?.location || ''} • {booking.activity?.startTime || ''} ({formattedDate})
+                    </Text>
+                  </View>
+                  <View style={styles.bookingRight}>
+                    <Text style={styles.bookingAmount}>
+                      {booking.guests}/{booking.activity?.maxParticipants || 20} Booked
+                    </Text>
+                    <View style={[styles.pillBadge, isConfirmed ? styles.pillBadgeSuccess : styles.pillBadgeWarning, { marginTop: 6, alignSelf: 'flex-end' }]}>
+                      <Text style={[styles.pillBadgeText, isConfirmed ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText]}>
+                        {booking.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
 
       </View>
       </ScrollView>
@@ -404,6 +436,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#0E5E2F',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#172B1E',
+    marginTop: 12,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 4,
+    textAlign: 'center',
   },
   activityCard: {
     backgroundColor: '#FFFFFF',

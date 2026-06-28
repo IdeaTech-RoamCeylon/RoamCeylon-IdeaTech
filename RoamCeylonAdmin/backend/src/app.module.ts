@@ -7,6 +7,7 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TourGuideModule } from './tour-guide/tour-guide.module';
 import { UsersModule } from './users/users.module';
+import { ActivitiesModule } from './activities/activities.module';
 
 import { NotificationsModule } from './notifications/notifications.module';
 
@@ -19,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     TourGuideModule,
     UsersModule,
     NotificationsModule,
+    ActivitiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

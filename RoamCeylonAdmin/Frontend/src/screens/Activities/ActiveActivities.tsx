@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,63 +7,53 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 const ActiveActivities = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<any[]>([]);
 
-  const activeActivities = [
-    {
-      id: '1',
-      name: 'Sunrise Yoga & Meditation',
-      category: 'Wellness',
-      duration: '2 Hours',
-      location: 'Galle Fort',
-      image: require('../../assets/Activities/Sunrise Yoga.png'),
-    },
-    {
-      id: '2',
-      name: 'Estate Tea Tasting',
-      category: 'Culinary',
-      duration: '3 Hours',
-      location: 'Ella Highlands',
-      image: require('../../assets/Activities/Estate Tea Tasting.png'),
-    },
-    {
-      id: '3',
-      name: 'Private Safari Tour',
-      category: 'Adventure',
-      duration: '4 Hours',
-      location: 'Yala National Park',
-      image: { uri: 'https://images.unsplash.com/photo-1549366021-9f761d450615?auto=format&fit=crop&w=400&q=80' },
-    },
-    {
-      id: '4',
-      name: 'Surfing Lesson for Beginners',
-      category: 'Water Sports',
-      duration: '1.5 Hours',
-      location: 'Weligama Beach',
-      image: { uri: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=400&q=80' },
-    },
-    {
-      id: '5',
-      name: 'Historical City Walk',
-      category: 'Cultural',
-      duration: '2.5 Hours',
-      location: 'Colombo',
-      image: { uri: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=400&q=80' },
-    },
-  ];
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
 
-  const filteredActivities = activeActivities.filter(activity =>
+      if (!accessToken) return;
+
+      const res = await fetch(`${apiUrl}/activities/list`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setActivities(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchActivities();
+    }, [])
+  );
+
+  const filteredActivities = activities.filter(activity =>
     activity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    activity.location.toLowerCase().includes(searchQuery.toLowerCase())
+    (activity.location || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -91,13 +81,9 @@ const ActiveActivities = () => {
             activeOpacity={0.7}
             onPress={() => router.push('/activities/settings' as any)}
           >
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.profileImage as any}
-              contentFit="cover"
-            />
+            <View style={styles.profilePlaceholder}>
+              <MaterialCommunityIcons name="account" size={22} color="#0E5E2F" />
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -130,11 +116,17 @@ const ActiveActivities = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {filteredActivities.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 60 }} />
+        ) : filteredActivities.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="ticket-outline" size={48} color="#7D8A82" />
-            <Text style={styles.emptyTitle}>No active activities found</Text>
-            <Text style={styles.emptySubtitle}>Try adjusting your search.</Text>
+            <Text style={styles.emptyTitle}>
+              {searchQuery ? 'No activities found' : 'No activities yet'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {searchQuery ? 'Try adjusting your search.' : 'Create your first activity to get started.'}
+            </Text>
           </View>
         ) : (
           filteredActivities.map((activity) => (
@@ -145,22 +137,24 @@ const ActiveActivities = () => {
               onPress={() => router.push('/activities/update' as any)}
             >
               <Image 
-                source={activity.image} 
+                source={activity.coverImageUrl ? { uri: activity.coverImageUrl } : require('../../assets/Activities/Sunrise Yoga.png')} 
                 style={styles.activityImage} 
                 contentFit="cover" 
               />
               <View style={styles.activityInfo}>
                 <View style={styles.activityHeaderRow}>
                   <Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
-                  <View style={[styles.statusBadge, styles.statusActive]}>
-                    <Text style={[styles.statusText, styles.statusTextActive]}>Active</Text>
+                  <View style={[styles.statusBadge, activity.status === 'active' ? styles.statusActive : styles.statusDraft]}>
+                    <Text style={[styles.statusText, activity.status === 'active' ? styles.statusTextActive : styles.statusTextDraft]}>
+                      {activity.status === 'active' ? 'Active' : activity.status === 'draft' ? 'Draft' : 'Inactive'}
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.activityCategory}>{activity.category} • {activity.duration}</Text>
+                <Text style={styles.activityCategory} numberOfLines={1}>{activity.category} • {activity.difficulty || 'Easy'}</Text>
                 <View style={styles.activityFooter}>
                   <View style={styles.activityFooterItem}>
                     <Ionicons name="location-outline" size={14} color="#6B7280" />
-                    <Text style={styles.activityFooterText} numberOfLines={1}>{activity.location}</Text>
+                    <Text style={styles.activityFooterText} numberOfLines={1}>{activity.location || 'No location'}</Text>
                   </View>
                   <Feather name="chevron-right" size={20} color="#D1D5DB" />
                 </View>
@@ -223,9 +217,12 @@ const styles = StyleSheet.create({
     borderColor: '#0E5E2F',
     overflow: 'hidden',
   },
-  profileImage: {
+  profilePlaceholder: {
     width: '100%',
     height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
   },
   topControlContainer: {
     backgroundColor: '#FFFFFF',
@@ -327,12 +324,18 @@ const styles = StyleSheet.create({
   statusActive: {
     backgroundColor: '#ECFDF5',
   },
+  statusDraft: {
+    backgroundColor: '#F3F4F6',
+  },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
   },
   statusTextActive: {
     color: '#059669',
+  },
+  statusTextDraft: {
+    color: '#4B5563',
   },
   activityCategory: {
     fontSize: 13,

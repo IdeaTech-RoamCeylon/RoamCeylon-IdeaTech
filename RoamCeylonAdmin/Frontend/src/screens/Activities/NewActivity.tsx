@@ -19,6 +19,9 @@ import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
+import { showToast } from '@/utils/toast';
+import * as FileSystem from 'expo-file-system';
 
 const CATEGORIES = [
   'Adventure',
@@ -74,12 +77,81 @@ const NewActivity = () => {
   };
 
   const handleSave = async () => {
-    // Simulated save action
+    if (!title.trim()) {
+      showToast.error('Please enter an activity title', 'Missing Title');
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+
+      if (!accessToken) {
+        showToast.error('Please log in again', 'Not Authenticated');
+        return;
+      }
+
+      // Upload cover image if selected
+      let uploadedImageUrl = '';
+      if (coverImageUrl) {
+        try {
+          const base64 = await FileSystem.readAsStringAsync(coverImageUrl, {
+            encoding: 'base64',
+          });
+          const uploadRes = await fetch(`${apiUrl}/activities/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ base64, mimeType: 'image/jpeg' }),
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            uploadedImageUrl = uploadData.url || '';
+          }
+        } catch (uploadErr) {
+          console.warn('Image upload failed (non-fatal):', uploadErr);
+        }
+      }
+
+      // Create activity
+      const res = await fetch(`${apiUrl}/activities/list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: title.trim(),
+          category,
+          description: description.trim(),
+          difficulty,
+          startTime,
+          endTime,
+          location: location.trim(),
+          price: price ? Number(price) : 0,
+          maxParticipants: participants ? Number(participants) : 20,
+          coverImageUrl: uploadedImageUrl,
+          publishImmediately: true,
+        }),
+      });
+
+      if (res.ok) {
+        showToast.success('Activity created successfully!', 'Success');
+        router.back();
+      } else {
+        const errorData = await res.text().catch(() => 'Unknown error');
+        console.error('Create activity failed:', res.status, errorData);
+        showToast.error('Failed to create activity. Please try again.', 'Error');
+      }
+    } catch (error) {
+      console.error('Create activity error:', error);
+      showToast.error('Network error. Please check your connection.', 'Error');
+    } finally {
       setIsSubmitting(false);
-      router.back();
-    }, 1500);
+    }
   };
 
   return (
