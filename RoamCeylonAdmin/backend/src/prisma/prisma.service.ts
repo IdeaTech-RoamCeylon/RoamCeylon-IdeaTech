@@ -20,15 +20,20 @@ export class PrismaService
     // reconnect and retry once. This handles the Nhost free-tier DB going to sleep.
     this.$use(async (params, next) => {
       try {
-        return await next(params);
-      } catch (error: any) {
-        if (error?.code === 'P1001' || error?.code === 'P1017') {
+        return (await next(params)) as unknown;
+      } catch (error: unknown) {
+        if (
+          error !== null &&
+          typeof error === 'object' &&
+          'code' in error &&
+          (error.code === 'P1001' || error.code === 'P1017')
+        ) {
           this.logger.warn(
-            `DB connection lost (${error.code}) during ${params.model}.${params.action} — reconnecting…`,
+            `DB connection lost (${error.code as string}) during ${params.model as string}.${params.action as string} — reconnecting…`,
           );
           await this.$disconnect().catch(() => undefined);
           await this.connectWithRetry(5, 2000);
-          return next(params);
+          return (await next(params)) as unknown;
         }
         throw error;
       }

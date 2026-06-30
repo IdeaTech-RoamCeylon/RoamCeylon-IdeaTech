@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-const { _width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window');
 
 const RegisterScreen = () => {
   const router = useRouter();

@@ -77,8 +77,7 @@ export class ActivitiesService {
   }
 
   async createActivity(providerId: string, dto: CreateActivityDto) {
-    const status =
-      dto.publishImmediately !== false ? 'active' : 'draft';
+    const status = dto.publishImmediately !== false ? 'active' : 'draft';
 
     const activity = await this.prisma.activity.create({
       data: {
@@ -126,7 +125,12 @@ export class ActivitiesService {
         startTime: dto.startTime ?? existing.startTime,
         endTime: dto.endTime ?? existing.endTime,
         location: dto.location ?? existing.location,
-        date: dto.date !== undefined ? (dto.date ? new Date(dto.date) : null) : existing.date,
+        date:
+          dto.date !== undefined
+            ? dto.date
+              ? new Date(dto.date)
+              : null
+            : existing.date,
         price: dto.price ?? existing.price,
         maxParticipants: dto.maxParticipants ?? existing.maxParticipants,
         status: dto.status ?? existing.status,
@@ -213,7 +217,9 @@ export class ActivitiesService {
     const subdomain = process.env.NHOST_SUBDOMAIN || 'qfgzcxodwisrwyduyocq';
     const region = process.env.NHOST_REGION || 'ap-southeast-1';
     const adminSecret = process.env.NHOST_ADMIN_SECRET;
-    this.logger.log(`NHOST_ADMIN_SECRET is: ${adminSecret ? 'SET' : 'NOT SET'}`);
+    this.logger.log(
+      `NHOST_ADMIN_SECRET is: ${adminSecret ? 'SET' : 'NOT SET'}`,
+    );
     const storageUrl = `https://${subdomain}.storage.${region}.nhost.run/v1/files`;
 
     const buffer = Buffer.from(base64, 'base64');
