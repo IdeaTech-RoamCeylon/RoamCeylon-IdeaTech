@@ -50,7 +50,7 @@ const EditPackage = () => {
     const fetchDetails = async () => {
       try {
         const accessToken = await SecureStore.getItemAsync('authToken');
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
         const res = await fetch(`${apiUrl}/tour-guide/packages/${packageId}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -155,7 +155,7 @@ const EditPackage = () => {
     try {
       setIsSubmitting(true);
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
       let coverImageUrl = coverImage?.uri?.startsWith('http') ? coverImage.uri : '';
 

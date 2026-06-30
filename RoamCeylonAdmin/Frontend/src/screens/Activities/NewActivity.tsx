@@ -20,8 +20,8 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
-import { showToast } from '@/utils/toast';
 import * as FileSystem from 'expo-file-system';
+import { showToast } from '@/utils/toast';
 
 const CATEGORIES = [
   'Adventure',
@@ -46,7 +46,7 @@ const NewActivity = () => {
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
   const [participants, setParticipants] = useState('');
-  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverImage, setCoverImage] = useState<{ uri: string, base64: string } | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -64,15 +64,28 @@ const NewActivity = () => {
   });
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.5,
+        base64: true,
+      });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setCoverImageUrl(result.assets[0].uri);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        let base64 = result.assets[0].base64;
+        if (!base64) {
+          base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, { encoding: 'base64' });
+        }
+        setCoverImage({
+          uri: result.assets[0].uri,
+          base64: base64 || '',
+        });
+      }
+    } catch (e) {
+      showToast.error('Failed to process image');
+      console.error(e);
     }
   };
 
@@ -85,7 +98,7 @@ const NewActivity = () => {
     setIsSubmitting(true);
     try {
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
       if (!accessToken) {
         showToast.error('Please log in again', 'Not Authenticated');
@@ -94,25 +107,29 @@ const NewActivity = () => {
 
       // Upload cover image if selected
       let uploadedImageUrl = '';
-      if (coverImageUrl) {
+      if (coverImage?.base64) {
         try {
-          const base64 = await FileSystem.readAsStringAsync(coverImageUrl, {
-            encoding: 'base64',
-          });
           const uploadRes = await fetch(`${apiUrl}/activities/upload-image`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({ base64, mimeType: 'image/jpeg' }),
+            body: JSON.stringify({ base64: coverImage.base64, mimeType: 'image/jpeg' }),
           });
           if (uploadRes.ok) {
             const uploadData = await uploadRes.json();
             uploadedImageUrl = uploadData.url || '';
+          } else {
+            showToast.error('Failed to upload image to server');
+            setIsSubmitting(false);
+            return;
           }
         } catch (uploadErr) {
-          console.warn('Image upload failed (non-fatal):', uploadErr);
+          console.error('Image upload failed (network):', uploadErr);
+          showToast.error('Network error during image upload');
+          setIsSubmitting(false);
+          return;
         }
       }
 
@@ -197,8 +214,8 @@ const NewActivity = () => {
 
               <Text style={styles.inputLabel}>Cover Photo</Text>
               <TouchableOpacity style={styles.imagePickerCard} onPress={pickImage} activeOpacity={0.8}>
-                {coverImageUrl ? (
-                  <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
+                {coverImage ? (
+                  <Image source={{ uri: coverImage.uri }} style={styles.previewImage} contentFit="cover" />
                 ) : (
                   <View style={styles.imagePlaceholder}>
                     <View style={styles.cameraIconContainer}>

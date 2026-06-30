@@ -35,7 +35,7 @@ const Notifications = () => {
     try {
       setLoading(true);
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
       if (!accessToken) return;
 
@@ -74,7 +74,7 @@ const Notifications = () => {
     );
     try {
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
       if (accessToken) {
         await fetch(`${apiUrl}/tour-guide/notifications/read-all`, {
           method: 'PATCH',
@@ -96,7 +96,7 @@ const Notifications = () => {
     if (item.isUnread) {
       try {
         const accessToken = await SecureStore.getItemAsync('authToken');
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
         if (accessToken) {
           await fetch(`${apiUrl}/tour-guide/notifications/${item.id}/read`, {
             method: 'PATCH',

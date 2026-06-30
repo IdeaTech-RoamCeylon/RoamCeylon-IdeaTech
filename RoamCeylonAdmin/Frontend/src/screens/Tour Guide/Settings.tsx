@@ -42,7 +42,7 @@ const Settings = () => {
       const loadProfile = async () => {
         try {
           const token = await SecureStore.getItemAsync('authToken');
-          const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
           if (!token) return;
 
           let newProfile = { ...profile };
@@ -351,7 +351,7 @@ const Settings = () => {
                       setLoading(true);
                       try {
                         const token = await SecureStore.getItemAsync('authToken');
-                        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+                        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
                         if (token) {
                           const res = await fetch(`${apiUrl}/admin-users/me`, {

@@ -26,7 +26,7 @@ const ActiveActivities = () => {
     try {
       setLoading(true);
       const accessToken = await SecureStore.getItemAsync('authToken');
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
       if (!accessToken) return;
 
@@ -134,13 +134,19 @@ const ActiveActivities = () => {
               key={activity.id}
               style={styles.activityCard}
               activeOpacity={0.9}
-              onPress={() => router.push('/activities/update' as any)}
+              onPress={() => router.push({ pathname: '/activities/update', params: { id: activity.id } } as any)}
             >
-              <Image 
-                source={activity.coverImageUrl ? { uri: activity.coverImageUrl } : require('../../assets/Activities/Sunrise Yoga.png')} 
-                style={styles.activityImage} 
-                contentFit="cover" 
-              />
+              {activity.coverImageUrl ? (
+                <Image 
+                  source={{ uri: activity.coverImageUrl }} 
+                  style={styles.activityImage} 
+                  contentFit="cover" 
+                />
+              ) : (
+                <View style={[styles.activityImage, { backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' }]}>
+                  <MaterialCommunityIcons name="image-outline" size={32} color="#9CA3AF" />
+                </View>
+              )}
               <View style={styles.activityInfo}>
                 <View style={styles.activityHeaderRow}>
                   <Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>

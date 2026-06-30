@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,10 +15,13 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
+import * as FileSystem from 'expo-file-system';
+import { showToast } from '@/utils/toast';
 
 const CATEGORIES = [
   'Adventure',
@@ -33,24 +36,28 @@ const CATEGORIES = [
 const UpdateActivity = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
-  // Pre-filled mock data
-  const [title, setTitle] = useState('Sunrise Yoga & Meditation');
-  const [category, setCategory] = useState('Wellness & Spa');
-  const [description, setDescription] = useState(
-    'Begin your day with tranquility as the sun rises over the historic ramparts of Galle Fort. This session combines gentle Hatha yoga flows with guided mindfulness meditation, designed to rejuvenate...'
-  );
-  const [difficulty, setDifficulty] = useState<'easy' | 'moderate' | 'hard'>('easy');
-  const [startTime, setStartTime] = useState('06:00 AM');
-  const [endTime, setEndTime] = useState('07:30 AM');
-  const [location, setLocation] = useState('Galle Fort Deck');
-  const [price, setPrice] = useState('3500');
-  const [participants, setParticipants] = useState('20');
-  const [coverImageUrl, setCoverImageUrl] = useState('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80');
-
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
+
+  // Form states
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('Wellness & Spa');
+  const [description, setDescription] = useState('');
+  const [difficulty, setDifficulty] = useState<'easy' | 'moderate' | 'hard'>('easy');
+  const [startTime, setStartTime] = useState('09:00 AM');
+  const [endTime, setEndTime] = useState('10:00 AM');
+  const [location, setLocation] = useState('');
+  const [price, setPrice] = useState('');
+  const [participants, setParticipants] = useState('');
   
+  // Existing cover image from DB
+  const [existingCoverImageUrl, setExistingCoverImageUrl] = useState('');
+  // New selected cover image
+  const [coverImage, setCoverImage] = useState<{ uri: string, base64: string } | null>(null);
+
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isTimeModalVisible, setTimeModalVisible] = useState(false);
   const [timeSelectorMode, setTimeSelectorMode] = useState<'start' | 'end'>('start');
 
@@ -63,27 +70,163 @@ const UpdateActivity = () => {
     return `${formattedHours}:${minutes} ${ampm}`;
   });
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
+  useEffect(() => {
+    if (!id) {
+      showToast.error('Activity ID missing', 'Error');
+      router.back();
+      return;
+    }
+    fetchActivityDetails();
+  }, [id]);
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setCoverImageUrl(result.assets[0].uri);
+  const fetchActivityDetails = async () => {
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+      
+      if (!accessToken) return;
+
+      const res = await fetch(`${apiUrl}/activities/list/${id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setTitle(data.name || '');
+        setCategory(data.category || 'Adventure');
+        setDescription(data.description || '');
+        setDifficulty(data.difficulty || 'easy');
+        setStartTime(data.startTime || '09:00 AM');
+        setEndTime(data.endTime || '10:00 AM');
+        setLocation(data.location || '');
+        setPrice(data.price ? data.price.toString() : '');
+        setParticipants(data.maxParticipants ? data.maxParticipants.toString() : '');
+        setExistingCoverImageUrl(data.coverImageUrl || '');
+      } else {
+        showToast.error('Failed to load activity data', 'Error');
+      }
+    } catch (error) {
+      console.error('Error fetching activity details:', error);
+      showToast.error('Network error', 'Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        let base64 = result.assets[0].base64;
+        if (!base64) {
+          base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, { encoding: 'base64' });
+        }
+        setCoverImage({
+          uri: result.assets[0].uri,
+          base64: base64 || '',
+        });
+      }
+    } catch (e) {
+      showToast.error('Failed to process image');
+      console.error(e);
     }
   };
 
   const handleUpdate = async () => {
-    // Simulated update action
+    if (!title.trim()) {
+      showToast.error('Please enter an activity title', 'Missing Title');
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const accessToken = await SecureStore.getItemAsync('authToken');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+      if (!accessToken) {
+        showToast.error('Please log in again', 'Not Authenticated');
+        return;
+      }
+
+      let finalImageUrl = existingCoverImageUrl;
+      if (coverImage?.base64) {
+        try {
+          const uploadRes = await fetch(`${apiUrl}/activities/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ base64: coverImage.base64, mimeType: 'image/jpeg' }),
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            finalImageUrl = uploadData.url || finalImageUrl;
+          } else {
+            showToast.error('Failed to upload image to server');
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (uploadErr) {
+          console.error('Image upload failed (network):', uploadErr);
+          showToast.error('Network error during image upload');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const res = await fetch(`${apiUrl}/activities/list/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: title.trim(),
+          category,
+          description: description.trim(),
+          difficulty,
+          startTime,
+          endTime,
+          location: location.trim(),
+          price: price ? Number(price) : 0,
+          maxParticipants: participants ? Number(participants) : 20,
+          coverImageUrl: finalImageUrl,
+        }),
+      });
+
+      if (res.ok) {
+        showToast.success('Activity updated successfully!', 'Success');
+        router.back();
+      } else {
+        const errorData = await res.text().catch(() => 'Unknown error');
+        console.error('Update activity failed:', res.status, errorData);
+        showToast.error('Failed to update activity.', 'Error');
+      }
+    } catch (error) {
+      console.error('Update activity error:', error);
+      showToast.error('Network error. Please check your connection.', 'Error');
+    } finally {
       setIsSubmitting(false);
-      router.back();
-    }, 1500);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#0E5E2F" />
+      </View>
+    );
+  }
+
+  const displayImageUri = coverImage?.uri || existingCoverImageUrl;
 
   return (
     <View style={styles.container}>
@@ -128,9 +271,9 @@ const UpdateActivity = () => {
 
               <Text style={styles.inputLabel}>Cover Photo</Text>
               <TouchableOpacity style={styles.imagePickerCard} onPress={pickImage} activeOpacity={0.8}>
-                {coverImageUrl ? (
+                {displayImageUri ? (
                   <>
-                    <Image source={{ uri: coverImageUrl }} style={styles.previewImage} contentFit="cover" />
+                    <Image source={{ uri: displayImageUri }} style={styles.previewImage} contentFit="cover" />
                     <View style={styles.editPhotoOverlay}>
                       <Feather name="edit-2" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
                       <Text style={styles.editPhotoText}>Edit Photo</Text>

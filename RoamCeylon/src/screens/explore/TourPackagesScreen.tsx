@@ -27,7 +27,7 @@ export default function TourPackagesScreen() {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
       const res = await fetch(`${apiUrl}/public-tours/packages`);
       if (res.ok) {
         const data = await res.json();

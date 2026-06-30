@@ -16,7 +16,7 @@ let cachedNotifications: Notification[] = [];
 let cachedUnreadCount: number = 0;
 let cachedError: string | null = null;
 
-const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://192.168.222.107:3001';
+const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
 const getHeaders = async () => {
   const token = await SecureStore.getItemAsync('authToken');

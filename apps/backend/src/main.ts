@@ -55,7 +55,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   logger.log(`\n🚀 Server is running on http://localhost:${port}`);
-  logger.log(`📱 Mobile access: http://192.168.222.107:${port}\n`);
+  logger.log(`📱 Mobile access: http://192.168.8.198:${port}\n`);
 }
 
 // ── Unhandled rejection / exception guards ────────────────────────────────────

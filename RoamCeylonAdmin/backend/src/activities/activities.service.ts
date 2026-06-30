@@ -199,6 +199,7 @@ export class ActivitiesService {
     const subdomain = process.env.NHOST_SUBDOMAIN || 'qfgzcxodwisrwyduyocq';
     const region = process.env.NHOST_REGION || 'ap-southeast-1';
     const adminSecret = process.env.NHOST_ADMIN_SECRET;
+    this.logger.log(`NHOST_ADMIN_SECRET is: ${adminSecret ? 'SET' : 'NOT SET'}`);
     const storageUrl = `https://${subdomain}.storage.${region}.nhost.run/v1/files`;
 
     const buffer = Buffer.from(base64, 'base64');
