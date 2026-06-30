@@ -83,7 +83,7 @@ const Insights = () => {
         try {
           setLoading(true);
           const token = await SecureStore.getItemAsync('authToken');
-          const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
           if (!token) return;
 
           const res = await fetch(`${apiUrl}/tour-guide/insights`, {

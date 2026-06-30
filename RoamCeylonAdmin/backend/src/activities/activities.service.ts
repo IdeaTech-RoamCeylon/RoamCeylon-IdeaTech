@@ -206,7 +206,7 @@ export class ActivitiesService {
     const blob = new Blob([buffer], { type: mimeType });
 
     const formData = new FormData();
-    formData.append('bucket-id', 'Tours');
+    formData.append('bucket-id', 'Activities');
     formData.append('file[]', blob, `activity_${Date.now()}.jpg`);
 
     const headers: Record<string, string> = {};
