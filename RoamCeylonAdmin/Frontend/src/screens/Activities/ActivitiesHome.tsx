@@ -63,7 +63,27 @@ const ActivitiesHome = () => {
       const scheduleRes = await fetch(`${apiUrl}/activities/schedule`, { headers });
       if (scheduleRes.ok) {
         const sched = await scheduleRes.json();
-        setScheduledBookings(sched.slice(0, 3));
+        
+        const bookingsList = (sched.bookings || []).map((b: any) => ({
+          ...b,
+          type: 'booking',
+          sortDate: b.scheduledDate,
+        }));
+        
+        const actsList = (sched.upcomingActivities || []).map((a: any) => ({
+          id: 'act_' + a.id,
+          activity: a,
+          type: 'activity',
+          status: 'upcoming',
+          scheduledDate: a.date,
+          sortDate: a.date,
+        }));
+        
+        const combined = [...bookingsList, ...actsList]
+          .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime())
+          .slice(0, 5);
+          
+        setScheduledBookings(combined);
       }
     } catch (error) {
       console.error('Failed to fetch activity dashboard data:', error);
@@ -190,47 +210,124 @@ const ActivitiesHome = () => {
           <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
         ) : activitiesList.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="ticket-outline" size={48} color="#9CA3AF" />
+            <View style={styles.emptyIconCircle}>
+              <MaterialCommunityIcons name="hiking" size={36} color="#0E5E2F" />
+            </View>
             <Text style={styles.emptyTitle}>No activities yet</Text>
-            <Text style={styles.emptySubtitle}>Tap the + button to create your first activity</Text>
+            <Text style={styles.emptySubtitle}>Create your first activity to start{'\n'}managing bookings and schedules</Text>
+            <TouchableOpacity 
+              style={styles.emptyButton}
+              activeOpacity={0.8}
+              onPress={() => router.push('/activities/new' as any)}
+            >
+              <Feather name="plus" size={16} color="#FFFFFF" />
+              <Text style={styles.emptyButtonText}>Create Activity</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           activitiesList.map((activity) => {
             const statusInfo = getStatusStyle(activity.status);
+            const formattedPrice = activity.price > 0 
+              ? `LKR ${Number(activity.price).toLocaleString()}` 
+              : 'Free';
             return (
               <TouchableOpacity 
                 key={activity.id}
                 style={styles.activityCard}
-                activeOpacity={0.9}
+                activeOpacity={0.95}
                 onPress={() => router.push({ pathname: '/activities/update', params: { id: activity.id } } as any)}
               >
-                {activity.coverImageUrl ? (
-                  <Image 
-                    source={{ uri: activity.coverImageUrl }} 
-                    style={styles.activityImage} 
-                    contentFit="cover" 
+                {/* Image Section */}
+                <View style={styles.cardImageContainer}>
+                  {activity.coverImageUrl ? (
+                    <Image 
+                      source={{ uri: activity.coverImageUrl }} 
+                      style={styles.activityImage} 
+                      contentFit="cover" 
+                      transition={200}
+                    />
+                  ) : (
+                    <LinearGradient
+                      colors={['#E8F5E9', '#C8E6C9']}
+                      style={[styles.activityImage, styles.activityImagePlaceholder]}
+                    >
+                      <MaterialCommunityIcons name="image-area" size={30} color="#81C784" />
+                    </LinearGradient>
+                  )}
+                  {/* Gradient overlay for contrast */}
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.25)', 'transparent', 'rgba(0,0,0,0.4)']}
+                    locations={[0, 0.4, 1]}
+                    style={styles.imageOverlay}
                   />
-                ) : (
-                  <View style={[styles.activityImage, { backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' }]}>
-                    <MaterialCommunityIcons name="image-outline" size={32} color="#9CA3AF" />
+                  {/* Status pill */}
+                  <View style={[styles.statusBadge, statusInfo.badge]}>
+                    <View style={[styles.statusDot, { backgroundColor: statusInfo.text.color }]} />
+                    <Text style={[styles.statusText, statusInfo.text]}>{statusInfo.label}</Text>
                   </View>
-                )}
-                <View style={styles.activityInfo}>
-                  <View style={styles.activityHeaderRow}>
-                    <Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
-                    <View style={[styles.statusBadge, statusInfo.badge]}>
-                      <Text style={[styles.statusText, statusInfo.text]}>{statusInfo.label}</Text>
+                  {/* Bottom image info */}
+                  <View style={styles.imageBottomRow}>
+                    <View style={styles.imageBadge}>
+                      <MaterialCommunityIcons 
+                        name={activity.difficulty === 'hard' ? 'fire' : activity.difficulty === 'medium' ? 'signal-cellular-2' : 'leaf'} 
+                        size={11} 
+                        color="#FFFFFF" 
+                      />
+                      <Text style={styles.imageBadgeText}>
+                        {(activity.difficulty || 'easy').charAt(0).toUpperCase() + (activity.difficulty || 'easy').slice(1)}
+                      </Text>
+                    </View>
+                    {activity._count?.bookings > 0 && (
+                      <View style={styles.imageBadge}>
+                        <Ionicons name="people" size={11} color="#FFFFFF" />
+                        <Text style={styles.imageBadgeText}>{activity._count.bookings} booked</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* Content Section */}
+                <View style={styles.cardContent}>
+                  <View style={styles.cardTopRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
+                      <View style={styles.categoryRow}>
+                        <View style={styles.categoryDot} />
+                        <Text style={styles.categoryText}>{activity.category}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.priceText}>{formattedPrice}</Text>
+                      {activity.price > 0 && <Text style={styles.priceUnit}>/person</Text>}
                     </View>
                   </View>
-                  <Text style={styles.activityCategory} numberOfLines={1}>
-                    {activity.category} • {activity.startTime && activity.endTime ? `${activity.startTime} - ${activity.endTime}` : activity.difficulty}
-                  </Text>
-                  <View style={styles.activityFooter}>
-                    <View style={styles.activityFooterItem}>
-                      <Ionicons name="location-outline" size={14} color="#6B7280" />
-                      <Text style={styles.activityFooterText} numberOfLines={1}>{activity.location || 'No location'}</Text>
+
+                  <View style={styles.cardDivider} />
+
+                  <View style={styles.cardBottomRow}>
+                    <View style={styles.infoItem}>
+                      <Ionicons name="location-outline" size={13} color="#6B7280" />
+                      <Text style={styles.infoItemText} numberOfLines={1}>{activity.location || 'No location set'}</Text>
                     </View>
-                    <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                    <View style={styles.infoItem}>
+                      <Ionicons name="time-outline" size={13} color="#6B7280" />
+                      <Text style={styles.infoItemText}>
+                        {activity.startTime && activity.endTime 
+                          ? `${activity.startTime} – ${activity.endTime}` 
+                          : 'Flexible timing'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardActionRow}>
+                    <View style={styles.participantsChip}>
+                      <Ionicons name="people-outline" size={13} color="#0E5E2F" />
+                      <Text style={styles.participantsText}>{activity.maxParticipants || 20} spots</Text>
+                    </View>
+                    <View style={styles.editHint}>
+                      <Text style={styles.editHintText}>Edit</Text>
+                      <Feather name="chevron-right" size={14} color="#0E5E2F" />
+                    </View>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -247,35 +344,64 @@ const ActivitiesHome = () => {
         ) : scheduledBookings.length === 0 ? (
           <Text style={{ textAlign: 'center', margin: 20, color: '#6B7280' }}>No upcoming bookings.</Text>
         ) : (
-          scheduledBookings.map((booking) => {
-            const dateObj = new Date(booking.scheduledDate);
+          scheduledBookings.map((item) => {
+            const dateObj = new Date(item.scheduledDate);
             const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const isConfirmed = booking.status === 'confirmed';
+            const isBooking = item.type === 'booking';
+            const isConfirmed = item.status === 'confirmed';
+            
             return (
               <TouchableOpacity 
-                key={booking.id}
-                style={[styles.bookingsCardContainer, { marginBottom: 12 }]} 
+                key={item.id}
+                style={styles.scheduleCard} 
                 activeOpacity={0.7}
               >
-                <View style={styles.bookingRow}>
-                  <View style={styles.bookingLeft}>
-                    <Text style={styles.bookingMainText}>
-                      {booking.activity?.name || 'Activity'}
-                    </Text>
-                    <Text style={styles.bookingDateText}>
-                      {booking.activity?.location || ''} • {booking.activity?.startTime || ''} ({formattedDate})
+                <View style={styles.scheduleIconWrap}>
+                  <Ionicons name={isBooking ? "ticket-outline" : "calendar-outline"} size={22} color="#0E5E2F" />
+                </View>
+                
+                <View style={styles.scheduleContent}>
+                  <Text style={styles.scheduleTitle} numberOfLines={1}>
+                    {item.activity?.name || 'Activity'}
+                  </Text>
+                  
+                  <View style={styles.scheduleInfoRow}>
+                    <Ionicons name="time-outline" size={12} color="#6B7280" />
+                    <Text style={styles.scheduleInfoText}>
+                      {formattedDate} • {item.activity?.startTime || ''}
                     </Text>
                   </View>
-                  <View style={styles.bookingRight}>
-                    <Text style={styles.bookingAmount}>
-                      {booking.guests}/{booking.activity?.maxParticipants || 20} Booked
+                  
+                  <View style={styles.scheduleInfoRow}>
+                    <Ionicons name="location-outline" size={12} color="#6B7280" />
+                    <Text style={styles.scheduleInfoText} numberOfLines={1}>
+                      {item.activity?.location || 'No location specified'}
                     </Text>
-                    <View style={[styles.pillBadge, isConfirmed ? styles.pillBadgeSuccess : styles.pillBadgeWarning, { marginTop: 6, alignSelf: 'flex-end' }]}>
-                      <Text style={[styles.pillBadgeText, isConfirmed ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText]}>
-                        {booking.status === 'confirmed' ? 'Confirmed' : 'Pending'}
-                      </Text>
-                    </View>
                   </View>
+                </View>
+                
+                <View style={styles.scheduleRight}>
+                  <View style={[
+                    styles.scheduleStatusBadge, 
+                    isConfirmed ? styles.badgeSuccess : (isBooking ? styles.badgeWarning : styles.badgeNeutral)
+                  ]}>
+                    <Text style={[
+                      styles.scheduleStatusText, 
+                      isConfirmed ? styles.badgeSuccessText : (isBooking ? styles.badgeWarningText : styles.badgeNeutralText)
+                    ]}>
+                      {isBooking ? (isConfirmed ? 'Confirmed' : 'Pending') : 'Upcoming'}
+                    </Text>
+                  </View>
+                  
+                  {isBooking ? (
+                    <Text style={styles.scheduleSpots}>
+                      {item.guests}/{item.activity?.maxParticipants || 20} spots
+                    </Text>
+                  ) : (
+                    <Text style={styles.scheduleSpotsEmpty}>
+                      No bookings
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -446,167 +572,298 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#172B1E',
-    marginTop: 12,
+    color: '#1C1917',
+    marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
-    marginTop: 4,
+    color: '#6B7280',
     textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0E5E2F',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 8,
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   activityCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    marginBottom: 20,
-    flexDirection: 'row',
-    padding: 12,
-    shadowColor: '#000',
+    borderRadius: 18,
+    marginBottom: 16,
+    shadowColor: '#0E5E2F',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.06,
     shadowRadius: 12,
-    elevation: 2,
+    elevation: 3,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F9FAFB',
+    borderColor: '#F0F3F1',
+  },
+  cardImageContainer: {
+    position: 'relative',
+    height: 148,
   },
   activityImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 16,
+    width: '100%',
+    height: '100%',
   },
-  activityInfo: {
-    flex: 1,
-    marginLeft: 16,
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  activityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 2,
-  },
-  activityName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1C1917',
-    flex: 1,
-    marginRight: 8,
-  },
-  activityCategory: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusActive: { backgroundColor: '#ECFDF5' },
-  statusInactive: { backgroundColor: '#FEF2F2' },
-  statusDraft: { backgroundColor: '#F3F4F6' },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statusTextActive: { color: '#059669' },
-  statusTextInactive: { color: '#DC2626' },
-  statusTextDraft: { color: '#4B5563' },
-  activityFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    paddingTop: 8,
-  },
-  activityFooterItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  activityFooterText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  bookingsCardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#EAEFEA',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  bookingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  bookingLeft: {
-    flex: 1,
-    marginRight: 10,
-  },
-  bookingMainText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  bookingDateText: {
-    fontSize: 11,
-    color: '#8A958E',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  bookingRight: {
-    alignItems: 'flex-end',
-  },
-  bookingAmount: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  pillBadge: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  activityImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pillBadgeSuccess: {
-    backgroundColor: '#EAF7EE',
-    borderWidth: 0.5,
-    borderColor: '#C2F3D0',
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
-  pillBadgeWarning: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 0.5,
-    borderColor: '#FEF3C7',
+  statusBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 5,
   },
-  pillBadgeText: {
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusActive: { backgroundColor: 'rgba(255, 255, 255, 0.92)' },
+  statusInactive: { backgroundColor: 'rgba(255, 255, 255, 0.92)' },
+  statusDraft: { backgroundColor: 'rgba(255, 255, 255, 0.92)' },
+  statusText: {
     fontSize: 10,
     fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  pillBadgeSuccessText: {
+  statusTextActive: { color: '#059669' },
+  statusTextInactive: { color: '#DC2626' },
+  statusTextDraft: { color: '#6B7280' },
+  imageBottomRow: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  imageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  imageBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cardContent: {
+    padding: 14,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  activityName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1C1917',
+    letterSpacing: -0.3,
+    marginBottom: 3,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  categoryDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#0E5E2F',
+  },
+  categoryText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+    marginLeft: 12,
+  },
+  priceText: {
+    fontSize: 15,
+    fontWeight: '800',
     color: '#0E5E2F',
   },
-  pillBadgeWarningText: {
-    color: '#D97706',
+  priceUnit: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 10,
+  },
+  cardBottomRow: {
+    gap: 6,
+    marginBottom: 10,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  infoItemText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  cardActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  participantsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 5,
+  },
+  participantsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0E5E2F',
+  },
+  editHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  editHintText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0E5E2F',
+  },
+  scheduleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    marginBottom: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  scheduleIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  scheduleContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  scheduleTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  scheduleInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  scheduleInfoText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  scheduleRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  scheduleStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  scheduleStatusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  badgeSuccess: { backgroundColor: '#ECFDF5' },
+  badgeSuccessText: { color: '#059669' },
+  badgeWarning: { backgroundColor: '#FFFBEB' },
+  badgeWarningText: { color: '#D97706' },
+  badgeNeutral: { backgroundColor: '#F3F4F6' },
+  badgeNeutralText: { color: '#4B5563' },
+  scheduleSpots: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0E5E2F',
+  },
+  scheduleSpotsEmpty: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
   fab: {
     position: 'absolute',

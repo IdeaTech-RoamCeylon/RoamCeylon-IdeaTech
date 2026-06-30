@@ -21,6 +21,10 @@ export class CreateActivityDto {
 
   @IsOptional()
   @IsString()
+  date?: string;
+
+  @IsOptional()
+  @IsString()
   startTime?: string;
 
   @IsOptional()

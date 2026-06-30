@@ -91,6 +91,7 @@ export class ActivitiesService {
         startTime: dto.startTime ?? '',
         endTime: dto.endTime ?? '',
         location: dto.location ?? '',
+        date: dto.date ? new Date(dto.date) : null,
         price: dto.price ?? 0,
         maxParticipants: dto.maxParticipants ?? 20,
         status,
@@ -125,6 +126,7 @@ export class ActivitiesService {
         startTime: dto.startTime ?? existing.startTime,
         endTime: dto.endTime ?? existing.endTime,
         location: dto.location ?? existing.location,
+        date: dto.date !== undefined ? (dto.date ? new Date(dto.date) : null) : existing.date,
         price: dto.price ?? existing.price,
         maxParticipants: dto.maxParticipants ?? existing.maxParticipants,
         status: dto.status ?? existing.status,
@@ -165,7 +167,7 @@ export class ActivitiesService {
   // ══════════════════════════════════════════════════════════════════════════
 
   async findUpcomingSchedule(providerId: string) {
-    return this.prisma.activityBooking.findMany({
+    const bookings = await this.prisma.activityBooking.findMany({
       where: {
         providerId,
         status: { in: ['pending', 'confirmed'] },
@@ -185,6 +187,18 @@ export class ActivitiesService {
         },
       },
     });
+
+    const upcomingActivities = await this.prisma.activity.findMany({
+      where: {
+        providerId,
+        status: 'active',
+        date: { gte: new Date() },
+      },
+      orderBy: { date: 'asc' },
+      take: 10,
+    });
+
+    return { bookings, upcomingActivities };
   }
 
   // ══════════════════════════════════════════════════════════════════════════

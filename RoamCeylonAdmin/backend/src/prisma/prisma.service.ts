@@ -15,6 +15,24 @@ export class PrismaService
 
   async onModuleInit() {
     await this.connectWithRetry();
+
+    // Auto-reconnect middleware: if any query fails with P1001 (DB unreachable),
+    // reconnect and retry once. This handles the Nhost free-tier DB going to sleep.
+    this.$use(async (params, next) => {
+      try {
+        return await next(params);
+      } catch (error: any) {
+        if (error?.code === 'P1001' || error?.code === 'P1017') {
+          this.logger.warn(
+            `DB connection lost (${error.code}) during ${params.model}.${params.action} — reconnecting…`,
+          );
+          await this.$disconnect().catch(() => undefined);
+          await this.connectWithRetry(5, 2000);
+          return next(params);
+        }
+        throw error;
+      }
+    });
   }
 
   /**

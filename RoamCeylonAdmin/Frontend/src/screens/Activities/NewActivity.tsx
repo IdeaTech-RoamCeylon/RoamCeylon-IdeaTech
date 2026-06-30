@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { showToast } from '@/utils/toast';
 
 const CATEGORIES = [
@@ -46,6 +47,8 @@ const NewActivity = () => {
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
   const [participants, setParticipants] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [coverImage, setCoverImage] = useState<{ uri: string, base64: string } | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -145,6 +148,7 @@ const NewActivity = () => {
           category,
           description: description.trim(),
           difficulty,
+          date: date.toISOString(),
           startTime,
           endTime,
           location: location.trim(),
@@ -351,6 +355,32 @@ const NewActivity = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Scheduled Date</Text>
+                <TouchableOpacity 
+                  style={styles.iconInputBox}
+                  activeOpacity={0.8}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Feather name="calendar" size={20} color="#60646C" style={{ marginRight: 8 }} />
+                  <Text style={[styles.iconTextInput, { paddingTop: 18 }]}>
+                    {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(Platform.OS === 'ios');
+                      if (selectedDate) setDate(selectedDate);
+                    }}
+                  />
+                )}
               </View>
 
               {/* Start & End Time Row */}

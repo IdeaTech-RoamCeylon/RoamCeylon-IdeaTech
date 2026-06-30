@@ -12,6 +12,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { showToast } from '@/utils/toast';
 
 const CATEGORIES = [
@@ -40,6 +42,7 @@ const UpdateActivity = () => {
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -51,6 +54,8 @@ const UpdateActivity = () => {
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
   const [participants, setParticipants] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   
   // Existing cover image from DB
   const [existingCoverImageUrl, setExistingCoverImageUrl] = useState('');
@@ -96,6 +101,7 @@ const UpdateActivity = () => {
         setCategory(data.category || 'Adventure');
         setDescription(data.description || '');
         setDifficulty(data.difficulty || 'easy');
+        if (data.date) setDate(new Date(data.date));
         setStartTime(data.startTime || '09:00 AM');
         setEndTime(data.endTime || '10:00 AM');
         setLocation(data.location || '');
@@ -193,6 +199,7 @@ const UpdateActivity = () => {
           category,
           description: description.trim(),
           difficulty,
+          date: date.toISOString(),
           startTime,
           endTime,
           location: location.trim(),
@@ -216,6 +223,49 @@ const UpdateActivity = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Activity',
+      'Are you sure you want to delete this activity? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+              const accessToken = await SecureStore.getItemAsync('authToken');
+              const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+              
+              if (!accessToken) return;
+
+              const res = await fetch(`${apiUrl}/activities/list/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              });
+
+              if (res.ok) {
+                showToast.success('Activity deleted successfully!', 'Success');
+                router.back();
+              } else {
+                console.error('Delete activity failed:', res.status);
+                showToast.error('Failed to delete activity.', 'Error');
+              }
+            } catch (error) {
+              console.error('Delete activity error:', error);
+              showToast.error('Network error. Please check your connection.', 'Error');
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -416,6 +466,32 @@ const UpdateActivity = () => {
                 </View>
               </View>
 
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Scheduled Date</Text>
+                <TouchableOpacity 
+                  style={styles.iconInputBox}
+                  activeOpacity={0.8}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Feather name="calendar" size={20} color="#60646C" style={{ marginRight: 8 }} />
+                  <Text style={[styles.iconTextInput, { paddingTop: 18 }]}>
+                    {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(Platform.OS === 'ios');
+                      if (selectedDate) setDate(selectedDate);
+                    }}
+                  />
+                )}
+              </View>
+
               {/* Start & End Time Row */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
                 <View style={{ flex: 1, marginRight: 8 }}>
@@ -550,17 +626,30 @@ const UpdateActivity = () => {
                 </View>
               </View>
               
-              <View style={{ marginTop: 24, marginBottom: 10 }}>
+              <View style={{ marginTop: 24, marginBottom: 10, gap: 12 }}>
                 <TouchableOpacity 
                   style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]} 
                   activeOpacity={0.8} 
                   onPress={handleUpdate}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isDeleting}
                 >
                   {isSubmitting ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.saveButtonText}>Save Changes</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]} 
+                  activeOpacity={0.8} 
+                  onPress={handleDelete}
+                  disabled={isSubmitting || isDeleting}
+                >
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color="#EF4444" />
+                  ) : (
+                    <Text style={styles.deleteButtonText}>Delete Activity</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -622,6 +711,23 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  deleteButton: {
+    backgroundColor: '#FEF2F2',
+    height: 54,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  deleteButtonDisabled: {
+    opacity: 0.7,
+  },
+  deleteButtonText: {
+    color: '#EF4444',
     fontSize: 16,
     fontWeight: '700',
   },

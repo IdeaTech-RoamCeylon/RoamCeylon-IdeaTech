@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -133,36 +134,87 @@ const ActiveActivities = () => {
             <TouchableOpacity 
               key={activity.id}
               style={styles.activityCard}
-              activeOpacity={0.9}
+              activeOpacity={0.92}
               onPress={() => router.push({ pathname: '/activities/update', params: { id: activity.id } } as any)}
             >
-              {activity.coverImageUrl ? (
-                <Image 
-                  source={{ uri: activity.coverImageUrl }} 
-                  style={styles.activityImage} 
-                  contentFit="cover" 
+              {/* Cover Image with Overlay */}
+              <View style={styles.cardImageContainer}>
+                {activity.coverImageUrl ? (
+                  <Image 
+                    source={{ uri: activity.coverImageUrl }} 
+                    style={styles.activityImage} 
+                    contentFit="cover" 
+                    transition={300}
+                  />
+                ) : (
+                  <View style={[styles.activityImage, styles.activityImagePlaceholder]}>
+                    <View style={styles.placeholderIconWrap}>
+                      <MaterialCommunityIcons name="image-plus" size={28} color="#9CA3AF" />
+                    </View>
+                    <Text style={styles.placeholderText}>No cover photo</Text>
+                  </View>
+                )}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.5)']}
+                  style={styles.imageOverlay}
                 />
-              ) : (
-                <View style={[styles.activityImage, { backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' }]}>
-                  <MaterialCommunityIcons name="image-outline" size={32} color="#9CA3AF" />
+                {/* Status Badge */}
+                <View style={[styles.statusBadge, activity.status === 'active' ? styles.statusActive : styles.statusDraft]}>
+                  <View style={[styles.statusDot, { backgroundColor: activity.status === 'active' ? '#059669' : '#4B5563' }]} />
+                  <Text style={[styles.statusText, activity.status === 'active' ? styles.statusTextActive : styles.statusTextDraft]}>
+                    {activity.status === 'active' ? 'Active' : activity.status === 'draft' ? 'Draft' : 'Inactive'}
+                  </Text>
                 </View>
-              )}
-              <View style={styles.activityInfo}>
-                <View style={styles.activityHeaderRow}>
+                {/* Price Tag */}
+                {activity.price > 0 && (
+                  <View style={styles.priceTag}>
+                    <Text style={styles.priceText}>${Number(activity.price).toFixed(0)}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Card Content */}
+              <View style={styles.cardContent}>
+                <View style={styles.cardTopRow}>
                   <Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
-                  <View style={[styles.statusBadge, activity.status === 'active' ? styles.statusActive : styles.statusDraft]}>
-                    <Text style={[styles.statusText, activity.status === 'active' ? styles.statusTextActive : styles.statusTextDraft]}>
-                      {activity.status === 'active' ? 'Active' : activity.status === 'draft' ? 'Draft' : 'Inactive'}
+                  <View style={styles.difficultyBadge}>
+                    <MaterialCommunityIcons 
+                      name={activity.difficulty === 'hard' ? 'fire' : activity.difficulty === 'medium' ? 'trending-up' : 'leaf'} 
+                      size={12} 
+                      color={activity.difficulty === 'hard' ? '#EF4444' : activity.difficulty === 'medium' ? '#F59E0B' : '#10B981'} 
+                    />
+                    <Text style={[styles.difficultyText, { 
+                      color: activity.difficulty === 'hard' ? '#EF4444' : activity.difficulty === 'medium' ? '#F59E0B' : '#10B981' 
+                    }]}>
+                      {(activity.difficulty || 'easy').charAt(0).toUpperCase() + (activity.difficulty || 'easy').slice(1)}
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.activityCategory} numberOfLines={1}>{activity.category} • {activity.difficulty || 'Easy'}</Text>
-                <View style={styles.activityFooter}>
-                  <View style={styles.activityFooterItem}>
-                    <Ionicons name="location-outline" size={14} color="#6B7280" />
-                    <Text style={styles.activityFooterText} numberOfLines={1}>{activity.location || 'No location'}</Text>
+
+                <View style={styles.categoryRow}>
+                  <Ionicons name="pricetag-outline" size={13} color="#6B7280" />
+                  <Text style={styles.categoryText}>{activity.category}</Text>
+                </View>
+
+                <View style={styles.cardDivider} />
+
+                <View style={styles.cardBottomRow}>
+                  <View style={styles.infoChip}>
+                    <Ionicons name="location-outline" size={14} color="#0E5E2F" />
+                    <Text style={styles.infoChipText} numberOfLines={1}>{activity.location || 'No location'}</Text>
                   </View>
-                  <Feather name="chevron-right" size={20} color="#D1D5DB" />
+                  <View style={styles.infoChip}>
+                    <Ionicons name="time-outline" size={14} color="#0E5E2F" />
+                    <Text style={styles.infoChipText}>
+                      {activity.startTime && activity.endTime 
+                        ? `${activity.startTime} - ${activity.endTime}` 
+                        : 'Flexible'}
+                    </Text>
+                  </View>
+                  <View style={styles.infoChip}>
+                    <Ionicons name="people-outline" size={14} color="#0E5E2F" />
+                    <Text style={styles.infoChipText}>{activity.maxParticipants || 20} max</Text>
+                  </View>
                 </View>
               </View>
             </TouchableOpacity>
@@ -285,57 +337,77 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   activityCard: {
-    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 12,
+    borderRadius: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F0F3F1',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  cardImageContainer: {
+    position: 'relative',
+    height: 160,
   },
   activityImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 16,
+    width: '100%',
+    height: '100%',
   },
-  activityInfo: {
-    flex: 1,
-    marginLeft: 16,
+  activityImagePlaceholder: {
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  activityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
+  placeholderIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  activityName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1C1917',
-    flex: 1,
-    marginRight: 8,
-    letterSpacing: -0.2,
+  placeholderText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 5,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusActive: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: 'rgba(236, 253, 245, 0.95)',
   },
   statusDraft: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(243, 244, 246, 0.95)',
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   statusTextActive: {
     color: '#059669',
@@ -343,28 +415,86 @@ const styles = StyleSheet.create({
   statusTextDraft: {
     color: '#4B5563',
   },
-  activityCategory: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-    marginBottom: 10,
+  priceTag: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(15, 61, 38, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  activityFooter: {
+  priceText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  cardContent: {
+    padding: 16,
+  },
+  cardTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  activityFooterItem: {
+  activityName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1C1917',
+    flex: 1,
+    marginRight: 10,
+    letterSpacing: -0.3,
+  },
+  difficultyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
   },
-  activityFooterText: {
+  difficultyText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 12,
+  },
+  categoryText: {
     fontSize: 13,
     color: '#6B7280',
-    marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 12,
+  },
+  cardBottomRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  infoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+  },
+  infoChipText: {
+    fontSize: 11,
+    color: '#374151',
+    fontWeight: '600',
   },
 });
 
 export default ActiveActivities;
+
