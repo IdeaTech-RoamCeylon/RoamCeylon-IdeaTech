@@ -11,8 +11,9 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MainStackParamList } from '../../types/navigation.types';
 import { CONFIG } from '../../config';
 
 interface Activity {
@@ -27,7 +28,7 @@ interface Activity {
 }
 
 const ActivitiesScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<MainStackParamList>>();
   const insets = useSafeAreaInsets();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +68,12 @@ const ActivitiesScreen = () => {
     const imageUrl = activity.coverImageUrl || 'https://via.placeholder.com/400x200?text=No+Image';
 
     return (
-      <TouchableOpacity key={activity.id} style={styles.card} activeOpacity={0.9}>
+      <TouchableOpacity 
+        key={activity.id} 
+        style={styles.card} 
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('ActivityDetails', { activity })}
+      >
         <View style={styles.imageContainer}>
           <Image source={{ uri: imageUrl }} style={styles.cardImage} resizeMode="cover" />
           <View style={styles.categoryBadge}>

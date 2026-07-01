@@ -17,6 +17,7 @@ export type MainStackParamList = {
   Home: undefined;
   Explore: undefined;
   Activities: undefined;
+  ActivityDetails: { activity: any };
   TourPackages: undefined;
   TourPackageDetails: { tourPackage: any };
   TourPackageBooking: { tourPackage: any };
