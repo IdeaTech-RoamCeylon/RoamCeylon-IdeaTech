@@ -114,7 +114,7 @@ const ActivitiesHome = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Premium Header Gradient */}
@@ -138,7 +138,9 @@ const ActivitiesHome = () => {
               <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadCount}</Text>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -312,6 +314,7 @@ const ActivitiesHome = () => {
                     <View style={styles.infoItem}>
                       <Ionicons name="time-outline" size={13} color="#6B7280" />
                       <Text style={styles.infoItemText}>
+                        {activity.date ? `${new Date(activity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • ` : ''}
                         {activity.startTime && activity.endTime 
                           ? `${activity.startTime} – ${activity.endTime}` 
                           : 'Flexible timing'}
@@ -695,7 +698,7 @@ const styles = StyleSheet.create({
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 10,
   },
   activityName: {
@@ -754,6 +757,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontWeight: '500',
+    flex: 1,
   },
   cardActionRow: {
     flexDirection: 'row',
@@ -832,6 +836,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
+    flex: 1,
   },
   scheduleRight: {
     alignItems: 'flex-end',

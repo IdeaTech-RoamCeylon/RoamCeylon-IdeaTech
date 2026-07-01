@@ -23,6 +23,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { showToast } from '@/utils/toast';
 
 const CATEGORIES = [
@@ -74,6 +76,39 @@ const UpdateActivity = () => {
     const formattedHours = displayHours < 10 ? `0${displayHours}` : displayHours;
     return `${formattedHours}:${minutes} ${ampm}`;
   });
+
+  const [isMapVisible, setMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 6.9271, // Colombo default
+    longitude: 79.8612,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [markerCoordinate, setMarkerCoordinate] = useState<{latitude: number, longitude: number} | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  const handleMapPress = async (e: any) => {
+    const { coordinate } = e.nativeEvent;
+    setMarkerCoordinate(coordinate);
+    setMapRegion({ ...mapRegion, latitude: coordinate.latitude, longitude: coordinate.longitude });
+    
+    setIsGeocoding(true);
+    try {
+      const result = await Location.reverseGeocodeAsync({
+        latitude: coordinate.latitude,
+        longitude: coordinate.longitude,
+      });
+      if (result && result.length > 0) {
+        const place = result[0];
+        const addressName = [place.name, place.street, place.city, place.country].filter(Boolean).join(', ');
+        setLocation(addressName);
+      }
+    } catch (err) {
+      console.error('Reverse geocoding error:', err);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) {
@@ -469,7 +504,7 @@ const UpdateActivity = () => {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Scheduled Date</Text>
                 <TouchableOpacity 
-                  style={styles.iconInputBox}
+                  style={[styles.iconInputBox, { paddingHorizontal: 20 }]}
                   activeOpacity={0.8}
                   onPress={() => setShowDatePicker(true)}
                 >
@@ -478,18 +513,51 @@ const UpdateActivity = () => {
                     {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                   </Text>
                 </TouchableOpacity>
-                {showDatePicker && (
+                {showDatePicker && Platform.OS === 'android' && (
                   <DateTimePicker
                     value={date}
                     mode="date"
                     display="default"
                     minimumDate={new Date()}
                     onChange={(event, selectedDate) => {
-                      setShowDatePicker(Platform.OS === 'ios');
+                      setShowDatePicker(false);
                       if (selectedDate) setDate(selectedDate);
                     }}
                   />
                 )}
+                
+                <Modal
+                  visible={showDatePicker && Platform.OS === 'ios'}
+                  transparent
+                  animationType="slide"
+                  onRequestClose={() => setShowDatePicker(false)}
+                >
+                  <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
+                    <View style={styles.modalOverlay}>
+                      <TouchableWithoutFeedback>
+                        <View style={styles.modalContent}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <Text style={styles.modalTitle}>Select Date</Text>
+                            <TouchableOpacity onPress={() => setShowDatePicker(false)} style={{ padding: 4 }}>
+                              <Text style={{ color: '#0E5E2F', fontWeight: '700', fontSize: 16 }}>Done</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            value={date}
+                            mode="date"
+                            display="inline"
+                            themeVariant="light"
+                            accentColor="#10B981"
+                            minimumDate={new Date()}
+                            onChange={(event, selectedDate) => {
+                              if (selectedDate) setDate(selectedDate);
+                            }}
+                          />
+                        </View>
+                      </TouchableWithoutFeedback>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </Modal>
               </View>
 
               {/* Start & End Time Row */}
@@ -497,7 +565,7 @@ const UpdateActivity = () => {
                 <View style={{ flex: 1, marginRight: 8 }}>
                   <Text style={styles.inputLabel}>Start Time</Text>
                   <TouchableOpacity 
-                    style={styles.iconInputBox}
+                    style={[styles.iconInputBox, { paddingHorizontal: 20 }]}
                     activeOpacity={0.7}
                     onPress={() => { setTimeSelectorMode('start'); setTimeModalVisible(true); }}
                   >
@@ -508,7 +576,7 @@ const UpdateActivity = () => {
                 <View style={{ flex: 1, marginLeft: 8 }}>
                   <Text style={styles.inputLabel}>End Time</Text>
                   <TouchableOpacity 
-                    style={styles.iconInputBox}
+                    style={[styles.iconInputBox, { paddingHorizontal: 20 }]}
                     activeOpacity={0.7}
                     onPress={() => { setTimeSelectorMode('end'); setTimeModalVisible(true); }}
                   >
@@ -584,8 +652,8 @@ const UpdateActivity = () => {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Location</Text>
-                <View style={styles.iconInputBox}>
-                  <Ionicons name="location-outline" size={20} color="#60646C" style={{ marginRight: 8 }} />
+                <View style={[styles.iconInputBox, { paddingRight: 0 }]}>
+                  <Ionicons name="location-outline" size={20} color="#60646C" style={{ marginRight: 8, paddingLeft: 20 }} />
                   <TextInput
                     style={styles.iconTextInput}
                     value={location}
@@ -593,12 +661,27 @@ const UpdateActivity = () => {
                     placeholder="e.g. Galle Fort Deck"
                     placeholderTextColor="#9CA3AF"
                   />
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#0E5E2F',
+                      borderTopRightRadius: 16,
+                      borderBottomRightRadius: 16,
+                      paddingLeft: 12,
+                      paddingRight: 20,
+                      height: '100%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => setMapVisible(true)}
+                  >
+                    <Feather name="map" size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Price (LKR)</Text>
-                <View style={styles.iconInputBox}>
+                <View style={[styles.iconInputBox, { paddingHorizontal: 20 }]}>
                   <Ionicons name="cash-outline" size={20} color="#60646C" style={{ marginRight: 8 }} />
                   <TextInput
                     style={styles.iconTextInput}
@@ -613,7 +696,7 @@ const UpdateActivity = () => {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Max Participants</Text>
-                <View style={styles.iconInputBox}>
+                <View style={[styles.iconInputBox, { paddingHorizontal: 20 }]}>
                   <Ionicons name="people-outline" size={20} color="#60646C" style={{ marginRight: 8 }} />
                   <TextInput
                     style={styles.iconTextInput}
@@ -658,6 +741,92 @@ const UpdateActivity = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Map Selection Modal */}
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setMapVisible(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <LinearGradient
+            colors={['#0F3D26', '#145334', '#0E5E2F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              paddingTop: insets.top + 16,
+              paddingBottom: 24,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              zIndex: 10,
+              borderBottomLeftRadius: 32,
+              borderBottomRightRadius: 32,
+              shadowColor: '#0E5E2F',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.15,
+              shadowRadius: 10,
+              elevation: 8,
+            }}
+          >
+            <View style={{ width: 24 }} />
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', textAlign: 'center', flex: 1 }}>Select Location</Text>
+            <TouchableOpacity onPress={() => setMapVisible(false)}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <MapView
+            style={{ flex: 1 }}
+            region={mapRegion}
+            onPress={handleMapPress}
+          >
+            {markerCoordinate && (
+              <Marker coordinate={markerCoordinate} />
+            )}
+          </MapView>
+
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: '#FFFFFF',
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: insets.bottom + 20,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 10,
+            alignItems: 'center',
+          }}>
+            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8, textAlign: 'center' }}>Selected Location</Text>
+            {isGeocoding ? (
+              <ActivityIndicator size="small" color="#0E5E2F" style={{ marginBottom: 16 }} />
+            ) : (
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1C1917', marginBottom: 16, textAlign: 'center' }}>
+                {location || 'Tap on the map to drop a pin'}
+              </Text>
+            )}
+            <TouchableOpacity
+              style={[styles.saveButton, { width: '100%' }]}
+              onPress={() => setMapVisible(false)}
+            >
+              <Text style={styles.saveButtonText}>Confirm Location</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };
@@ -871,7 +1040,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 16,
     height: 56,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     backgroundColor: '#F3F4F6',
   },
   iconTextInput: {
@@ -938,7 +1107,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   categoryOptionSelected: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#10B981',
     borderRadius: 16,
     paddingHorizontal: 16,
     marginHorizontal: -16,
@@ -950,7 +1119,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   categoryOptionTextSelected: {
-    color: '#059669',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

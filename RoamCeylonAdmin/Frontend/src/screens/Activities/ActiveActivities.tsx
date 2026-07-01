@@ -59,35 +59,21 @@ const ActiveActivities = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            activeOpacity={0.7}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back-outline" size={28} color="#172B1E" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Active Activities</Text>
-          </View>
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.profileButton}
-            activeOpacity={0.7}
-            onPress={() => router.push('/activities/settings' as any)}
-          >
-            <View style={styles.profilePlaceholder}>
-              <MaterialCommunityIcons name="account" size={22} color="#0E5E2F" />
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Premium Header Gradient */}
+      <LinearGradient
+        colors={['#0F3D26', '#145334', '#0E5E2F']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
+      >
+        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Active Activities</Text>
+        <View style={{ width: 44 }} />
+      </LinearGradient>
 
       {/* Search Section */}
       <View style={styles.topControlContainer}>
@@ -168,7 +154,7 @@ const ActiveActivities = () => {
                 {/* Price Tag */}
                 {activity.price > 0 && (
                   <View style={styles.priceTag}>
-                    <Text style={styles.priceText}>${Number(activity.price).toFixed(0)}</Text>
+                    <Text style={styles.priceText}>LKR {Number(activity.price).toFixed(0)}</Text>
                   </View>
                 )}
               </View>
@@ -234,53 +220,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     zIndex: 10,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-  },
-  headerTitleContainer: {
-    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    lineHeight: 24,
-    letterSpacing: -0.3,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#0E5E2F',
-    overflow: 'hidden',
-  },
-  profilePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
   },
   topControlContainer: {
     backgroundColor: '#FFFFFF',

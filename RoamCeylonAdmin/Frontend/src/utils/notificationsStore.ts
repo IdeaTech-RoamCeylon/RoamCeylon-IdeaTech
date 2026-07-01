@@ -142,7 +142,15 @@ export const useNotifications = (module?: string) => {
       });
     });
 
-    return unsubscribe;
+    // Polling for real-time updates
+    const pollInterval = setInterval(() => {
+      notificationsStore.fetchData();
+    }, 15000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(pollInterval);
+    };
   }, [module]);
 
   return {

@@ -331,10 +331,9 @@ const TourHomeScreen = () => {
           ) : (
             bookingsList.map((booking, index) => {
               const dateObj = new Date(booking.startDate);
-              const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-              const shortId = booking.id ? booking.id.substring(0, 8).toUpperCase() : 'UNKNOWN';
+              const formattedDate = `${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • ${dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
               
-              const isSuccess = booking.status === 'confirmed' || booking.status === 'completed';
+              const displayStatus = booking.status === 'pending' ? 'UPCOMING' : booking.status.toUpperCase();
               
               return (
                 <TouchableOpacity 
@@ -343,35 +342,35 @@ const TourHomeScreen = () => {
                   activeOpacity={0.7} 
                   onPress={() => setSelectedBooking(booking)}
                 >
-                  <View style={styles.bookingRow}>
-                    <View style={styles.bookingLeft}>
-                      <Text style={styles.bookingMainText}>
-                        #{shortId} • {booking.customerName}
+                  <View style={styles.bookingIconContainer}>
+                    <Ionicons name="calendar-outline" size={24} color="#0E5E2F" />
+                  </View>
+                  
+                  <View style={styles.bookingDetailsContainer}>
+                    <Text style={styles.bookingTitleText} numberOfLines={1}>
+                      {booking.tourName || booking.customerName || 'Unknown Tour'}
+                    </Text>
+                    
+                    <View style={styles.bookingInfoRow}>
+                      <Ionicons name="time-outline" size={14} color="#6B7280" />
+                      <Text style={styles.bookingInfoText}>{formattedDate}</Text>
+                    </View>
+                    
+                    <View style={styles.bookingInfoRow}>
+                      <Ionicons name="location-outline" size={14} color="#6B7280" />
+                      <Text style={styles.bookingInfoText} numberOfLines={1}>
+                        {booking.pickupLocation || '111'}
                       </Text>
-                      <Text style={styles.bookingTourText}>{booking.tourName}</Text>
-                      <Text style={styles.bookingDateText}>{formattedDate}</Text>
                     </View>
+                  </View>
 
-                    <View style={styles.bookingRight}>
-                      <Text style={styles.bookingAmount}>Rs. {booking.amount}</Text>
-                      <View
-                        style={[
-                          styles.pillBadge,
-                          isSuccess ? styles.pillBadgeSuccess : styles.pillBadgeWarning,
-                          { marginTop: 6, alignSelf: 'flex-end' },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.pillBadgeText,
-                            isSuccess ? styles.pillBadgeSuccessText : styles.pillBadgeWarningText,
-                            { textTransform: 'capitalize' }
-                          ]}
-                        >
-                          {booking.status}
-                        </Text>
-                      </View>
+                  <View style={styles.bookingRightContainer}>
+                    <View style={styles.pillBadgeUpcoming}>
+                      <Text style={styles.pillBadgeUpcomingText}>{displayStatus}</Text>
                     </View>
+                    <Text style={styles.bookingGuestsText}>
+                      {booking.guests ? `${booking.guests} bookings` : 'No bookings'}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -739,67 +738,61 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.02,
     shadowRadius: 8,
     elevation: 2,
-  },
-  bookingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  bookingLeft: {
-    flex: 1,
-    marginRight: 10,
-  },
-  bookingMainText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  bookingTourText: {
-    fontSize: 12,
-    color: '#606963',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  bookingDateText: {
-    fontSize: 11,
-    color: '#8A958E',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  bookingRight: {
-    alignItems: 'flex-end',
-  },
-  bookingAmount: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  pillBadge: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  bookingIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 14,
   },
-  pillBadgeSuccess: {
-    backgroundColor: '#EAF7EE',
-    borderWidth: 0.5,
-    borderColor: '#C2F3D0',
+  bookingDetailsContainer: {
+    flex: 1,
+    justifyContent: 'center',
   },
-  pillBadgeWarning: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 0.5,
-    borderColor: '#FEF3C7',
+  bookingTitleText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 6,
   },
-  pillBadgeText: {
+  bookingInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  bookingInfoText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  bookingRightContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  pillBadgeUpcoming: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 10,
+  },
+  pillBadgeUpcomingText: {
     fontSize: 10,
     fontWeight: '800',
+    color: '#374151',
+    letterSpacing: 0.5,
   },
-  pillBadgeSuccessText: {
-    color: '#0E5E2F',
-  },
-  pillBadgeWarningText: {
-    color: '#D97706',
+  bookingGuestsText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '600',
   },
   bookingDivider: {
     height: 1,

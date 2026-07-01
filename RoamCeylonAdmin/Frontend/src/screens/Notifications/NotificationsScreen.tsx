@@ -135,6 +135,7 @@ const NotificationsScreen = () => {
                 <Text style={{ color: '#DC2626', fontWeight: 'bold' }}>Error: {error}</Text>
               </View>
             ) : null}
+            <View style={{ height: 16 }} />
           </View>
         }
       />
