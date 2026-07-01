@@ -10,6 +10,10 @@ export interface Product {
   price: number;
   description: string;
   image: string;
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
 }
 
 export interface Category {
@@ -95,14 +99,13 @@ export class MarketplaceService {
       ? `marketplace:products:cat:${category}`
       : 'marketplace:products:all';
 
-    const cached = await this.cacheManager.get<Product[]>(cacheKey);
+    const cached = false; // Disable cache for development
     if (cached) {
       return this.wrapResponse(cached, true);
     }
 
     const shops = await this.prisma.shop.findMany({
       where: {
-        status: 'active',
         ...(category && { category }),
       },
     });
@@ -116,6 +119,10 @@ export class MarketplaceService {
       image:
         shop.coverImageUrl ||
         'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+      website: shop.website,
+      instagram: shop.instagram,
+      facebook: shop.facebook,
+      tiktok: shop.tiktok,
     }));
 
     if (sortBy === 'name') {
@@ -149,6 +156,10 @@ export class MarketplaceService {
         image:
           shop.coverImageUrl ||
           'https://images.unsplash.com/photo-1582234372722-50d7ccc30eba?w=500',
+        website: shop.website,
+        instagram: shop.instagram,
+        facebook: shop.facebook,
+        tiktok: shop.tiktok,
       };
       await this.cacheManager.set(cacheKey, product, 3600000);
     }

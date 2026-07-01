@@ -11,6 +11,7 @@ import TourPackageBookingScreen from '../screens/explore/TourPackageBookingScree
 import MarketplaceHomeScreen from '../screens/marketplace/MarketplaceHomeScreen';
 import MarketplaceCategoryScreen from '../screens/marketplace/MarketplaceCategoryScreen';
 import ProductDetailsScreen from '../screens/marketplace/ProductDetailsScreen';
+import ShopDetailsScreen from '../screens/marketplace/ShopDetailsScreen';
 import TransportScreen from '../screens/transport/TransportScreen';
 import TransportLocationPickerScreen from '../screens/transport/TransportLocationPickerScreen';
 import TransportStatusScreen from '../screens/transport/TransportStatusScreen';
@@ -45,6 +46,7 @@ const MainStack = () => {
       <Stack.Screen name="TourPackageDetails" component={TourPackageDetailsScreen} />
       <Stack.Screen name="TourPackageBooking" component={TourPackageBookingScreen} />
       <Stack.Screen name="Marketplace" component={MarketplaceHomeScreen} />
+      <Stack.Screen name="ShopDetails" component={ShopDetailsScreen} />
       <Stack.Screen name="MarketplaceCategory" component={MarketplaceCategoryScreen} />
       <Stack.Screen name="Transport" component={TransportScreen} />
       <Stack.Screen name="TransportLocationPicker" component={TransportLocationPickerScreen} />

@@ -23,6 +23,8 @@ export type MainStackParamList = {
   TourPackageBooking: { tourPackage: any };
   Marketplace: undefined;
   MarketplaceHome: undefined;
+  ShopDetails: { shop: any };
+  Alerts: undefined;
   MarketplaceCategory: {
     categoryId: string;
     categoryName: string;

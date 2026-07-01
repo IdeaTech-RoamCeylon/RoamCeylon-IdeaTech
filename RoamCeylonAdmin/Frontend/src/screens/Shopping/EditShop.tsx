@@ -125,23 +125,27 @@ const EditShop = () => {
       let finalCoverImageUrl = coverImageUrl;
       
       if (coverImageUrl && !coverImageUrl.startsWith('http')) {
-        const formData = new FormData();
-        formData.append('bucket-id', 'Shops');
-        formData.append('file', {
-          name: `shop_${Date.now()}.jpg`,
-          type: 'image/jpeg',
-          uri: coverImageUrl,
-        } as any);
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
-        const subdomain = process.env.EXPO_PUBLIC_NHOST_SUBDOMAIN;
-        const region = process.env.EXPO_PUBLIC_NHOST_REGION;
-        const storageUrl = `https://${subdomain}.storage.${region}.nhost.run/v1/files`;
-        const uploadRes = await fetch(storageUrl, {
+        const fileRes = await fetch(coverImageUrl);
+        const blob = await fileRes.blob();
+        const base64: string = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); // strip data:image/jpeg;base64, prefix
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        const uploadRes = await fetch(`${apiUrl}/shops/upload-image`, {
           method: 'POST',
-          body: formData,
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
-          }
+          },
+          body: JSON.stringify({ base64, mimeType: 'image/jpeg' }),
         });
 
         if (!uploadRes.ok) {
@@ -149,11 +153,8 @@ const EditShop = () => {
           throw new Error(`Image upload failed: ${errText}`);
         }
 
-        const data = await uploadRes.json();
-        // data could be { id: '...' } or { processedFiles: [{ id: '...' }] }
-        const fileId = data.id || data.processedFiles?.[0]?.id || data[0]?.id;
-        
-        finalCoverImageUrl = `${storageUrl}/${fileId}`;
+        const { url } = await uploadRes.json();
+        finalCoverImageUrl = url;
       }
 
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';

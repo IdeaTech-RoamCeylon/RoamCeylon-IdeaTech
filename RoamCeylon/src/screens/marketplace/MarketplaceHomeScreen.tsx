@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { MainStackParamList } from '../../types';
+import { CONFIG } from '../../config';
 
 type MarketplaceNavigationProp = StackNavigationProp<MainStackParamList, 'Marketplace'>;
 
@@ -23,65 +24,29 @@ interface MarketplaceItem {
   title: string;
   category: string;
   rating: string;
-  price: string;
-  image: ImageSourcePropType;
+  price?: string;
+  description?: string;
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  image: { uri: string } | any;
   featured?: boolean;
 }
 
-const MARKETPLACE_ITEMS: MarketplaceItem[] = [
-  {
-    id: 'tea-collection',
-    title: 'Artisan Silver Tips Tea Collection',
-    category: 'CURATION PICK',
-    rating: '4.9',
-    price: '$45.00',
-    image: require('../../assets/TEA.png'),
-    featured: true,
-  },
-  {
-    id: 'ves-muhunu-mask',
-    title: 'Vibrant Ves Muhunu Mask',
-    category: 'HANDICRAFTS',
-    rating: '4.8',
-    price: '$72.00',
-    image: require('../../assets/mask.png'),
-  },
-  {
-    id: 'cinnamon-sticks',
-    title: 'True Ceylon Cinnamon Sticks',
-    category: 'SPICES',
-    rating: '5.0',
-    price: '$18.50',
-    image: require('../../assets/cinnamon.png'),
-  },
-  {
-    id: 'ebony-elephant',
-    title: 'Handcrafted Ebony Elephant',
-    category: 'SOUVENIRS',
-    rating: '4.7',
-    price: '$120.00',
-    image: require('../../assets/elephant.png'),
-  },
-  {
-    id: 'dumbara-scarf',
-    title: 'Dumbara Weave Cotton Scarf',
-    category: 'TEXTILES',
-    rating: '4.6',
-    price: '$34.00',
-    image: require('../../assets/scarf.png'),
-  },
-];
+// Static array removed, data will be fetched dynamically.
 
 const noop = () => {};
 
 interface ProductCardProps {
   item: MarketplaceItem;
+  onPress: (item: MarketplaceItem) => void;
 }
 
-const ProductCard = React.memo<ProductCardProps>(({ item }) => {
+const ProductCard = React.memo<ProductCardProps>(({ item, onPress }) => {
   if (item.featured) {
     return (
-      <View style={styles.featuredCard}>
+      <TouchableOpacity style={styles.featuredCard} activeOpacity={0.9} onPress={() => onPress(item)}>
         <Image source={item.image} style={styles.featuredImage} resizeMode="cover" />
         <View style={styles.featuredBody}>
           <View style={styles.metaRow}>
@@ -100,12 +65,12 @@ const ProductCard = React.memo<ProductCardProps>(({ item }) => {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
   return (
-    <View style={styles.productCard}>
+    <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => onPress(item)}>
       <Image source={item.image} style={styles.productImage} resizeMode="cover" />
       <View style={styles.productBody}>
         <View style={styles.productMetaRow}>
@@ -114,13 +79,13 @@ const ProductCard = React.memo<ProductCardProps>(({ item }) => {
         </View>
         <Text style={styles.productTitle}>{item.title}</Text>
         <View style={styles.productFooter}>
-          <Text style={styles.productPrice}>{item.price}</Text>
+          <Text style={styles.productPrice}>{item.price ? item.price : ''}</Text>
           <TouchableOpacity activeOpacity={1} style={styles.cartCircle} onPress={noop}>
             <Ionicons name="cart-outline" size={18} color="#8F7400" />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
@@ -128,6 +93,41 @@ ProductCard.displayName = 'ProductCard';
 
 const MarketplaceHomeScreen = () => {
   const navigation = useNavigation<MarketplaceNavigationProp>();
+  const [items, setItems] = React.useState<MarketplaceItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchShops = async () => {
+      try {
+        const res = await fetch(`${CONFIG.API_BASE_URL}/marketplace/products`);
+        if (res.ok) {
+          const json = await res.json();
+          const fetchedData = json.data || [];
+          
+          const mappedItems: MarketplaceItem[] = fetchedData.map((shop: any, index: number) => ({
+            id: shop.id,
+            title: shop.name,
+            category: shop.category || 'SHOP',
+            rating: '4.9', // default rating for now
+            price: '', // Shops don't have generic prices
+            description: shop.description || 'Welcome to our shop! Come visit us for the best experience.',
+            website: shop.website,
+            instagram: shop.instagram,
+            facebook: shop.facebook,
+            tiktok: shop.tiktok,
+            image: { uri: shop.image || 'https://via.placeholder.com/400x200?text=No+Image' },
+            featured: index === 0, // make first one featured
+          }));
+          setItems(mappedItems);
+        }
+      } catch (err) {
+        console.error('Failed to fetch marketplace shops:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShops();
+  }, []);
 
   const handleBackToHome = useCallback(() => {
     navigation.navigate('Home');
@@ -181,9 +181,18 @@ const MarketplaceHomeScreen = () => {
         </ScrollView>
 
         <View style={styles.cardsSection}>
-          {MARKETPLACE_ITEMS.map((item) => (
-            <ProductCard key={item.id} item={item} />
+          {items.map((item) => (
+            <ProductCard 
+              key={item.id} 
+              item={item} 
+              onPress={(shopItem) => navigation.navigate('ShopDetails', { shop: shopItem })} 
+            />
           ))}
+          {items.length === 0 && !loading && (
+            <Text style={{ textAlign: 'center', color: '#888', marginTop: 40 }}>
+              No shops available right now.
+            </Text>
+          )}
         </View>
       </ScrollView>
 

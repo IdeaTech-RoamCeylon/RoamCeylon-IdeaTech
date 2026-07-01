@@ -152,7 +152,7 @@ const ShoppingHomeScreen = () => {
                 style={styles.shopCard}
                 activeOpacity={0.9}
                 onPress={() => router.push({
-                  pathname: '/shopping/[id]',
+                  pathname: '/shopping/edit',
                   params: { id: item.id }
                 } as any)}
               >
