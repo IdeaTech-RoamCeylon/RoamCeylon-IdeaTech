@@ -3,7 +3,9 @@ import { PublicActivitiesService } from './public-activities.service';
 
 @Controller('public-activities')
 export class PublicActivitiesController {
-  constructor(private readonly publicActivitiesService: PublicActivitiesService) {}
+  constructor(
+    private readonly publicActivitiesService: PublicActivitiesService,
+  ) {}
 
   @Get()
   async findAll() {

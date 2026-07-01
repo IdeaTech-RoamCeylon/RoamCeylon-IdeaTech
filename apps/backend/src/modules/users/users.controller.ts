@@ -43,7 +43,7 @@ export class UsersController {
   }
 
   @Get('me/tour-bookings')
-  getTourBookings(@Request() req: AuthenticatedRequest) {
+  getTourBookings() {
     this.logger.log('Users getTourBookings triggered (mock)');
     // Return empty array for now since TourBooking model does not exist yet
     return [];

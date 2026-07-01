@@ -107,11 +107,11 @@ export class AdminUsersService {
             this.logger.warn(
               `Unique constraint on "${failedField}" during sync — skipping field`,
             );
-            
+
             // The DB column might be 'phone' but our object key is 'phoneNumber'
             delete updateData[failedField];
             if (failedField === 'phone') delete updateData.phoneNumber;
-            
+
             if (Object.keys(updateData).length > 0) {
               return this.prisma.adminUser.update({
                 where: { id: userId },
@@ -150,10 +150,10 @@ export class AdminUsersService {
           phoneNumber: data.phoneNumber,
           role: data.role || 'hotel_manager',
         };
-        
+
         delete createData[failedField];
         if (failedField === 'phone') delete createData.phoneNumber;
-        
+
         return this.prisma.adminUser.create({ data: createData as any });
       }
       throw err;
