@@ -192,9 +192,11 @@ const HomeScreen = () => {
     useCallback(() => {
       const fetchBookings = async () => {
         try {
-          const response = await apiService.get<any[]>('/users/me/tour-bookings');
+          const response = await apiService.get<any>('/users/me/tour-bookings');
+          // Backend wraps response in { data: [...] } envelope
+          const bookings = Array.isArray(response) ? response : (response?.data || []);
           // Get the most recent pending or confirmed booking
-          const active = response.find((b: any) => b.status === 'pending' || b.status === 'confirmed');
+          const active = bookings.find((b: any) => b.status === 'pending' || b.status === 'confirmed');
           setActiveBooking(active);
         } catch (error) {
           console.error('Failed to fetch active booking:', error);

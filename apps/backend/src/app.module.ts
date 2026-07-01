@@ -24,6 +24,7 @@ import { MlModule } from './modules/ml/ml.module';
 import { HealthModule } from './modules/health/health.module';
 import { HotelModule } from './modules/hotel/hotel.module';
 import { AdminUsersModule } from './modules/admin-users/admin-users.module';
+import { PublicToursModule } from './modules/public-tours/public-tours.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminUsersModule } from './modules/admin-users/admin-users.module';
     AlertsModule,
     MlModule,
     HealthModule,
+    PublicToursModule,
   ],
   controllers: [AppController],
   providers: [

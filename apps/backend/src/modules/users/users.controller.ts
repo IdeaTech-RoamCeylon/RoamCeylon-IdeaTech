@@ -41,4 +41,11 @@ export class UsersController {
     const userId = req.user.userId;
     return this.usersService.updateProfile(userId, updateUserDto);
   }
+
+  @Get('me/tour-bookings')
+  getTourBookings(@Request() req: AuthenticatedRequest) {
+    this.logger.log('Users getTourBookings triggered (mock)');
+    // Return empty array for now since TourBooking model does not exist yet
+    return [];
+  }
 }

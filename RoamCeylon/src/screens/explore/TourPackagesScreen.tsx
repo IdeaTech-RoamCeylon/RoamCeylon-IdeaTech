@@ -30,8 +30,10 @@ export default function TourPackagesScreen() {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
       const res = await fetch(`${apiUrl}/public-tours/packages`);
       if (res.ok) {
-        const data = await res.json();
-        setPackages(data);
+        const json = await res.json();
+        // Backend wraps response in { data: [...] } envelope
+        const pkgs = Array.isArray(json) ? json : (json?.data || []);
+        setPackages(pkgs);
       }
     } catch (error) {
       console.error('Failed to fetch packages:', error);

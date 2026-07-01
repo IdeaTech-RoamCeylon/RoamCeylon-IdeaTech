@@ -94,22 +94,69 @@ export class AdminUsersService {
       if (data.role) updateData.role = data.role;
 
       if (Object.keys(updateData).length > 0) {
-        return this.prisma.adminUser.update({
-          where: { id: userId },
-          data: updateData,
-        });
+        try {
+          return await this.prisma.adminUser.update({
+            where: { id: userId },
+            data: updateData,
+          });
+        } catch (err: any) {
+          // If unique constraint fails (phone/email already taken), skip the
+          // conflicting field and retry without it
+          if (err?.code === 'P2002') {
+            const failedField = err.meta?.target?.[0];
+            this.logger.warn(
+              `Unique constraint on "${failedField}" during sync — skipping field`,
+            );
+            
+            // The DB column might be 'phone' but our object key is 'phoneNumber'
+            delete updateData[failedField];
+            if (failedField === 'phone') delete updateData.phoneNumber;
+            
+            if (Object.keys(updateData).length > 0) {
+              return this.prisma.adminUser.update({
+                where: { id: userId },
+                data: updateData,
+              });
+            }
+            return existing;
+          }
+          throw err;
+        }
       }
       return existing;
     }
 
-    return this.prisma.adminUser.create({
-      data: {
-        id: userId,
-        name: data.name,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        role: data.role || 'hotel_manager',
-      },
-    });
+    try {
+      return await this.prisma.adminUser.create({
+        data: {
+          id: userId,
+          name: data.name,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          role: data.role || 'hotel_manager',
+        },
+      });
+    } catch (err: any) {
+      // Handle duplicate phone/email on create as well
+      if (err?.code === 'P2002') {
+        const failedField = err.meta?.target?.[0];
+        this.logger.warn(
+          `Unique constraint on "${failedField}" during create — clearing field`,
+        );
+        const createData: Record<string, any> = {
+          id: userId,
+          name: data.name,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          role: data.role || 'hotel_manager',
+        };
+        
+        delete createData[failedField];
+        if (failedField === 'phone') delete createData.phoneNumber;
+        
+        return this.prisma.adminUser.create({ data: createData as any });
+      }
+      throw err;
+    }
   }
 }
