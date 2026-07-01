@@ -57,13 +57,15 @@ model User {
 }
 
 model AdminUser {
-  id          String   @id @default(uuid())
-  name        String?
-  email       String?  @unique
-  phoneNumber String?  @unique @map("phone")
-  role        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id              String   @id @default(uuid())
+  name            String?
+  email           String?  @unique
+  phoneNumber     String?  @unique @map("phone")
+  role            String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  profile_picture String?
+  preferences     Json?
 
   @@map("admin_users")
 }
@@ -295,18 +297,6 @@ model PendingFeedbackLearning {
   @@index([userId])
 }
 
-model MarketPlace {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String
-  category    String
-  price       Decimal  @db.Decimal(10, 2)
-  description String
-  highlights  Json     @db.Json
-  review      Decimal  @db.Decimal(2, 1)
-  image_url   String
-  created_at  DateTime @db.Timestamp(6)
-}
-
 model ChatSession {
   id        String      @id @default(uuid())
   userId    String      @map("user_id")
@@ -364,26 +354,127 @@ model Shop {
   @@map("shops")
 }
 
-// ─── Tour Guide Models ────────────────────────────────────────────────────────
-
 model TourPackage {
-  id                 String   @id @default(uuid())
-  guideId            String   @map("guide_id")
+  id                 String          @id @default(uuid())
+  guideId            String          @map("guide_id")
   name               String
   category           String
-  description        String   @default("")
-  coverImageUrl      String   @default("") @map("cover_image_url")
-  galleryUrls        Json     @default("[]") @map("gallery_urls")
-  duration           Int      @default(1)
-  price              Decimal  @default(0) @db.Decimal(10, 2)
-  highlights         Json     @default("[]")
-  location           String   @default("")
-  status             String   @default("draft")
-  publishImmediately Boolean  @default(true) @map("publish_immediately")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  description        String          @default("")
+  coverImageUrl      String          @default("") @map("cover_image_url")
+  duration           Int             @default(1)
+  price              Decimal         @default(0) @db.Decimal(10, 2)
+  highlights         Json            @default("[]")
+  location           String          @default("")
+  status             String          @default("draft")
+  publishImmediately Boolean         @default(true) @map("publish_immediately")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  galleryUrls        Json            @default("[]") @map("gallery_urls")
+  tour_bookings      tour_bookings[]
 
   @@index([guideId])
   @@index([status])
   @@map("tour_packages")
+}
+
+model Activity {
+  id              String            @id @default(uuid())
+  providerId      String            @map("provider_id")
+  name            String
+  category        String
+  description     String            @default("")
+  coverImageUrl   String            @default("") @map("cover_image_url")
+  difficulty      String            @default("easy")
+  startTime       String            @default("") @map("start_time")
+  endTime         String            @default("") @map("end_time")
+  location        String            @default("")
+  price           Decimal           @default(0) @db.Decimal(10, 2)
+  maxParticipants Int               @default(20) @map("max_participants")
+  status          String            @default("active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  date            DateTime?
+  bookings        ActivityBooking[]
+
+  @@index([providerId])
+  @@index([status])
+  @@map("activities")
+}
+
+model ActivityBooking {
+  id            String   @id @default(uuid())
+  activityId    String   @map("activity_id")
+  providerId    String   @map("provider_id")
+  customerName  String   @map("customer_name")
+  customerEmail String   @default("") @map("customer_email")
+  guests        Int      @default(1)
+  amount        Decimal  @default(0) @db.Decimal(10, 2)
+  scheduledDate DateTime @map("scheduled_date")
+  status        String   @default("pending")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  activity      Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([activityId])
+  @@index([status])
+  @@map("activity_bookings")
+}
+
+model tour_bookings {
+  id               String      @id
+  package_id       String
+  guide_id         String
+  customer_id      String?
+  customer_name    String
+  customer_email   String      @default("")
+  customer_avatar  String      @default("")
+  tour_name        String
+  start_date       DateTime
+  end_date         DateTime
+  guests           Int         @default(1)
+  amount           Decimal     @default(0) @db.Decimal(10, 2)
+  status           String      @default("pending")
+  created_at       DateTime    @default(now())
+  updated_at       DateTime
+  customer_phone   String      @default("")
+  pickup_location  String      @default("")
+  special_requests String      @default("")
+  tour_packages    TourPackage @relation(fields: [package_id], references: [id], onDelete: Cascade)
+
+  @@index([guide_id])
+  @@index([package_id])
+  @@index([status])
+}
+
+model tour_inquiries {
+  id             String   @id
+  guide_id       String
+  guest_name     String
+  guest_email    String   @default("")
+  guest_avatar   String   @default("")
+  subject        String   @default("")
+  message        String   @default("")
+  status         String   @default("new")
+  tour_interest  String   @default("")
+  pipeline_value Decimal  @default(0) @db.Decimal(10, 2)
+  created_at     DateTime @default(now())
+  updated_at     DateTime
+
+  @@index([guide_id])
+  @@index([status])
+}
+
+model tour_notifications {
+  id                String   @id
+  guide_id          String
+  type              String   @default("system")
+  title             String
+  message           String   @default("")
+  is_read           Boolean  @default(false)
+  related_entity_id String?
+  created_at        DateTime @default(now())
+
+  @@index([guide_id])
+  @@index([is_read])
 }

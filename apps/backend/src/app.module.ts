@@ -26,6 +26,8 @@ import { HotelModule } from './modules/hotel/hotel.module';
 import { AdminUsersModule } from './modules/admin-users/admin-users.module';
 import { PublicToursModule } from './modules/public-tours/public-tours.module';
 
+import { PublicActivitiesModule } from './modules/public-activities/public-activities.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -46,6 +48,7 @@ import { PublicToursModule } from './modules/public-tours/public-tours.module';
     MlModule,
     HealthModule,
     PublicToursModule,
+    PublicActivitiesModule,
   ],
   controllers: [AppController],
   providers: [

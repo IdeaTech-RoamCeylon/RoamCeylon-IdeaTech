@@ -80,7 +80,7 @@ const ESSENTIAL_ITEMS: EssentialItem[] = [
     iconColor: '#B14B17',
     iconBackground: '#f9d1acff',
     cardBackground: '#f2e1d2ff',
-    route: 'Explore',
+    route: 'Activities',
   },
 ];
 
