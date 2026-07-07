@@ -30,6 +30,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * A profile counts as "complete" only when every field collected during the
+ * full registration flow is present. Google sign-in provides just name + email,
+ * so Google users stay incomplete until they finish ProfileSetup.
+ * Note: isLocal is a boolean — `false` (Foreigner) is a valid value, so we check
+ * for null/undefined rather than falsiness.
+ */
+const computeProfileComplete = (u?: UserProfile | null): boolean =>
+  !!(
+    u?.name &&
+    u?.email &&
+    u?.phoneNumber &&
+    u?.birthday &&
+    u?.gender &&
+    u?.isLocal != null
+  );
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = useCallback(async (nhostUserArg?: any) => {
     try {
       let userData = await getMe();
-      let profileComplete = !!(userData?.name && userData?.email);
+      let profileComplete = computeProfileComplete(userData);
 
       // If the NestJS profile is missing any details, try to sync it from either
       // 1. Temporary registration data stored in SecureStore
@@ -61,8 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 tempRegData.phoneNumber,
                 tempRegData.isLocal,
               );
-              profileComplete = !!(userData?.name && userData?.email);
-              
+              profileComplete = computeProfileComplete(userData);
+
               // Clear the temporary registration data after successful sync
               await SecureStore.deleteItemAsync('tempRegistrationData');
             }
@@ -93,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               phone,
               isLocal,
             );
-            profileComplete = !!(userData?.name && userData?.email);
+            profileComplete = computeProfileComplete(userData);
           }
         }
       }
@@ -111,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserProfile = useCallback((userData: UserProfile) => {
     setUser(userData);
-    const profileComplete = !!(userData?.name && userData?.email);
+    const profileComplete = computeProfileComplete(userData);
     setIsProfileComplete(profileComplete);
   }, []);
 

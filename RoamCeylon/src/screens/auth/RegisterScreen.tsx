@@ -255,6 +255,27 @@ const RegisterScreen = () => {
                 Start your journey through the Emerald Isle.
               </Text>
 
+              {/* Google Sign Up Button */}
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={() => navigation.navigate('GoogleSignIn')}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                <Image
+                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
+                  style={styles.googleIcon}
+                />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR SIGN UP WITH EMAIL</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
               {/* Form Fields */}
               <View style={styles.formGroup}>
                 {renderInputCard(
@@ -784,6 +805,46 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.6,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 25,
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#EAEAEA',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    fontWeight: '600',
+    letterSpacing: 1,
+    paddingHorizontal: 15,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#D8E5E0',
+    width: '100%',
+    height: 58,
+    marginTop: 24,
+  },
+  googleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
   },
   loginRow: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { AuthStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { nhost } from '../../config/nhostClient';
@@ -30,7 +31,7 @@ try {
 }
 
 const GoogleSignInScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const { login, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
 
@@ -81,10 +82,11 @@ const GoogleSignInScreen = () => {
 
       // Notify AuthContext — sets isAuthenticated = true and fetches the
       // user profile from NestJS via the stored Nhost access token.
-      await login(session.accessToken);
+      let result = await login(session.accessToken);
 
-      // Now that the backend profile is auto-created, sync Google User Info 
-      // up to it so that `isProfileComplete` evaluates to true!
+      // Seed the backend profile with the name + email Google provides.
+      // Google can't supply phone/birthday/gender/local, so the profile stays
+      // incomplete until the user fills those in on ProfileSetup.
       const userName = userInfo.data?.user?.name;
       const userEmail = userInfo.data?.user?.email;
 
@@ -92,11 +94,17 @@ const GoogleSignInScreen = () => {
         try {
           const { updateProfile } = require('../../services/auth');
           await updateProfile(userName, userEmail);
-          
-          await refreshUser();
+
+          result = await refreshUser();
         } catch (updateErr) {
           console.warn('Failed to auto-sync Google profile to backend:', updateErr);
         }
+      }
+
+      // If the profile still needs the extra details, send the user to
+      // ProfileSetup. If it's already complete, RootNavigator switches to Main.
+      if (!result.isProfileComplete) {
+        navigation.navigate('ProfileSetup');
       }
 
     } catch (error: any) {
