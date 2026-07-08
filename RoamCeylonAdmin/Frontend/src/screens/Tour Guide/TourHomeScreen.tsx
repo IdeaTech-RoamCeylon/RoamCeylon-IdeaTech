@@ -331,7 +331,7 @@ const TourHomeScreen = () => {
           ) : bookingsList.length === 0 ? (
             <Text style={{ textAlign: 'center', margin: 20, color: '#6B7280' }}>No upcoming bookings.</Text>
           ) : (
-            bookingsList.map((booking, index) => {
+            bookingsList.map((booking, _index) => {
               const dateObj = new Date(booking.startDate);
               const formattedDate = `${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • ${dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
               

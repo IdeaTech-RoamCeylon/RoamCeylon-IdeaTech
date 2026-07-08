@@ -117,6 +117,7 @@ const UpdateActivity = () => {
       return;
     }
     fetchActivityDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchActivityDetails = async () => {

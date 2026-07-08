@@ -112,7 +112,7 @@ const Packages = () => {
     router.push('/tour-guide/addPackage' as any);
   };
 
-  const _handleEditPackagePress = (title: string) => {
+  const _handleEditPackagePress = (_title: string) => {
     router.push('/tour-guide/editPackage' as any);
   };
 

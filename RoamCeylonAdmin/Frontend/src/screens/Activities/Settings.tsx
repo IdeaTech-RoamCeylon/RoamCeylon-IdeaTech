@@ -82,7 +82,7 @@ const Settings = () => {
         }
       };
       loadProfile();
-    }, [])
+    }, [profile])
   );
 
   const handleLogout = async () => {
