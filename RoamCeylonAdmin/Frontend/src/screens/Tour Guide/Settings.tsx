@@ -18,15 +18,16 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const Settings = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Switch States
-  const [darkMode, setDarkMode] = useState(false);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [weeklyReports, setWeeklyReports] = useState(false);
+  // Push Notifications
+  const { registerForPushNotifications, unregisterPushNotifications } = usePushNotifications();
+  const [pushNotifications, setPushNotifications] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   // Profile State
@@ -203,25 +204,7 @@ const Settings = () => {
         {/* System Preferences Card */}
         <Text style={styles.sectionHeader}>System Preferences</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#1C1917' }]}>
-                <Ionicons name="moon" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingTitle}>Dark Mode</Text>
-                <Text style={styles.settingSubtitle}>Adjust UI for low-light</Text>
-              </View>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
-              thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
-            />
-          </View>
 
-          <View style={styles.cardDivider} />
 
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
@@ -235,31 +218,20 @@ const Settings = () => {
             </View>
             <Switch
               value={pushNotifications}
-              onValueChange={setPushNotifications}
+              onValueChange={async (val) => {
+                setPushNotifications(val);
+                if (val) {
+                  const success = await registerForPushNotifications();
+                  if (!success) setPushNotifications(false);
+                } else {
+                  await unregisterPushNotifications();
+                }
+              }}
               trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
               thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           </View>
 
-          <View style={styles.cardDivider} />
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#3B82F6' }]}>
-                <Ionicons name="document-text" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingTitle}>Weekly Reports</Text>
-                <Text style={styles.settingSubtitle}>Performance data summary</Text>
-              </View>
-            </View>
-            <Switch
-              value={weeklyReports}
-              onValueChange={setWeeklyReports}
-              trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
-              thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
-            />
-          </View>
         </View>
 
         {/* Security Section */}

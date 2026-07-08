@@ -14,10 +14,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useNotifications } from '../../utils/notificationsStore';
 
 const ShoppingHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { unreadCount } = useNotifications('shopping');
 
   const [shops, setShops] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, underReview: 0, networkGrowthPercent: 0 });
@@ -80,11 +82,27 @@ const ShoppingHomeScreen = () => {
               <Text style={styles.greetingText}>Welcome back,</Text>
               <Text style={styles.headerTitle}>Partner Dashboard</Text>
             </View>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
-              <View style={styles.avatarCircle}>
-                <MaterialCommunityIcons name="account" size={24} color="#0F3D26" />
-              </View>
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={[styles.headerIconButton, { marginRight: 10 }]}
+                activeOpacity={0.7}
+                onPress={() => router.push({ pathname: '/notifications', params: { module: 'shopping' } } as any)}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/shopping/settings' as any)}>
+                <View style={styles.avatarCircle}>
+                  <MaterialCommunityIcons name="account" size={24} color="#0F3D26" />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Stats Grid */}
@@ -248,9 +266,42 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: -0.5,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#0F3D26',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   avatarCircle: {
     width: 44,

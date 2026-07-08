@@ -18,6 +18,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
+import { useNotifications } from '../../utils/notificationsStore';
 
 const openMap = async (address: string) => {
   // Fully RFC3986 compliant URI encoding
@@ -53,6 +54,7 @@ const openMap = async (address: string) => {
 const TourHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { unreadCount } = useNotifications('guide');
 
   // State
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,7 @@ const TourHomeScreen = () => {
   );
 
   const handleNotificationPress = () => {
-    router.push('/tour-guide/notifications' as any);
+    router.push({ pathname: '/notifications', params: { module: 'guide' } } as any);
   };
 
   return (
@@ -146,10 +148,10 @@ const TourHomeScreen = () => {
                 onPress={handleNotificationPress}
               >
                 <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
-                {stats.unreadNotifications > 0 && (
+                {unreadCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
-                      {stats.unreadNotifications > 99 ? '99+' : stats.unreadNotifications}
+                      {unreadCount > 99 ? '99+' : unreadCount}
                     </Text>
                   </View>
                 )}
