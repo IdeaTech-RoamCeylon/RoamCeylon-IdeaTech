@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,51 +7,74 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import type { Room, RoomStatus } from '@/types/booking.types';
 
 const { width: _width } = Dimensions.get('window');
+
+const apiUrl = () =>
+  process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+const STATUS_LABEL: Record<RoomStatus, string> = {
+  available: 'Available',
+  booked: 'Booked',
+  maintenance: 'Maintenance',
+};
+
+const formatPrice = (rate: number | string) => {
+  const num = typeof rate === 'string' ? parseFloat(rate) : rate;
+  if (!num || Number.isNaN(num)) return 'Rs. 0';
+  return `Rs. ${Math.round(num).toLocaleString('en-US')}`;
+};
+
+const buildRoomInfo = (room: Room) => {
+  const parts: string[] = [];
+  if (room.roomType) parts.push(room.roomType);
+  if (room.adults) parts.push(`${room.adults} Adults`);
+  if (room.squareFootage) parts.push(`${room.squareFootage} sqft`);
+  return parts.join(' • ');
+};
 
 const ViewRooms = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Mock rooms data
-  const rooms = [
-    {
-      id: '1',
-      title: 'Ocean View Suite',
-      image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=500&auto=format&fit=crop&q=80',
-      status: 'Available',
-      statusType: 'available', // green status pill
-      roomInfo: 'Room 204 • 2 Beds • 850 sqft',
-      price: '$450',
-    },
-    {
-      id: '2',
-      title: 'Deluxe Double',
-      image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=500&auto=format&fit=crop&q=80',
-      status: 'Booked',
-      statusType: 'booked', // red status pill
-      roomInfo: 'Room 112 • 2 Beds • 450 sqft',
-      price: '$280',
-      guest: {
-        name: 'John D. (2 nights)',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-      },
-    },
-    {
-      id: '3',
-      title: 'Garden Villa',
-      status: 'Maintenance',
-      statusType: 'maintenance', // yellow status pill
-      roomInfo: 'Villa 01 • 1 King • 1200 sqft',
-      price: '$600',
-    },
-  ];
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          const accessToken = await SecureStore.getItemAsync('authToken');
+          if (accessToken) {
+            const res = await fetch(`${apiUrl()}/rooms/my`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (res.ok && active) {
+              setRooms(await res.json());
+            }
+          }
+        } catch (error) {
+          console.error('[ViewRooms] Failed to load rooms:', error);
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+      fetchData();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   return (
     <View style={styles.container}>
@@ -77,97 +100,151 @@ const ViewRooms = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 100 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {rooms.map((room) => (
-          <View key={room.id} style={styles.roomCard}>
-            {/* Card Image or Placeholder */}
-            {room.image ? (
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: room.image }}
-                  style={styles.roomImage}
-                  contentFit="cover"
-                />
-                {/* Status Badge */}
-                <View
-                  style={[
-                    styles.statusBadge,
-                    room.statusType === 'available' ? styles.badgeAvailable : styles.badgeBooked,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.badgeDot,
-                      room.statusType === 'available' ? styles.dotAvailable : styles.dotBooked,
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      room.statusType === 'available' ? styles.badgeTextAvailable : styles.badgeTextBooked,
-                    ]}
-                  >
-                    {room.status}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Ionicons name="image-outline" size={48} color="#A3A3A3" />
-                {/* Status Badge */}
-                <View style={[styles.statusBadge, styles.badgeMaintenance]}>
-                  <View style={[styles.badgeDot, styles.dotMaintenance]} />
-                  <Text style={[styles.badgeText, styles.badgeTextMaintenance]}>
-                    {room.status}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.detailsBox}>
-              <View style={styles.titlePriceRow}>
-                <Text style={styles.roomTitle}>{room.title}</Text>
-                <Text style={styles.priceText}>
-                  <Text style={styles.priceNumber}>{room.price}</Text>
-                  <Text style={styles.priceLabel}>/nt</Text>
-                </Text>
-              </View>
-
-              <Text style={styles.roomInfo}>{room.roomInfo}</Text>
-
-              <View style={styles.cardDivider} />
-
-              <View style={styles.cardFooter}>
-                {/* Guest Profile Details or spacer */}
-                {room.guest ? (
-                  <View style={styles.guestRow}>
+      {loading ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color="#0E5E2F" />
+        </View>
+      ) : rooms.length === 0 ? (
+        <View style={styles.centerState}>
+          <Ionicons name="bed-outline" size={56} color="#B7C4BC" />
+          <Text style={styles.emptyTitle}>No rooms yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Tap the + button to add your first room.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 100 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {rooms.map((room) => {
+            const isAvailable = room.status === 'available';
+            const isBooked = room.status === 'booked';
+            return (
+              <View key={room.id} style={styles.roomCard}>
+                {/* Card Image or Placeholder */}
+                {room.coverImageUrl ? (
+                  <View style={styles.imageContainer}>
                     <Image
-                      source={{ uri: room.guest.avatar }}
-                      style={styles.guestAvatar}
+                      source={{ uri: room.coverImageUrl }}
+                      style={styles.roomImage}
                       contentFit="cover"
                     />
-                    <Text style={styles.guestName}>{room.guest.name}</Text>
+                    {/* Status Badge */}
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        isAvailable
+                          ? styles.badgeAvailable
+                          : isBooked
+                            ? styles.badgeBooked
+                            : styles.badgeMaintenance,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.badgeDot,
+                          isAvailable
+                            ? styles.dotAvailable
+                            : isBooked
+                              ? styles.dotBooked
+                              : styles.dotMaintenance,
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          isAvailable
+                            ? styles.badgeTextAvailable
+                            : isBooked
+                              ? styles.badgeTextBooked
+                              : styles.badgeTextMaintenance,
+                        ]}
+                      >
+                        {STATUS_LABEL[room.status] ?? room.status}
+                      </Text>
+                    </View>
                   </View>
                 ) : (
-                  <View style={{ flex: 1 }} />
+                  <View style={styles.imagePlaceholder}>
+                    <Ionicons name="image-outline" size={48} color="#A3A3A3" />
+                    {/* Status Badge */}
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        isAvailable
+                          ? styles.badgeAvailable
+                          : isBooked
+                            ? styles.badgeBooked
+                            : styles.badgeMaintenance,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.badgeDot,
+                          isAvailable
+                            ? styles.dotAvailable
+                            : isBooked
+                              ? styles.dotBooked
+                              : styles.dotMaintenance,
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          isAvailable
+                            ? styles.badgeTextAvailable
+                            : isBooked
+                              ? styles.badgeTextBooked
+                              : styles.badgeTextMaintenance,
+                        ]}
+                      >
+                        {STATUS_LABEL[room.status] ?? room.status}
+                      </Text>
+                    </View>
+                  </View>
                 )}
 
-                {/* Edit Button */}
-                <TouchableOpacity style={styles.editButton} onPress={() => router.push('/booking/editRoom' as any)} activeOpacity={0.7}>
-                  <Ionicons name="pencil" size={16} color="#0D4F2E" />
-                </TouchableOpacity>
+                <View style={styles.detailsBox}>
+                  <View style={styles.titlePriceRow}>
+                    <Text style={styles.roomTitle}>{room.name}</Text>
+                    <Text style={styles.priceText}>
+                      <Text style={styles.priceNumber}>{formatPrice(room.nightlyRate)}</Text>
+                      <Text style={styles.priceLabel}>/nt</Text>
+                    </Text>
+                  </View>
+
+                  <Text style={styles.roomInfo}>{buildRoomInfo(room)}</Text>
+
+                  <View style={styles.cardDivider} />
+
+                  <View style={styles.cardFooter}>
+                    <View style={{ flex: 1 }} />
+
+                    {/* Edit Button */}
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/booking/editRoom' as any,
+                          params: { id: room.id },
+                        })
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="pencil" size={16} color="#0D4F2E" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Floating Action Plus Button */}
       <View style={styles.fabContainer}>
@@ -232,6 +309,26 @@ const styles = StyleSheet.create({
   headerAvatar: {
     width: '100%',
     height: '100%',
+  },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAF8',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#7C8A82',
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 6,
   },
   scrollView: {
     flex: 1,
@@ -329,6 +426,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#1C1917',
+    flex: 1,
+    marginRight: 8,
   },
   priceText: {
     flexDirection: 'row',

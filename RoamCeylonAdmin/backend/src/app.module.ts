@@ -8,6 +8,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { TourGuideModule } from './tour-guide/tour-guide.module';
 import { UsersModule } from './users/users.module';
 import { ActivitiesModule } from './activities/activities.module';
+import { RoomsModule } from './rooms/rooms.module';
+import { HotelsModule } from './hotels/hotels.module';
 
 import { NotificationsModule } from './notifications/notifications.module';
 
@@ -21,6 +23,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     NotificationsModule,
     ActivitiesModule,
+    RoomsModule,
+    HotelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

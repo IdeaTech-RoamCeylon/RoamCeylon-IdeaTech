@@ -6,7 +6,10 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "RNMAPBOX_MAPS_DOWNLOAD_TOKEN": "secret"
+      }
     },
     "preview": {
       "distribution": "internal"

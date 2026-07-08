@@ -17,6 +17,13 @@ Notifications.setNotificationHandler({
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
+// Thrown when the running build doesn't include the native push-token module
+// (e.g. testing an older build while a new EAS build with the module is pending).
+function isMissingNativeModuleError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('ExpoPushTokenManager') || message.includes('Cannot find native module');
+}
+
 /**
  * Hook to manage push notification registration and token handling
  */
@@ -136,7 +143,14 @@ export function usePushNotifications() {
       return true;
     } catch (error) {
       console.error('[Push] Error registering for push notifications:', error);
-      Alert.alert('Error', 'Failed to enable push notifications. Please try again.');
+      if (isMissingNativeModuleError(error)) {
+        Alert.alert(
+          'Update Required',
+          'Push notifications need a newer build of the app. This feature will work once the latest build is installed.',
+        );
+      } else {
+        Alert.alert('Error', 'Failed to enable push notifications. Please try again.');
+      }
       return false;
     }
   };

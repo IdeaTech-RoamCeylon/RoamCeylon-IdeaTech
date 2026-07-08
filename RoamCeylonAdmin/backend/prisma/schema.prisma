@@ -496,3 +496,52 @@ model PushToken {
   @@map("push_tokens")
 }
 
+// ─── Hotel Booking Models ─────────────────────────────────────────────────────
+
+model Hotel {
+  id            String   @id @default(uuid())
+  ownerId       String   @unique @map("owner_id") // one hotel per provider
+  name          String
+  category      String   @default("")
+  description   String   @default("")
+  streetAddress String   @default("") @map("street_address")
+  latitude      Decimal? @db.Decimal(10, 7)
+  longitude     Decimal? @db.Decimal(10, 7)
+  amenities     Json     @default("[]")
+  coverImageUrl String   @default("") @map("cover_image_url")
+  galleryUrls   Json     @default("[]") @map("gallery_urls")
+  status        String   @default("active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  rooms Room[]
+
+  @@index([ownerId])
+  @@map("hotels")
+}
+
+model Room {
+  id             String   @id @default(uuid())
+  ownerId        String   @map("owner_id")
+  hotelId        String?  @map("hotel_id")
+  name           String
+  roomType       String   @default("") @map("room_type")
+  squareFootage  Int      @default(0) @map("square_footage")
+  adults         Int      @default(2)
+  availableUnits Int      @default(1) @map("available_units")
+  nightlyRate    Decimal  @default(0) @map("nightly_rate") @db.Decimal(10, 2)
+  amenities      Json     @default("[]")
+  coverImageUrl  String   @default("") @map("cover_image_url")
+  galleryUrls    Json     @default("[]") @map("gallery_urls")
+  status         String   @default("available") // available | booked | maintenance
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel? @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([hotelId])
+  @@index([status])
+  @@map("rooms")
+}
+
