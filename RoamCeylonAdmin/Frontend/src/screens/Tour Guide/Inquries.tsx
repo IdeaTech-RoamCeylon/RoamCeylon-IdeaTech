@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
@@ -22,7 +22,7 @@ const Inquries = () => {
 
   const [loading, setLoading] = useState(true);
   const [inquiries, setInquiries] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [_stats, setStats] = useState<any>(null);
 
 
 
@@ -51,11 +51,11 @@ const Inquries = () => {
     fetchData();
   }, []);
 
-  const handleFilterPress = () => {
+  const _handleFilterPress = () => {
     Alert.alert('Filter', 'Filter criteria sheet opened.');
   };
 
-  const handleNewLeadPress = () => {
+  const _handleNewLeadPress = () => {
     Alert.alert('New Lead', 'Redirecting to Lead Creation screen...');
   };
 

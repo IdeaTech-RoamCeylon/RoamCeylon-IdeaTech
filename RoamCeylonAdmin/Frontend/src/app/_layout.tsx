@@ -28,7 +28,7 @@ function AuthGuard() {
     };
 
     checkAuth();
-  }, [segments]);
+  }, [segments, router]);
 
   return null;
 }

@@ -117,7 +117,7 @@ const EditProfile = () => {
     };
 
     loadProfile();
-  }, []);
+  }, [router]);
 
   // Update profile handler
   const handleSave = async () => {

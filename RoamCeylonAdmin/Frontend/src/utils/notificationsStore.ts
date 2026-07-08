@@ -35,7 +35,7 @@ export const notificationsStore = {
     try {
       cachedError = null;
       const headers = await getHeaders();
-      const res = await fetch(`${getApiUrl()}/tour-guide/notifications`, { headers });
+      const res = await fetch(`${getApiUrl()}/notifications`, { headers });
       if (res.ok) {
         const data = await res.json();
         cachedNotifications = Array.isArray(data) ? data : (data.data || []);
@@ -55,7 +55,7 @@ export const notificationsStore = {
   markAllRead: async () => {
     try {
       const headers = await getHeaders();
-      await fetch(`${getApiUrl()}/tour-guide/notifications/read-all`, {
+      await fetch(`${getApiUrl()}/notifications/read-all`, {
         method: 'PATCH',
         headers,
       });
@@ -77,7 +77,7 @@ export const notificationsStore = {
       cachedUnreadCount = Math.max(0, cachedUnreadCount - 1);
       notificationsStore.notify();
 
-      await fetch(`${getApiUrl()}/tour-guide/notifications/${id}/read`, {
+      await fetch(`${getApiUrl()}/notifications/${id}/read`, {
         method: 'PATCH',
         headers,
       });
@@ -132,6 +132,13 @@ export const useNotifications = (module?: string) => {
         filteredNotifications = allNotifications.filter(n => 
           n.type?.toLowerCase().includes('booking') || 
           n.title?.toLowerCase().includes('booking')
+        );
+      } else if (module === 'booking') {
+        filteredNotifications = allNotifications.filter(n => 
+          n.type?.toLowerCase().includes('hotel') || 
+          n.title?.toLowerCase().includes('hotel') ||
+          n.type?.toLowerCase().includes('room') ||
+          n.title?.toLowerCase().includes('room')
         );
       }
 

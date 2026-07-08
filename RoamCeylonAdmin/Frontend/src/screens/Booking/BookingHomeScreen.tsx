@@ -12,12 +12,14 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useNotifications } from '../../utils/notificationsStore';
 
 const { width: _width } = Dimensions.get('window');
 
 const BookingHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { unreadCount } = useNotifications('booking');
 
   // Mock data for check-ins
   const checkIns = [
@@ -54,9 +56,19 @@ const BookingHomeScreen = () => {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         {/* Left Notification Bell */}
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.headerIconButton} 
+          activeOpacity={0.7}
+          onPress={() => router.push({ pathname: '/notifications', params: { module: 'booking' } } as any)}
+        >
           <Ionicons name="notifications-outline" size={24} color="#5B600A" />
-          <View style={styles.notificationBadge} />
+          {unreadCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Center Logo Text */}
@@ -310,12 +322,22 @@ const styles = StyleSheet.create({
   },
   notificationBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    top: -4,
+    right: -4,
     backgroundColor: '#dc3545',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  notificationBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   scrollView: {
     flex: 1,

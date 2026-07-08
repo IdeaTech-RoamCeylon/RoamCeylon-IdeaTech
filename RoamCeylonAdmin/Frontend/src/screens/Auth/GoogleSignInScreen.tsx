@@ -10,6 +10,7 @@ let GoogleSignin: any = null;
 let statusCodes: any = {};
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const gsModule = require('@react-native-google-signin/google-signin');
   GoogleSignin = gsModule.GoogleSignin;
   statusCodes = gsModule.statusCodes;
@@ -39,6 +40,7 @@ const GoogleSignInScreen = () => {
       return;
     }
     handleSignIn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSignIn = async () => {

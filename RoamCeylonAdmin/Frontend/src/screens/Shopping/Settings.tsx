@@ -17,15 +17,16 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const Settings = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Switch States
-  const [darkMode, setDarkMode] = useState(false);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [weeklyReports, setWeeklyReports] = useState(false);
+  // Push Notifications
+  const { registerForPushNotifications, unregisterPushNotifications } = usePushNotifications();
+  const [pushNotifications, setPushNotifications] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<{
     name?: string;
@@ -56,9 +57,9 @@ const Settings = () => {
               dbAvatarUrl = parsed.profile_picture || '';
               dbPrefs = parsed.preferences || {};
               
-              setDarkMode(!!dbPrefs.darkMode);
+
               setPushNotifications(dbPrefs.pushNotifications !== false); // default to true
-              setWeeklyReports(!!dbPrefs.weeklyReports);
+
             }
           } catch (cacheErr) {
             console.warn('[Settings] Cache read failed:', cacheErr);
@@ -81,9 +82,9 @@ const Settings = () => {
                 dbAvatarUrl = profileData.profile_picture || '';
                 dbPrefs = profileData.preferences || {};
                 
-                setDarkMode(!!dbPrefs.darkMode);
+
                 setPushNotifications(dbPrefs.pushNotifications !== false);
-                setWeeklyReports(!!dbPrefs.weeklyReports);
+
               }
             }
           } catch (dbErr) {
@@ -107,9 +108,7 @@ const Settings = () => {
   );
 
   const updatePreference = async (key: string, value: boolean) => {
-    if (key === 'darkMode') setDarkMode(value);
-    else if (key === 'pushNotifications') setPushNotifications(value);
-    else if (key === 'weeklyReports') setWeeklyReports(value);
+    if (key === 'pushNotifications') setPushNotifications(value);
 
     try {
       const token = await SecureStore.getItemAsync('authToken');
@@ -277,25 +276,7 @@ const Settings = () => {
         <Text style={styles.sectionHeader}>System Preferences</Text>
         <View style={styles.card}>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#1C1917' }]}>
-                <Ionicons name="moon" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingTitle}>Dark Mode</Text>
-                <Text style={styles.settingSubtitle}>Adjust UI for low-light</Text>
-              </View>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={(val) => updatePreference('darkMode', val)}
-              trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
-              thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
-            />
-          </View>
 
-          <View style={styles.cardDivider} />
 
 
           <View style={styles.settingRow}>
@@ -310,32 +291,24 @@ const Settings = () => {
             </View>
             <Switch
               value={pushNotifications}
-              onValueChange={(val) => updatePreference('pushNotifications', val)}
+              onValueChange={async (val) => {
+                setPushNotifications(val);
+                updatePreference('pushNotifications', val);
+                if (val) {
+                  const success = await registerForPushNotifications();
+                  if (!success) {
+                    setPushNotifications(false);
+                    updatePreference('pushNotifications', false);
+                  }
+                } else {
+                  await unregisterPushNotifications();
+                }
+              }}
               trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
               thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           </View>
 
-          <View style={styles.cardDivider} />
-
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#3B82F6' }]}>
-                <Ionicons name="document-text" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingTitle}>Weekly Reports</Text>
-                <Text style={styles.settingSubtitle}>Performance data summary</Text>
-              </View>
-            </View>
-            <Switch
-              value={weeklyReports}
-              onValueChange={(val) => updatePreference('weeklyReports', val)}
-              trackColor={{ false: '#E5E7EB', true: '#0E5E2F' }}
-              thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
-            />
-          </View>
         </View>
 
 
