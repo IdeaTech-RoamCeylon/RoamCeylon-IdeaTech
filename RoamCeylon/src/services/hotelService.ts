@@ -39,10 +39,12 @@ class HotelService {
   async getSuggestions(destination: string, budget?: string): Promise<Hotel[]> {
     try {
       const budgetParam = budget ? `&budget=${encodeURIComponent(budget)}` : '';
-      const response = await apiService.get<Hotel[]>(
+      const response = await apiService.get<any>(
         `/hotel/suggest?destination=${encodeURIComponent(destination)}${budgetParam}`
       );
-      return response || [];
+      // Backend wraps successful responses in a { data } envelope.
+      const list = Array.isArray(response) ? response : response?.data;
+      return Array.isArray(list) ? list : [];
     } catch (error) {
       console.error('Failed to fetch hotel suggestions:', error);
       return [];
@@ -60,8 +62,9 @@ class HotelService {
     guests: string[];
   }): Promise<HotelBooking> {
     try {
-      const response = await apiService.post<HotelBooking>('/hotel/book', bookingData);
-      return response;
+      const response = await apiService.post<any>('/hotel/book', bookingData);
+      // Unwrap the { data } envelope if present.
+      return (response?.data ?? response) as HotelBooking;
     } catch (error) {
       console.error('Failed to book hotel:', error);
       throw error;
@@ -73,8 +76,9 @@ class HotelService {
    */
   async getBookings(): Promise<HotelBooking[]> {
     try {
-      const response = await apiService.get<HotelBooking[]>('/hotel/bookings');
-      return response || [];
+      const response = await apiService.get<any>('/hotel/bookings');
+      const list = Array.isArray(response) ? response : response?.data;
+      return Array.isArray(list) ? list : [];
     } catch (error) {
       console.error('Failed to fetch hotel bookings:', error);
       return [];

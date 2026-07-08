@@ -22,8 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
+import LocationPickerModal from '@/components/LocationPickerModal';
 import { showToast } from '@/utils/toast';
 
 const CATEGORIES = [
@@ -69,37 +68,6 @@ const NewActivity = () => {
   });
 
   const [isMapVisible, setMapVisible] = useState(false);
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 6.9271, // Colombo default
-    longitude: 79.8612,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
-  const [markerCoordinate, setMarkerCoordinate] = useState<{latitude: number, longitude: number} | null>(null);
-  const [isGeocoding, setIsGeocoding] = useState(false);
-
-  const handleMapPress = async (e: any) => {
-    const { coordinate } = e.nativeEvent;
-    setMarkerCoordinate(coordinate);
-    setMapRegion({ ...mapRegion, latitude: coordinate.latitude, longitude: coordinate.longitude });
-    
-    setIsGeocoding(true);
-    try {
-      const result = await Location.reverseGeocodeAsync({
-        latitude: coordinate.latitude,
-        longitude: coordinate.longitude,
-      });
-      if (result && result.length > 0) {
-        const place = result[0];
-        const addressName = [place.name, place.street, place.city, place.country].filter(Boolean).join(', ');
-        setLocation(addressName);
-      }
-    } catch (err) {
-      console.error('Reverse geocoding error:', err);
-    } finally {
-      setIsGeocoding(false);
-    }
-  };
 
   const pickImage = async () => {
     try {
@@ -620,90 +588,15 @@ const NewActivity = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Map Selection Modal */}
-      <Modal
+      {/* Map Selection Modal (Mapbox) */}
+      <LocationPickerModal
         visible={isMapVisible}
-        animationType="slide"
-        onRequestClose={() => setMapVisible(false)}
-      >
-        <View style={{ flex: 1 }}>
-          <LinearGradient
-            colors={['#0F3D26', '#145334', '#0E5E2F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              paddingTop: insets.top + 16,
-              paddingBottom: 24,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              zIndex: 10,
-              borderBottomLeftRadius: 32,
-              borderBottomRightRadius: 32,
-              shadowColor: '#0E5E2F',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.15,
-              shadowRadius: 10,
-              elevation: 8,
-            }}
-          >
-            <View style={{ width: 24 }} />
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', textAlign: 'center', flex: 1 }}>Select Location</Text>
-            <TouchableOpacity onPress={() => setMapVisible(false)}>
-              <Ionicons name="close" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </LinearGradient>
-
-          <MapView
-            style={{ flex: 1 }}
-            region={mapRegion}
-            onPress={handleMapPress}
-          >
-            {markerCoordinate && (
-              <Marker coordinate={markerCoordinate} />
-            )}
-          </MapView>
-
-          <View style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: '#FFFFFF',
-            paddingHorizontal: 20,
-            paddingTop: 20,
-            paddingBottom: insets.bottom + 20,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 10,
-            alignItems: 'center',
-          }}>
-            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 8, textAlign: 'center' }}>Selected Location</Text>
-            {isGeocoding ? (
-              <ActivityIndicator size="small" color="#0E5E2F" style={{ marginBottom: 16 }} />
-            ) : (
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1C1917', marginBottom: 16, textAlign: 'center' }}>
-                {location || 'Tap on the map to drop a pin'}
-              </Text>
-            )}
-            <TouchableOpacity
-              style={[styles.saveButton, { width: '100%' }]}
-              onPress={() => setMapVisible(false)}
-            >
-              <Text style={styles.saveButtonText}>Confirm Location</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setMapVisible(false)}
+        onConfirm={(address) => {
+          if (address) setLocation(address);
+          setMapVisible(false);
+        }}
+      />
 
     </View>
   );

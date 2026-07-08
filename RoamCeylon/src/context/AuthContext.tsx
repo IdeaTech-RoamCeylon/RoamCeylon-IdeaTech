@@ -91,8 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fallback to Nhost user object if SecureStore data wasn't found or failed
         // (or if we still need to sync details like phoneNumber for existing users)
         const stillNeedsSync = !userData?.name || !userData?.email || !userData?.phoneNumber || !userData?.birthday || !userData?.gender;
-        if (stillNeedsSync) {
-          const nhostUser = nhostUserArg || nhost.auth.getUser();
+        // Only an explicitly-passed Nhost user object is usable here; the new
+        // @nhost/nhost-js SDK has no synchronous getUser() to fall back on.
+        if (stillNeedsSync && nhostUserArg) {
+          const nhostUser = nhostUserArg;
           if (nhostUser?.displayName && nhostUser?.email) {
             const birthdayStr = nhostUser.metadata?.birthday as string | undefined;
             const birthdayDate = birthdayStr ? new Date(birthdayStr) : undefined;

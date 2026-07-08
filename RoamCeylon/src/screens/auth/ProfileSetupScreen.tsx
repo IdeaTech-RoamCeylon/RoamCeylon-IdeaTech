@@ -20,7 +20,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { nhost } from '../../config/nhostClient';
 import * as SecureStore from 'expo-secure-store';
 
 const { width } = Dimensions.get('window');
@@ -29,7 +28,7 @@ type Gender = typeof GENDERS[number];
 
 const ProfileSetupScreen = () => {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // ── Form fields ────────────────────────────────────────────
   // name & email are prefilled from Google/registration and shown read-only:
@@ -53,7 +52,9 @@ const ProfileSetupScreen = () => {
     }
   }, []);
 
-  // Pre-fill profile details from SecureStore or Nhost (from registration / Google).
+  // Pre-fill profile details from SecureStore (email/password flow) or the
+  // authenticated backend user (Google sign-in already synced name + email
+  // to the backend, so they arrive here via AuthContext).
   useEffect(() => {
     const loadFields = async () => {
       // 1. Try to load from local SecureStore temp data (email/password flow)
@@ -73,25 +74,21 @@ const ProfileSetupScreen = () => {
         }
       }
 
-      // 2. Fallback to the Nhost user object (Google sign-in provides name + email)
-      let nhostUserRaw: any = nhost.auth.getUser();
-      if (nhostUserRaw instanceof Promise) {
-        const res = await nhostUserRaw;
-        nhostUserRaw = res?.user || res?.data || res;
-      }
-
-      const nhostUser = nhostUserRaw;
-      if (nhostUser) {
-        if (nhostUser.displayName) setName(nhostUser.displayName);
-        if (nhostUser.email) setEmail(nhostUser.email);
-        if (nhostUser.metadata?.phoneNumber) setPhoneNumber(nhostUser.metadata.phoneNumber as string);
-        if (nhostUser.metadata?.birthday) setBirthday(new Date(nhostUser.metadata.birthday as string));
-        if (nhostUser.metadata?.gender) setGender(nhostUser.metadata.gender as Gender);
-        if (typeof nhostUser.metadata?.isLocal === 'boolean') setIsLocal(nhostUser.metadata.isLocal as boolean);
+      // 2. Fall back to the authenticated backend user. GoogleSignInScreen seeds
+      //    name + email to the backend before navigating here, so they're
+      //    available via AuthContext. (The new @nhost/nhost-js SDK has no
+      //    synchronous getUser(), so we must not rely on the Nhost client here.)
+      if (user) {
+        if (user.name) setName(user.name);
+        if (user.email) setEmail(user.email);
+        if (user.phoneNumber) setPhoneNumber(user.phoneNumber);
+        if (user.birthday) setBirthday(new Date(user.birthday));
+        if (user.gender) setGender(user.gender as Gender);
+        if (typeof user.isLocal === 'boolean') setIsLocal(user.isLocal);
       }
     };
     loadFields();
-  }, []);
+  }, [user]);
 
   // ── Helpers ────────────────────────────────────────────────
   const formatDate = (date: Date) =>

@@ -16,9 +16,11 @@ import { IsNotEmpty, IsString, IsArray, IsOptional } from 'class-validator';
 // ─── DTOs ───────────────────────────────────────────────────────────────────
 
 export class GetSuggestionsDto {
-  @IsNotEmpty()
+  // Optional: empty/omitted destination = browse all hotels; a value = filtered
+  // suggestions (used by the trip planner).
+  @IsOptional()
   @IsString()
-  destination: string;
+  destination?: string;
 
   @IsOptional()
   @IsString()

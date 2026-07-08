@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -72,6 +77,23 @@ export class UsersService {
         );
         throw new NotFoundException('User not found');
       }
+      if (error.code === 'P2002') {
+        // Unique constraint violation — currently only phoneNumber is @unique.
+        const target = Array.isArray(error.meta?.target)
+          ? (error.meta.target as string[]).join(', ')
+          : String(error.meta?.target ?? 'field');
+        const friendly = target.includes('phone')
+          ? 'This phone number is already in use by another account'
+          : `This ${target} is already in use`;
+        this.logger.warn(
+          `Unique constraint violation on "${target}" for ID: ${userId}`,
+        );
+        throw new ConflictException(friendly);
+      }
+      this.logger.error(
+        `Unexpected error updating profile for ID: ${userId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
