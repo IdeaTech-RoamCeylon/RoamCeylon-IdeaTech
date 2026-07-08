@@ -19,7 +19,7 @@
         "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby places and help you plan your journey around Sri Lanka.",
         "NSLocationAlwaysUsageDescription": "This app uses your location to provide better travel recommendations even when the app is in the background."
       },
-      "bundleIdentifier": "com.anonymous.RoamCeylon"
+      "bundleIdentifier": "com.ideatech.roamceylon"
     },
     "android": {
       "adaptiveIcon": {
@@ -33,7 +33,7 @@
         "ACCESS_COARSE_LOCATION",
         "INTERNET"
       ],
-      "package": "com.anonymous.RoamCeylon",
+      "package": "com.ideatech.roamceylon",
       "intentFilters": [
         {
           "action": "VIEW",
