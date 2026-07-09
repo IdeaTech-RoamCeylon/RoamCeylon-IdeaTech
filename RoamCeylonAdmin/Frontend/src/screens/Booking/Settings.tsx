@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,10 +9,11 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { nhost } from '@/config/nhostClient';
 import { showToast } from '@/utils/toast';
@@ -27,6 +28,61 @@ const Settings = () => {
   const [pushNotifications, setPushNotifications] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
+  // Profile State
+  const [profile, setProfile] = useState({
+    name: 'Booking Manager',
+    email: '',
+    phone: '',
+    picture: '',
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfile = async () => {
+        try {
+          const token = await SecureStore.getItemAsync('authToken');
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+          if (!token) return;
+
+          const newProfile = { ...profile };
+
+          // 1. Load from cache
+          try {
+            const cachedProfile = await SecureStore.getItemAsync('userProfile');
+            if (cachedProfile) {
+              const parsed = JSON.parse(cachedProfile);
+              if (parsed.name) newProfile.name = parsed.name;
+              if (parsed.email) newProfile.email = parsed.email;
+              if (parsed.phoneNumber) newProfile.phone = parsed.phoneNumber;
+              if (parsed.profile_picture) newProfile.picture = parsed.profile_picture;
+              setProfile(newProfile);
+            }
+          } catch (_e) { }
+
+          // 2. Load from DB
+          try {
+            const res = await fetch(`${apiUrl}/admin-users/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const resJson = await res.json();
+              const profileData = resJson.data || resJson || {};
+              if (profileData.name) newProfile.name = profileData.name;
+              if (profileData.email) newProfile.email = profileData.email;
+              if (profileData.phoneNumber) newProfile.phone = profileData.phoneNumber;
+              if (profileData.profile_picture) newProfile.picture = profileData.profile_picture;
+              setProfile(newProfile);
+            }
+          } catch (_e) { }
+        } catch (err) {
+          console.error('[Settings] Error loading user profile:', err);
+        }
+      };
+      loadProfile();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
 
   const handleLogout = async () => {
     setLoading(true);
@@ -50,21 +106,7 @@ const Settings = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          activeOpacity={0.7}
-          onPress={() => router.replace('/booking/home' as any)}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0E5E2F" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
@@ -74,67 +116,102 @@ const Settings = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Card Section */}
-        <View style={styles.profileSection}>
-          {/* Avatar Container with Verified Badge */}
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
+        >
+          <TouchableOpacity
+            style={styles.headerButton}
+            activeOpacity={0.7}
+            onPress={() => router.replace('/booking/home' as any)}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <View style={{ width: 44 }} />
+        </LinearGradient>
+
+        {/* Deep Emerald Profile Card section */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.profileSection}
+        >
+          {/* Avatar Container with gold border and verified checkmark */}
           <View style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80',
-              }}
-              style={styles.avatarImage}
-              contentFit="cover"
-            />
+            {profile.picture ? (
+              <Image
+                source={{ uri: profile.picture }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.avatarInitial}>
+                <Text style={styles.avatarInitialText}>
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
+                </Text>
+              </View>
+            )}
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-sharp" size={12} color="#FFFFFF" />
+              <Ionicons name="checkmark-sharp" size={12} color="#0F3D26" />
             </View>
           </View>
-          
-          {/* Verified Admin Label */}
+
+          {/* Manager Badge */}
           <View style={styles.adminBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#0E5E2F" style={{ marginRight: 4 }} />
+            <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
             <Text style={styles.adminBadgeText}>BOOKING MANAGER</Text>
           </View>
 
+          {/* Profile Name */}
+          <Text style={styles.profileName}>{profile.name}</Text>
+
           {/* Contact Information */}
           <View style={styles.contactContainer}>
-            <View style={styles.contactRow}>
-              <Ionicons name="mail-outline" size={16} color="#60646C" style={{ marginRight: 8 }} />
-              <Text style={styles.contactText}>manager@roamceylon.lk</Text>
-            </View>
-            <View style={styles.contactRow}>
-              <Ionicons name="call-outline" size={16} color="#60646C" style={{ marginRight: 8 }} />
-              <Text style={styles.contactText}>+94 77 987 6543</Text>
-            </View>
+            {!!profile.email && (
+              <View style={styles.contactRow}>
+                <Ionicons name="mail-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+                <Text style={styles.contactText}>{profile.email}</Text>
+              </View>
+            )}
+            {!!profile.phone && (
+              <View style={styles.contactRow}>
+                <Ionicons name="call-outline" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8 }} />
+                <Text style={styles.contactText}>{profile.phone}</Text>
+              </View>
+            )}
           </View>
 
-          {/* Actions */}
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.8}
-            onPress={() => router.push('/booking/editProfile' as any)}
-          >
-            <Text style={styles.primaryButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.8}
-            onPress={() => router.push('/booking/businessVerification' as any)}
-          >
-            <Text style={styles.primaryButtonText}>Verify Business</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Side-by-side Action Buttons */}
+          <View style={styles.profileActionsRow}>
+            <TouchableOpacity
+              style={[styles.primaryButton, { flex: 1, marginRight: 8 }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/booking/editProfile' as any)}
+            >
+              <Text style={styles.primaryButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, styles.secondaryButton, { flex: 1, marginLeft: 8 }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/booking/businessVerification' as any)}
+            >
+              <Text style={styles.secondaryButtonText}>Verify Business</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
 
         {/* System Preferences Section */}
         <Text style={styles.sectionHeader}>System Preferences</Text>
         <View style={styles.card}>
-
-
-          {/* Push Notifications */}
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="notifications-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#EF4444' }]}>
+                <Ionicons name="notifications" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Push Notifications</Text>
@@ -156,21 +233,19 @@ const Settings = () => {
               thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           </View>
-
         </View>
 
         {/* Security & Privacy Section */}
         <Text style={styles.sectionHeader}>Security & Privacy</Text>
         <View style={styles.card}>
-          {/* Change Password */}
           <TouchableOpacity
             style={styles.settingRow}
             activeOpacity={0.7}
             onPress={() => router.push('/booking/changePassword' as any)}
           >
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#F59E0B' }]}>
+                <Ionicons name="lock-closed" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Change Password</Text>
@@ -181,11 +256,10 @@ const Settings = () => {
 
           <View style={styles.cardDivider} />
 
-          {/* Two-Factor Auth */}
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="shield-checkmark-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#10B981' }]}>
+                <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Two-Factor Auth</Text>
@@ -198,11 +272,10 @@ const Settings = () => {
         {/* Linked Properties Section */}
         <Text style={styles.sectionHeader}>Linked Properties</Text>
         <View style={styles.card}>
-          {/* Manage Properties */}
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="business-outline" size={20} color="#1C1917" />
+              <View style={[styles.iconContainer, { backgroundColor: '#8B5CF6' }]}>
+                <Ionicons name="business" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Manage Properties</Text>
@@ -247,27 +320,33 @@ const Settings = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAF8',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     zIndex: 10,
+    marginBottom: 16,
+    marginHorizontal: -20,
   },
-  backButton: {
-    padding: 4,
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    letterSpacing: -0.3,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -275,106 +354,132 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 24,
   },
   profileSection: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 32,
+    padding: 24,
+    marginBottom: 32,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   avatarContainer: {
     position: 'relative',
     marginBottom: 16,
   },
   avatarImage: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#EAEAEA',
+    borderWidth: 3,
+    borderColor: '#EAD26B',
+  },
+  avatarInitial: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#0E5E2F',
+    borderWidth: 3,
+    borderColor: '#EAD26B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#EAD26B',
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 10,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
   verifiedBadge: {
     position: 'absolute',
     bottom: 0,
     right: 4,
-    backgroundColor: '#0E5E2F',
+    backgroundColor: '#EAD26B',
     width: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1C1917',
-  },
-  userSubtitle: {
-    fontSize: 14,
-    color: '#60646C',
-    fontWeight: '600',
-    marginTop: 4,
-    textAlign: 'center',
+    borderColor: '#0F3D26',
   },
   adminBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EAF7EE',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    marginTop: 10,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   adminBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0E5E2F',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   contactContainer: {
-    marginTop: 16,
+    marginTop: 20,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   contactText: {
     fontSize: 14,
-    color: '#49504B',
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
+  },
+  profileActionsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 8,
   },
   primaryButton: {
     backgroundColor: '#EAD26B',
-    borderRadius: 14,
-    width: '85%',
-    height: 44,
+    borderRadius: 16,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
-    shadowColor: '#EAD26B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 2,
   },
   primaryButtonText: {
     color: '#493D1B',
     fontSize: 14,
     fontWeight: '800',
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  secondaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   sectionHeader: {
     fontSize: 12,

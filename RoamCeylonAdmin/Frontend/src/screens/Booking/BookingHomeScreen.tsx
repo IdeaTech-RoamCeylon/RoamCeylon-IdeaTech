@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,272 +7,328 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { useNotifications } from '../../utils/notificationsStore';
+import type { Room, RoomStatus } from '@/types/booking.types';
 
 const { width: _width } = Dimensions.get('window');
+
+const apiUrl = () =>
+  process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
+
+const QUICK_NAV = [
+  { label: 'Manage Bookings', icon: 'list-outline', route: '/booking/management' },
+  { label: 'Available Rooms', icon: 'archive-outline', route: '/booking/availableRooms' },
+  { label: 'View Calendar', icon: 'calendar-outline', route: '/booking/calendar' },
+  { label: 'Guest Messages', icon: 'chatbubble-ellipses-outline', route: '/booking/messages' },
+  { label: 'Manage Rooms', icon: 'bed-outline', route: '/booking/rooms' },
+  { label: 'Hotel Details', icon: 'business-outline', route: '/booking/hotelDetails' },
+] as const;
+
+const STATUS_LABEL: Record<RoomStatus, string> = {
+  available: 'Available',
+  booked: 'Booked',
+  maintenance: 'Maintenance',
+};
+
+const formatPrice = (rate: number | string) => {
+  const num = typeof rate === 'string' ? parseFloat(rate) : rate;
+  if (!num || Number.isNaN(num)) return 'Rs. 0';
+  return `Rs. ${Math.round(num).toLocaleString('en-US')}`;
+};
+
+const getStatusStyle = (status: RoomStatus) => {
+  if (status === 'available') return { text: '#059669', label: STATUS_LABEL.available };
+  if (status === 'booked') return { text: '#DC2626', label: STATUS_LABEL.booked };
+  return { text: '#D97706', label: STATUS_LABEL.maintenance };
+};
 
 const BookingHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { unreadCount } = useNotifications('booking');
 
-  // Mock data for check-ins
-  const checkIns = [
-    {
-      id: '1',
-      name: 'Eleanor Richards',
-      room: 'Ocean View Suite',
-      status: 'Arriving Soon',
-      statusType: 'success', // green badge
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '2',
-      name: 'Marcus Chen',
-      room: 'Deluxe double',
-      status: 'ETA: 2:00 PM',
-      statusType: 'info', // beige badge
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '3',
-      name: 'Sarah Jenkins',
-      room: 'Standard King',
-      status: 'ETA: 4:30 PM',
-      statusType: 'info', // beige badge
-      initials: 'SJ',
-    },
-  ];
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          const accessToken = await SecureStore.getItemAsync('authToken');
+          if (accessToken) {
+            const res = await fetch(`${apiUrl()}/rooms/my`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (res.ok && active) {
+              setRooms(await res.json());
+            }
+          }
+        } catch (error) {
+          console.error('[BookingHome] Failed to load rooms:', error);
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+      fetchData();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const availableCount = rooms.filter((r) => r.status === 'available').length;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        {/* Left Notification Bell */}
-        <TouchableOpacity 
-          style={styles.headerIconButton} 
-          activeOpacity={0.7}
-          onPress={() => router.push({ pathname: '/notifications', params: { module: 'booking' } } as any)}
-        >
-          <Ionicons name="notifications-outline" size={24} color="#5B600A" />
-          {unreadCount > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Center Logo Text */}
-        <Text style={styles.logoText}>RoamCeylon</Text>
-
-        {/* Right Profile Icon */}
-        <TouchableOpacity 
-          style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden' }} 
-          activeOpacity={0.7}
-          onPress={() => router.push('/booking/settings' as any)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=150&q=80' }}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 40 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Welcome back, Grand Emerald Resort</Text>
-          <Text style={styles.welcomeSubtitle}>
-            Here is what&apos;s happening at your property today.
-          </Text>
-        </View>
+        {/* Premium Header Gradient */}
+        <LinearGradient
+          colors={['#0F3D26', '#145334', '#0E5E2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+        >
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greetingText}>Welcome back,</Text>
+              <Text style={styles.headerTitle}>Grand Emerald Resort</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={[styles.headerIconButton, { marginRight: 10 }]}
+                activeOpacity={0.7}
+                onPress={() => router.push({ pathname: '/notifications', params: { module: 'booking' } } as any)}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => router.push('/booking/settings' as any)}
+              >
+                <Image
+                  source={{ uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=150&q=80' }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        {/* Quick Navigation / Preview Section */}
-        <View style={styles.navSection}>
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            <TouchableOpacity
+              style={styles.statCard}
+              activeOpacity={0.8}
+              onPress={() => router.push('/booking/rooms' as any)}
+            >
+              <View style={styles.statIconWrap}>
+                <Ionicons name="bed-outline" size={20} color="#0E5E2F" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{rooms.length}</Text>
+                <Text style={styles.statLabel}>Rooms</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.statCard}>
+              <View style={[styles.statIconWrap, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#059669" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{availableCount}</Text>
+                <Text style={styles.statLabel}>Available</Text>
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="cash-outline" size={20} color="#2563EB" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>$2.4k</Text>
+                <Text style={styles.statLabel}>Revenue</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.scrollContent}>
+          {/* Quick Navigation */}
           <Text style={styles.navSectionTitle}>Quick Navigation</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.navScrollContent}
           >
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/booking/management' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="list-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>Manage Bookings</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/booking/availableRooms' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="archive-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>Available Rooms</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/booking/calendar' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="calendar-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>View Calendar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/booking/messages' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>Guest Messages</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/booking/rooms' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="bed-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>Manage Rooms</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/booking/hotelDetails' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="business-outline" size={20} color="#0E5E2F" />
-              <Text style={styles.navCardText}>View Hotel Details</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        {/* Metrics Grid */}
-        <View style={styles.metricsGrid}>
-          {/* Card 1: Occupancy */}
-          <View style={styles.metricCard}>
-            <View style={styles.metricHeader}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="bed-outline" size={20} color="#5C605D" />
-              </View>
-              <View style={styles.trendBadge}>
-                <Text style={styles.trendText}>+4% vs last week</Text>
-              </View>
-            </View>
-            <Text style={styles.metricLabel}>Occupancy</Text>
-            <Text style={styles.metricValue}>88%</Text>
-          </View>
-
-          {/* Card 2: Today's Check-ins */}
-          <View style={styles.metricCard}>
-            <View style={styles.metricHeader}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="briefcase-outline" size={20} color="#5C605D" />
-              </View>
-            </View>
-            <Text style={styles.metricLabel}>Today&apos;s Check-ins</Text>
-            <Text style={styles.metricValue}>14</Text>
-          </View>
-
-          {/* Card 3: Revenue Today (Forest Green Background) */}
-          <View style={[styles.metricCard, styles.revenueCard]}>
-            {/* Background Circles Decoration */}
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
-
-            <View style={styles.metricHeader}>
-              <View style={[styles.iconCircle, styles.revenueIconCircle]}>
-                <Ionicons name="cash-outline" size={20} color="#E5C158" />
-              </View>
-              <View style={styles.revenueTrendBadge}>
-                <Text style={styles.revenueTrendText}>+12%</Text>
-              </View>
-            </View>
-            <Text style={styles.revenueLabel}>Revenue Today</Text>
-            <Text style={styles.revenueValue}>$2.4k</Text>
-          </View>
-        </View>
-
-        {/* Upcoming Check-ins Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Check-ins</Text>
-          <TouchableOpacity activeOpacity={0.6}>
-            <Text style={styles.viewAllButton}>View All</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.checkInsCard}>
-          {checkIns.map((item, index) => (
-            <View key={item.id}>
+            {QUICK_NAV.map((item) => (
               <TouchableOpacity
-                style={styles.checkInRow}
-                onPress={() => router.push('/booking/details' as any)}
-                activeOpacity={0.7}
+                key={item.route}
+                style={styles.navCard}
+                onPress={() => router.push(item.route as any)}
+                activeOpacity={0.85}
               >
-                {/* Guest Avatar */}
-                {item.avatar ? (
-                  <Image
-                    source={{ uri: item.avatar }}
-                    style={styles.avatarImage}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View style={styles.initialsAvatar}>
-                    <Text style={styles.initialsText}>{item.initials}</Text>
-                  </View>
-                )}
-
-                {/* Guest Details */}
-                <View style={styles.guestInfo}>
-                  <Text style={styles.guestName}>{item.name}</Text>
-                  <Text style={styles.roomType}>{item.room}</Text>
+                <View style={styles.navIconWrap}>
+                  <Ionicons name={item.icon as any} size={20} color="#0E5E2F" />
                 </View>
-
-                {/* Status Badge */}
-                <View
-                  style={[
-                    styles.statusBadge,
-                    item.statusType === 'success' ? styles.statusBadgeSuccess : styles.statusBadgeInfo,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusBadgeText,
-                      item.statusType === 'success' ? styles.statusTextSuccess : styles.statusTextInfo,
-                    ]}
-                  >
-                    {item.status}
-                  </Text>
-                </View>
+                <Text style={styles.navCardText}>{item.label}</Text>
               </TouchableOpacity>
+            ))}
+          </ScrollView>
 
-              {/* Divider */}
-              {index < checkIns.length - 1 && <View style={styles.rowDivider} />}
+          {/* Rooms Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Rooms</Text>
+            <TouchableOpacity activeOpacity={0.6} onPress={() => router.push('/booking/rooms' as any)}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#0E5E2F" style={{ marginTop: 40 }} />
+          ) : rooms.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <MaterialCommunityIcons name="bed-empty" size={36} color="#0E5E2F" />
+              </View>
+              <Text style={styles.emptyTitle}>No rooms yet</Text>
+              <Text style={styles.emptySubtitle}>Add your first room to start{'\n'}managing bookings and availability</Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                activeOpacity={0.8}
+                onPress={() => router.push('/booking/addRoom' as any)}
+              >
+                <Feather name="plus" size={16} color="#FFFFFF" />
+                <Text style={styles.emptyButtonText}>Add Room</Text>
+              </TouchableOpacity>
             </View>
-          ))}
+          ) : (
+            rooms.map((room) => {
+              const statusInfo = getStatusStyle(room.status);
+              return (
+                <TouchableOpacity
+                  key={room.id}
+                  style={styles.roomCard}
+                  activeOpacity={0.95}
+                  onPress={() => router.push({ pathname: '/booking/editRoom', params: { id: room.id } } as any)}
+                >
+                  {/* Image Section */}
+                  <View style={styles.cardImageContainer}>
+                    {room.coverImageUrl ? (
+                      <Image
+                        source={{ uri: room.coverImageUrl }}
+                        style={styles.roomImage}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    ) : (
+                      <LinearGradient
+                        colors={['#E8F5E9', '#C8E6C9']}
+                        style={[styles.roomImage, styles.roomImagePlaceholder]}
+                      >
+                        <MaterialCommunityIcons name="image-area" size={30} color="#81C784" />
+                      </LinearGradient>
+                    )}
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.25)', 'transparent', 'rgba(0,0,0,0.35)']}
+                      locations={[0, 0.4, 1]}
+                      style={styles.imageOverlay}
+                    />
+                    {/* Status pill */}
+                    <View style={styles.statusBadge}>
+                      <View style={[styles.statusDot, { backgroundColor: statusInfo.text }]} />
+                      <Text style={[styles.statusText, { color: statusInfo.text }]}>{statusInfo.label}</Text>
+                    </View>
+                    {/* Bottom image info */}
+                    <View style={styles.imageBottomRow}>
+                      {!!room.roomType && (
+                        <View style={styles.imageBadge}>
+                          <Ionicons name="bed-outline" size={11} color="#FFFFFF" />
+                          <Text style={styles.imageBadgeText}>{room.roomType}</Text>
+                        </View>
+                      )}
+                      {!!room.adults && (
+                        <View style={styles.imageBadge}>
+                          <Ionicons name="people" size={11} color="#FFFFFF" />
+                          <Text style={styles.imageBadgeText}>{room.adults} Adults</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Content Section */}
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardTopRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.roomName} numberOfLines={1}>{room.name}</Text>
+                        <View style={styles.categoryRow}>
+                          <View style={styles.categoryDot} />
+                          <Text style={styles.categoryText}>
+                            {room.squareFootage ? `${room.squareFootage} sqft` : 'Standard'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.priceContainer}>
+                        <Text style={styles.priceText}>{formatPrice(room.nightlyRate)}</Text>
+                        <Text style={styles.priceUnit}>/night</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.cardDivider} />
+
+                    <View style={styles.cardActionRow}>
+                      <View style={styles.unitsChip}>
+                        <Ionicons name="cube-outline" size={13} color="#0E5E2F" />
+                        <Text style={styles.unitsText}>{room.availableUnits || 1} units</Text>
+                      </View>
+                      <View style={styles.editHint}>
+                        <Text style={styles.editHintText}>Edit</Text>
+                        <Feather name="chevron-right" size={14} color="#0E5E2F" />
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + 24 }]}
+        activeOpacity={0.8}
+        onPress={() => router.push('/booking/addRoom' as any)}
+      >
+        <LinearGradient
+          colors={['#10B981', '#059669']}
+          style={styles.fabGradient}
+        >
+          <Feather name="plus" size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -280,51 +336,59 @@ const BookingHomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
   },
-  header: {
+  scrollView: {
+    flex: 1,
+  },
+  headerGradient: {
+    paddingBottom: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    zIndex: 10,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F3F1',
-    zIndex: 10,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  greetingText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    maxWidth: 220,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  globeIconContainer: {
-    width: 28,
-    height: 28,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchOverlay: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 1,
-  },
-  logoText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#5B600A',
-    letterSpacing: -0.2,
-  },
-  notificationBadge: {
+  badge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#dc3545',
+    backgroundColor: '#EF4444',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -332,284 +396,338 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: '#0F3D26',
   },
-  notificationBadgeText: {
+  badgeText: {
     color: '#FFF',
     fontSize: 9,
     fontWeight: '800',
   },
-  scrollView: {
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  statCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  welcomeSection: {
-    marginBottom: 28,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    lineHeight: 34,
-    letterSpacing: -0.5,
-  },
-  welcomeSubtitle: {
-    fontSize: 15,
-    color: '#60646C',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  metricsGrid: {
-    marginBottom: 32,
-    gap: 16,
-  },
-  metricCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 20,
-    shadowColor: '#0E5E2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.01,
-    shadowRadius: 10,
-    elevation: 1,
-  },
-  metricHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F5F4',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  statIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  trendBadge: {
-    backgroundColor: '#EAF7EE',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0E5E2F',
-  },
-  metricLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#4A4A4A',
-    marginBottom: 6,
-  },
-  metricValue: {
-    fontSize: 36,
+  statValue: {
+    fontSize: 20,
     fontWeight: '800',
     color: '#1C1917',
+    marginBottom: 2,
   },
-  revenueCard: {
-    backgroundColor: '#01261B',
-    borderColor: '#01261B',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  revenueIconCircle: {
-    backgroundColor: 'rgba(229, 193, 88, 0.15)',
-  },
-  revenueTrendBadge: {
-    backgroundColor: 'rgba(229, 193, 88, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  revenueTrendText: {
+  statLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#E5C158',
+    color: '#6B7280',
+    fontWeight: '500',
   },
-  revenueLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#E5C158',
-    marginBottom: 6,
-    opacity: 0.9,
+  scrollContent: {
+    marginTop: -20,
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    zIndex: 1,
   },
-  revenueValue: {
-    fontSize: 36,
+  navSectionTitle: {
+    fontSize: 12,
     fontWeight: '800',
-    color: '#E5C158',
+    color: '#7D8A82',
+    textTransform: 'uppercase',
+    marginBottom: 12,
+    marginLeft: 4,
+    letterSpacing: 0.8,
   },
-  bgCircle1: {
-    position: 'absolute',
-    right: -20,
-    bottom: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(229, 193, 88, 0.05)',
+  navScrollContent: {
+    paddingRight: 24,
+    paddingVertical: 4,
+    paddingLeft: 4,
+    marginBottom: 24,
   },
-  bgCircle2: {
-    position: 'absolute',
-    right: 40,
-    bottom: -60,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(229, 193, 88, 0.03)',
+  navCard: {
+    width: 120,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#F0F3F1',
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    marginRight: 12,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  navIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  navCardText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1C1917',
+    letterSpacing: -0.2,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 4,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#1C1917',
     letterSpacing: -0.3,
-    marginBottom: 12,
   },
-  viewAllButton: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#5B600A',
-  },
-  checkInsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    padding: 16,
-    marginBottom: 32,
-  },
-  checkInRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4F6',
-  },
-  initialsAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#EAF7EE',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  initialsText: {
-    fontSize: 15,
+  viewAllText: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#0E5E2F',
   },
-  guestInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  guestName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1C1917',
-    marginBottom: 4,
-  },
-  roomType: {
-    fontSize: 14,
-    color: '#7C8A82',
-    fontWeight: '500',
-  },
-  statusBadge: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  statusBadgeSuccess: {
-    backgroundColor: '#CDE5D8',
-  },
-  statusBadgeInfo: {
-    backgroundColor: '#F3F4ED',
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  statusTextSuccess: {
-    color: '#0A4D26',
-  },
-  statusTextInfo: {
-    color: '#494D3E',
-  },
-  rowDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F2',
-  },
-  navSection: {
-    marginTop: 0,
-    marginBottom: 20,
-    paddingHorizontal: 0,
-  },
-  navSectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#7D8A82',
-    textTransform: 'uppercase',
-    marginBottom: 10,
-    letterSpacing: 0.8,
-  },
-  navScrollContent: {
-    paddingRight: 24,
-    paddingVertical: 4,
-  },
-  navCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.2,
-    borderColor: '#EAF2EC',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  navCardText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#172B1E',
-    marginLeft: 8,
-  },
-  logoutButton: {
-    flexDirection: 'row',
+  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#dc3545',
-    height: 52,
-    marginTop: 24,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  logoutText: {
-    fontSize: 16,
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    color: '#dc3545',
+    color: '#1C1917',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0E5E2F',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 8,
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  roomCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    marginBottom: 16,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F0F3F1',
+  },
+  cardImageContainer: {
+    position: 'relative',
+    height: 148,
+  },
+  roomImage: {
+    width: '100%',
+    height: '100%',
+  },
+  roomImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  imageBottomRow: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  imageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  imageBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cardContent: {
+    padding: 14,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  roomName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1C1917',
+    letterSpacing: -0.3,
+    marginBottom: 3,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  categoryDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#0E5E2F',
+  },
+  categoryText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+    marginLeft: 12,
+  },
+  priceText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0E5E2F',
+  },
+  priceUnit: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 10,
+  },
+  cardActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  unitsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 5,
+  },
+  unitsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0E5E2F',
+  },
+  editHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  editHintText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0E5E2F',
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    zIndex: 100,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

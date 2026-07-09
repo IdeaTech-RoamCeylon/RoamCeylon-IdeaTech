@@ -11,10 +11,13 @@ import {
   ActivityIndicator,
   Modal,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
@@ -176,218 +179,235 @@ const EditRoom = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="#5B4A1E" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Edit Room</Text>
-
-        <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }}
-            style={styles.headerAvatar}
-            contentFit="cover"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0D4F2E" />
-        </View>
-      ) : (
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: insets.bottom + 100 }, // Space for bottom bar
-          ]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Basic Information */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="information-circle-outline" size={22} color="#0D4F2E" />
-              <Text style={styles.cardTitle}>Basic Information</Text>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Room Name</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Ocean View Sunset Suite"
-                  placeholderTextColor="#64748B"
-                  value={roomName}
-                  onChangeText={setRoomName}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Room Type</Text>
-              <TouchableOpacity
-                style={styles.dropdownWrapper}
-                activeOpacity={0.7}
-                onPress={() => setTypeModalVisible(true)}
-              >
-                <Text style={styles.dropdownText}>{roomType}</Text>
-                <Ionicons name="chevron-down" size={20} color="#475569" />
+          {/* Premium Header Gradient */}
+          <LinearGradient
+            colors={['#0F3D26', '#145334', '#0E5E2F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 50 }]}
+          >
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => router.back()}>
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
               </TouchableOpacity>
+              <Text style={styles.headerTitle}>Edit Room</Text>
+              <View style={{ width: 44 }} />
             </View>
+          </LinearGradient>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Square Footage (sq ft)</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="450"
-                  keyboardType="numeric"
-                  placeholderTextColor="#64748B"
-                  value={squareFootage}
-                  onChangeText={setSquareFootage}
-                />
-              </View>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#0E5E2F" />
             </View>
+          ) : (
+            <View style={styles.formContainer}>
+              {/* Basic Information */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="info" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Basic Information</Text>
+                </View>
+                <View style={styles.cardDivider} />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Number of Adults</Text>
-              <View style={styles.counterWrapper}>
-                <TouchableOpacity
-                  style={styles.counterButtonMinus}
-                  onPress={() => setAdultsCount(Math.max(1, adultsCount - 1))}
-                >
-                  <Ionicons name="remove" size={20} color="#1E293B" />
-                </TouchableOpacity>
-                <Text style={styles.counterValue}>{adultsCount}</Text>
-                <TouchableOpacity
-                  style={styles.counterButtonPlus}
-                  onPress={() => setAdultsCount(adultsCount + 1)}
-                >
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Room Name</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="e.g. Ocean View Sunset Suite"
+                    placeholderTextColor="#9CA3AF"
+                    value={roomName}
+                    onChangeText={setRoomName}
+                  />
+                </View>
 
-          {/* Inventory & Pricing */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="cash-outline" size={22} color="#001F3F" />
-              <Text style={styles.cardTitle}>Inventory & Pricing</Text>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Available Units</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="1"
-                  keyboardType="numeric"
-                  placeholderTextColor="#64748B"
-                  value={availableUnits}
-                  onChangeText={setAvailableUnits}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nightly Rate (LKR)</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.currencyPrefix}>Rs. </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="45,000"
-                  keyboardType="numeric"
-                  placeholderTextColor="#64748B"
-                  value={nightlyRate}
-                  onChangeText={setNightlyRate}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Amenities */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="grid-outline" size={22} color="#001F3F" />
-              <Text style={styles.cardTitle}>Amenities</Text>
-            </View>
-
-            <View style={styles.amenitiesGrid}>
-              {AMENITY_OPTIONS.map((item) => {
-                const selected = selectedAmenities.includes(item.name);
-                return (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Room Type</Text>
                   <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.amenityCard,
-                      selected ? styles.amenityCardSelected : styles.amenityCardUnselected,
-                    ]}
+                    style={styles.dropdownInput}
                     activeOpacity={0.7}
-                    onPress={() => toggleAmenity(item.name)}
+                    onPress={() => setTypeModalVisible(true)}
                   >
-                    <Ionicons name={item.icon as any} size={24} color="#0D4F2E" />
-                    <Text
-                      style={[
-                        styles.amenityText,
-                        selected ? styles.amenityTextSelected : styles.amenityTextUnselected,
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
+                    <Text style={styles.dropdownText}>{roomType}</Text>
+                    <Feather name="chevron-down" size={20} color="#60646C" />
                   </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+                </View>
 
-          {/* Media Gallery */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="images-outline" size={22} color="#001F3F" />
-              <Text style={styles.cardTitle}>Media Gallery</Text>
-            </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Square Footage (sq ft)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="450"
+                    keyboardType="numeric"
+                    placeholderTextColor="#9CA3AF"
+                    value={squareFootage}
+                    onChangeText={setSquareFootage}
+                  />
+                </View>
 
-            <TouchableOpacity style={styles.addPhotosDashedArea} activeOpacity={0.6} onPress={pickImages}>
-              <Ionicons name="camera-outline" size={36} color="#64748B" style={{ marginBottom: 8 }} />
-              <Text style={styles.addPhotosText}>Add Room Photos</Text>
-            </TouchableOpacity>
-
-            {galleryUris.length > 0 && (
-              <View style={styles.mediaGrid}>
-                {galleryUris.map((uri) => (
-                  <View key={uri} style={styles.uploadedPhotoContainer}>
-                    <Image source={{ uri }} style={styles.uploadedPhoto} contentFit="cover" />
+                <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                  <Text style={styles.inputLabel}>Number of Adults</Text>
+                  <View style={styles.counterWrapper}>
                     <TouchableOpacity
-                      style={styles.removePhotoBadge}
-                      onPress={() => removeImage(uri)}
+                      style={styles.counterButtonMinus}
+                      onPress={() => setAdultsCount(Math.max(1, adultsCount - 1))}
                     >
-                      <Ionicons name="close" size={12} color="#FFFFFF" />
+                      <Ionicons name="remove" size={20} color="#1E293B" />
+                    </TouchableOpacity>
+                    <Text style={styles.counterValue}>{adultsCount}</Text>
+                    <TouchableOpacity
+                      style={styles.counterButtonPlus}
+                      onPress={() => setAdultsCount(adultsCount + 1)}
+                    >
+                      <Ionicons name="add" size={20} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
-                ))}
+                </View>
               </View>
-            )}
 
-            <TouchableOpacity style={styles.uploadNewButton} activeOpacity={0.7} onPress={pickImages}>
-              <Ionicons name="cloud-upload-outline" size={20} color="#0D4F2E" />
-              <Text style={styles.uploadNewText}>Upload New</Text>
-            </TouchableOpacity>
+              {/* Inventory & Pricing */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="dollar-sign" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Inventory & Pricing</Text>
+                </View>
+                <View style={styles.cardDivider} />
 
-            <View style={styles.tipBox}>
-              <Ionicons name="bulb-outline" size={20} color="#475569" style={{ marginTop: 2 }} />
-              <Text style={styles.tipText}>
-                Tip: Listings with 5+ high-quality photos get 40% more bookings on average.
-              </Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Available Units</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="1"
+                    keyboardType="numeric"
+                    placeholderTextColor="#9CA3AF"
+                    value={availableUnits}
+                    onChangeText={setAvailableUnits}
+                  />
+                </View>
+
+                <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                  <Text style={styles.inputLabel}>Nightly Rate (LKR)</Text>
+                  <View style={[styles.iconInputBox, { paddingHorizontal: 20 }]}>
+                    <Text style={styles.currencyPrefix}>Rs. </Text>
+                    <TextInput
+                      style={styles.iconTextInput}
+                      placeholder="45,000"
+                      keyboardType="numeric"
+                      placeholderTextColor="#9CA3AF"
+                      value={nightlyRate}
+                      onChangeText={setNightlyRate}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Amenities */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="grid" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Amenities</Text>
+                </View>
+                <View style={styles.cardDivider} />
+
+                <View style={styles.amenitiesGrid}>
+                  {AMENITY_OPTIONS.map((item) => {
+                    const selected = selectedAmenities.includes(item.name);
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.amenityCard,
+                          selected ? styles.amenityCardSelected : styles.amenityCardUnselected,
+                        ]}
+                        activeOpacity={0.7}
+                        onPress={() => toggleAmenity(item.name)}
+                      >
+                        <Ionicons name={item.icon as any} size={24} color={selected ? '#FFFFFF' : '#6B7280'} />
+                        <Text
+                          style={[
+                            styles.amenityText,
+                            selected ? styles.amenityTextSelected : styles.amenityTextUnselected,
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Media Gallery */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="image" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Media Gallery</Text>
+                </View>
+                <View style={styles.cardDivider} />
+
+                <TouchableOpacity style={styles.imagePickerCard} activeOpacity={0.8} onPress={pickImages}>
+                  <View style={styles.cameraIconContainer}>
+                    <Feather name="camera" size={24} color="#0E5E2F" />
+                  </View>
+                  <Text style={styles.imagePlaceholderText}>Tap to add room photos</Text>
+                </TouchableOpacity>
+
+                {galleryUris.length > 0 && (
+                  <View style={styles.mediaGrid}>
+                    {galleryUris.map((uri) => (
+                      <View key={uri} style={styles.uploadedPhotoContainer}>
+                        <Image source={{ uri }} style={styles.uploadedPhoto} contentFit="cover" />
+                        <TouchableOpacity
+                          style={styles.removePhotoBadge}
+                          onPress={() => removeImage(uri)}
+                        >
+                          <Ionicons name="close" size={12} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.tipBox}>
+                  <Ionicons name="bulb-outline" size={20} color="#0E5E2F" style={{ marginTop: 2 }} />
+                  <Text style={styles.tipText}>
+                    Tip: Listings with 5+ high-quality photos get 40% more bookings on average.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <TouchableOpacity
+                style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
+                activeOpacity={0.8}
+                onPress={handleSave}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.cancelButton} activeOpacity={0.8} onPress={() => router.back()}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
-          </View>
+          )}
         </ScrollView>
-      )}
+      </KeyboardAvoidingView>
 
       {/* Room Type Modal */}
       <Modal
@@ -421,7 +441,7 @@ const EditRoom = () => {
                     >
                       {item}
                     </Text>
-                    {roomType === item && <Ionicons name="checkmark" size={20} color="#0D4F2E" />}
+                    {roomType === item && <Feather name="check" size={20} color="#FFFFFF" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -429,29 +449,6 @@ const EditRoom = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-
-      {/* Bottom Actions Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-        <TouchableOpacity style={styles.cancelButton} activeOpacity={0.7} onPress={() => router.back()}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.addButton, isSubmitting && styles.addButtonDisabled]}
-          activeOpacity={0.7}
-          onPress={handleSave}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#6B5E05" />
-          ) : (
-            <>
-              <Ionicons name="save-outline" size={20} color="#5B4A1E" />
-              <Text style={styles.addButtonText}>Save Changes</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -459,60 +456,61 @@ const EditRoom = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F7F6',
+    backgroundColor: '#FAFAFA',
   },
   loadingContainer: {
-    flex: 1,
+    paddingVertical: 80,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerGradient: {
+    width: '100%',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#F4F7F6',
+    paddingHorizontal: 24,
     zIndex: 10,
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#6B5E05', // Olive Gold
-  },
-  avatarButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  headerAvatar: {
-    width: '100%',
-    height: '100%',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingBottom: 40,
+  },
+  formContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    gap: 20,
+    marginTop: -24,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24,
+    borderWidth: 0,
+    padding: 24,
+    marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -522,8 +520,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0D1321',
-    marginLeft: 10,
+    color: '#1C1917',
+    marginLeft: 12,
+    letterSpacing: -0.3,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 20,
   },
   inputGroup: {
     marginBottom: 20,
@@ -531,52 +535,64 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A4A4A',
     marginBottom: 8,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D1E0D5',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    height: 48,
-    paddingHorizontal: 16,
-  },
-  input: {
-    flex: 1,
+  textInput: {
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
     fontSize: 15,
-    color: '#1E293B',
+    color: '#1C1917',
+    backgroundColor: '#F3F4F6',
   },
-  dropdownWrapper: {
+  dropdownInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#D1E0D5',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    height: 48,
-    paddingHorizontal: 16,
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
+    backgroundColor: '#F3F4F6',
   },
   dropdownText: {
     fontSize: 15,
-    color: '#1E293B',
+    color: '#1C1917',
+  },
+  iconInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    backgroundColor: '#F3F4F6',
+  },
+  iconTextInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1C1917',
+    height: '100%',
+  },
+  currencyPrefix: {
+    fontSize: 15,
+    color: '#1C1917',
+    fontWeight: '600',
   },
   counterWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F5FA',
-    borderRadius: 30,
-    padding: 4,
-    width: 140,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 6,
+    width: 150,
     justifyContent: 'space-between',
   },
   counterButtonMinus: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -592,17 +608,12 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   counterButtonPlus: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#6B5E05',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#0E5E2F',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  currencyPrefix: {
-    fontSize: 15,
-    color: '#1E293B',
-    fontWeight: '600',
   },
   amenitiesGrid: {
     flexDirection: 'row',
@@ -611,20 +622,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   amenityCard: {
-    width: '48%',
-    borderRadius: 12,
+    width: '47%',
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
   amenityCardSelected: {
-    backgroundColor: '#A9F0AD',
-    borderColor: '#226D27',
+    backgroundColor: '#0E5E2F',
   },
   amenityCardUnselected: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F1F5F9',
+    backgroundColor: '#F3F4F6',
   },
   amenityText: {
     marginTop: 8,
@@ -632,37 +640,49 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   amenityTextSelected: {
-    color: '#0D4F2E',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   amenityTextUnselected: {
-    color: '#475569',
+    color: '#4A4A4A',
   },
-  addPhotosDashedArea: {
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    borderStyle: 'dashed',
+  imagePickerCard: {
+    width: '100%',
+    height: 160,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
-    padding: 32,
-    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
   },
-  addPhotosText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#475569',
+  cameraIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  imagePlaceholderText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   mediaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    marginBottom: 20,
     gap: 12,
   },
   uploadedPhotoContainer: {
     width: '47%',
     height: 120,
-    borderRadius: 12,
+    borderRadius: 16,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -675,32 +695,16 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     backgroundColor: '#DC2626',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  uploadNewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#0D4F2E',
-    borderRadius: 8,
-    paddingVertical: 14,
-    marginBottom: 20,
-  },
-  uploadNewText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0D4F2E',
-    marginLeft: 8,
   },
   tipBox: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
     padding: 16,
     alignItems: 'flex-start',
   },
@@ -708,55 +712,42 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: '#475569',
+    color: '#4A4A4A',
     lineHeight: 20,
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
-  },
-  cancelButton: {
-    flex: 1,
-    height: 52,
+  saveButton: {
+    backgroundColor: '#0E5E2F',
+    height: 54,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#0D4F2E',
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0D4F2E',
-  },
-  addButton: {
-    flex: 1,
-    height: 52,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#EDD35C',
-    borderRadius: 8,
-  },
-  addButtonDisabled: {
+  saveButtonDisabled: {
     opacity: 0.7,
   },
-  addButtonText: {
+  saveButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-    color: '#6B5E05',
-    marginLeft: 8,
+  },
+  cancelButton: {
+    height: 54,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    marginBottom: 10,
+  },
+  cancelButtonText: {
+    color: '#4A4A4A',
+    fontSize: 16,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
@@ -786,7 +777,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   typeOptionSelected: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#10B981',
     borderRadius: 16,
     paddingHorizontal: 16,
     marginHorizontal: -16,
@@ -798,7 +789,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   typeOptionTextSelected: {
-    color: '#0D4F2E',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

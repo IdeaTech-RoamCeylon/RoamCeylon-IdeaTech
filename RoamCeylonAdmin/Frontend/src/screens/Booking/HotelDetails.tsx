@@ -11,10 +11,13 @@ import {
   ActivityIndicator,
   Modal,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
@@ -201,38 +204,13 @@ const HotelDetails = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="#1C1917" />
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerStepText}>STEP 2 OF 4</Text>
-          <Text style={styles.headerTitleText}>Property Details</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.headerRightButton}
-          activeOpacity={0.7}
-          onPress={handleSave}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#855E0E" />
-          ) : (
-            <Text style={styles.headerSaveText}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0E5E2F" />
-        </View>
-      ) : (
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
@@ -241,204 +219,234 @@ const HotelDetails = () => {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title Section */}
-          <View style={styles.titleSection}>
-            <Text style={styles.mainTitle}>Tell us about your space</Text>
-            <Text style={styles.mainSubtitle}>
-              Accurate details help craft the perfect{'\n'}traveler experience.
-            </Text>
-          </View>
-
-          {/* Basic Information Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="information-circle-outline" size={22} color="#5B4A1E" />
-              <Text style={styles.cardTitle}>Basic Information</Text>
-            </View>
-            <View style={styles.divider} />
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Hotel Name</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. The Serene Villa"
-                  placeholderTextColor="#A3A3A3"
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Property Category</Text>
-              <TouchableOpacity
-                style={styles.dropdownWrapper}
-                activeOpacity={0.7}
-                onPress={() => setCategoryModalVisible(true)}
-              >
-                <Text style={category ? styles.dropdownValue : styles.dropdownPlaceholder}>
-                  {category || 'Select a category'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color="#A3A3A3" />
+          {/* Premium Header Gradient */}
+          <LinearGradient
+            colors={['#0F3D26', '#145334', '#0E5E2F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 50 }]}
+          >
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => router.back()}>
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
               </TouchableOpacity>
+              <Text style={styles.headerTitle}>Property Details</Text>
+              <View style={{ width: 44 }} />
             </View>
-          </View>
+          </LinearGradient>
 
-          {/* Location Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="location-outline" size={22} color="#5B4A1E" />
-              <Text style={styles.cardTitle}>Location</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#0E5E2F" />
             </View>
-            <View style={styles.divider} />
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Street Address</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="search" size={20} color="#7C8A82" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.inputWithIcon}
-                  placeholder="Start typing address..."
-                  placeholderTextColor="#A3A3A3"
-                  value={streetAddress}
-                  onChangeText={setStreetAddress}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.mapContainer}
-              activeOpacity={0.9}
-              onPress={() => setMapVisible(true)}
-            >
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&auto=format&fit=crop&q=80' }} // Placeholder for map
-                style={styles.mapImage}
-                contentFit="cover"
-              />
-              {/* Greyscale overlay to make it look like the map in the design */}
-              <View style={styles.mapOverlay} />
-              {markerCoordinate && (
-                <View style={styles.coordBadge} pointerEvents="none">
-                  <Ionicons name="checkmark-circle" size={14} color="#0E5E2F" />
-                  <Text style={styles.coordBadgeText}>
-                    {markerCoordinate.latitude.toFixed(5)}, {markerCoordinate.longitude.toFixed(5)}
-                  </Text>
+          ) : (
+            <View style={styles.formContainer}>
+              {/* Basic Information Card */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="info" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Basic Information</Text>
                 </View>
-              )}
-              <View style={styles.pinButton} pointerEvents="none">
-                <Ionicons name="location" size={16} color="#1C1917" />
-                <Text style={styles.pinButtonText}>
-                  {markerCoordinate ? 'Change location' : 'Pin location'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.cardDivider} />
 
-          {/* Key Amenities Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="leaf-outline" size={22} color="#5B4A1E" />
-              <Text style={styles.cardTitle}>Key Amenities</Text>
-            </View>
-            <View style={styles.divider} />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Hotel Name</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="e.g. The Serene Villa"
+                    placeholderTextColor="#9CA3AF"
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
 
-            <Text style={styles.amenitiesSubtitle}>
-              Select the primary highlights of your property.
-            </Text>
-
-            <View style={styles.pillContainer}>
-              {AMENITY_OPTIONS.map((item) => {
-                const selected = selectedAmenities.includes(item.name);
-                return (
+                <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                  <Text style={styles.inputLabel}>Property Category</Text>
                   <TouchableOpacity
-                    key={item.name}
-                    style={[styles.pill, selected && styles.pillSelected]}
+                    style={styles.dropdownInput}
                     activeOpacity={0.7}
-                    onPress={() => toggleAmenity(item.name)}
+                    onPress={() => setCategoryModalVisible(true)}
                   >
-                    {item.lib === 'mci' ? (
-                      <MaterialCommunityIcons
-                        name={item.icon as any}
-                        size={18}
-                        color={selected ? '#0D4F2E' : '#4A4A4A'}
-                      />
-                    ) : (
-                      <Ionicons
-                        name={item.icon as any}
-                        size={18}
-                        color={selected ? '#0D4F2E' : '#4A4A4A'}
-                      />
-                    )}
-                    <Text style={[styles.pillText, selected && styles.pillTextSelected]}>
-                      {item.name}
+                    <Text style={category ? styles.dropdownText : styles.dropdownPlaceholder}>
+                      {category || 'Select a category'}
                     </Text>
+                    <Feather name="chevron-down" size={20} color="#60646C" />
                   </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Media Gallery Section */}
-          <View style={styles.mediaHeaderRow}>
-            <View style={styles.mediaHeaderLeft}>
-              <Ionicons name="images" size={24} color="#5B4A1E" />
-              <Text style={styles.mediaTitle}>Media Gallery</Text>
-            </View>
-            <View style={styles.mediaBadge}>
-              <Text style={styles.mediaBadgeText}>{galleryUris.length} / 10</Text>
-            </View>
-          </View>
-
-          <View style={styles.mediaGrid}>
-            {featuredImage ? (
-              <View style={styles.featuredImageContainer}>
-                <Image
-                  source={{ uri: featuredImage }}
-                  style={styles.featuredImage}
-                  contentFit="cover"
-                />
-                <View style={styles.featuredBadge}>
-                  <Text style={styles.featuredBadgeText}>Featured Cover</Text>
                 </View>
+              </View>
+
+              {/* Location Card */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="map-pin" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Location</Text>
+                </View>
+                <View style={styles.cardDivider} />
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Street Address</Text>
+                  <View style={styles.iconInputBox}>
+                    <Ionicons name="search" size={20} color="#60646C" style={{ marginRight: 8, paddingLeft: 20 }} />
+                    <TextInput
+                      style={styles.iconTextInput}
+                      placeholder="Start typing address..."
+                      placeholderTextColor="#9CA3AF"
+                      value={streetAddress}
+                      onChangeText={setStreetAddress}
+                    />
+                  </View>
+                </View>
+
                 <TouchableOpacity
-                  style={styles.removePhotoBadge}
-                  onPress={() => removeImage(featuredImage)}
+                  style={styles.mapContainer}
+                  activeOpacity={0.9}
+                  onPress={() => setMapVisible(true)}
                 >
-                  <Ionicons name="close" size={14} color="#FFFFFF" />
+                  <Image
+                    source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&auto=format&fit=crop&q=80' }}
+                    style={styles.mapImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.mapOverlay} />
+                  {markerCoordinate && (
+                    <View style={styles.coordBadge} pointerEvents="none">
+                      <Ionicons name="checkmark-circle" size={14} color="#0E5E2F" />
+                      <Text style={styles.coordBadgeText}>
+                        {markerCoordinate.latitude.toFixed(5)}, {markerCoordinate.longitude.toFixed(5)}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.pinButton} pointerEvents="none">
+                    <Ionicons name="location" size={16} color="#FFFFFF" />
+                    <Text style={styles.pinButtonText}>
+                      {markerCoordinate ? 'Change location' : 'Pin location'}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <TouchableOpacity style={styles.featuredAddCard} activeOpacity={0.6} onPress={pickImages}>
-                <Ionicons name="camera-outline" size={36} color="#4A4A4A" style={{ marginBottom: 8 }} />
-                <Text style={styles.addPhotoText}>Add Featured Cover</Text>
-              </TouchableOpacity>
-            )}
 
-            {/* Remaining images in rows of two */}
-            {restImages.map((uri) => (
-              <View key={uri} style={styles.halfRow}>
-                <View style={styles.halfImageContainer}>
-                  <Image source={{ uri }} style={styles.halfImage} contentFit="cover" />
-                  <TouchableOpacity
-                    style={styles.removePhotoBadge}
-                    onPress={() => removeImage(uri)}
-                  >
-                    <Ionicons name="close" size={14} color="#FFFFFF" />
+              {/* Key Amenities Card */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="grid" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Key Amenities</Text>
+                </View>
+                <View style={styles.cardDivider} />
+
+                <Text style={styles.amenitiesSubtitle}>
+                  Select the primary highlights of your property.
+                </Text>
+
+                <View style={styles.pillContainer}>
+                  {AMENITY_OPTIONS.map((item) => {
+                    const selected = selectedAmenities.includes(item.name);
+                    return (
+                      <TouchableOpacity
+                        key={item.name}
+                        style={[styles.pill, selected && styles.pillSelected]}
+                        activeOpacity={0.7}
+                        onPress={() => toggleAmenity(item.name)}
+                      >
+                        {item.lib === 'mci' ? (
+                          <MaterialCommunityIcons
+                            name={item.icon as any}
+                            size={18}
+                            color={selected ? '#FFFFFF' : '#6B7280'}
+                          />
+                        ) : (
+                          <Ionicons
+                            name={item.icon as any}
+                            size={18}
+                            color={selected ? '#FFFFFF' : '#6B7280'}
+                          />
+                        )}
+                        <Text style={[styles.pillText, selected && styles.pillTextSelected]}>
+                          {item.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Media Gallery Card */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Feather name="image" size={22} color="#0E5E2F" />
+                  <Text style={styles.cardTitle}>Media Gallery</Text>
+                  <View style={styles.mediaBadge}>
+                    <Text style={styles.mediaBadgeText}>{galleryUris.length} / 10</Text>
+                  </View>
+                </View>
+                <View style={styles.cardDivider} />
+
+                <View style={styles.mediaGrid}>
+                  {featuredImage ? (
+                    <View style={styles.featuredImageContainer}>
+                      <Image
+                        source={{ uri: featuredImage }}
+                        style={styles.featuredImage}
+                        contentFit="cover"
+                      />
+                      <View style={styles.featuredBadge}>
+                        <Text style={styles.featuredBadgeText}>Featured Cover</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.removePhotoBadge}
+                        onPress={() => removeImage(featuredImage)}
+                      >
+                        <Ionicons name="close" size={14} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.featuredAddCard} activeOpacity={0.8} onPress={pickImages}>
+                      <View style={styles.cameraIconContainer}>
+                        <Feather name="camera" size={24} color="#0E5E2F" />
+                      </View>
+                      <Text style={styles.addPhotoText}>Add Featured Cover</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Remaining images in rows of two */}
+                  {restImages.map((uri) => (
+                    <View key={uri} style={styles.halfRow}>
+                      <View style={styles.halfImageContainer}>
+                        <Image source={{ uri }} style={styles.halfImage} contentFit="cover" />
+                        <TouchableOpacity
+                          style={styles.removePhotoBadge}
+                          onPress={() => removeImage(uri)}
+                        >
+                          <Ionicons name="close" size={14} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={{ flex: 1 }} />
+                    </View>
+                  ))}
+
+                  <TouchableOpacity style={styles.addPhotoCardFull} activeOpacity={0.8} onPress={pickImages}>
+                    <Feather name="plus" size={24} color="#0E5E2F" />
+                    <Text style={styles.addPhotoText}>Add Photo</Text>
                   </TouchableOpacity>
                 </View>
-                <View style={{ flex: 1 }} />
               </View>
-            ))}
 
-            <TouchableOpacity style={styles.addPhotoCardFull} activeOpacity={0.6} onPress={pickImages}>
-              <Ionicons name="camera-outline" size={32} color="#4A4A4A" style={{ marginBottom: 8 }} />
-              <Text style={styles.addPhotoText}>Add Photo</Text>
-            </TouchableOpacity>
-          </View>
+              {/* Save Button */}
+              <TouchableOpacity
+                style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
+                activeOpacity={0.8}
+                onPress={handleSave}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Property Details</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
-      )}
+      </KeyboardAvoidingView>
 
       {/* Map Selection Modal (Mapbox) */}
       <LocationPickerModal
@@ -484,7 +492,7 @@ const HotelDetails = () => {
                     >
                       {item}
                     </Text>
-                    {category === item && <Ionicons name="checkmark" size={20} color="#0D4F2E" />}
+                    {category === item && <Feather name="check" size={20} color="#FFFFFF" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -499,160 +507,136 @@ const HotelDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA',
   },
   loadingContainer: {
-    flex: 1,
+    paddingVertical: 80,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerGradient: {
+    width: '100%',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    paddingHorizontal: 24,
     zIndex: 10,
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  headerCenter: {
     alignItems: 'center',
   },
-  headerStepText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#7C8A82',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  headerTitleText: {
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1C1917',
-  },
-  headerRightButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  headerSaveText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#855E0E',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingBottom: 40,
+  },
+  formContainer: {
     paddingHorizontal: 20,
-    paddingTop: 24,
-    gap: 20,
-  },
-  titleSection: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  mainTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0E5E2F',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  mainSubtitle: {
-    fontSize: 15,
-    color: '#4A4A4A',
-    textAlign: 'center',
-    lineHeight: 22,
+    marginTop: -24,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#D4E2D8',
-    padding: 20,
+    borderRadius: 24,
+    borderWidth: 0,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#3B2F0B',
-    marginLeft: 8,
+    color: '#1C1917',
+    marginLeft: 12,
+    letterSpacing: -0.3,
+    flex: 1,
   },
-  divider: {
+  cardDivider: {
     height: 1,
-    backgroundColor: '#F0F3F1',
-    marginVertical: 16,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 20,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#4A4A4A',
     marginBottom: 8,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DCCDAA',
-    borderRadius: 12,
-    backgroundColor: '#FAFAF9',
-    height: 52,
-    paddingHorizontal: 16,
-  },
-  input: {
-    flex: 1,
+  textInput: {
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
     fontSize: 15,
     color: '#1C1917',
+    backgroundColor: '#F3F4F6',
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  inputWithIcon: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1C1917',
-  },
-  dropdownWrapper: {
+  dropdownInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#DCCDAA',
-    borderRadius: 12,
-    backgroundColor: '#FAFAF9',
-    height: 52,
-    paddingHorizontal: 16,
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 20,
+    backgroundColor: '#F3F4F6',
   },
-  dropdownPlaceholder: {
-    fontSize: 15,
-    color: '#A3A3A3',
-  },
-  dropdownValue: {
+  dropdownText: {
     fontSize: 15,
     color: '#1C1917',
   },
+  dropdownPlaceholder: {
+    fontSize: 15,
+    color: '#9CA3AF',
+  },
+  iconInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0,
+    borderRadius: 16,
+    height: 56,
+    backgroundColor: '#F3F4F6',
+  },
+  iconTextInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1C1917',
+    height: '100%',
+    paddingRight: 16,
+  },
   mapContainer: {
     height: 160,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
-    marginTop: 8,
   },
   mapImage: {
     width: '100%',
@@ -660,15 +644,15 @@ const styles = StyleSheet.create({
   },
   mapOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.4)', // lighten the map
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
   pinButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 16,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#66BB6A',
+    backgroundColor: '#0E5E2F',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -681,12 +665,12 @@ const styles = StyleSheet.create({
   pinButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1C1917',
+    color: '#FFFFFF',
     marginLeft: 6,
   },
   amenitiesSubtitle: {
     fontSize: 14,
-    color: '#60646C',
+    color: '#6B7280',
     marginBottom: 16,
   },
   pillContainer: {
@@ -697,16 +681,13 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DCCDAA',
-    borderRadius: 20,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    backgroundColor: '#F3F4F6',
   },
   pillSelected: {
-    backgroundColor: '#A9F0AD',
-    borderColor: '#226D27',
+    backgroundColor: '#0E5E2F',
   },
   pillText: {
     fontSize: 14,
@@ -715,28 +696,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   pillTextSelected: {
-    color: '#0D4F2E',
-  },
-  mediaHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    marginBottom: 4,
-    marginTop: 10,
-  },
-  mediaHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  mediaTitle: {
-    fontSize: 22,
+    color: '#FFFFFF',
     fontWeight: '700',
-    color: '#0D1321',
-    marginLeft: 10,
   },
   mediaBadge: {
-    backgroundColor: '#FDF7E1',
+    backgroundColor: '#F0FDF4',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -744,7 +708,7 @@ const styles = StyleSheet.create({
   mediaBadgeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#70530A',
+    color: '#0E5E2F',
   },
   mediaGrid: {
     gap: 12,
@@ -765,24 +729,33 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#DCCDAA',
+    borderColor: '#E5E7EB',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
+  },
+  cameraIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   featuredBadge: {
     position: 'absolute',
     top: 16,
     left: 16,
-    backgroundColor: '#726600',
+    backgroundColor: '#0E5E2F',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   featuredBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   halfRow: {
@@ -806,11 +779,12 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#DCCDAA',
+    borderColor: '#E5E7EB',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
+    gap: 8,
   },
   addPhotoText: {
     fontSize: 14,
@@ -827,6 +801,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: '#0E5E2F',
+    height: 54,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 10,
+    shadowColor: '#0E5E2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
@@ -856,7 +852,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   categoryOptionSelected: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#10B981',
     borderRadius: 16,
     paddingHorizontal: 16,
     marginHorizontal: -16,
@@ -868,7 +864,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   categoryOptionTextSelected: {
-    color: '#0D4F2E',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   coordBadge: {
