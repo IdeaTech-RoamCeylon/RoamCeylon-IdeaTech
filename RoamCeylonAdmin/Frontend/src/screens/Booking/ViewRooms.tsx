@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { ensureVerified } from '@/utils/verification';
 import type { Room, RoomStatus } from '@/types/booking.types';
 
 const { width: _width } = Dimensions.get('window');
@@ -248,7 +249,15 @@ const ViewRooms = () => {
 
       {/* Floating Action Plus Button */}
       <View style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fab} onPress={() => router.push('/booking/addRoom' as any)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() =>
+            ensureVerified(router, '/booking/businessVerification').then(
+              (ok) => ok && router.push('/booking/addRoom' as any),
+            )
+          }
+          activeOpacity={0.8}
+        >
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </TouchableOpacity>
       </View>

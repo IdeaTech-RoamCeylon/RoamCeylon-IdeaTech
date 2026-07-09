@@ -15,6 +15,7 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useNotifications } from '../../utils/notificationsStore';
 import * as SecureStore from 'expo-secure-store';
+import { ensureVerified } from '@/utils/verification';
 
 const ActivitiesHome = () => {
   const insets = useSafeAreaInsets();
@@ -220,7 +221,11 @@ const ActivitiesHome = () => {
             <TouchableOpacity 
               style={styles.emptyButton}
               activeOpacity={0.8}
-              onPress={() => router.push('/activities/new' as any)}
+              onPress={() =>
+                ensureVerified(router, '/activities/businessVerification').then(
+                  (ok) => ok && router.push('/activities/new' as any),
+                )
+              }
             >
               <Feather name="plus" size={16} color="#FFFFFF" />
               <Text style={styles.emptyButtonText}>Create Activity</Text>
@@ -418,7 +423,11 @@ const ActivitiesHome = () => {
       <TouchableOpacity 
         style={[styles.fab, { bottom: insets.bottom + 24 }]} 
         activeOpacity={0.8}
-        onPress={() => router.push('/activities/new' as any)}
+        onPress={() =>
+                ensureVerified(router, '/activities/businessVerification').then(
+                  (ok) => ok && router.push('/activities/new' as any),
+                )
+              }
       >
         <LinearGradient
           colors={['#10B981', '#059669']}

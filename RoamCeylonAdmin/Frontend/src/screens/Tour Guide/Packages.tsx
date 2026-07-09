@@ -16,6 +16,7 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ensureVerified } from '@/utils/verification';
 
 const Packages = () => {
   const insets = useSafeAreaInsets();
@@ -109,7 +110,9 @@ const Packages = () => {
   });
 
   const handleCreatePackagePress = () => {
-    router.push('/tour-guide/addPackage' as any);
+    ensureVerified(router, '/tour-guide/businessVerification').then(
+      (ok) => ok && router.push('/tour-guide/addPackage' as any),
+    );
   };
 
   const _handleEditPackagePress = (_title: string) => {

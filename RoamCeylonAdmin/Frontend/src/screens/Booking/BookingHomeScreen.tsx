@@ -16,6 +16,7 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useNotifications } from '../../utils/notificationsStore';
+import { ensureVerified } from '@/utils/verification';
 import type { Room, RoomStatus } from '@/types/booking.types';
 
 const { width: _width } = Dimensions.get('window');
@@ -24,10 +25,10 @@ const apiUrl = () =>
   process.env.EXPO_PUBLIC_API_URL || 'http://192.168.8.198:3001';
 
 const QUICK_NAV = [
-  { label: 'Manage Bookings', icon: 'list-outline', route: '/booking/management' },
-  { label: 'Available Rooms', icon: 'archive-outline', route: '/booking/availableRooms' },
-  { label: 'View Calendar', icon: 'calendar-outline', route: '/booking/calendar' },
-  { label: 'Guest Messages', icon: 'chatbubble-ellipses-outline', route: '/booking/messages' },
+  // { label: 'Manage Bookings', icon: 'list-outline', route: '/booking/management' },
+  // { label: 'Available Rooms', icon: 'archive-outline', route: '/booking/availableRooms' },
+  // { label: 'View Calendar', icon: 'calendar-outline', route: '/booking/calendar' },
+  // { label: 'Guest Messages', icon: 'chatbubble-ellipses-outline', route: '/booking/messages' },
   { label: 'Manage Rooms', icon: 'bed-outline', route: '/booking/rooms' },
   { label: 'Hotel Details', icon: 'business-outline', route: '/booking/hotelDetails' },
 ] as const;
@@ -56,6 +57,7 @@ const BookingHomeScreen = () => {
   const { unreadCount } = useNotifications('booking');
 
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [hotelName, setHotelName] = useState('');
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
@@ -66,15 +68,21 @@ const BookingHomeScreen = () => {
           setLoading(true);
           const accessToken = await SecureStore.getItemAsync('authToken');
           if (accessToken) {
-            const res = await fetch(`${apiUrl()}/rooms/my`, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            if (res.ok && active) {
-              setRooms(await res.json());
+            const headers = { Authorization: `Bearer ${accessToken}` };
+            const [roomsRes, hotelRes] = await Promise.all([
+              fetch(`${apiUrl()}/rooms/my`, { headers }),
+              fetch(`${apiUrl()}/hotels/my`, { headers }),
+            ]);
+            if (roomsRes.ok && active) {
+              setRooms(await roomsRes.json());
+            }
+            if (hotelRes.ok && active) {
+              const hotel = await hotelRes.json();
+              setHotelName(hotel?.name ?? '');
             }
           }
         } catch (error) {
-          console.error('[BookingHome] Failed to load rooms:', error);
+          console.error('[BookingHome] Failed to load data:', error);
         } finally {
           if (active) setLoading(false);
         }
@@ -107,7 +115,9 @@ const BookingHomeScreen = () => {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greetingText}>Welcome back,</Text>
-              <Text style={styles.headerTitle}>Grand Emerald Resort</Text>
+              <Text style={styles.headerTitle} numberOfLines={2}>
+                {hotelName || 'Your Hotel'}
+              </Text>
             </View>
             <View style={styles.headerRight}>
               <TouchableOpacity
@@ -218,7 +228,11 @@ const BookingHomeScreen = () => {
               <TouchableOpacity
                 style={styles.emptyButton}
                 activeOpacity={0.8}
-                onPress={() => router.push('/booking/addRoom' as any)}
+                onPress={() =>
+                  ensureVerified(router, '/booking/businessVerification').then(
+                    (ok) => ok && router.push('/booking/addRoom' as any),
+                  )
+                }
               >
                 <Feather name="plus" size={16} color="#FFFFFF" />
                 <Text style={styles.emptyButtonText}>Add Room</Text>
@@ -320,7 +334,11 @@ const BookingHomeScreen = () => {
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 24 }]}
         activeOpacity={0.8}
-        onPress={() => router.push('/booking/addRoom' as any)}
+        onPress={() =>
+                  ensureVerified(router, '/booking/businessVerification').then(
+                    (ok) => ok && router.push('/booking/addRoom' as any),
+                  )
+                }
       >
         <LinearGradient
           colors={['#10B981', '#059669']}

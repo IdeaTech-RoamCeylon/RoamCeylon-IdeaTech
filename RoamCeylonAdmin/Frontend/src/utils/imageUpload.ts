@@ -20,17 +20,22 @@ async function uriToBase64(uri: string): Promise<string> {
 }
 
 /**
- * Upload a single local image URI and return its hosted URL.
+ * Upload a single local file URI and return its hosted URL.
  * If the URI is already an http(s) URL it is returned unchanged.
  *
  * @param uri       local file URI (or an existing http URL)
  * @param endpoint  backend upload endpoint, e.g. '/rooms/upload-image'
  * @param token     Nhost access token (Bearer)
+ * @param mimeType  content type of the file (defaults to 'image/jpeg' for
+ *                  the existing image screens; pass the real type for PDFs/HEIC)
+ * @param fileName  optional base file name (no extension) for the stored file
  */
 export async function uploadImage(
   uri: string,
   endpoint: string,
   token: string,
+  mimeType: string = 'image/jpeg',
+  fileName?: string,
 ): Promise<string> {
   if (!uri || uri.startsWith('http')) return uri;
 
@@ -41,7 +46,7 @@ export async function uploadImage(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ base64, mimeType: 'image/jpeg' }),
+    body: JSON.stringify({ base64, mimeType, ...(fileName ? { fileName } : {}) }),
   });
 
   if (!res.ok) {

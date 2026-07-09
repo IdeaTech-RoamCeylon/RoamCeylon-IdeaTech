@@ -128,6 +128,13 @@ const AddRoom = () => {
 
       if (!response.ok) {
         const errorData = await response.text().catch(() => 'Unknown error');
+        if (response.status === 403 && errorData.includes('BUSINESS_NOT_VERIFIED')) {
+          Alert.alert(
+            'Verification Required',
+            'Please verify your business in Settings before adding listings.',
+          );
+          return;
+        }
         throw new Error(errorData);
       }
 

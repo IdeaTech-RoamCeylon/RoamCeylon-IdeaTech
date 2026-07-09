@@ -207,8 +207,16 @@ const AddPackage = () => {
         Alert.alert('Success', 'Package created successfully!');
         router.back();
       } else {
-        const errorData = await res.json();
-        Alert.alert('Error', errorData.message || 'Failed to create package');
+        const errorData = await res.json().catch(() => ({}));
+        const code = errorData?.code || errorData?.message;
+        if (res.status === 403 && String(code).includes('BUSINESS_NOT_VERIFIED')) {
+          Alert.alert(
+            'Verification Required',
+            'Please verify your business in Settings before adding listings.',
+          );
+        } else {
+          Alert.alert('Error', errorData.message || 'Failed to create package');
+        }
       }
     } catch (error) {
       console.error(error);

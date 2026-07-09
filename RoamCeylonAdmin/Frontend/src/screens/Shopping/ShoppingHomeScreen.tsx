@@ -15,6 +15,7 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useNotifications } from '../../utils/notificationsStore';
+import { ensureVerified } from '@/utils/verification';
 
 const ShoppingHomeScreen = () => {
   const insets = useSafeAreaInsets();
@@ -226,7 +227,11 @@ const ShoppingHomeScreen = () => {
       <TouchableOpacity 
         style={[styles.fab, { bottom: insets.bottom + 24 }]} 
         activeOpacity={0.8}
-        onPress={() => router.push('/shopping/add' as any)}
+        onPress={() =>
+          ensureVerified(router, '/shopping/businessVerification').then(
+            (ok) => ok && router.push('/shopping/add' as any),
+          )
+        }
       >
         <LinearGradient
           colors={['#10B981', '#059669']}

@@ -168,7 +168,14 @@ const NewActivity = () => {
       } else {
         const errorData = await res.text().catch(() => 'Unknown error');
         console.error('Create activity failed:', res.status, errorData);
-        showToast.error('Failed to create activity. Please try again.', 'Error');
+        if (res.status === 403 && errorData.includes('BUSINESS_NOT_VERIFIED')) {
+          showToast.info(
+            'Please verify your business in Settings before adding listings.',
+            'Verification Required',
+          );
+        } else {
+          showToast.error('Failed to create activity. Please try again.', 'Error');
+        }
       }
     } catch (error) {
       console.error('Create activity error:', error);

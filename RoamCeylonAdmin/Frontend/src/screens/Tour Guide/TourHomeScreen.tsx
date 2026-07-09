@@ -19,6 +19,7 @@ import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { useNotifications } from '../../utils/notificationsStore';
+import { ensureVerified } from '@/utils/verification';
 
 const openMap = async (address: string) => {
   // Fully RFC3986 compliant URI encoding
@@ -386,7 +387,11 @@ const TourHomeScreen = () => {
       <TouchableOpacity 
         style={[styles.fab, { bottom: insets.bottom + 24 }]} 
         activeOpacity={0.8}
-        onPress={() => router.push('/tour-guide/addPackage' as any)}
+        onPress={() =>
+          ensureVerified(router, '/tour-guide/businessVerification').then(
+            (ok) => ok && router.push('/tour-guide/addPackage' as any),
+          )
+        }
       >
         <LinearGradient
           colors={['#10B981', '#059669']}
