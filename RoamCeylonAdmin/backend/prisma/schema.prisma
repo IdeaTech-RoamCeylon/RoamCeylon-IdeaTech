@@ -22,6 +22,23 @@ model AdminUser {
   @@map("admin_users")
 }
 
+model BusinessVerification {
+  id                 String    @id @default(uuid())
+  userId             String    @unique @map("user_id") // Nhost sub / AdminUser.id
+  nicUrl             String?   @map("nic_url")
+  businessLicenseUrl String?   @map("business_license_url")
+  selfieUrl          String?   @map("selfie_url")
+  status             String    @default("pending") // pending | approved | rejected
+  reviewNotes        String?   @map("review_notes")
+  submittedAt        DateTime? @map("submitted_at")
+  reviewedAt         DateTime? @map("reviewed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("business_verifications")
+}
+
 model ChatSession {
   id         String      @id
   user_id    String

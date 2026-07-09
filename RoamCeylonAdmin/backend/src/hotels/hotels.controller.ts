@@ -16,6 +16,7 @@ import { HotelsService } from './hotels.service';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { UpdateHotelDto } from './dto/update-hotel.dto';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
+import { VerifiedGuard } from '../common/guards/verified.guard';
 
 interface AuthRequest extends Request {
   user: { userId: string; role: string };
@@ -67,7 +68,7 @@ export class HotelsController {
 
   // ── Create or update (upsert) ────────────────────────────────────────────
 
-  @UseGuards(NhostJwtGuard)
+  @UseGuards(NhostJwtGuard, VerifiedGuard)
   @Post()
   @HttpCode(HttpStatus.OK)
   upsert(@Req() req: AuthRequest, @Body() dto: CreateHotelDto) {

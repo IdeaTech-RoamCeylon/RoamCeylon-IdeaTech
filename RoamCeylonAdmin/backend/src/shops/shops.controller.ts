@@ -20,6 +20,7 @@ import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
 import type { ShopStatus } from './entities/shop.entity';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
+import { VerifiedGuard } from '../common/guards/verified.guard';
 
 interface AuthRequest extends Request {
   user: { userId: string; role: string };
@@ -102,7 +103,7 @@ export class ShopsController {
 
   // ── Create ───────────────────────────────────────────────────────────────
 
-  @UseGuards(NhostJwtGuard)
+  @UseGuards(NhostJwtGuard, VerifiedGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Req() req: AuthRequest, @Body() dto: CreateShopDto) {

@@ -18,6 +18,7 @@ import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
+import { VerifiedGuard } from '../common/guards/verified.guard';
 
 interface AuthRequest extends Request {
   user: { userId: string; role: string };
@@ -93,6 +94,7 @@ export class ActivitiesController {
     return this.activitiesService.findOneActivity(id);
   }
 
+  @UseGuards(VerifiedGuard)
   @Post('list')
   @HttpCode(HttpStatus.CREATED)
   createActivity(@Req() req: AuthRequest, @Body() dto: CreateActivityDto) {

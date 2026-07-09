@@ -19,6 +19,7 @@ import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import type { RoomStatus } from './entities/room.entity';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
+import { VerifiedGuard } from '../common/guards/verified.guard';
 
 interface AuthRequest extends Request {
   user: { userId: string; role: string };
@@ -79,7 +80,7 @@ export class RoomsController {
 
   // ── Create ───────────────────────────────────────────────────────────────
 
-  @UseGuards(NhostJwtGuard)
+  @UseGuards(NhostJwtGuard, VerifiedGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Req() req: AuthRequest, @Body() dto: CreateRoomDto) {

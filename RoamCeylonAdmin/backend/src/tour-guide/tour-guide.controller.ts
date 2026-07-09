@@ -28,6 +28,7 @@ import type {
   InquiryStatus,
 } from './entities/tour-guide.entity';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
+import { VerifiedGuard } from '../common/guards/verified.guard';
 import { NotificationsService } from '../notifications/notifications.service';
 
 interface AuthRequest extends Request {
@@ -125,6 +126,7 @@ export class TourGuideController {
     return this.tourGuideService.findOnePackage(id);
   }
 
+  @UseGuards(VerifiedGuard)
   @Post('packages')
   @HttpCode(HttpStatus.CREATED)
   createPackage(@Req() req: AuthRequest, @Body() dto: CreatePackageDto) {
