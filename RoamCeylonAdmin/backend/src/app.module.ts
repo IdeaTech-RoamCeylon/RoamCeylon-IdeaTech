@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { HotelsModule } from './hotels/hotels.module';
+import { VerificationModule } from './verification/verification.module';
 
 import { NotificationsModule } from './notifications/notifications.module';
 
@@ -25,6 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ActivitiesModule,
     RoomsModule,
     HotelsModule,
+    VerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
