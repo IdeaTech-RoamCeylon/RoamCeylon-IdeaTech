@@ -16,8 +16,22 @@ const HOTELS = [
     galleryUrls: [],
     status: 'active',
     rooms: [
-      { id: 'r1', name: 'Garden Wing Room', roomType: 'Deluxe', adults: 2, nightlyRate: '18500', status: 'available' },
-      { id: 'r2', name: 'Fort Heritage Suite', roomType: 'Suite', adults: 3, nightlyRate: '28000', status: 'available' },
+      {
+        id: 'r1',
+        name: 'Garden Wing Room',
+        roomType: 'Deluxe',
+        adults: 2,
+        nightlyRate: '18500',
+        status: 'available',
+      },
+      {
+        id: 'r2',
+        name: 'Fort Heritage Suite',
+        roomType: 'Suite',
+        adults: 3,
+        nightlyRate: '28000',
+        status: 'available',
+      },
     ],
   },
   {
@@ -31,7 +45,14 @@ const HOTELS = [
     galleryUrls: ['https://example.com/gallery.jpg'],
     status: 'active',
     rooms: [
-      { id: 'r3', name: 'Standard Tea Chalet', roomType: 'Standard', adults: 2, nightlyRate: '16000', status: 'available' },
+      {
+        id: 'r3',
+        name: 'Standard Tea Chalet',
+        roomType: 'Standard',
+        adults: 2,
+        nightlyRate: '16000',
+        status: 'available',
+      },
     ],
   },
 ];
@@ -42,7 +63,7 @@ describe('HotelService', () => {
   const prismaMock = {
     hotel: {
       findMany: jest.fn().mockResolvedValue(HOTELS),
-      findUnique: jest.fn(({ where }: any) =>
+      findUnique: jest.fn(({ where }: { where: { id: string } }) =>
         Promise.resolve(HOTELS.find((h) => h.id === where.id) ?? null),
       ),
     },
@@ -51,7 +72,10 @@ describe('HotelService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [HotelService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        HotelService,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     service = module.get<HotelService>(HotelService);
@@ -73,7 +97,11 @@ describe('HotelService', () => {
       expect(ella.price).toBe(16000);
       expect(ella.destination).toBe('Ella');
       expect(ella.image).toBe('https://example.com/gallery.jpg'); // falls back to gallery
-      expect(ella.rooms[0]).toEqual({ type: 'Standard Tea Chalet', price: 16000, capacity: '2 Adults' });
+      expect(ella.rooms[0]).toEqual({
+        type: 'Standard Tea Chalet',
+        price: 16000,
+        capacity: '2 Adults',
+      });
     });
 
     it('filters by destination (case-insensitive) in suggestion mode', async () => {

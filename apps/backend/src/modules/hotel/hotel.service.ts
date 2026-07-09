@@ -113,7 +113,10 @@ export class HotelService {
    * with a destination it filters and returns the top matches (suggestion mode
    * used by the trip planner).
    */
-  async getSuggestedHotels(destination?: string, budget?: string): Promise<Hotel[]> {
+  async getSuggestedHotels(
+    destination?: string,
+    budget?: string,
+  ): Promise<Hotel[]> {
     const hotels = (await this.prisma.hotel.findMany({
       where: { status: 'active' },
       include: { rooms: true },
@@ -172,8 +175,7 @@ export class HotelService {
     }
 
     const hotel = this.mapHotel(hotelRow);
-    const room =
-      hotel.rooms.find((r) => r.type === bookingData.roomType) ??
+    const room = hotel.rooms.find((r) => r.type === bookingData.roomType) ??
       hotel.rooms[0] ?? { type: 'Room', price: hotel.price, capacity: '' };
 
     const start = new Date(bookingData.checkIn);
