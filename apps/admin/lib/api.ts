@@ -215,3 +215,82 @@ export async function getPersonalizedRecommendations(options?: { signal?: AbortS
     return null;
   }
 }
+
+// ─── Business Verification (RoamCeylon Admin backend) ────────────────────────
+// The verification API lives on the admin backend (RoamCeylonAdmin/backend),
+// which is separate from the analytics backend above. Configure its base URL
+// via NEXT_PUBLIC_ADMIN_API_URL.
+const ADMIN_API_BASE_URL =
+  process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://127.0.0.1:3001';
+
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface VerificationRequest {
+  id: string;
+  userId: string;
+  nicUrl: string | null;
+  businessLicenseUrl: string | null;
+  selfieUrl: string | null;
+  status: VerificationStatus;
+  reviewNotes: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string;
+  } | null;
+}
+
+/** Fetch verification submissions (optionally filtered by status). Live data. */
+export async function getVerificationRequests(
+  status?: string,
+): Promise<VerificationRequest[] | null> {
+  try {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+    const res = await fetch(`${ADMIN_API_BASE_URL}/verification${qs}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error('Failed to fetch verification requests');
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}
+
+/** Approve a submission. Returns true on success. */
+export async function approveVerification(userId: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${ADMIN_API_BASE_URL}/verification/${userId}/approve`,
+      { method: 'PATCH' },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Reject a submission with an optional reason. Returns true on success. */
+export async function rejectVerification(
+  userId: string,
+  reason?: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${ADMIN_API_BASE_URL}/verification/${userId}/reject`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
