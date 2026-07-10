@@ -47,12 +47,12 @@ const ROLES: Role[] = [
     description: 'Offer personal guided tours and specialized local knowledge.',
     icon: 'compass-outline',
   },
-  {
-    id: 'event_organizer',
-    title: 'Event Organizer',
-    description: 'Host retreats, cultural festivals, or unique pop-up experiences.',
-    icon: 'ticket-outline',
-  },
+  // {
+  //   id: 'event_organizer',
+  //   title: 'Event Organizer',
+  //   description: 'Host retreats, cultural festivals, or unique pop-up experiences.',
+  //   icon: 'ticket-outline',
+  // },
 ];
 
 const PartnerScreen = () => {

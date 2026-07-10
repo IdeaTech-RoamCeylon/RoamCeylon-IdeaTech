@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -77,7 +77,14 @@ export class AdminUsersService {
       return { ...updated, userId: updated.id };
     }
 
-    // 2. Create new if not found
+    // 2. Create new if not found — a role is mandatory. We never assign a
+    // default: a Google user with no role yet must complete profile setup
+    // (picking a role) before their record is created.
+    if (!isRealRole(dto.role)) {
+      throw new BadRequestException(
+        'A role is required to create an admin user.',
+      );
+    }
     const created = await this.prisma.adminUser.create({
       data: {
         id: userId,
@@ -85,7 +92,7 @@ export class AdminUsersService {
         name: dto.name || null,
         phoneNumber: dto.phoneNumber || null,
         profile_picture: dto.profile_picture || null,
-        role: dto.role || 'shop_partner',
+        role: dto.role as string,
         preferences: (dto.preferences ??
           Prisma.DbNull) as Prisma.InputJsonValue,
       },

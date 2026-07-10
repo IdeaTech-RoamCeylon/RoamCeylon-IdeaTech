@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.soesh-cooray.RoamCeylonAdmin"
+      "bundleIdentifier": "com.ideatech.roamceylonadmin"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.soesh_cooray.RoamCeylonAdmin"
+      "package": "com.ideatech.roamceylonadmin"
     },
     "web": {
       "output": "static",
@@ -27,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-google-signin/google-signin",
       [
         "expo-splash-screen",
         {

@@ -12,6 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { IsOptional, IsString } from 'class-validator';
 import { NhostJwtGuard } from '../common/guards/nhost-jwt.guard';
 import { AdminUsersService } from './admin-users.service';
 
@@ -19,10 +20,24 @@ interface AuthRequest extends Request {
   user: { userId: string; role: string };
 }
 
+// NOTE: these decorators are required — the global ValidationPipe runs with
+// `whitelist: true`, which strips any property that has no class-validator
+// decorator. Without them, name/email/phoneNumber/role are silently dropped.
 export class SyncAdminUserDto {
-  email: string;
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
   phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
   role?: string;
 }
 

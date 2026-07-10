@@ -25,9 +25,31 @@ try {
   console.warn('Google Sign-In native module not available. Requires a development build.');
 }
 
+// Nhost hands back system roles (e.g. 'user', 'me') for accounts that haven't
+// been assigned a real partner role yet. Those never count as a real role.
+const SYSTEM_ROLES = ['user', 'me', 'anonymous', 'public'];
+const isRealRole = (role?: string): role is string =>
+  !!role && !SYSTEM_ROLES.includes(role);
+
 const GoogleSignInScreen = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+
+  // Route an authenticated partner to their role-specific home. Mirrors the
+  // switch used by the email/password login flow in LoginScreen.
+  const routeByRole = (role?: string) => {
+    if (role === 'activity_provider' || role === 'activity_manager') {
+      router.replace('/activities/home' as any);
+    } else if (role === 'hotel_manager') {
+      router.replace('/booking/home' as any);
+    } else if (role === 'tour_guide') {
+      router.replace('/tour-guide/home' as any);
+    } else if (role === 'shop_partner') {
+      router.replace('/shopping/home' as any);
+    } else {
+      router.replace('/home');
+    }
+  };
 
   useEffect(() => {
     if (!GoogleSignin) {
@@ -79,31 +101,38 @@ const GoogleSignInScreen = () => {
         await SecureStore.setItemAsync('nhostRefreshToken', session.refreshToken);
       }
 
-      // Sync admin user profile to backend
-      const userName = userInfo.data?.user?.name;
-      const userEmail = userInfo.data?.user?.email;
+      // Google can't supply a partner role, so we don't sync/create a record
+      // here (the backend now rejects creating a user without a role). Instead
+      // we check whether this Google account already has a partner profile.
+      const userName = userInfo.data?.user?.name || '';
+      const userEmail = userInfo.data?.user?.email || '';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-      if (userName || userEmail) {
-        try {
-          const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-          await fetch(`${apiUrl}/admin-users/sync`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.accessToken}`,
-            },
-            body: JSON.stringify({
-              name: userName,
-              email: userEmail,
-            }),
-          });
-        } catch (syncErr) {
-          console.warn('Failed to sync Google profile to admin backend:', syncErr);
+      let existingRole: string | undefined;
+      try {
+        const meRes = await fetch(`${apiUrl}/admin-users/me`, {
+          headers: { 'Authorization': `Bearer ${session.accessToken}` },
+        });
+        if (meRes.ok) {
+          const meJson = await meRes.json();
+          existingRole = meJson?.data?.role;
         }
+      } catch (meErr) {
+        console.warn('Failed to fetch admin profile (non-fatal):', meErr);
       }
 
-      // Navigate to home
-      router.replace('/home');
+      if (isRealRole(existingRole)) {
+        // Returning partner — straight to their role home.
+        routeByRole(existingRole);
+      } else {
+        // First-time Google partner — carry the Google name/email into the
+        // setup screen where they'll pick a role + phone before the account
+        // is created in the backend.
+        router.replace({
+          pathname: '/completeProfile' as any,
+          params: { name: userName, email: userEmail },
+        });
+      }
 
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
