@@ -4,26 +4,27 @@
     "slug": "RoamCeylonAdmin",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./src/assets/Icon.png",
     "scheme": "roamceylonadmin",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./src/assets/Icon.png",
       "bundleIdentifier": "com.ideatech.roamceylonadmin"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./src/assets/Icon.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "versionCode": 1,
       "package": "com.ideatech.roamceylonadmin"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./src/assets/Icon.png"
     },
     "plugins": [
       "expo-router",
