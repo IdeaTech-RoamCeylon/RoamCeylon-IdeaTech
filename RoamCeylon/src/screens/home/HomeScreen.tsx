@@ -37,15 +37,15 @@ interface FooterItem {
 }
 
 const ESSENTIAL_ITEMS: EssentialItem[] = [
-  {
-    id: 'transport',
-    label: 'Ride and Transport',
-    icon: 'bus',
-    iconColor: '#A84E0D',
-    iconBackground: '#d9c587ff',
-    cardBackground: '#feecbdff',
-    route: 'Transport',
-  },
+  // {
+  //   id: 'transport',
+  //   label: 'Ride and Transport',
+  //   icon: 'bus',
+  //   iconColor: '#A84E0D',
+  //   iconBackground: '#d9c587ff',
+  //   cardBackground: '#feecbdff',
+  //   route: 'Transport',
+  // },
   {
     id: 'stays',
     label: 'Hotel & Stays',
