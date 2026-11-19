@@ -32,67 +32,7 @@ const Bookings = () => {
   const [activeTab, setActiveTab] = useState<'ALL' | 'CONFIRMED' | 'PENDING' | 'COMPLETED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const bookingsData: BookingItem[] = [
-    {
-      id: 'RC-2048',
-      guestName: 'Amara Perera',
-      guestAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80',
-      guestInitials: 'AP',
-      avatarBg: '#E1EFE6',
-      activityName: 'Sunrise Yoga & Meditation',
-      guestCount: 2,
-      dateTime: 'Oct 24, 2023 • 06:00 AM',
-      amount: 'LKR 21,700',
-      status: 'CONFIRMED',
-    },
-    {
-      id: 'RC-2049',
-      guestName: 'James Wilson',
-      guestAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-      guestInitials: 'JW',
-      avatarBg: '#EAE1DF',
-      activityName: 'Estate Tea Tasting',
-      guestCount: 4,
-      dateTime: 'Oct 25, 2023 • 02:00 PM',
-      amount: 'LKR 88,400',
-      status: 'CONFIRMED',
-    },
-    {
-      id: 'RC-2050',
-      guestName: 'Lina Schneider',
-      guestAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-      guestInitials: 'LS',
-      avatarBg: '#E0E5F5',
-      activityName: 'Private Safari Tour',
-      guestCount: 6,
-      dateTime: 'Oct 26, 2023 • 09:00 AM',
-      amount: 'LKR 145,000',
-      status: 'PENDING',
-    },
-    {
-      id: 'RC-2035',
-      guestName: 'David Clark',
-      guestInitials: 'DC',
-      avatarBg: '#F3E8FF',
-      activityName: 'Culinary Masterclass',
-      guestCount: 3,
-      dateTime: 'Oct 22, 2023 • 06:30 PM',
-      amount: 'LKR 54,000',
-      status: 'COMPLETED',
-    },
-    {
-      id: 'RC-2031',
-      guestName: 'Sarah Jenkins',
-      guestAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80',
-      guestInitials: 'SJ',
-      avatarBg: '#FEF3C7',
-      activityName: 'Sunrise Yoga & Meditation',
-      guestCount: 1,
-      dateTime: 'Oct 20, 2023 • 06:00 AM',
-      amount: 'LKR 10,850',
-      status: 'COMPLETED',
-    },
-  ];
+  const bookingsData: BookingItem[] = [];
 
   const filteredBookings = bookingsData.filter((booking) => {
     // Filter by tab

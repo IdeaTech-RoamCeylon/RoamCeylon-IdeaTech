@@ -19,22 +19,13 @@ const AvailableRooms = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const roomData = [
-    {
-      id: '1',
-      title: 'Deluxe Garden Suite',
-      subtitle: 'Floor 2 (Wing A)',
-      status: 'Available',
-      image: 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: '2',
-      title: 'Premium Ocean Terrace',
-      subtitle: 'Floor 4 (Private Wing)',
-      status: 'Maintenance',
-      image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=150&auto=format&fit=crop&q=80',
-    },
-  ];
+  const roomData: Array<{
+    id: string;
+    title: string;
+    subtitle: string;
+    status: string;
+    image: string;
+  }> = [];
 
   return (
     <View style={styles.container}>
@@ -72,7 +63,7 @@ const AvailableRooms = () => {
           </View>
           <View style={styles.metricTextContainer}>
             <Text style={styles.metricLabel}>AVAILABLE ROOMS</Text>
-            <Text style={styles.metricValueGreen}>42</Text>
+            <Text style={styles.metricValueGreen}>0</Text>
           </View>
         </View>
 
@@ -83,7 +74,7 @@ const AvailableRooms = () => {
           </View>
           <View style={styles.metricTextContainer}>
             <Text style={styles.metricLabel}>PENDING REQUESTS</Text>
-            <Text style={styles.metricValueBrown}>14</Text>
+            <Text style={styles.metricValueBrown}>0</Text>
           </View>
         </View>
 

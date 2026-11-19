@@ -4,8 +4,6 @@ import { useColorScheme } from 'react-native';
 import React, { useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-
 function AuthGuard() {
   const segments = useSegments();
   const router = useRouter();
@@ -38,7 +36,6 @@ export default function TabLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthGuard />
-      <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }} />
     </ThemeProvider>
   );

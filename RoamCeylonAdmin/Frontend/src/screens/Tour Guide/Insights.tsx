@@ -23,11 +23,8 @@ const Insights = () => {
 
   // State for Global Conversion Card
   const [globalConversionRate, setGlobalConversionRate] = useState(0);
-  const [globalConversionTrend, setGlobalConversionTrend] = useState('');
-  const [sparklineData, setSparklineData] = useState<number[]>([
-    5, 6, 7, 9, 11, 14, 17, 20, 22, 24, 25, 25, 24, 23, 21, 18, 16, 14, 13, 12,
-    12, 13, 14, 16, 18, 21, 25, 30, 36, 43, 52, 62, 73, 85, 94, 99, 100, 95, 80, 50, 20, 0
-  ]);
+  const [globalConversionTrend, setGlobalConversionTrend] = useState('0% from last month');
+  const [sparklineData, setSparklineData] = useState<number[]>(Array(42).fill(0));
 
 
   // Funnel steps data

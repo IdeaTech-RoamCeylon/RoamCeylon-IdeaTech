@@ -62,7 +62,7 @@ const TourHomeScreen = () => {
   const [stats, setStats] = useState({
     totalPackages: 0,
     activeBookings: 0,
-    rating: '4.9',
+    rating: '0.0',
     unreadNotifications: 0,
   });
   const [packagesList, setPackagesList] = useState<any[]>([]);
@@ -86,7 +86,7 @@ const TourHomeScreen = () => {
         setStats({
           totalPackages: d.totalPackages || 0,
           activeBookings: (d.pendingBookings || 0) + (d.confirmedBookings || 0),
-          rating: '4.9', // Hardcoded rating for now
+          rating: d.rating || '0.0',
           unreadNotifications: d.unreadNotifications || 0,
         });
       }

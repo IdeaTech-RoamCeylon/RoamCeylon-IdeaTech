@@ -27,7 +27,7 @@ const ActivitiesHome = () => {
   const [stats, setStats] = useState({
     activeActivities: 0,
     totalBookings: 0,
-    rating: '4.9',
+    rating: '0.0',
   });
   const [activitiesList, setActivitiesList] = useState<any[]>([]);
   const [scheduledBookings, setScheduledBookings] = useState<any[]>([]);
@@ -49,7 +49,7 @@ const ActivitiesHome = () => {
         setStats({
           activeActivities: d.activeActivities || 0,
           totalBookings: d.totalBookings || 0,
-          rating: d.rating || '4.9',
+          rating: d.rating && d.rating !== '4.9' ? d.rating : '0.0',
         });
       }
 

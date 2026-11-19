@@ -17,41 +17,17 @@ const Finance = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const transactions = [
-    {
-      initials: 'SJ',
-      avatarBg: '#F5EBE1',
-      avatarColor: '#8A5A52',
-      name: 'Samantha Jones', 
-      date: 'Oct 12, 2023',
-      amount: '$450.00',
-      status: 'PROCESSED',
-      statusBg: '#C2F3D0',
-      statusColor: '#0E5E2F',
-    },
-    {
-      initials: 'MW',
-      avatarBg: '#E1EFE6',
-      avatarColor: '#0E5E2F',
-      name: 'Michael Wong',
-      date: 'Oct 11, 2023',
-      amount: '$1,200.00',
-      status: 'PENDING',
-      statusBg: '#FEF3C7',
-      statusColor: '#D97706',
-    },
-    {
-      initials: 'AB',
-      avatarBg: '#E0E9F5',
-      avatarColor: '#4A607A',
-      name: 'Alice Bennett',
-      date: 'Oct 10, 2023',
-      amount: '$850.00',
-      status: 'PROCESSED',
-      statusBg: '#C2F3D0',
-      statusColor: '#0E5E2F',
-    },
-  ];
+  const transactions: Array<{
+    initials: string;
+    avatarBg: string;
+    avatarColor: string;
+    name: string;
+    date: string;
+    amount: string;
+    status: string;
+    statusBg: string;
+    statusColor: string;
+  }> = [];
 
   return (
     <View style={styles.container}>
@@ -109,10 +85,10 @@ const Finance = () => {
         {/* Total Revenue Card */}
         <View style={styles.revenueCard}>
           <Text style={styles.cardLabel}>TOTAL REVENUE</Text>
-          <Text style={styles.revenueValue}>$48,250.00</Text>
+          <Text style={styles.revenueValue}>Rs. 0.00</Text>
           <View style={styles.trendRow}>
             <Feather name="trending-up" size={16} color="#22C55E" style={{ marginRight: 4 }} />
-            <Text style={styles.trendText}>+12.4% vs last month</Text>
+            <Text style={styles.trendText}>0% vs last month</Text>
           </View>
           {/* Watermark banknote background */}
           <View style={styles.watermarkContainer}>
@@ -128,8 +104,8 @@ const Finance = () => {
             </View>
             <Text style={styles.payoutLabel}>Next Payout</Text>
           </View>
-          <Text style={styles.payoutValue}>$3,240.00</Text>
-          <Text style={styles.payoutDate}>Oct 15, 2023</Text>
+          <Text style={styles.payoutValue}>Rs. 0.00</Text>
+          <Text style={styles.payoutDate}>No scheduled payout</Text>
 
           <TouchableOpacity style={styles.payoutCTA} activeOpacity={0.8}>
             <Text style={styles.payoutCTAText}>View Payout Details</Text>
@@ -200,7 +176,7 @@ const Finance = () => {
 
           {/* Table Footer */}
           <View style={styles.tableFooter}>
-            <Text style={styles.footerInfo}>Showing 1-10 of 124 transactions</Text>
+            <Text style={styles.footerInfo}>Showing {transactions.length} transactions</Text>
             <View style={styles.paginationRow}>
               <TouchableOpacity style={styles.pageButton} activeOpacity={0.6}>
                 <Ionicons name="chevron-back" size={16} color="#60646C" />

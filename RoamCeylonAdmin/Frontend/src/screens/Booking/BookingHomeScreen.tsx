@@ -178,7 +178,7 @@ const BookingHomeScreen = () => {
                 <Ionicons name="cash-outline" size={20} color="#2563EB" />
               </View>
               <View>
-                <Text style={styles.statValue}>$2.4k</Text>
+                <Text style={styles.statValue}>Rs. 0</Text>
                 <Text style={styles.statLabel}>Revenue</Text>
               </View>
             </View>

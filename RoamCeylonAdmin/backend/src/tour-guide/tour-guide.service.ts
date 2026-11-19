@@ -633,8 +633,8 @@ export class TourGuideService {
       where: { guideId },
     });
 
-    // Fallback heuristic for website visits (since not tracked directly)
-    const websiteVisits = totalInquiries > 0 ? totalInquiries * 4 + 1420 : 0;
+    // Website visits are not tracked directly yet
+    const websiteVisits = 0;
 
     const confirmedBookings = await this.prisma.tourBooking.count({
       where: { guideId, status: { in: ['confirmed', 'completed'] } },
@@ -655,7 +655,7 @@ export class TourGuideService {
       {
         label: 'Website Visits',
         value: websiteVisits.toLocaleString(),
-        fillPercent: 1.0,
+        fillPercent: websiteVisits > 0 ? 1.0 : 0,
         icon: 'eye-outline',
         color: '#0E5E2F',
         bgColor: '#EAF7EE',
@@ -690,16 +690,15 @@ export class TourGuideService {
       },
     ];
 
-    // 2. Conversion Trend Data (Mocked but structured for UI)
-    // Normally this would query bookings group by day
-    const conversionTrend30Days = Array.from({ length: 10 }).map((_, i) => ({
-      heightPercent: Math.floor(Math.random() * 70) + 30,
-      isActive: i % 4 === 2,
+    // 2. Conversion Trend Data (0 when no historical daily tracking exists)
+    const conversionTrend30Days = Array.from({ length: 10 }).map(() => ({
+      heightPercent: 0,
+      isActive: false,
     }));
 
-    const conversionTrend90Days = Array.from({ length: 10 }).map((_, i) => ({
-      heightPercent: Math.floor(Math.random() * 60) + 40,
-      isActive: i % 3 === 1,
+    const conversionTrend90Days = Array.from({ length: 10 }).map(() => ({
+      heightPercent: 0,
+      isActive: false,
     }));
 
     // 3. Top Converting Packages
@@ -711,10 +710,7 @@ export class TourGuideService {
     });
 
     const topPackagesResult = packages.map((pkg) => {
-      // Find inquiries matching package name loosely, or just count all inquiries if unlinked
-      // For MVP, we'll use a mocked heuristic for inquiries based on bookings if no strict relation exists
-      const inquiriesCount =
-        pkg.bookings.length * 3 + Math.floor(Math.random() * 10);
+      const inquiriesCount = 0;
       const bookingsCount = pkg.bookings.length;
       const conversionRate =
         inquiriesCount > 0 ? bookingsCount / inquiriesCount : 0;
@@ -729,12 +725,12 @@ export class TourGuideService {
     });
 
     const topPackages = topPackagesResult
-      .sort((a, b) => b.conversionRate - a.conversionRate)
+      .sort((a, b) => b.bookingsCount - a.bookingsCount)
       .slice(0, 5); // Top 5 packages
 
     // 4. Global Conversion Stats
     const globalConversionRate =
-      bookingRate > 0 ? Number((bookingRate * 100).toFixed(1)) : 22.4;
+      bookingRate > 0 ? Number((bookingRate * 100).toFixed(1)) : 0;
 
     // Trend Calculation
     const thirtyDaysAgo = new Date();
@@ -749,7 +745,7 @@ export class TourGuideService {
       where: { guideId, createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
     });
 
-    let trendPercent = 3.2; // default fallback
+    let trendPercent = 0;
     if (inquiriesPrev30 > 0) {
       trendPercent = Number(
         (((inquiriesLast30 - inquiriesPrev30) / inquiriesPrev30) * 100).toFixed(
@@ -786,19 +782,12 @@ export class TourGuideService {
     });
 
     const maxBookingsPerDay = Math.max(...bookingsByDay, 1);
-    let sparklineData: number[];
-    if (recentBookingsForSparkline.length > 0) {
-      sparklineData = bookingsByDay.map((count) =>
-        Math.round((count / maxBookingsPerDay) * 100),
-      );
-    } else {
-      // Fallback for visual demo if account has zero bookings
-      sparklineData = [
-        5, 6, 7, 9, 11, 14, 17, 20, 22, 24, 25, 25, 24, 23, 21, 18, 16, 14, 13,
-        12, 12, 13, 14, 16, 18, 21, 25, 30, 36, 43, 52, 62, 73, 85, 94, 99, 100,
-        95, 80, 50, 20, 0,
-      ];
-    }
+    const sparklineData: number[] =
+      recentBookingsForSparkline.length > 0
+        ? bookingsByDay.map((count) =>
+            Math.round((count / maxBookingsPerDay) * 100),
+          )
+        : Array.from({ length: sparklineDays }, () => 0);
 
     return {
       funnelSteps,

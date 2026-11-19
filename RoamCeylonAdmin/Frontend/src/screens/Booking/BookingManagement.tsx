@@ -22,60 +22,23 @@ const BookingManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('All');
 
-  // Mock reservations data
-  const reservations = [
-    {
-      id: '1',
-      guestName: 'Amara Perera',
-      bookingId: '#BK-882212',
-      status: 'CONFIRMED',
-      statusType: 'confirmed',
-      avatarType: 'person',
-      room: 'Ocean Deluxe Suite',
-      duration: '4 Nights, Oct 12-16',
-      guests: '2 Adults, 1 Child',
-      footerType: 'details',
-      footerIcon: 'ellipsis-vertical',
-    },
-    {
-      id: '2',
-      guestName: 'James Wilson',
-      bookingId: '#BK-991045',
-      status: 'PENDING',
-      statusType: 'pending',
-      avatarType: 'person',
-      room: 'Jungle View Pavilion',
-      duration: '2 Nights, Oct 14-16',
-      guests: '2 Adults',
-      footerType: 'approve_reject',
-    },
-    {
-      id: '3',
-      guestName: 'Sarah Connor',
-      bookingId: '#BK-775621',
-      status: 'CHECKED-IN',
-      statusType: 'checked_in',
-      avatarType: 'key',
-      room: 'Garden Terrace',
-      duration: '5 Nights, Oct 08-13',
-      guests: '1 Adult',
-      footerType: 'manage_stay',
-      footerIcon: 'notifications-outline',
-    },
-    {
-      id: '4',
-      guestName: 'Li Wei',
-      bookingId: '#BK-552901',
-      status: 'CONFIRMED',
-      statusType: 'confirmed',
-      avatarType: 'person',
-      room: 'Grand Presidential Loft',
-      duration: '7 Nights, Nov 01-08',
-      guests: '2 Adults',
-      footerType: 'details',
-      footerIcon: 'pencil',
-    },
-  ];
+  // Reservations data
+  const reservations: Array<{
+    id: string;
+    guestName: string;
+    bookingId: string;
+    status: string;
+    statusType: string;
+    avatarType: string;
+    room: string;
+    duration: string;
+    guests: string;
+    footerType: string;
+    footerIcon?: string;
+  }> = [];
+
+  const confirmedCount = reservations.filter((r) => r.statusType === 'confirmed').length;
+  const checkedInCount = reservations.filter((r) => r.statusType === 'checked_in').length;
 
   const filteredReservations = reservations.filter((res) => {
     // Basic tab filtering
@@ -164,7 +127,7 @@ const BookingManagement = () => {
             activeOpacity={0.8}
           >
             <Text style={[styles.tabText, selectedTab === 'Confirmed' && styles.tabTextActive]}>
-              Confirmed (24)
+              Confirmed ({confirmedCount})
             </Text>
           </TouchableOpacity>
 
@@ -174,7 +137,7 @@ const BookingManagement = () => {
             activeOpacity={0.8}
           >
             <Text style={[styles.tabText, selectedTab === 'Checked-in' && styles.tabTextActive]}>
-              Checked-in (12)
+              Checked-in ({checkedInCount})
             </Text>
           </TouchableOpacity>
         </View>

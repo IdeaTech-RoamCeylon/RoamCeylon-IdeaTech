@@ -17,10 +17,10 @@ const Reviews = () => {
   const router = useRouter();
 
   const ratingsDistribution = [
-    { stars: 5, fill: '85%', percent: '85%' },
-    { stars: 4, fill: '12%', percent: '12%' },
-    { stars: 3, fill: '2%', percent: '2%' },
-    { stars: 2, fill: '1%', percent: '1%' },
+    { stars: 5, fill: '0%', percent: '0%' },
+    { stars: 4, fill: '0%', percent: '0%' },
+    { stars: 3, fill: '0%', percent: '0%' },
+    { stars: 2, fill: '0%', percent: '0%' },
     { stars: 1, fill: '0%', percent: '0%' },
   ] as const;
 
@@ -69,12 +69,12 @@ const Reviews = () => {
           <Text style={styles.cardLabel}>OVERALL RATING</Text>
           <View style={styles.overallScoreRow}>
             <View style={styles.scoreContainer}>
-              <Text style={styles.overallScoreText}>4.9</Text>
+              <Text style={styles.overallScoreText}>0.0</Text>
               <Text style={styles.maxScoreText}>/ 5.0</Text>
             </View>
             <View style={styles.positiveTag}>
               <Ionicons name="happy-outline" size={16} color="#0E5E2F" style={{ marginRight: 4 }} />
-              <Text style={styles.positiveTagText}>98% Positive</Text>
+              <Text style={styles.positiveTagText}>0% Positive</Text>
             </View>
           </View>
 
@@ -82,10 +82,10 @@ const Reviews = () => {
           <View style={styles.starsCountRow}>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map((s) => (
-                <Ionicons key={s} name="star" size={18} color="#F59E0B" style={{ marginRight: 2 }} />
+                <Ionicons key={s} name="star-outline" size={18} color="#D1D5DB" style={{ marginRight: 2 }} />
               ))}
             </View>
-            <Text style={styles.reviewsCountText}>(248 Reviews)</Text>
+            <Text style={styles.reviewsCountText}>(0 Reviews)</Text>
           </View>
 
           <View style={styles.divider} />
@@ -125,112 +125,13 @@ const Reviews = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Guest Review Cards */}
-        {/* Card 1: Amara Perera */}
-        <View style={styles.reviewCard}>
-          <View style={styles.cardHeader}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.avatarImage}
-              contentFit="cover"
-            />
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>Amara Perera</Text>
-              <Text style={styles.authorSubtitle}>Stayed Oct 12–14, 2023</Text>
-            </View>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color="#D97706" style={{ marginRight: 2 }} />
-              <Text style={styles.ratingBadgeText}>5.0</Text>
-            </View>
-          </View>
-
-          <Text style={styles.reviewBody}>
-            {"\"The tea tasting experience was magical! The staff at Roam Ceylon truly went above and\nbeyond to make our anniversary special.\""}
+        {/* Empty Guest Reviews State */}
+        <View style={[styles.reviewCard, { alignItems: 'center', paddingVertical: 32 }]}>
+          <Ionicons name="chatbubbles-outline" size={36} color="#9CA3AF" style={{ marginBottom: 8 }} />
+          <Text style={[styles.authorName, { marginBottom: 4 }]}>No reviews yet</Text>
+          <Text style={[styles.authorSubtitle, { textAlign: 'center' }]}>
+            Guest reviews will appear here once travelers rate your activities.
           </Text>
-
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerDate}>Yesterday at 14:20</Text>
-            <TouchableOpacity style={styles.replyButton} activeOpacity={0.7}>
-              <MaterialCommunityIcons name="reply" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-              <Text style={styles.replyButtonText}>Reply</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Card 2: James Wilson */}
-        <View style={styles.reviewCard}>
-          <View style={styles.cardHeader}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.avatarImage}
-              contentFit="cover"
-            />
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>James Wilson</Text>
-              <Text style={styles.authorSubtitle}>Stayed Oct 08–11, 2023</Text>
-            </View>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color="#D97706" style={{ marginRight: 2 }} />
-              <Text style={styles.ratingBadgeText}>4.0</Text>
-            </View>
-          </View>
-
-          <Text style={styles.reviewBody}>
-            {"\"Incredible views and the pool is world-class. Would have appreciated a few more vegetarian\noptions for breakfast, but everything else was flawless.\""}
-          </Text>
-
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerDate}>Oct 12, 2023</Text>
-            <TouchableOpacity style={styles.replyButton} activeOpacity={0.7}>
-              <MaterialCommunityIcons name="reply" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-              <Text style={styles.replyButtonText}>Reply</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Card 3: Lina Schneider */}
-        <View style={styles.reviewCard}>
-          <View style={styles.cardHeader}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-              }}
-              style={styles.avatarImage}
-              contentFit="cover"
-            />
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>Lina Schneider</Text>
-              <Text style={styles.authorSubtitle}>Stayed Oct 05–07, 2023</Text>
-            </View>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color="#D97706" style={{ marginRight: 2 }} />
-              <Text style={styles.ratingBadgeText}>5.0</Text>
-            </View>
-          </View>
-
-          <Text style={styles.reviewBody}>
-            {"\"The sunrise from our balcony was worth the flight alone. Pristine cleanliness and\nexcellent service.\""}
-          </Text>
-
-          {/* Nested Responder sub-container */}
-          <View style={styles.responseContainer}>
-            <Text style={styles.responseLabel}>YOUR RESPONSE:</Text>
-            <Text style={styles.responseText}>
-              {"\"Thank you Lina! We're so glad you enjoyed the sunrise. We hope to welcome you back\nsoon.\""}
-            </Text>
-          </View>
-
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerDate}>Oct 09, 2023</Text>
-            <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
-              <Feather name="edit-2" size={13} color="#0E5E2F" style={{ marginRight: 4 }} />
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </View>

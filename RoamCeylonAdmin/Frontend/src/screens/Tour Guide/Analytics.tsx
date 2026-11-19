@@ -21,29 +21,29 @@ const Analytics = () => {
 
   // Traffic Source analytics data
   const trafficSources = [
-    { source: 'Direct Traffic', percent: 45, value: '20,340 views', color: '#0E5E2F' },
-    { source: 'Search Engines', percent: 30, value: '13,560 views', color: '#D97706' },
-    { source: 'Social Media Referral', percent: 25, value: '11,300 views', color: '#2563EB' },
+    { source: 'Direct Traffic', percent: 0, value: '0 views', color: '#0E5E2F' },
+    { source: 'Search Engines', percent: 0, value: '0 views', color: '#D97706' },
+    { source: 'Social Media Referral', percent: 0, value: '0 views', color: '#2563EB' },
   ];
 
   // Guest Country Demographics analytics data
   const demographics = [
-    { country: 'United Kingdom', percent: 40, color: '#0E5E2F' },
-    { country: 'United States', percent: 25, color: '#D97706' },
-    { country: 'Germany', percent: 15, color: '#2563EB' },
-    { country: 'Australia', percent: 10, color: '#7C3AED' },
-    { country: 'Others', percent: 10, color: '#6B7280' },
+    { country: 'United Kingdom', percent: 0, color: '#0E5E2F' },
+    { country: 'United States', percent: 0, color: '#D97706' },
+    { country: 'Germany', percent: 0, color: '#2563EB' },
+    { country: 'Australia', percent: 0, color: '#7C3AED' },
+    { country: 'Others', percent: 0, color: '#6B7280' },
   ];
 
-  // Custom Weekly Click trend mockup (representing Monday-Sunday)
+  // Weekly Click trend data (Monday-Sunday)
   const weeklyClicks = [
-    { day: 'Mon', clicks: 120, height: 40 },
-    { day: 'Tue', clicks: 180, height: 60 },
-    { day: 'Wed', clicks: 240, height: 80 },
-    { day: 'Thu', clicks: 220, height: 73 },
-    { day: 'Fri', clicks: 300, height: 100, isPeak: true },
-    { day: 'Sat', clicks: 150, height: 50 },
-    { day: 'Sun', clicks: 90, height: 30 },
+    { day: 'Mon', clicks: 0, height: 0, isPeak: false },
+    { day: 'Tue', clicks: 0, height: 0, isPeak: false },
+    { day: 'Wed', clicks: 0, height: 0, isPeak: false },
+    { day: 'Thu', clicks: 0, height: 0, isPeak: false },
+    { day: 'Fri', clicks: 0, height: 0, isPeak: false },
+    { day: 'Sat', clicks: 0, height: 0, isPeak: false },
+    { day: 'Sun', clicks: 0, height: 0, isPeak: false },
   ];
 
   const handlePeriodChange = (period: '30days' | '90days') => {
@@ -128,18 +128,18 @@ const Analytics = () => {
           <View style={styles.kpiRow}>
             <View style={styles.kpiCard}>
               <Text style={styles.kpiLabel}>Total Views</Text>
-              <Text style={styles.kpiValue}>45.2k</Text>
-              <Text style={styles.kpiSubText}>↗ +12.4% vs last mo</Text>
+              <Text style={styles.kpiValue}>0</Text>
+              <Text style={styles.kpiSubText}>0% vs last mo</Text>
             </View>
             <View style={styles.kpiCard}>
               <Text style={styles.kpiLabel}>Avg Conversion</Text>
-              <Text style={styles.kpiValue}>2.4%</Text>
-              <Text style={styles.kpiSubText}>↗ +0.5% vs last mo</Text>
+              <Text style={styles.kpiValue}>0%</Text>
+              <Text style={styles.kpiSubText}>0% vs last mo</Text>
             </View>
             <View style={styles.kpiCard}>
               <Text style={styles.kpiLabel}>Completed Trips</Text>
-              <Text style={styles.kpiValue}>148</Text>
-              <Text style={styles.kpiSubText}>↗ +8% vs last mo</Text>
+              <Text style={styles.kpiValue}>0</Text>
+              <Text style={styles.kpiSubText}>0% vs last mo</Text>
             </View>
           </View>
 

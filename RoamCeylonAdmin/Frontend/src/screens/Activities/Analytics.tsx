@@ -20,27 +20,27 @@ const Analytics = () => {
   const metrics = [
     {
       title: 'RevPAR',
-      value: 'LKR 18,450',
-      trend: '↑ 8.4% vs last mo',
-      trendColor: '#22C55E',
+      value: 'LKR 0',
+      trend: '0% vs last mo',
+      trendColor: '#6B7280',
       borderColor: '#0E5E2F',
       icon: 'cash-multiple',
       iconColor: '#0E5E2F',
     },
     {
       title: 'Average Daily Rate',
-      value: 'LKR 22,100',
-      trend: '↑ 3.2% vs last mo',
-      trendColor: '#22C55E',
+      value: 'LKR 0',
+      trend: '0% vs last mo',
+      trendColor: '#6B7280',
       borderColor: '#0E5E2F',
       icon: 'bed-outline',
       iconColor: '#0E5E2F',
     },
     {
       title: 'Direct Bookings %',
-      value: '64.2%',
-      trend: '↓ 1.5% vs last mo',
-      trendColor: '#EF4444',
+      value: '0%',
+      trend: '0% vs last mo',
+      trendColor: '#6B7280',
       borderColor: '#7D8A82',
       icon: 'flash-outline',
       iconColor: '#0E5E2F',
@@ -48,12 +48,10 @@ const Analytics = () => {
   ];
 
   // Revenue Trends Bar Chart Data
-  const revenueBars = [42, 68, 52, 85, 96, 78, 102, 70, 88, 75, 94];
+  const revenueBars = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
   // Occupancy Wave Chart Data
-  const occupancyWave = [
-    30, 34, 40, 48, 54, 58, 60, 58, 54, 48, 44, 42, 44, 48, 56, 68, 82, 96, 108, 114, 114, 108, 98, 84, 68, 52, 42, 38, 40, 46, 56, 70, 84, 94, 98
-  ];
+  const occupancyWave = Array(35).fill(0);
 
   return (
     <View style={styles.container}>
@@ -103,11 +101,11 @@ const Analytics = () => {
         <View style={styles.badgesRow}>
           <View style={styles.badgeOutline}>
             <MaterialCommunityIcons name="trending-up" size={16} color="#0E5E2F" style={{ marginRight: 4 }} />
-            <Text style={styles.badgeOutlineText}>Growth +12%</Text>
+            <Text style={styles.badgeOutlineText}>Growth 0%</Text>
           </View>
           <View style={styles.badgeSolid}>
             <Ionicons name="checkmark-circle" size={16} color="#0E5E2F" style={{ marginRight: 4 }} />
-            <Text style={styles.badgeSolidText}>Peak Season Status</Text>
+            <Text style={styles.badgeSolidText}>Standard Status</Text>
           </View>
         </View>
 
@@ -165,7 +163,7 @@ const Analytics = () => {
           <View style={styles.chartHeader}>
             <View>
               <Text style={styles.chartTitle}>Occupancy Rates</Text>
-              <Text style={styles.chartSubtitle}>Daily Average: 78%</Text>
+              <Text style={styles.chartSubtitle}>Daily Average: 0%</Text>
             </View>
             <TouchableOpacity style={styles.moreButton} activeOpacity={0.6}>
               <Feather name="download" size={20} color="#60646C" />
@@ -187,12 +185,6 @@ const Analytics = () => {
                   ]}
                 />
               ))}
-
-              {/* Node Indicator Dots absolute positioned */}
-              <View style={[styles.waveNode, { left: '16%', bottom: 60 }]} />
-              <View style={[styles.waveNode, { left: '30%', bottom: 40 }]} />
-              <View style={[styles.waveNode, { left: '56%', bottom: 114 }]} />
-              <View style={[styles.waveNode, { left: '78%', bottom: 60 }]} />
             </View>
 
             {/* X-Axis labels */}

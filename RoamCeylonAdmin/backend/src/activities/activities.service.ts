@@ -50,7 +50,7 @@ export class ActivitiesService {
       totalBookings,
       confirmedBookings,
       pendingBookings,
-      rating: '4.9', // Placeholder until review system is built
+      rating: '0.0', // Placeholder until review system is built
       recentActivities,
     };
   }

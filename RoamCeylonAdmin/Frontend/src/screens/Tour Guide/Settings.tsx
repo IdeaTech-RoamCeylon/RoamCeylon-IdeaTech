@@ -278,7 +278,7 @@ const Settings = () => {
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Manage Active Listings</Text>
-                <Text style={styles.settingSubtitle}>3 Active Packages in Ella & Galle</Text>
+                <Text style={styles.settingSubtitle}>0 Active Packages</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#60646C" />

@@ -93,7 +93,7 @@ const PendingInquiries = () => {
           >
             <Ionicons name="time-outline" size={20} color="#D97706" style={{ marginRight: 10 }} />
             <Text style={styles.alertText}>
-              <Text style={{ fontWeight: '800' }}>4 Urgent Requests</Text> require replies soon to maintain your 98% prompt score.
+              <Text style={{ fontWeight: '800' }}>{filteredPending.length} Pending Requests</Text> awaiting reply.
             </Text>
           </LinearGradient>
 

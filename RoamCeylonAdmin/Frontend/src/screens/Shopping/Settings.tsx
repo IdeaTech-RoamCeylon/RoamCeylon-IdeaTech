@@ -358,7 +358,7 @@ const Settings = () => {
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Manage Shops</Text>
-                <Text style={styles.settingSubtitle}>4 Active Shops in Network</Text>
+                <Text style={styles.settingSubtitle}>0 Active Shops</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#60646C" />

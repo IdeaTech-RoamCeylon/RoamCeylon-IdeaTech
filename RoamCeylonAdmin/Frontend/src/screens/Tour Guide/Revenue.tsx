@@ -71,6 +71,18 @@ const Revenue = () => {
 
   const breakdownColors = ['#0E5E2F', '#D97706', '#2563EB', '#7C3AED', '#DC2626'];
 
+  const currentMonthLabel = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
+  const currentMonthFullLabel = new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+  const monthlyGoal = 0;
+  const goalProgressPercent =
+    monthlyGoal > 0 ? Math.min(100, (totalRevenue / monthlyGoal) * 100) : 0;
+
   const handleViewAllBookingsPress = () => {
     router.push('/tour-guide/bookings' as any);
   };
@@ -105,7 +117,7 @@ const Revenue = () => {
           {/* Title Section */}
           <View style={styles.titleSection}>
             <Text style={styles.pageSubtitle}>
-              Detailed earnings and financial breakdown for October 2023.
+              Detailed earnings and financial breakdown for {currentMonthFullLabel}.
             </Text>
           </View>
 
@@ -126,7 +138,7 @@ const Revenue = () => {
               <Text style={styles.revenueCardTitle}>TOTAL ESTIMATED REVENUE</Text>
               <View style={styles.periodBadge}>
                 <Ionicons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.8)" style={{ marginRight: 4 }} />
-                <Text style={styles.periodBadgeText}>Oct 2023</Text>
+                <Text style={styles.periodBadgeText}>{currentMonthLabel}</Text>
               </View>
             </View>
 
@@ -136,7 +148,7 @@ const Revenue = () => {
 
               <View style={styles.trendBadgeGlass}>
                 <Ionicons name="trending-up" size={13} color="#34D399" style={{ marginRight: 4 }} />
-                <Text style={styles.trendBadgeGlassText}>+14.2%</Text>
+                <Text style={styles.trendBadgeGlassText}>0%</Text>
               </View>
             </View>
 
@@ -147,7 +159,9 @@ const Revenue = () => {
             <View style={styles.targetProgressContainer}>
               <View style={styles.targetProgressLabelRow}>
                 <Text style={styles.targetProgressLabel}>Monthly Goal Progress</Text>
-                <Text style={styles.targetProgressValue}>$84,500 / $100,000</Text>
+                <Text style={styles.targetProgressValue}>
+                  Rs. {totalRevenue.toLocaleString()} / Rs. {monthlyGoal.toLocaleString()}
+                </Text>
               </View>
 
               {/* Progress Bar Track */}
@@ -156,13 +170,15 @@ const Revenue = () => {
                   colors={['#34D399', '#059669']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={[styles.progressBarFill, { width: '84.5%' }]}
+                  style={[styles.progressBarFill, { width: `${goalProgressPercent}%` }]}
                 />
               </View>
 
               {/* Target Progress Context Footnote */}
               <Text style={styles.targetProgressFootnote}>
-                On track to exceed target by $2,900
+                {totalRevenue > 0
+                  ? `Rs. ${totalRevenue.toLocaleString()} earned from confirmed & completed bookings`
+                  : 'Rs. 0 earned so far this period'}
               </Text>
             </View>
           </LinearGradient>

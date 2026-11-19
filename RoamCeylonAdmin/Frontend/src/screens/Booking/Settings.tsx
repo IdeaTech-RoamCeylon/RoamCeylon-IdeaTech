@@ -279,7 +279,7 @@ const Settings = () => {
               </View>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Manage Properties</Text>
-                <Text style={styles.settingSubtitle}>12 Active Listings in Bentota</Text>
+                <Text style={styles.settingSubtitle}>0 Active Listings</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#60646C" />
