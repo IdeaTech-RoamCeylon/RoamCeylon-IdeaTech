@@ -458,6 +458,8 @@ const HotelDetails = () => {
             ? [markerCoordinate.longitude, markerCoordinate.latitude]
             : null
         }
+        initialAddress={streetAddress}
+        searchPlaceholder="Search hotel name or address..."
       />
 
       {/* Category Modal */}
